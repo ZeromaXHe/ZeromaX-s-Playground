@@ -1,0 +1,52 @@
+[gd_scene load_steps=2 format=3 uid="uid://bas1lfwa1du14"]
+
+[ext_resource type="Script" path="res://menu/main/MainMenu.cs" id="1_oj2rg"]
+
+[node name="Control" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_oj2rg")
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="CenterContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="CenterContainer/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "HEX_GLOBAL_GAME_TITLE"
+
+[node name="HSeparator" type="HSeparator" parent="CenterContainer/VBox"]
+layout_mode = 2
+
+[node name="ButtonVBox" type="VBoxContainer" parent="CenterContainer/VBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="LanguageOptionButton" type="OptionButton" parent="CenterContainer/VBox/ButtonVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 1
+item_count = 2
+popup/item_0/text = "中文"
+popup/item_1/text = "English"
+popup/item_1/id = 1
+
+[node name="StartButton" type="Button" parent="CenterContainer/VBox/ButtonVBox"]
+layout_mode = 2
+text = "START_GAME_BUTTON"
+
+[node name="QuitButton" type="Button" parent="CenterContainer/VBox/ButtonVBox"]
+layout_mode = 2
+text = "QUIT_GAME_BUTTON"
