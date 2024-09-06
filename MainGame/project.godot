@@ -18,6 +18,13 @@ config/icon="res://icon.svg"
 
 project/assembly_name="HexGlobalGame"
 
+[file_customization]
+
+folder_colors={
+"res://game/": "red",
+"res://menu/": "green"
+}
+
 [internationalization]
 
 locale/translations=PackedStringArray("res://localization/language.en.translation", "res://localization/language.zh.translation")
