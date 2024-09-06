@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://bg8dpxak3ia38"]
+[gd_scene load_steps=15 format=3 uid="uid://bg8dpxak3ia38"]
 
 [ext_resource type="Script" path="res://game/hexGlobal/scripts/components/HexPlanetManager.cs" id="1_mh3cs"]
 [ext_resource type="Script" path="res://game/hexGlobal/scripts/HexPlanet.cs" id="2_lb1tb"]
@@ -17,6 +17,67 @@ background_mode = 2
 sky = SubResource("Sky_2747e")
 tonemap_mode = 2
 glow_enabled = true
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_mld2v"]
+noise_type = 0
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_l25rw"]
+noise = SubResource("FastNoiseLite_mld2v")
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_vwq68"]
+noise = SubResource("FastNoiseLite_mld2v")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_4s48r"]
+transparency = 1
+albedo_color = Color(0.0901961, 0.333333, 0.494118, 0.529412)
+roughness = 0.0
+normal_enabled = true
+normal_scale = 0.03
+normal_texture = SubResource("NoiseTexture2D_l25rw")
+refraction_enabled = true
+refraction_texture = SubResource("NoiseTexture2D_vwq68")
+proximity_fade_enabled = true
+proximity_fade_distance = 0.5
+distance_fade_mode = 1
+distance_fade_max_distance = 1.0
+
+[sub_resource type="Animation" id="Animation_vlpe6"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Water:material:uv1_offset")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 0, 0)]
+}
+
+[sub_resource type="Animation" id="Animation_opdqc"]
+resource_name = "water"
+length = 5.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Water:material:uv1_offset")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector3(0, 0, 0), Vector3(1, 0, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_uyaqi"]
+_data = {
+"RESET": SubResource("Animation_vlpe6"),
+"water": SubResource("Animation_opdqc")
+}
 
 [node name="HexPlanetManager" type="Node3D" groups=["HexPlanetManager"]]
 script = ExtResource("1_mh3cs")
@@ -47,3 +108,17 @@ script = ExtResource("4_b8vyd")
 Origin = NodePath("../CameraOrigin")
 
 [node name="CameraOrigin" type="Marker3D" parent="."]
+
+[node name="Water" type="CSGSphere3D" parent="."]
+transform = Transform3D(3, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0)
+radius = 33.05
+radial_segments = 100
+rings = 50
+material = SubResource("StandardMaterial3D_4s48r")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Water"]
+root_node = NodePath("../..")
+libraries = {
+"": SubResource("AnimationLibrary_uyaqi")
+}
+autoplay = "water"

@@ -28,9 +28,9 @@ public partial class PerlinTerrainGenerator : BaseTerrainGenerator
     public List<ColorHeight> ColorHeights = new()
     {
         new(Colors.Blue, 0.0f),
-        new(Colors.Green, 2.0f),
-        new(Colors.LightGreen, 4.0f),
-        new(Colors.Yellow, 6.0f),
+        new(Colors.DarkGreen, 2.0f),
+        new(Colors.DarkOliveGreen, 4.0f),
+        new(Colors.GreenYellow, 6.0f),
         new(Colors.YellowGreen, 8.0f),
         new(Colors.White, 10.0f),
     };
