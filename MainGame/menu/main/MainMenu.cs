@@ -13,8 +13,8 @@ public partial class MainMenu : Control
         _languageOptionButton.ItemSelected += index => SetLocale((int)index);
 
         string locale = OS.GetLocale();
-        GD.Print(locale);
-        if (locale != null && locale.StartsWith("zh"))
+        GD.Print(locale); // zh_CN
+        if (locale != null && locale.StartsWith("zh_"))
         {
             _languageOptionButton.Selected = 0;
         }
