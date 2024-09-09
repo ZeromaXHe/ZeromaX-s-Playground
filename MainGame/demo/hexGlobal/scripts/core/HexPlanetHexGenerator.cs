@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using Godot.Collections;
-using HexGlobalGame.game.hexGlobal.scripts.core;
+using ZeromaXPlayground.demo.hexGlobal.scripts.core;
 
 public partial class HexPlanetHexGenerator
 {

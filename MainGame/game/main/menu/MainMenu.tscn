@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://bas1lfwa1du14"]
 
-[ext_resource type="Script" path="res://menu/main/MainMenu.cs" id="1_oj2rg"]
+[ext_resource type="Script" path="res://game/main/menu/MainMenu.cs" id="1_oj2rg"]
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -25,7 +25,7 @@ layout_mode = 2
 [node name="Title" type="Label" parent="CenterContainer/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
-text = "HEX_GLOBAL_GAME_TITLE"
+text = "ZEROMAX_PLAYGROUND_GAME_TITLE"
 
 [node name="HSeparator" type="HSeparator" parent="CenterContainer/VBox"]
 layout_mode = 2

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Godot;
 
-namespace HexGlobalGame.game.hexGlobal.scripts.core;
+namespace ZeromaXPlayground.demo.hexGlobal.scripts.core;
 
 public class HexTile
 {

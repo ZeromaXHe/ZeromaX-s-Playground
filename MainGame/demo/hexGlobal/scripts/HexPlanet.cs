@@ -1,7 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
-using HexGlobalGame.game.hexGlobal.scripts.core;
+using ZeromaXPlayground.demo.hexGlobal.scripts.core;
 
 [Tool]
 public partial class HexPlanet : Node3D

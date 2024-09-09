@@ -21,8 +21,9 @@ project/assembly_name="ZeromaXPlayground"
 [file_customization]
 
 folder_colors={
+"res://demo/": "orange",
 "res://game/": "red",
-"res://menu/": "green"
+"res://resources/": "gray"
 }
 
 [internationalization]

@@ -31,9 +31,16 @@ public partial class HexPlanetManager : Node3D
     public void UpdateRenderObjects()
     {
         // 删除所有子节点 Delete all children
-        foreach (Node child in _hexChunkRenders.GetChildren())
+        if (_hexChunkRenders == null)
         {
-            child.QueueFree();
+            GD.Print("_hexChunkRenders is null");
+        }
+        else
+        {
+            foreach (Node child in _hexChunkRenders.GetChildren())
+            {
+                child.QueueFree();
+            }
         }
 
         if (HexPlanet == null)

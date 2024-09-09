@@ -1,9 +1,9 @@
 [gd_scene load_steps=15 format=3 uid="uid://bg8dpxak3ia38"]
 
-[ext_resource type="Script" path="res://game/hexGlobal/scripts/components/HexPlanetManager.cs" id="1_mh3cs"]
-[ext_resource type="Script" path="res://game/hexGlobal/scripts/HexPlanet.cs" id="2_lb1tb"]
-[ext_resource type="Script" path="res://game/hexGlobal/scripts/core/terrainGenerator/PerlinTerrainGenerator.cs" id="3_j3ctv"]
-[ext_resource type="Script" path="res://game/hexGlobal/scripts/CameraOrbit.cs" id="4_b8vyd"]
+[ext_resource type="Script" path="res://demo/hexGlobal/scripts/components/HexPlanetManager.cs" id="1_mh3cs"]
+[ext_resource type="Script" path="res://demo/hexGlobal/scripts/HexPlanet.cs" id="2_lb1tb"]
+[ext_resource type="Script" path="res://demo/hexGlobal/scripts/core/terrainGenerator/PerlinTerrainGenerator.cs" id="3_j3ctv"]
+[ext_resource type="Script" path="res://demo/hexGlobal/scripts/CameraOrbit.cs" id="4_b8vyd"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_vw3uy"]
 sky_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)

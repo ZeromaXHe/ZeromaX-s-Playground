@@ -1,6 +1,6 @@
 using Godot;
 using System;
-using HexGlobalGame.game.hexGlobal.scripts.core;
+using ZeromaXPlayground.demo.hexGlobal.scripts.core;
 
 public partial class HexChunkRenderer : MeshInstance3D
 {
