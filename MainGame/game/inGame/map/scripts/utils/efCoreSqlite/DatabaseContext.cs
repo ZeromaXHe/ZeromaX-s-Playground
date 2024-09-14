@@ -1,7 +1,7 @@
 using Godot;
 using Microsoft.EntityFrameworkCore;
 
-namespace ZeromaXPlayground.game.inGame.map.scripts.dao;
+namespace ZeromaXPlayground.game.inGame.map.scripts.utils.efCoreSqlite;
 
 public class DatabaseContext: DbContext
 {

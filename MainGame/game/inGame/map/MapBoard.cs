@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using ZeromaXPlayground.game.inGame.map.scripts;
-using ZeromaXPlayground.game.inGame.map.scripts.dao;
+using ZeromaXPlayground.game.inGame.map.scripts.utils.efCoreSqlite;
 using Player = ZeromaXPlayground.game.inGame.map.scripts.Player;
 
 public partial class MapBoard : Node2D
