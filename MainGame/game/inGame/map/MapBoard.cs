@@ -1,10 +1,6 @@
-using Godot;
-using System;
 using System.Collections.Generic;
-using System.IO;
+using Godot;
 using ZeromaXPlayground.game.inGame.map.scripts;
-using ZeromaXPlayground.game.inGame.map.scripts.utils.efCoreSqlite;
-using Player = ZeromaXPlayground.game.inGame.map.scripts.Player;
 
 public partial class MapBoard : Node2D
 {
@@ -12,8 +8,6 @@ public partial class MapBoard : Node2D
     private TileMapLayer _feature;
     private TileMapLayer _territory;
     private Timer _tickTimer;
-
-    private readonly DatabaseContext _databaseContext = new();
 
     [Export(PropertyHint.Range, "2,8")] private int _playerCount = 2;
 
@@ -58,45 +52,6 @@ public partial class MapBoard : Node2D
 
         _tickTimer.Timeout += OnTickTimerTimeout;
         _tickTimer.Start();
-
-        InitDatabase();
-    }
-
-    private void InitDatabase()
-    {
-        GD.Print("创建数据库开始");
-        // 检查并创建中间目录
-        EnsureDirectoryExists(_databaseContext.DbFilePath);
-
-        if (!File.Exists(_databaseContext.DbFilePath))
-        {
-            if (_databaseContext.Database.EnsureCreated())
-            {
-                GD.Print("数据库创建成功");
-            }
-            else
-            {
-                GD.Print("数据库创建失败");
-            }
-        }
-        else
-        {
-            GD.Print("数据库已经存在，无需创建");
-        }
-    }
-
-    /**
-     * 确保路径所在目录存在，支持递归创建路径上的多个目录
-     */
-    private static void EnsureDirectoryExists(string path)
-    {
-        string dir = Path.GetDirectoryName(path);
-        if (dir != null && !Directory.Exists(dir))
-        {
-            EnsureDirectoryExists(dir);
-        }
-
-        Directory.CreateDirectory(path);
     }
 
     private void OnPlayerTerritoryConquered(Player player, Vector2I vec)
