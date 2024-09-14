@@ -1,6 +1,8 @@
-using System.Collections.Generic;
 using Godot;
-using ZeromaXPlayground.game.inGame.map.scripts;
+using ZeromaXPlayground.game.inGame.map.scripts.domain;
+using ZeromaXPlayground.game.inGame.map.scripts.eventBus;
+
+namespace ZeromaXPlayground.game.inGame.map;
 
 public partial class MapBoard : Node2D
 {
@@ -10,9 +12,6 @@ public partial class MapBoard : Node2D
     private Timer _tickTimer;
 
     [Export(PropertyHint.Range, "2,8")] private int _playerCount = 2;
-
-    private GameMap _gameMap;
-    private List<Player> _playerList;
 
     private const int TerritorySrcId = 0;
 
@@ -35,40 +34,26 @@ public partial class MapBoard : Node2D
         _feature.Clear();
         _territory.Clear();
 
-        _gameMap = new GameMap(_baseTerrain);
-        _playerList = new List<Player>();
+        EventBus.Instance.TerritoryConquered += OnPlayerTerritoryConquered;
 
-        var usedCells = _baseTerrain.GetUsedCells();
-        usedCells.Shuffle();
-        for (int i = 0; i < _playerCount; i++)
-        {
-            GD.Print($"creating player {i}");
-            var player = new Player(i);
-            _playerList.Add(player);
-            player.TerritoryConquered += OnPlayerTerritoryConquered;
-            player.TerritoryLost += OnPlayerTerritoryLost;
-            player.ConquerTerritory(usedCells[i]);
-        }
+        TileInfo.InitMapTile(_baseTerrain);
+        Player.InitAndSpawnOnTile(_baseTerrain, _playerCount);
 
-        _tickTimer.Timeout += OnTickTimerTimeout;
+        _tickTimer.Timeout += () => EventBus.Instance.EmitSignal(EventBus.SignalName.TimeTicked);
         _tickTimer.Start();
     }
 
-    private void OnPlayerTerritoryConquered(Player player, Vector2I vec)
+    private void OnPlayerTerritoryConquered(int conquerorId, int loserId, Vector2I vec)
     {
-        GD.Print($"player id: {player.Id} conquered territory at vec: {vec}");
-        _territory.SetCell(vec, TerritorySrcId, TerritoryAtlasCoords[player.Id]);
-    }
-
-    private void OnPlayerTerritoryLost(Player player, Vector2I vec)
-    {
-        GD.Print($"player id: {player.Id} lost territory at vec: {vec}");
-        // TODO: 可能存在的异步问题？比如 A 占领了 B 的领土的时候，会不会 B 丢失的事件后执行？
-        _territory.EraseCell(vec);
-    }
-
-    private void OnTickTimerTimeout()
-    {
+        if (conquerorId < 0)
+        {
+            _territory.EraseCell(vec);
+        }
+        else
+        {
+            // Player 的 Id 从 1 开始，所以要减一
+            _territory.SetCell(vec, TerritorySrcId, TerritoryAtlasCoords[conquerorId - 1]);
+        }
     }
 
     // Called every frame. 'delta' is the elapsed time since the previous frame.
