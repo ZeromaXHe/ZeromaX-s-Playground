@@ -77,6 +77,13 @@ public partial class MapBoard : Node2D
     {
         // 随机出兵地块、目标地块、出动兵力
         var tileInfos = TileInfo.GetByPlayerId(player.Id);
+        if (tileInfos.Count == 0)
+        {
+            // 玩家已经没有领土了，出不了兵
+            GD.Print($"玩家 {player.Id} 已经灭亡！");
+            return;
+        }
+
         var random = new Random();
         var fromTile = tileInfos[random.Next(tileInfos.Count)];
         var candidateToTileIds = NavigationService.Instance.GetPointConnections(fromTile.Id);
@@ -95,7 +102,7 @@ public partial class MapBoard : Node2D
     {
         return _territory.ToGlobal(_territory.MapToLocal(coord));
     }
-    
+
     private void OnMarchingArmyArrivedDestination(int marchingArmyId)
     {
         // 结束之前的行军
