@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using ZeromaXPlayground.game.inGame.map.scripts.constant;
 using ZeromaXPlayground.game.inGame.map.scripts.eventBus;
@@ -6,8 +7,14 @@ using ZeromaXPlayground.game.inGame.map.scripts.service;
 
 namespace ZeromaXPlayground.game.inGame.map.scripts.domain;
 
-public class TileInfo
+public partial class TileInfo: GodotObject
 {
+    /**
+     * 地块人口增加事件
+     */
+    [Signal]
+    public delegate void PopulationChangedEventHandler(int population);
+
     private static int _nextId = 1;
     private static readonly Dictionary<int, TileInfo> IdMap = new();
     private static readonly Dictionary<Vector2I, TileInfo> CoordMap = new();
@@ -17,12 +24,22 @@ public class TileInfo
     /**
      * 坐标
      */
-    private readonly Vector2I _coord;
+    public readonly Vector2I Coord;
 
     /**
      * 人口
      */
-    private int _population = 0;
+    public int Population
+    {
+        get => _population;
+        private set
+        {
+            EmitSignal(SignalName.PopulationChanged, value);
+            _population = value;
+        }
+    }
+
+    private int _population;
 
     /**
      * 所属的玩家
@@ -32,12 +49,12 @@ public class TileInfo
     public TileInfo(Vector2I coord)
     {
         Id = _nextId++;
-        _coord = coord;
+        Coord = coord;
         NavigationService.Instance.AddPoint(Id, coord);
         IdMap.Add(Id, this); // Add 在 Id 重复的时候会报错，符合我们的需要；索引方式添加会直接覆盖原值
-        CoordMap.Add(_coord, this);
+        CoordMap.Add(Coord, this);
     }
-    
+
     public static void InitMapTile(TileMapLayer baseTerrain)
     {
         // 根据 BaseTerrain 层的内容预生成地图
@@ -54,6 +71,14 @@ public class TileInfo
         }
     }
 
+    public static void AllPlayerTilesAddPopulation(int incr)
+    {
+        foreach (var tile in IdMap.Values.Where(tile => tile._playerId != Constants.NullId))
+        {
+            tile.Population += incr;
+        }
+    }
+
     public void ConnectTile(int tileInfoId)
     {
         NavigationService.Instance.ConnectPoints(tileInfoId, Id);
@@ -61,7 +86,8 @@ public class TileInfo
 
     public void ConqueredBy(int conquerorId)
     {
-        EventBus.Instance.EmitSignal(EventBus.SignalName.TerritoryConquered, conquerorId, _playerId, _coord);
+        EventBus.Instance.EmitSignal(EventBus.SignalName.TileConquered, conquerorId, _playerId, Coord);
+        _playerId = conquerorId;
     }
 
     #region 查询方法
