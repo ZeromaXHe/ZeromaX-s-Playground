@@ -7,17 +7,12 @@ using ZeromaXPlayground.game.inGame.map.scripts.service;
 
 namespace ZeromaXPlayground.game.inGame.map.scripts.domain;
 
-public partial class TileInfo: GodotObject
+public partial class TileInfo : GodotObject
 {
-    /**
-     * 地块人口增加事件
-     */
-    [Signal]
-    public delegate void PopulationChangedEventHandler(int population);
-
     private static int _nextId = 1;
     private static readonly Dictionary<int, TileInfo> IdMap = new();
     private static readonly Dictionary<Vector2I, TileInfo> CoordMap = new();
+    private static readonly Dictionary<int, List<TileInfo>> PlayerIdMap = new();
 
     public int Id { get; }
 
@@ -32,10 +27,10 @@ public partial class TileInfo: GodotObject
     public int Population
     {
         get => _population;
-        private set
+        set
         {
-            EmitSignal(SignalName.PopulationChanged, value);
             _population = value;
+            EventBus.Instance.EmitSignal(EventBus.SignalName.TilePopulationChanged, Id);
         }
     }
 
@@ -44,9 +39,38 @@ public partial class TileInfo: GodotObject
     /**
      * 所属的玩家
      */
+    public int PlayerId
+    {
+        get => _playerId;
+        private set
+        {
+            if (_playerId != Constants.NullId)
+            {
+                PlayerIdMap[_playerId].Remove(this);
+                if (PlayerIdMap[_playerId].Count == 0)
+                {
+                    PlayerIdMap.Remove(_playerId);
+                }
+            }
+
+            _playerId = value;
+            if (_playerId != Constants.NullId)
+            {
+                if (PlayerIdMap.TryGetValue(_playerId, out var getVal))
+                {
+                    getVal.Add(this);
+                }
+                else
+                {
+                    PlayerIdMap.Add(_playerId, new List<TileInfo> { this });
+                }
+            }
+        }
+    }
+
     private int _playerId = Constants.NullId;
 
-    public TileInfo(Vector2I coord)
+    private TileInfo(Vector2I coord)
     {
         Id = _nextId++;
         Coord = coord;
@@ -73,43 +97,40 @@ public partial class TileInfo: GodotObject
 
     public static void AllPlayerTilesAddPopulation(int incr)
     {
-        foreach (var tile in IdMap.Values.Where(tile => tile._playerId != Constants.NullId))
+        // 目前超过 1000 人口的地块不再增长
+        foreach (var tile in IdMap.Values
+                     .Where(tile => tile._playerId != Constants.NullId && tile.Population < 1000))
         {
             tile.Population += incr;
         }
     }
 
-    public void ConnectTile(int tileInfoId)
+    private void ConnectTile(int tileInfoId)
     {
         NavigationService.Instance.ConnectPoints(tileInfoId, Id);
     }
 
     public void ConqueredBy(int conquerorId)
     {
-        EventBus.Instance.EmitSignal(EventBus.SignalName.TileConquered, conquerorId, _playerId, Coord);
-        _playerId = conquerorId;
+        EventBus.Instance.EmitSignal(EventBus.SignalName.TileConquered, Id, conquerorId, PlayerId);
+        PlayerId = conquerorId;
     }
 
     #region 查询方法
 
     public static TileInfo GetById(int id)
     {
-        if (IdMap.TryGetValue(id, out var result))
-        {
-            return result;
-        }
-
-        return null;
+        return IdMap.TryGetValue(id, out var result) ? result : null;
     }
 
     public static TileInfo GetByCoord(Vector2I coord)
     {
-        if (CoordMap.TryGetValue(coord, out var result))
-        {
-            return result;
-        }
+        return CoordMap.TryGetValue(coord, out var result) ? result : null;
+    }
 
-        return null;
+    public static List<TileInfo> GetByPlayerId(int playerId)
+    {
+        return PlayerIdMap.TryGetValue(playerId, out var result) ? result : null;
     }
 
     #endregion

@@ -10,7 +10,19 @@ public sealed partial class EventBus : GodotObject
      * Godot 信号无法传递 int?（用来传递 null 表示无主之地），只能用 int -1（Constants.NullId）表示了。
      */
     [Signal]
-    public delegate void TileConqueredEventHandler(int conquerorId, int loserId, Vector2I vec);
+    public delegate void TileConqueredEventHandler(int tileId, int conquerorId, int loserId);
+
+    /**
+     * 地块人口增加事件
+     */
+    [Signal]
+    public delegate void TilePopulationChangedEventHandler(int tileId);
+    
+    /**
+     * 部队到达目的地事件
+     */
+    [Signal]
+    public delegate void MarchingArmyArrivedDestinationEventHandler(int marchingArmyId);
 
     /**
      * 延迟加载的懒汉式单例初始化（原理估计和 Java 类似，lambda 也是匿名内部类？）

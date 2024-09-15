@@ -139,6 +139,8 @@ tile_set = SubResource("TileSet_ww65t")
 [node name="TickTimer" type="Timer" parent="."]
 wait_time = 0.5
 
+[node name="MarchingLines" type="Node2D" parent="."]
+
 [node name="TileGUIs" type="Control" parent="."]
 layout_mode = 3
 anchors_preset = 0

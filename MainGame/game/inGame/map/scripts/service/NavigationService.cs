@@ -23,4 +23,9 @@ public class NavigationService
     {
         _aStar2D.ConnectPoints(fromId, toId);
     }
+
+    public long[] GetPointConnections(int id)
+    {
+        return _aStar2D.GetPointConnections(id);
+    }
 }

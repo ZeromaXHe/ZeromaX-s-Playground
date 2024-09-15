@@ -1,0 +1,30 @@
+[gd_scene load_steps=3 format=3 uid="uid://c44emv0oijfbb"]
+
+[ext_resource type="Script" path="res://game/inGame/map/scenes/MarchingLine.cs" id="1_krgfa"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_c738i"]
+
+[node name="MarchingLine" type="Line2D"]
+points = PackedVector2Array(0, 0, 200, 0)
+script = ExtResource("1_krgfa")
+
+[node name="PanelContainer" type="PanelContainer" parent="."]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer"]
+layout_mode = 2
+
+[node name="Population" type="Label" parent="PanelContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+text = "100"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ProgressBar" type="ProgressBar" parent="PanelContainer/VBoxContainer"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+theme_override_styles/fill = SubResource("StyleBoxFlat_c738i")
+value = 50.0

@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
+using ZeromaXPlayground.game.inGame.map.scripts.constant;
 
 namespace ZeromaXPlayground.game.inGame.map.scripts.domain;
 
@@ -8,6 +10,8 @@ public class Player
     private static int _nextId = 1;
     private static readonly Dictionary<int, Player> IdMap = new();
     public int Id { get; }
+
+    private int _marchingArmyId = Constants.NullId;
 
     public Player()
     {
@@ -30,12 +34,12 @@ public class Player
 
     public static Player GetById(int id)
     {
-        if (IdMap.TryGetValue(id, out var result))
-        {
-            return result;
-        }
+        return IdMap.TryGetValue(id, out var result) ? result : null;
+    }
 
-        return null;
+    public static List<Player> GetAll()
+    {
+        return IdMap.Values.ToList();
     }
 
     #endregion

@@ -1,28 +1,33 @@
+using System.Collections.Generic;
 using Godot;
 using ZeromaXPlayground.game.inGame.map.scripts.domain;
-using ZeromaXPlayground.game.inGame.map.scripts.eventBus;
 
 namespace ZeromaXPlayground.game.inGame.map.scenes;
 
 public partial class TileGui : Control
 {
+    private static readonly Dictionary<int, TileGui> IdMap = new();
+
     #region on-ready nodes
 
     private Label _population;
 
     #endregion
 
+    private int _id;
     private Vector2I _coord;
     
-    public void Init(int tileInfoId)
+    public void Init(TileInfo tileInfo, Vector2 globalPosition)
     {
-        TileInfo tileInfo = TileInfo.GetById(tileInfoId);
+        _id = tileInfo.Id;
+        IdMap[_id] = this;
         _coord = tileInfo.Coord;
         _population.Text = tileInfo.Population.ToString();
-        tileInfo.PopulationChanged += OnTilePopulationChanged;
+
+        Position = globalPosition;
     }
 
-    private void OnTilePopulationChanged(int population)
+    public void ChangePopulation(int population)
     {
         _population.Text = population.ToString();
     }
@@ -37,4 +42,13 @@ public partial class TileGui : Control
     public override void _Process(double delta)
     {
     }
+    
+    #region 查询接口
+
+    public static TileGui GetById(int id)
+    {
+        return IdMap.TryGetValue(id, out var result) ? result : null;
+    }
+    
+    #endregion
 }
