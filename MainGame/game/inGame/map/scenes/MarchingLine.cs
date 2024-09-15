@@ -37,6 +37,11 @@ public partial class MarchingLine : Line2D
         _panelContainer.Position = (to - from) / 2 - _panelContainer.Size / 2;
         // 进度条
         _progressBar.Value = 0;
+        if (to.X < from.X)
+        {
+            _progressBar.SetFillMode((int)ProgressBar.FillModeEnum.EndToBegin);
+        }
+
         var styleBoxFlat = new StyleBoxFlat();
         styleBoxFlat.BgColor = color;
         _progressBar.Set("theme_override_styles/fill", styleBoxFlat);
