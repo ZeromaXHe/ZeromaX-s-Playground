@@ -1,4 +1,7 @@
-[gd_scene format=3 uid="uid://c2e3r03l4pndl"]
+[gd_scene load_steps=3 format=3 uid="uid://c2e3r03l4pndl"]
+
+[ext_resource type="Script" path="res://game/inGame/menu/InGameMenu.cs" id="1_3topt"]
+[ext_resource type="PackedScene" uid="uid://bqe7j1n5pwf0k" path="res://game/inGame/map/MapBoard.tscn" id="1_6jjyr"]
 
 [node name="InGameMenu" type="Control"]
 layout_mode = 3
@@ -7,29 +10,54 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("1_3topt")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="SubViewportContainer" type="SubViewportContainer" parent="."]
 layout_mode = 2
-
-[node name="SubViewportContainer" type="SubViewportContainer" parent="MarginContainer/VBoxContainer"]
-layout_mode = 2
+offset_right = 1152.0
+offset_bottom = 648.0
 size_flags_vertical = 3
 stretch = true
 
-[node name="SubViewport" type="SubViewport" parent="MarginContainer/VBoxContainer/SubViewportContainer"]
+[node name="SubViewport" type="SubViewport" parent="SubViewportContainer"]
 handle_input_locally = false
-size = Vector2i(1132, 628)
+size = Vector2i(1152, 648)
 size_2d_override_stretch = true
 render_target_update_mode = 4
+
+[node name="MapBoard" parent="SubViewportContainer/SubViewport" instance=ExtResource("1_6jjyr")]
+
+[node name="TopLeftPanel" type="PanelContainer" parent="."]
+layout_mode = 1
+offset_right = 397.0
+offset_bottom = 58.0
+
+[node name="TopLeftVBox" type="VBoxContainer" parent="TopLeftPanel"]
+layout_mode = 2
+
+[node name="TabBar" type="TabBar" parent="TopLeftPanel/TopLeftVBox"]
+layout_mode = 2
+current_tab = 0
+deselect_enabled = true
+tab_count = 1
+tab_0/title = "PLAYER_INFOS"
+tab_0/tooltip = "PLAYER_INFOS_TOOLTIP"
+
+[node name="PlayerInfosGrid" type="GridContainer" parent="TopLeftPanel/TopLeftVBox"]
+layout_mode = 2
+columns = 3
+
+[node name="PlayerTitle" type="Label" parent="TopLeftPanel/TopLeftVBox/PlayerInfosGrid"]
+layout_mode = 2
+text = "PLAYER_TITLE"
+
+[node name="TerritoryTitle" type="Label" parent="TopLeftPanel/TopLeftVBox/PlayerInfosGrid"]
+layout_mode = 2
+text = "TERRITORY_TITLE"
+
+[node name="PopulationTitle" type="Label" parent="TopLeftPanel/TopLeftVBox/PlayerInfosGrid"]
+layout_mode = 2
+text = "POPULATION_TITLE"
+
+[node name="RefreshTimer" type="Timer" parent="."]
+autostart = true

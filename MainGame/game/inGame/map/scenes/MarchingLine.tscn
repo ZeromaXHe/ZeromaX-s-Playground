@@ -11,8 +11,10 @@ script = ExtResource("1_krgfa")
 
 [node name="PanelContainer" type="PanelContainer" parent="."]
 z_index = -1
-offset_right = 40.0
-offset_bottom = 40.0
+offset_left = 70.0
+offset_top = -23.0
+offset_right = 120.0
+offset_bottom = 31.0
 
 [node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer"]
 layout_mode = 2

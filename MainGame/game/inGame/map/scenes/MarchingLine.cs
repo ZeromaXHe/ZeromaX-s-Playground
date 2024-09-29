@@ -30,7 +30,7 @@ public partial class MarchingLine : Line2D
         // 线条
         Position = from;
         Points = new[] { Vector2.Zero, to - from }; // Points[1] = to - from; 这种写法无法生效
-        GD.Print($"MarchingLine Init Points: {string.Join(",", Points)}");
+        // GD.Print($"MarchingLine Init Points: {string.Join(",", Points)}");
         DefaultColor = color;
         // 信息栏
         _populationLabel.Text = $"{marchingArmy.Population}";

@@ -34,12 +34,6 @@ public partial class MapBoard : Node2D
         new(0, 3), new(1, 3), new(2, 3), new(3, 3)
     };
 
-    private static readonly Color[] PlayerColors =
-    {
-        Colors.Red, Colors.Yellow, Colors.Green, Colors.Aqua,
-        Colors.Blue, Colors.Purple, Colors.DeepPink, Colors.Orange
-    };
-
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
@@ -95,7 +89,8 @@ public partial class MapBoard : Node2D
         var marchingLine = _marchingLineScene.Instantiate<MarchingLine>();
         _marchingLines.AddChild(marchingLine);
         marchingLine.Init(marchingArmy, GetTileCoordGlobalPosition(fromTile.Coord),
-            GetTileCoordGlobalPosition(toTile.Coord), PlayerColors[player.Id - 1]); // Player 的 Id 从 1 开始，所以要减一
+            GetTileCoordGlobalPosition(toTile.Coord),
+            Constants.PlayerColors[player.Id - 1]); // Player 的 Id 从 1 开始，所以要减一
     }
 
     private Vector2 GetTileCoordGlobalPosition(Vector2I coord)

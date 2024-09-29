@@ -2,3 +2,16 @@ id,zh,en
 ZEROMAX_PLAYGROUND_GAME_TITLE,ZeromaX 的试验场,ZeromaX's Playground
 START_GAME_BUTTON,开始游戏,Start
 QUIT_GAME_BUTTON,退出游戏,Quit
+PLAYER_INFOS,玩家信息,Player Infos
+PLAYER_INFOS_TOOLTIP,显示玩家领土和人口数量信息,Show territory and population infos of players
+PLAYER_TITLE,玩家,Player
+TERRITORY_TITLE,领土,Territory
+POPULATION_TITLE,人口,Population
+Player_Name_1,红色,Red
+Player_Name_2,黄色,Yellow
+Player_Name_3,绿色,Green
+Player_Name_4,青色,Aqua
+Player_Name_5,蓝色,Blue
+Player_Name_6,紫色,Purple
+Player_Name_7,粉色,DeepPink
+Player_Name_8,橘色,Orange
