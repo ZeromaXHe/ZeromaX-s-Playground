@@ -1,6 +1,12 @@
-[gd_scene load_steps=2 format=3 uid="uid://bas1lfwa1du14"]
+[gd_scene load_steps=5 format=3 uid="uid://bas1lfwa1du14"]
 
 [ext_resource type="Script" path="res://game/main/menu/MainMenu.cs" id="1_oj2rg"]
+[ext_resource type="Shader" path="res://game/main/menu/MainMenuBackground.gdshader" id="2_yvajy"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_gsyui"]
+shader = ExtResource("2_yvajy")
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_2e0uo"]
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -10,6 +16,16 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_oj2rg")
+
+[node name="TextureRect" type="TextureRect" parent="."]
+material = SubResource("ShaderMaterial_gsyui")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = SubResource("CanvasTexture_2e0uo")
 
 [node name="CenterContainer" type="CenterContainer" parent="."]
 layout_mode = 1
