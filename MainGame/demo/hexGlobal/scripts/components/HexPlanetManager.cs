@@ -4,7 +4,7 @@ using System;
 [Tool]
 public partial class HexPlanetManager : Node3D
 {
-    [Export] private bool _regenerate = false;
+    [Export] private bool _regenerate;
 
     public HexPlanet HexPlanet;
     private HexPlanet _prevHexPlanet;

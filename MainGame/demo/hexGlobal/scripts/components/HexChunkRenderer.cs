@@ -39,7 +39,7 @@ public partial class HexChunkRenderer : MeshInstance3D
     {
         // if (Application.isPlaying)
         // {
-        if (GetHexChunk().IsDirty)
+        if (_planet.IsReady && GetHexChunk().IsDirty)
         {
             UpdateMesh();
             GetHexChunk().IsDirty = false;

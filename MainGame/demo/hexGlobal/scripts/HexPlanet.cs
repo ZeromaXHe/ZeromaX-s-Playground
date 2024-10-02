@@ -20,6 +20,8 @@ public partial class HexPlanet : Node3D
 
     public List<HexTile> Tiles;
     public List<HexChunk> Chunks;
+    
+    public bool IsReady = false;
 
     public override void _Ready()
     {
