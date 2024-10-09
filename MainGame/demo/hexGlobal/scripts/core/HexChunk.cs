@@ -81,8 +81,6 @@ public class HexChunk
         var material = new StandardMaterial3D();
         material.VertexColorUseAsAlbedo = true;
         surfaceTool.SetMaterial(material);
-        // TODO: 颜色处理
-        // surfaceTool.SetColors(colors);
         // surfaceTool.RecalculateNormals();
         // surfaceTool.RecalculateBounds();
         surfaceTool.GenerateNormals();

@@ -1,12 +1,13 @@
 using System.Linq;
 using Godot;
 using ZeromaXPlayground.game.inGame.map.scripts.constant;
-using ZeromaXPlayground.game.inGame.map.scripts.domain;
 
 namespace ZeromaXPlayground.game.inGame.menu;
 
 public partial class InGameMenu : Control
 {
+    private GlobalNode _globalNode;
+    
     private PanelContainer _topLeftPanel;
     private TabBar _tabBar;
     private GridContainer _playerInfosGrid;
@@ -15,6 +16,7 @@ public partial class InGameMenu : Control
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
+        _globalNode = GetNode<GlobalNode>("/root/GlobalNode");
         _topLeftPanel = GetNode<PanelContainer>("TopLeftPanel");
         _tabBar = GetNode<TabBar>("TopLeftPanel/TopLeftVBox/TabBar");
         _playerInfosGrid = GetNode<GridContainer>("TopLeftPanel/TopLeftVBox/PlayerInfosGrid");
@@ -45,10 +47,10 @@ public partial class InGameMenu : Control
         // 通过这个功能的实现，就发现现在架构还是很别扭
         // 暂时先每秒查一次，后续重构
         var allPlayerData =
-            from player in Player.GetAll()
+            from player in _globalNode.GameControllerContainer.QueryAllPlayers()
             select player.Id
             into playerId
-            from tile in TileInfo.GetByPlayerId(playerId)
+            from tile in _globalNode.GameControllerContainer.QueryTilesByPlayerId(playerId)
             group tile by playerId
             into playerGroup
             select new

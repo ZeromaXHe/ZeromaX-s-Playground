@@ -6,19 +6,6 @@ namespace ZeromaXPlayground.game.inGame.map.scripts.eventBus;
 public sealed partial class EventBus : GodotObject
 {
     /**
-     * 占领领土事件
-     * Godot 信号无法传递 int?（用来传递 null 表示无主之地），只能用 int -1（Constants.NullId）表示了。
-     */
-    [Signal]
-    public delegate void TileConqueredEventHandler(int tileId, int conquerorId, int loserId);
-
-    /**
-     * 地块人口增加事件
-     */
-    [Signal]
-    public delegate void TilePopulationChangedEventHandler(int tileId);
-    
-    /**
      * 部队到达目的地事件
      */
     [Signal]

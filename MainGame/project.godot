@@ -15,6 +15,10 @@ run/main_scene="res://game/main/menu/MainMenu.tscn"
 config/features=PackedStringArray("4.3", "C#", "Forward Plus")
 config/icon="res://icon.svg"
 
+[autoload]
+
+GlobalNode="*res://game/Global/GlobalNode.cs"
+
 [dotnet]
 
 project/assembly_name="ZeromaXPlayground"

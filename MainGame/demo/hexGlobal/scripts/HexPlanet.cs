@@ -87,7 +87,6 @@ public partial class HexPlanet : Node3D
         var diff = to - from;
         if (diff.X != 0)
         {
-            // bug：现在看的方向好像部分会报错？
             ins.LookAt(new Vector3(-diff.Y, diff.X, 0), diff);
         }
         else

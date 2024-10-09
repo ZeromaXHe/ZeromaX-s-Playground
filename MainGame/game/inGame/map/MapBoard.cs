@@ -1,16 +1,19 @@
-using System;
+using System.Linq;
+using BackEnd4IdleStrategy.Game.UserInterface.Dto;
 using Godot;
 using ZeromaXPlayground.game.inGame.map.scenes;
 using ZeromaXPlayground.game.inGame.map.scripts.constant;
-using ZeromaXPlayground.game.inGame.map.scripts.domain;
 using ZeromaXPlayground.game.inGame.map.scripts.eventBus;
 using ZeromaXPlayground.game.inGame.map.scripts.service;
+using ZeromaXPlayground.game.inGame.map.scripts.Utils;
 
 namespace ZeromaXPlayground.game.inGame.map;
 
 public partial class MapBoard : Node2D
 {
     #region on-ready nodes
+    
+    private GlobalNode _globalNode;
 
     private TileMapLayer _baseTerrain;
     private TileMapLayer _feature;
@@ -38,6 +41,7 @@ public partial class MapBoard : Node2D
     public override void _Ready()
     {
         // on-ready params
+        _globalNode = GetNode<GlobalNode>("/root/GlobalNode");
         _baseTerrain = GetNode<TileMapLayer>("BaseTerrain");
         _feature = GetNode<TileMapLayer>("Feature");
         _territory = GetNode<TileMapLayer>("Territory");
@@ -49,12 +53,36 @@ public partial class MapBoard : Node2D
         // _feature.Clear();
         _territory.Clear();
 
-        EventBus.Instance.TileConquered += OnTileConquered;
-        EventBus.Instance.TilePopulationChanged += OnTilePopulationChanged;
+        _globalNode.GameControllerContainer.TileConquered += OnTileConquered;
+        _globalNode.GameControllerContainer.TilePopulationChanged += OnTilePopulationChanged;
         EventBus.Instance.MarchingArmyArrivedDestination += OnMarchingArmyArrivedDestination;
 
-        TileInfo.InitMapTile(_baseTerrain);
-        Player.InitAndSpawnOnTile(_baseTerrain, _playerCount);
+        var usedCells = _baseTerrain.GetUsedCells();
+
+        // 初始化地图
+        var tileDict = _globalNode.GameControllerContainer.InitTiles(
+                usedCells.Select(BackEndUtil.To),
+                NavigationService.Instance)
+            .ToDictionary(t => BackEndUtil.From(t.Coord), t => t.Id);
+        foreach (var cell in usedCells)
+        {
+            // 完成连接图
+            var surroundings = _baseTerrain.GetSurroundingCells(cell);
+            foreach (var surrounding in surroundings)
+            {
+                if (tileDict.TryGetValue(surrounding, out var surroundingTileId)
+                    && tileDict.TryGetValue(cell, out var cellTileId))
+                {
+                    NavigationService.Instance.ConnectPoints(cellTileId, surroundingTileId);
+                }
+            }
+        }
+
+        // 生成玩家
+        usedCells.Shuffle();
+        _globalNode.GameControllerContainer.InitPlayerAndSpawnOnTile(
+            usedCells.Take(_playerCount)
+                .Select(v => BackEndUtil.To(v)));
 
         _tickTimer.Timeout += OnTickTimerTimeout;
         _tickTimer.Start();
@@ -63,33 +91,23 @@ public partial class MapBoard : Node2D
         GetTree().CreateTimer(3).Timeout += () =>
         {
             GD.Print("各 AI 玩家第一次出征");
-            Player.GetAll().ForEach(RandomSendMarchingArmy);
+            foreach (var player in _globalNode.GameControllerContainer.QueryAllPlayers())
+            {
+                RandomSendMarchingArmy(player);
+            }
         };
     }
 
-    private void RandomSendMarchingArmy(Player player)
+    private void RandomSendMarchingArmy(QueryPlayerDto player)
     {
-        // 随机出兵地块、目标地块、出动兵力
-        var tileInfos = TileInfo.GetByPlayerId(player.Id);
-        if (tileInfos.Count == 0)
-        {
-            // 玩家已经没有领土了，出不了兵
-            GD.Print($"玩家 {player.Id} 已经灭亡！");
-            return;
-        }
-
-        var random = new Random();
-        var fromTile = tileInfos[random.Next(tileInfos.Count)];
-        var candidateToTileIds = NavigationService.Instance.GetPointConnections(fromTile.Id);
-        var toTileId = candidateToTileIds[random.Next(candidateToTileIds.Length)];
-        var toTile = TileInfo.GetById((int)toTileId);
-        var population = random.Next(1, fromTile.Population + 1);
+        var marchingArmy =
+            _globalNode.GameControllerContainer.RandomSendMarchingArmy(player.Id, NavigationService.Instance);
         // 初始化一次行军部队
-        var marchingArmy = new MarchingArmy(population, player.Id, fromTile.Id, toTile.Id);
         var marchingLine = _marchingLineScene.Instantiate<MarchingLine>();
         _marchingLines.AddChild(marchingLine);
-        marchingLine.Init(marchingArmy, GetTileCoordGlobalPosition(fromTile.Coord),
-            GetTileCoordGlobalPosition(toTile.Coord),
+        marchingLine.Init(marchingArmy,
+            GetTileCoordGlobalPosition(BackEndUtil.From(marchingArmy.FromTile!.Coord)),
+            GetTileCoordGlobalPosition(BackEndUtil.From(marchingArmy.ToTile!.Coord)),
             Constants.PlayerColors[player.Id - 1]); // Player 的 Id 从 1 开始，所以要减一
     }
 
@@ -101,23 +119,22 @@ public partial class MapBoard : Node2D
     private void OnMarchingArmyArrivedDestination(int marchingArmyId)
     {
         // 结束之前的行军
-        var marchingArmy = MarchingArmy.GetById(marchingArmyId);
-        marchingArmy.ArriveDestination();
+        var playerId = _globalNode.GameControllerContainer.MarchingArmyArriveDestination(marchingArmyId);
         // 让玩家再次发起出兵
-        RandomSendMarchingArmy(Player.GetById(marchingArmy.PlayerId));
+        RandomSendMarchingArmy(_globalNode.GameControllerContainer.QueryPlayerById(playerId));
     }
 
     private void OnTileConquered(int tileId, int conquerorId, int loserId)
     {
-        var tileInfo = TileInfo.GetById(tileId);
+        var tileInfo = _globalNode.GameControllerContainer.QueryTileById(tileId);
         if (conquerorId == Constants.NullId)
         {
-            _territory.EraseCell(tileInfo.Coord);
+            _territory.EraseCell(BackEndUtil.From(tileInfo.Coord));
         }
         else
         {
             // Player 的 Id 从 1 开始，所以要减一
-            _territory.SetCell(tileInfo.Coord, TerritorySrcId, TerritoryAtlasCoords[conquerorId - 1]);
+            _territory.SetCell(BackEndUtil.From(tileInfo.Coord), TerritorySrcId, TerritoryAtlasCoords[conquerorId - 1]);
         }
 
         // 无主地块第一次被占领，需要初始化地块 GUI
@@ -125,20 +142,20 @@ public partial class MapBoard : Node2D
         {
             var tileGui = _tileGuiScene.Instantiate<TileGui>();
             _tileGuis.AddChild(tileGui); // 先添加子节点，Init 的时候 tileGui 的 _population 才拿得到 Label
-            tileGui.Init(tileInfo, GetTileCoordGlobalPosition(tileInfo.Coord));
+            tileGui.Init(tileInfo, GetTileCoordGlobalPosition(BackEndUtil.From(tileInfo.Coord)));
         }
     }
 
     private void OnTilePopulationChanged(int tileId)
     {
         var tileGui = TileGui.GetById(tileId);
-        var tileInfo = TileInfo.GetById(tileId);
+        var tileInfo = _globalNode.GameControllerContainer.QueryTileById(tileId);
         tileGui.ChangePopulation(tileInfo.Population);
     }
 
     private void OnTickTimerTimeout()
     {
-        TileInfo.AllPlayerTilesAddPopulation(1);
+        _globalNode.GameControllerContainer.AddPopulationToPlayerTiles(1);
     }
 
     // Called every frame. 'delta' is the elapsed time since the previous frame.

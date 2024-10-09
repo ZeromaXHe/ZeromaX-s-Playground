@@ -1,6 +1,7 @@
 using System.Collections.Generic;
+using BackEnd4IdleStrategy.Game.UserInterface.Dto;
 using Godot;
-using ZeromaXPlayground.game.inGame.map.scripts.domain;
+using ZeromaXPlayground.game.inGame.map.scripts.Utils;
 
 namespace ZeromaXPlayground.game.inGame.map.scenes;
 
@@ -17,11 +18,11 @@ public partial class TileGui : Control
     private int _id;
     private Vector2I _coord;
     
-    public void Init(TileInfo tileInfo, Vector2 globalPosition)
+    public void Init(QueryTileDto tileInfo, Vector2 globalPosition)
     {
         _id = tileInfo.Id;
         IdMap[_id] = this;
-        _coord = tileInfo.Coord;
+        _coord = BackEndUtil.From(tileInfo.Coord);
         _population.Text = tileInfo.Population.ToString();
 
         Position = globalPosition;

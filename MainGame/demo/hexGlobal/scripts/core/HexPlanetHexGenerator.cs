@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
-using Godot.Collections;
 using ZeromaXPlayground.demo.hexGlobal.scripts.core;
 
 public class HexPlanetHexGenerator
@@ -11,12 +10,6 @@ public class HexPlanetHexGenerator
         planet.IsReady = false;
         planet.ClearSpheresAndLines();
         List<Vector3> points = GeodesicPoints.GenPoints(planet.Subdivisions, planet.Radius);
-
-        var pointsArr = new Array();
-        foreach (var p in points)
-        {
-            pointsArr.Add(p);
-        }
 
         List<HexTile> tiles = GenHexTiles(planet, ref points);
         var tileCenters = tiles.Select(tile => tile.Center).ToList();

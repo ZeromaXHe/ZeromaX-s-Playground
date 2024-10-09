@@ -1,8 +1,17 @@
 <Project Sdk="Godot.NET.Sdk/4.3.0">
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net7.0</TargetFramework>
     <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'ios' ">net8.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="BackEnd4IdleStrategy\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Remove="BackEnd4IdleStrategy\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="BackEnd4IdleStrategy\BackEnd4IdleStrategy.csproj" />
+  </ItemGroup>
 </Project>

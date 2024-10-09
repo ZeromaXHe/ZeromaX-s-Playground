@@ -1,6 +1,7 @@
+using BackEnd4IdleStrategy.Common;
+using BackEnd4IdleStrategy.Common.Constants;
+using BackEnd4IdleStrategy.Game.UserInterface.Dto;
 using Godot;
-using ZeromaXPlayground.game.inGame.map.scripts.constant;
-using ZeromaXPlayground.game.inGame.map.scripts.domain;
 using ZeromaXPlayground.game.inGame.map.scripts.eventBus;
 
 public partial class MarchingLine : Line2D
@@ -13,10 +14,10 @@ public partial class MarchingLine : Line2D
 
     #endregion
 
-    private int _marchingArmyId = Constants.NullId;
+    private int _marchingArmyId = Constant.NullId;
     private int _speed = 25;
 
-    public void Init(MarchingArmy marchingArmy, Vector2 from, Vector2 to, Color color)
+    public void Init(MarchingArmyDto marchingArmy, Vector2 from, Vector2 to, Color color)
     {
         _marchingArmyId = marchingArmy.Id;
         _speed = marchingArmy.Population switch
