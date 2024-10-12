@@ -114,7 +114,6 @@ internal class GameService(
     {
         var random = new Random();
         var toTileId = candidateToTileIds[random.Next(candidateToTileIds.Length)];
-        var toTile = tileRepository.GetById((int)toTileId);
         var fromTile = tileRepository.GetById(fromTileId);
         // TODO: 好丑的副作用写法…… 先跑起来再说吧
         var fromPopulation = 1;
@@ -125,6 +124,7 @@ internal class GameService(
             playerId = t.PlayerId;
         });
         var population = random.Next(1, fromPopulation + 1);
+        fromTile.Do(t => t.Population -= population);
         // 初始化一次行军部队
         return marchingArmyRepository.Init(population, playerId, fromTileId, (int)toTileId);
     }
