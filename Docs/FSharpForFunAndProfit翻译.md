@@ -955,6 +955,8 @@ https://fsharpforfunandprofit.com/csharp/
 
 # “表达式和语法”系列
 
+https://fsharpforfunandprofit.com/series/expressions-and-syntax/
+
 在本系列文章中，我们将探讨函数和值是如何组合成表达式的，以及F#中可用的不同类型的表达式。
 
 1. 表达式和语法：引言
@@ -979,12 +981,51 @@ https://fsharpforfunandprofit.com/csharp/
     打印和记录的技巧和技术
 11. 工作示例：解析命令行参数
     实践中的模式匹配
-12. 样例：罗马数字
+12. 工作示例：罗马数字
     实践中更多的模式匹配
 
 
 
 ## [跳转系列独立 Markdown](./FSharpForFunAndProfit翻译-“表达式和语法”系列.md)
+
+
+
+# “了解 F# 类型”系列
+
+https://fsharpforfunandprofit.com/series/understanding-fsharp-types/
+
+F# 不仅仅是函数；强大的类型系统是另一个关键因素。就像函数一样，理解类型系统对于流利和舒适地使用语言至关重要。
+
+除了普通 .NET 类型。F# 还有一些其他类型，这些类型在函数式语言中非常常见，但在 C# 或 Java 等命令式语言中不可用。
+
+本系列介绍这些类型以及如何使用它们。
+
+1. 了解 F# 类型：介绍
+   类型的新世界
+2. F# 中的类型概述
+   纵观全局
+3. 类型缩写
+   也称为别名
+4. 元组
+   将类型相乘
+5. 记录
+   用标签扩展元组
+6. 可区分联合
+   将类型添加在一起
+7. 选项类型
+   为什么它不是 null 或 nullable
+8. 枚举类型
+   与联合类型不同
+9. 内置 .NET 类型
+   Int、string、bool 等
+10. 计量单位
+    数字的类型安全
+11. 理解类型推理
+    魔法帘子后面
+
+
+
+## [跳转系列独立 Markdown](./FSharpForFunAndProfit翻译-“了解F#类型”系列.md)
 
 
 
