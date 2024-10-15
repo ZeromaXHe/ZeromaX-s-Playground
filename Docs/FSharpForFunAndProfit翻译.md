@@ -377,6 +377,177 @@ https://fsharpforfunandprofit.com/series/why-use-fsharp/
 
 
 
+# 安装和使用 F#
+
+关于在 Visual Studio、SharpDevelop 和 MonoDevelop 中下载、安装和使用 F# 的说明
+
+https://fsharpforfunandprofit.com/installing-and-using/
+
+F# 编译器是一个免费的开源工具，可用于 Windows、Mac 和 Linux（通过 Mono）。了解更多关于 F# 以及如何在 F# 基金会安装它的信息。
+
+您可以将其与 IDE（Visual Studio、MonoDevelop）或您最喜欢的编辑器（VS Code 和 Atom 使用 Ionide 对 F# 有特别好的支持）一起使用，也可以简单地将其用作独立的命令行编译器。
+
+如果您不想安装任何东西，可以尝试 .NET Fiddle 站点，这是一个交互式环境，您可以在 web 浏览器中探索 F#。你应该能够在那里运行这个网站上的大部分代码。
+
+## 使用代码示例
+
+安装并运行 F# 后，您可以按照代码示例进行操作。
+
+在本网站上运行代码示例的最佳方式是将代码键入 `.FSX` 脚本文件，然后您可以将其发送到 F# 交互式窗口进行评估。或者，您可以直接在 F# 交互式控制台窗口中键入示例。除了一两行之外，我建议使用脚本文件方法。
+
+对于较长的示例，可以从本网站下载代码——链接将在帖子中。
+
+最后，我鼓励您尝试并修改这些示例。如果您随后遇到编译器错误，请务必查看“F# 故障排除”页面，该页面解释了最常见的问题以及如何修复它们。
+
+### 目录
+
+- 安装 F#
+- 使用 F# 和各种工具
+  - 在 Visual Studio 中使用 F#
+  - 在 Linux 和 Mac 上使用 F# 和 Mono
+  - 直接在浏览器中尝试 F#
+  - 在 FSI 交互式 shell 中使用 F#
+  - 在 SharpDevelop 中使用 F#
+- 编译错误
+- 项目和解决方案
+- 使用 F# 编写 shell 脚本
+
+## 安装 F#
+
+您可以在此处获取多个平台的F#。下载并安装 F# 后，您还可以考虑安装 F# 电源组（power pack），它提供了许多不错的附加功能，其中一些将在本网站中提及。
+
+## 在Visual Studio中使用F#
+
+如果您使用的是 Windows 平台，强烈建议使用 Visual Studio 编写 F#，因为 F# 与 IDE、调试器等具有很好的集成。
+
+- 如果你有 Visual Studio 2010 或更高版本，F# 已经包含在内。
+- 如果你有 Visual Studio 2008，你可以从 MSDN 下载 F# 的安装程序。
+- 如果你两者都没有，你可以安装“Visual Studio Integrated Shell”，然后在其中安装F#。
+
+安装 F# 后，您应该创建一个 F# 项目。
+
+新项目
+
+然后创建一个脚本（FSX）文件来运行其中的示例。
+
+新 FSX 脚本
+
+接下来，确保 F# 交互窗口处于活动状态（通常通过“视图”>“其他窗口”>“F# 交互”）。
+
+使用脚本文件是尝试 F# 的最简单方法；只需在脚本窗口中键入一些代码，并对其进行求值，即可在下面的交互式窗口中看到输出。要评估突出显示的代码，您可以：
+
+- 右键单击以获取上下文菜单，然后执行“发送到交互式”。请注意，如果 F# 交互式窗口不可见，则“发送到交互式”菜单选项将不会出现。
+- 使用 `Alt+Enter` 组合键（但请参阅下面关于键盘映射的注释）。
+
+发送到互动
+
+> **Resharper 警报**
+>
+> 如果您安装了 Resharper 或其他插件，则可以使用 `Alt+Enter` 组合键。在这种情况下，许多人将命令重新映射为 `Alt+Semicolon`。
+>
+> 您可以从 Visual Studio 菜单“工具”>“选项”>“键盘”重新映射命令，“发送到交互式”命令称为 `EditorContextMenus.CodeWindow.SendToInteractive`。
+
+您也可以直接在交互式窗口中工作。但在这种情况下，您必须始终用双分号终止代码块。
+
+互动
+
+## 在 Linux 和 Mac 上使用 F# 和 Mono
+
+从 Mono 3.0.2 版本开始，F# 就包含在 Mono 中。在此处下载 Mono。
+
+安装Mono后，您可以使用MonoDevelopIDE或Emacs等编辑器。
+
+- MonoDevelop 集成了对 F# 的支持。请参阅 http://addins.monodevelop.com/Project/Index/48.
+- Emacs 有一个 F# 模式，它通过 F# 的语法突出显示对其进行了扩展。请参阅 Codeplex 上的“F# 跨平台包和示例”页面。
+
+### 在浏览器中尝试 F#
+
+如果你不想下载任何东西，你可以直接从浏览器尝试 F#。该网站位于 try.fsharp.org。请注意，它确实需要 Silverlight 才能运行。
+
+互动
+
+## 在交互式 shell 中使用F#
+
+F# 有一个名为 FSI.exe 的简单交互式控制台，也可用于在中运行代码。就像 Visual Studio 中的交互式窗口一样，您必须用双分号终止一段代码。
+
+FSI
+
+## 在 SharpDevelop 中使用 F#
+
+SharpDevelop 对 F# 有一些支持。您可以创建一个 F# 项目，然后在其中创建一个 FSX 脚本文件。然后在脚本窗口中键入一些代码，并使用上下文菜单将代码发送到交互式窗口（如下所示）。
+
+发送到互动
+
+## 编译错误？
+
+如果您在编译自己的代码时遇到问题，“F# 疑难解答”页面可能会有所帮助。
+
+## 项目和解决方案
+
+F# 使用与 C# 完全相同的“项目”和“解决方案”模型，所以如果你熟悉这一点，你应该能够很容易地创建一个 F# 可执行文件。
+
+要制作一个将作为项目一部分编译的文件，而不是脚本文件，请使用 `.fs` 扩展名。`.fsx` 文件将不会被编译。
+
+然而，F# 项目确实与 C# 有一些主要区别：
+
+- F# 文件是线性组织的，而不是文件夹和子文件夹的层次结构。事实上，F# 项目中没有“添加新文件夹”选项！这通常不是问题，因为与 C# 不同，F# 文件包含多个类。在 C# 中，一个完整的类文件夹可能很容易在 F# 中变成一个文件。
+- 项目中文件的顺序非常重要：“后”F#文件可以使用“前”F#文件中定义的公共类型，但反之则不行。因此，文件之间不能有任何循环依赖关系。
+- 您可以通过右键单击并执行“上移”或“下移”来更改文件的顺序。同样，在创建新文件时，您可以选择“添加到上方”或“添加到下方”现有文件。
+
+## F# 中的 Shell 脚本
+
+您还可以将 F# 用作脚本语言，而不必将代码编译成 EXE。这是通过使用 FSI 程序完成的，FSI 程序不仅是一个控制台，还可以像使用 Python 或 Powershell 一样用于运行脚本。
+
+当您想快速创建一些代码而不将其编译成完整的应用程序时，这非常方便。F# 构建自动化系统“FAKE”就是一个很好的例子。
+
+为了了解如何自己完成此操作，这里有一个将网页下载到本地文件的小示例脚本。首先创建一个 FSX 脚本文件——称之为“`ShellScriptExample.fsx`”——并粘贴以下代码。
+
+```F#
+// ================================
+// Description:
+//    downloads the given url and stores it as a file with a timestamp
+//
+// Example command line:
+//    fsi ShellScriptExample.fsx http://google.com google
+// ================================
+
+// "open" brings a .NET namespace into visibility
+open System.Net
+open System
+
+// download the contents of a web page
+let downloadUriToFile url targetfile =
+    let req = WebRequest.Create(Uri(url))
+    use resp = req.GetResponse()
+    use stream = resp.GetResponseStream()
+    use reader = new IO.StreamReader(stream)
+    let timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH-mm")
+    let path = sprintf "%s.%s.html" targetfile timestamp
+    use writer = new IO.StreamWriter(path)
+    writer.Write(reader.ReadToEnd())
+    printfn "finished downloading %s to %s" url path
+
+// Running from FSI, the script name is first, and other args after
+match fsi.CommandLineArgs with
+    | [| scriptName; url; targetfile |] ->
+        printfn "running script: %s" scriptName
+        downloadUriToFile url targetfile
+    | _ ->
+        printfn "USAGE: [url] [targetfile]"
+```
+
+现在不要担心代码是如何工作的。无论如何，它都很粗糙，一个更好的例子会添加错误处理等。
+
+要运行此脚本，请在同一目录中打开一个命令窗口，然后键入：
+
+```shell
+fsi ShellScriptExample.fsx http://google.com google_homepage
+```
+
+当你在这个网站上玩代码时，你可能想尝试同时创建一些脚本。
+
+
+
 # 学习 F#
 
 函数式编程语言需要一种不同的方法
@@ -683,6 +854,41 @@ https://fsharpforfunandprofit.com/posts/low-risk-ways-to-use-fsharp-at-work/#ser
 
 
 
+# “函数式思维”系列
+
+https://fsharpforfunandprofit.com/series/thinking-functionally/
+
+本系列文章将向您介绍函数式编程的基础知识——“函数式编程”的真正含义是什么，以及这种方法与面向对象或命令式编程有何不同。
+
+1. 函数式思维：引言
+   函数式编程的基础知识
+2. 数学函数
+   函数式编程背后的动力
+3. 函数值和简单值
+   绑定不赋值
+4. 类型如何与函数协同工作
+   理解类型符号
+5. 货币
+   将多参数函数分解为更小的单参数函数
+6. 部分应用
+   烘焙函数的某些参数
+7. 函数关联性和组成
+   从现有函数构建新函数
+8. 定义函数
+   Lambdas和更多
+9. 函数签名
+   函数签名可以让你对它的作用有所了解
+10. 组织函数
+    嵌套函数和模块
+11. 将函数附加到类型
+    以F#方式创建方法
+12. 工作示例：基于堆栈的计算器
+    使用组合子构建功能
+
+## [跳转系列独立 markdown](./FSharpForFunAndProfit翻译-“函数式思维”系列.md)
+
+
+
 # 函数式编程设计模式
 
 我演讲中的幻灯片和视频
@@ -733,72 +939,6 @@ https://fsharpforfunandprofit.com/fppatterns/
 
 希望你喜欢这次谈话！
 
-# “函数式思维”系列
-
-https://fsharpforfunandprofit.com/series/thinking-functionally/
-
-本系列文章将向您介绍函数式编程的基础知识——“函数式编程”的真正含义是什么，以及这种方法与面向对象或命令式编程有何不同。
-
-1. 函数式思维：引言
-   函数式编程的基础知识
-2. 数学函数
-   函数式编程背后的动力
-3. 函数值和简单值
-   绑定不赋值
-4. 类型如何与函数协同工作
-   理解类型符号
-5. 货币
-   将多参数函数分解为更小的单参数函数
-6. 部分应用
-   烘焙函数的某些参数
-7. 函数关联性和组成
-   从现有函数构建新函数
-8. 定义函数
-   Lambdas和更多
-9. 函数签名
-   函数签名可以让你对它的作用有所了解
-10. 组织函数
-    嵌套函数和模块
-11. 将函数附加到类型
-    以F#方式创建方法
-12. 工作示例：基于堆栈的计算器
-    使用组合子构建功能
-
-## [跳转系列独立 markdown](./FSharpForFunAndProfit翻译-“函数式思维”系列.md)
-
-
-
-# “用类型设计”系列
-
-https://fsharpforfunandprofit.com/series/designing-with-types/
-
-在本系列中，我们将探讨在设计过程中使用类型的一些方法。特别是，周到地使用类型可以使设计更加透明，同时提高正确性。
-
-本系列将聚焦于设计的“微观层面”。也就是说，在单个类型和函数的最低级别上工作。更高层次的设计方法，以及使用函数式或面向对象风格的相关决策，将在另一个系列中讨论。
-
-许多建议在 C# 或 Java 中也是可行的，但 F# 类型的轻量级特性意味着我们更有可能进行这种重构。
-
-1. 用类型设计：简介
-   使设计更加透明，提高正确性
-2. 用类型设计：单箱联合类型
-   为基本类型添加意义
-3. 用类型设计：使非法状态无法表示
-   以类型编码业务逻辑
-4. 用类型设计：发现新概念
-   深入了解该领域
-5. 用类型设计：明确状态
-   使用状态机确保正确性
-6. 使用类型进行设计：约束字符串
-   向基元类型添加更多语义信息
-7. 使用类型进行设计：非字符串类型
-   安全地处理整数和日期
-8. 用类型设计：结论
-   前后对比
-
-
-
-## [跳转系列独立 markdown](./FSharpForFunAndProfit翻译-“用类型设计”系列.md)
-
 
 
 # 面向铁路的程序设计
@@ -817,7 +957,7 @@ https://fsharpforfunandprofit.com/rop/
 >
 > 本次演讲将简要介绍这一主题，使用一个有趣且易于理解的铁路类比。
 
-我也计划很快上传一些关于这些主题的帖子。同时，请参阅功能应用程序系列的配方，其中涵盖了类似的内容。
+我也计划很快上传一些关于这些主题的帖子。同时，请参阅函数式应用程序系列的配方，其中涵盖了类似的内容。
 
 如果你想看到一些真实的代码，我在 Github 上创建了这个项目，它使用 ROP 方法比较了普通的 C# 和 F#
 
@@ -915,6 +1055,991 @@ F# 没有类型类，所以你真的没有一种可重用的方法来做单子�
 - **全面的错误处理方法**
   - 这篇文章的第 5 项
   - 我不知道还有其他方法涵盖了本次演讲中讨论的所有技术。如果你知道任何消息，请在评论中给我打电话，我会更新此页面。
+
+
+
+# 反对面向铁路的编程
+
+（如果使用不当）
+2019年12月20日
+
+https://fsharpforfunandprofit.com/posts/against-railway-oriented-programming/
+
+> 这篇文章是 2019 年 F# 降临日历的一部分。查看那里的所有其他精彩帖子！特别感谢 Sergey Tihon 组织这次活动。
+
+六年半前，我写了一篇文章，并就我所说的“面向铁路的编程”做了一次演讲。这是我向自己和其他人解释如何使用 `Result`/`Either` 将错误生成函数链接在一起的一种方式。
+
+令我惊讶的是，这个愚蠢的铁路类比真的开始了，现在有面向铁路的编程库和各种语言的帖子，包括 Ruby、Java、JavaScript、Kotlin、Python 等。
+
+我仍然认为这是一个很好的类比，但我确实认为它经常被轻率地使用，尤其是如果它是你刚刚添加到工具箱中的一项闪亮的新技术。
+
+所以，在这篇文章中，我将阐述为什么你不应该使用面向铁路的编程！或者更准确地说，为什么不应该在所有地方都使用 `Result` 类型（因为 ROP 只是用于连接 `Result` 返回函数的管道）。微软关于错误管理的页面也有很好的建议，这篇博客文章也是如此。
+
+## #1 – 如果需要诊断，请不要使用 Result
+
+如果您关心错误的位置、堆栈跟踪或其他诊断，请不要使用 `Result`。特别是，不要将 `Result` 用作异常的替代品，而是将堆栈跟踪或整个异常存储在 `Result` 中。这有什么意义？
+
+相反，将 `Result` 视为一个带有额外信息的美化布尔值。它仅适用于预期的控制流，不适用于异常。
+
+## #2 – 不要使用 Result 来重新定义异常
+
+我看到人们不加选择地使用 `Result` 来处理各种错误，包括用异常处理会更好的事情。不要重新发明“try-catch”！
+
+我也看到人们试图完全隐藏异常。这是徒劳的。无论您将多少异常转换为 `Result`s，总会有一些异常泄露出来。您始终需要在系统的最高部分适当地处理异常。
+
+## #3 - 如果你需要快速失败，不要使用 Result
+
+如果确实出了问题，你无法继续，不要返回 `Result`，继续前进。快速失败，出现异常，甚至立即退出应用程序。
+
+## #4 – 如果没有人会看到，则不要使用 Result
+
+如果你正在执行一些复杂的控制流，但逻辑对外界是隐藏的，不要仅仅为了它而使用 `Result`。通常，在本地使用异常会更干净。
+
+例如，假设你正在通过遍历一棵树来收集信息，当出现问题时，你需要提前退出。
+
+在 ROP 方法中，你会让节点处理函数返回一个 `Result`，然后必须使用 `bind` 将其传递给下一个节点处理函数，以此类推。对于复杂的导航，你可以花很多时间来计算逻辑，以便代码能够编译（当然，Haskell 程序员除外）
+
+另一方面，你可以定义一个私有的本地异常（例如，以 Python 的 `StopIteration` 的风格），命令式编写迭代，在需要提前返回时抛出异常，然后在顶层捕获异常。只要代码不太长，并且异常是在本地定义的，这种方法通常可以使代码更清晰。如果没有消费者看到内部，那么就没有伤害，没有犯规。
+
+另一个例子可能是在定义微服务时。如果整个代码只有几百行长，并且对调用者不透明，那么使用异常而不是 `Result` 是完全可以的，只要它们不超出服务边界。
+
+## #5 – 如果没有人关心错误情况，则不要使用 Result
+
+通常，`Result` 被定义为错误情况是所有可能出错的事物的判别联合。
+
+例如，假设你想从文件中读取文本，所以你定义了一个这样的函数：
+
+```F#
+type ReadTextFromFile = FileInfo -> Result<string, FileError>
+```
+
+其中 `FileError` 的定义如下：
+
+```F#
+type FileError =
+  | FileNotFound
+  | DirectoryNotFound
+  | FileNotAccessible
+  | PathTooLong
+  | OtherIOError of string
+```
+
+但是，这个函数的使用者真的关心读取文件时可能出错的每一件事吗？也许他们只是想要文本，他们不在乎为什么它不起作用。在这种情况下，返回一个选项可能更简单，比如这样：
+
+```F#
+type ReadTextFromFile = FileInfo -> string option
+```
+
+`Result` 是一个用于领域建模的工具，所以如果领域模型不需要它，就不要使用它。
+
+在实现事件溯源时，可以在具有标准签名的命令处理函数中找到类似的示例
+
+```F#
+'state -> 'command -> 'event list
+```
+
+如果执行命令时出错，这在实践中会如何影响返回值（命令创建的事件列表）？当然，你需要处理错误并记录下来，但你真的需要从函数本身返回一个 `Result` 吗？这将使代码变得更加复杂，但好处不大。
+
+## #6 – 使用 I/O 错误结果时要小心
+
+如果您尝试打开一个文件，但遇到错误，是否应该将其包装在 `Result` 中？这取决于你的领域。如果你正在编写文字处理器，那么无法打开文件是意料之中的，应该妥善处理。另一方面，如果你无法打开你的应用程序所依赖的配置文件，你不应该返回 `Result`，你应该快速失败。
+
+任何有 I/O 的地方都会有很多很多事情出错。试图用一个 `Result` 来模拟所有可能性是很有诱惑力的，但我强烈建议不要这样做。相反，只对域所需的最小值进行建模，让所有其他错误成为例外。
+
+当然，如果你遵循最佳实践，将 I/O 与纯粹的业务逻辑分开，那么你应该很少需要在核心代码中处理异常。
+
+## #7 – 如果你关心性能，不要使用 Result
+
+这与其说是绝对禁止，不如说是“小心”。如果你预先知道你有一段性能敏感的代码，那么在那里使用 `Result` 时要小心。事实上，您可能也要警惕其他内置类型（例如 `List`）。但和往常一样，测量以找到热点，而不是提前猜测，这样你就不会过度优化错误的东西。
+
+## #8 - 如果你关心互操作，不要使用 Result
+
+大多数面向对象语言不理解 `Result` 或其他可区分联合。如果您需要从 API 返回可能的失败，请考虑使用对调用方更惯用的方法。甚至——震惊恐怖——偶尔使用 null。不要强迫调用者成为函数习惯用法方面的专家，这样他们就可以调用 API。
+
+## 不使用结果的原因总结
+
+- **诊断**：如果您关心堆栈跟踪或错误位置，请不要使用 `Result`。
+- **重新发明 try/catch**：为什么不使用已经内置的语言工具呢？
+- **快速失败**：如果工作流的结束无论如何都会抛出异常，请不要在工作流中使用 `Result`。
+- **控制流的本地异常是可以的**：如果控制流复杂且私有，则可以对控制流使用异常。
+- **冷漠**：如果没有人关心错误，不要返回 `Result`。
+- **I/O**：不要试图用结果来模拟每个可能的 I/O 错误。
+- **性能**：如果你关心性能，请谨慎使用 `Result`。
+- **互操作**：如果你关心互操作，不要强迫调用者理解 `Result` 是什么以及它是如何工作的。
+
+## 什么时候应该使用 Result？
+
+那么，在所有这些消极因素之后，你应该在什么情况下使用 `Result`？
+
+正如我在《领域建模使函数化》一书中所说，我喜欢将错误分为三类：
+
+- **领域错误**。这些错误是业务流程中预期的一部分，因此必须包含在域的设计中。例如，被账单拒绝的订单，或包含无效产品代码的订单。企业已经有了处理这类事情的程序，因此代码需要反映这些过程。领域错误是领域的一部分，就像其他任何东西一样，因此应该纳入我们的领域建模中，与领域专家讨论，并在可能的情况下记录在类型系统中。请注意，不需要诊断——我们使用 `Result` 作为美化的 `bool`。
+- **恐慌**。这些错误会使系统处于未知状态，例如无法处理的系统错误（例如“内存不足”）或程序员疏忽造成的错误（例如，“除以零”、“空引用”）。最好通过放弃工作流并引发异常来处理恐慌，然后在最高适当级别（例如应用程序的 main 函数或等效函数）捕获并记录异常。
+- **基础设施错误**。这些错误是架构的一部分，但不属于任何业务流程，也不包含在领域中。例如，网络超时或身份验证失败。有时处理这些问题应该被建模为领域的一部分，有时它们可以被视为恐慌。如有疑问，请咨询领域专家！
+
+因此，使用上述定义：
+
+- `Result` 应仅用作域建模过程的一部分，以记录预期的返回值。然后确保在编译时处理所有可能的预期错误情况。
+- 如果合适，微领域（如库）也可以使用 `Result`。
+
+总之，我认为如果使用得当，`Result` 类型和面向铁路的编程是非常有用的，但用例比你想象的要有限，它们不应该仅仅因为很酷和有趣而到处使用。
+
+感谢您的阅读！如果您对更多 F# 帖子感兴趣，请查看 2019 F# 降临日历的其余部分。
+
+> 如果你对领域建模和设计的功能方法感兴趣，你可能会喜欢我的《领域建模函数化》一书！这是一个初学者友好的介绍，涵盖了领域驱动设计、类型建模和函数式编程。
+
+
+
+# 面向铁路的编程：碳化版
+
+实现 FizzBuzz 的三种方法
+2013年6月22日 这篇文章已有3年多的历史了
+
+https://fsharpforfunandprofit.com/posts/railway-oriented-programming-carbonated/
+
+作为面向铁路编程帖子的后续，我想我会将同样的技术应用于 FizzBuzz 问题，并将其与其他实现进行比较。
+
+这篇文章的很大一部分是直接从 Dave Fayram 在 FizzBuzz 上的帖子中窃取的，还有一些来自拉甘瓦尔德（ [raganwald](http://weblog.raganwald.com/2007/01/dont-overthink-fizzbuzz.html)）的其他想法。
+
+## FizzBuzz：命令式版本
+
+作为提醒，以下是 FizzBuzz 问题的要求：
+
+```
+编写一个程序，打印 1 到 100 之间的数字。
+* 对于三的倍数，打印“Fizz”而不是数字。
+* 对于五的倍数，请打印“Buzz”。
+* 对于同时是 3 和 5 的倍数的数字，打印“FizzBuzz”。
+```
+
+以下是一个基本的 F# 解决方案：
+
+```F#
+module FizzBuzz_Match =
+
+    let fizzBuzz i =
+        match i with
+        | _ when i % 15 = 0 ->
+            printf "FizzBuzz"
+        | _ when i % 3 = 0 ->
+            printf "Fizz"
+        | _ when i % 5 = 0 ->
+            printf "Buzz"
+        | _ ->
+            printf "%i" i
+
+        printf "; "
+
+    // do the fizzbuzz
+    [1..100] |> List.iter fizzBuzz
+```
+
+我定义了一个函数 `fizzBuzz`，给定一个整数 `i`，它使用 `when` 子句的 `match` 进行各种测试，然后打印出相应的值。
+
+简单明了，适合快速破解，但这种实现存在许多问题。
+
+首先，请注意，我们必须为“十五”提供一个特例。我们不能只是重用“三”和“五”情况下的代码。这意味着，如果我们想添加另一个案例，比如“七”，我们还需要为所有组合添加特殊案例（即“21”、“35”和“105”）。当然，增加更多的数字会导致病例的组合爆炸。
+
+其次，匹配的顺序很重要。如果“十五”个案例在模式列表中排在最后，代码本可以正确运行，但实际上并没有满足要求。同样，如果我们需要添加新案例，我们必须始终记住把最大的案例放在第一位，以确保正确性。这正是导致微妙错误的事情。
+
+让我们尝试另一种实现，在这种实现中，我们重用了“三”和“五”情况下的代码，完全消除了对“十五”情况的需要：
+
+```F#
+module FizzBuzz_IfPrime =
+
+    let fizzBuzz i =
+        let mutable printed = false
+
+        if i % 3 = 0 then
+            printed <- true
+            printf "Fizz"
+
+        if i % 5 = 0 then
+            printed <- true
+            printf "Buzz"
+
+        if not printed then
+            printf "%i" i
+
+        printf "; "
+
+    // do the fizzbuzz
+    [1..100] |> List.iter fizzBuzz
+```
+
+在此实现中，“15”的打印值将是正确的，因为将使用“3”和“5”两种情况。而且我们也不必担心订单——不管怎样，也不必那么担心。
+
+但是，这些分支不再独立，因此我们必须跟踪是否使用了任何分支，以便我们可以处理默认情况。这就产生了可变变量。可变性在 F# 中是一种代码气味，因此这种实现并不理想。
+
+然而，这个版本确实有一个优点，那就是它可以很容易地重构以支持多个因素，而不仅仅是 3 和 5。
+
+下面是一个这样做的版本。我们把一系列“规则”交给 `fizzBuzz`。每个规则都由一个因子和一个要打印的相应标签组成。然后，`fizzBuzz` 函数只是迭代这些规则，依次处理每个规则。
+
+```F#
+module FizzBuzz_UsingFactorRules =
+
+    let fizzBuzz rules i  =
+        let mutable printed = false
+
+        for factor,label in rules do
+            if i % factor = 0 then
+                printed <- true
+                printf "%s" label
+
+        if not printed then
+            printf "%i" i
+
+        printf "; "
+
+    // do the fizzbuzz
+    let rules = [ (3,"Fizz"); (5,"Buzz") ]
+    [1..100] |> List.iter (fizzBuzz rules)
+```
+
+如果我们想处理额外的数字，我们只需将它们添加到规则列表中，如下所示：
+
+```F#
+module FizzBuzz_UsingFactorRules =
+
+    // existing code as above
+
+    let rules2 = [ (3,"Fizz"); (5,"Buzz"); (7,"Baz") ]
+    [1..105] |> List.iter (fizzBuzz rules2)
+```
+
+总之，我们创建了一个非常必要的实现，它在 C# 中几乎是一样的。它很灵活，但可变变量有点代码味。还有别的办法吗？
+
+## FizzBuzz：流水线版本
+
+在下一个版本中，我们将研究使用“管道”模型，在该模型中，数据通过一系列函数馈送以获得最终结果。
+
+在这个设计中，我设想了一个函数管道，一个用于处理“三”类情况，一个处理“五”类情况等等。最后，适当的标签被吐出，准备打印。
+
+以下是一些伪代码来演示这个概念：
+
+```F#
+data |> handleThreeCase |> handleFiveCase |> handleAllOtherCases |> printResult
+```
+
+作为额外要求，我们希望管道没有副作用。这意味着中间函数不得打印任何内容。相反，他们必须将任何生成的标签沿管道传递到末端，并仅在该点打印结果。
+
+### 设计管道
+
+作为第一步，我们需要定义哪些数据将被馈送到管道中。
+
+让我们从第一个函数开始，在上面的伪代码中称为 `handleThreeCase`。它的输入是什么，输出是什么？
+
+显然，输入是正在处理的整数。但如果幸运的话，输出可能是字符串“Fizz”。或者，如果不是，则使用原始整数。
+
+现在让我们考虑第二个函数 `handleFiveCase` 的输入。它也需要整数。但在“15”的情况下，它也需要字符串“Fizz”，因此它可以向其附加“Buzz”。
+
+最后，`handleAllOtherCases` 函数将 int 转换为字符串，但前提是“Fizz”或“Buzz”尚未生成。
+
+很明显，数据结构需要同时包含正在处理的整数和“迄今为止的标签”。
+
+下一个问题是：我们如何知道上游函数是否创建了标签？`handleAllOtherCases` 需要知道这一点，以便确定它是否需要做任何事情。
+
+一种方法是使用空字符串（或者，可怕的是，使用空字符串），但让我们做好准备，使用 `string option`。
+
+所以，这是我们将使用的最终数据类型：
+
+```F#
+type Data = {i:int; label:string option}
+```
+
+### 管道版本 1
+
+有了这个数据结构，我们可以定义 `handleThreeCase` 和 `handleFiveCase` 的工作方式。
+
+- 首先，测试输入 int `i`，看看它是否能被因子整除。
+- 如果它是可分割的，看看 `label`——如果它是 `None`，那么用 `Some "Fizz"` 或 `Some "Buzz"` 替换它。
+- 如果标签已经有值，则向其附加“Buzz”（或其他）。
+- 如果输入不能被因子整除，只需原封不动地传递数据。
+
+考虑到这种设计，下面是实现。这是一个通用函数，我将称之为 `carbonate`（以 raganwald 命名），因为它同时适用于“Fizz”和“Buzz”：
+
+```F#
+let carbonate factor label data =
+    let {i=i; label=labelSoFar} = data
+    if i % factor = 0 then
+        // pass on a new data record
+        let newLabel =
+            match labelSoFar with
+            | Some s -> s + label
+            | None -> label
+        {data with label=Some newLabel}
+    else
+        // pass on the unchanged data
+        data
+```
+
+`handleAllOtherCases` 函数的设计略有不同：
+
+- 看看标签——如果它不是 `None`，那么前面的函数已经创建了一个标签，所以什么都不做。
+- 但如果标签为 `None`，则将其替换为整数的字符串表示形式。
+
+这是代码——我将其称为 `labelOrDefault`：
+
+```F#
+let labelOrDefault data =
+    let {i=i; label=labelSoFar} = data
+    match labelSoFar with
+    | Some s -> s
+    | None -> sprintf "%i" i
+```
+
+现在我们有了组件，我们可以组装管道了：
+
+```F#
+let fizzBuzz i =
+    {i=i; label=None}
+    |> carbonate 3 "Fizz"
+    |> carbonate 5 "Buzz"
+    |> labelOrDefault     // convert to string
+    |> printf "%s; "      // print
+```
+
+请注意，我们必须使用 `{i=i; label=None}` 创建一个初始记录，以传递给第一个函数（`carbonate 3 "Fizz"`）。
+
+最后，这是所有代码的组合：
+
+```F#
+module FizzBuzz_Pipeline_WithRecord =
+
+    type Data = {i:int; label:string option}
+
+    let carbonate factor label data =
+        let {i=i; label=labelSoFar} = data
+        if i % factor = 0 then
+            // pass on a new data record
+            let newLabel =
+                match labelSoFar with
+                | Some s -> s + label
+                | None -> label
+            {data with label=Some newLabel}
+        else
+            // pass on the unchanged data
+            data
+
+    let labelOrDefault data =
+        let {i=i; label=labelSoFar} = data
+        match labelSoFar with
+        | Some s -> s
+        | None -> sprintf "%i" i
+
+    let fizzBuzz i =
+        {i=i; label=None}
+        |> carbonate 3 "Fizz"
+        |> carbonate 5 "Buzz"
+        |> labelOrDefault     // convert to string
+        |> printf "%s; "      // print
+
+    [1..100] |> List.iter fizzBuzz
+```
+
+### 管道版本 2
+
+创建新的记录类型作为一种文档形式可能很有用，但在这种情况下，只使用元组而不是创建特殊的数据结构可能更符合习惯。
+
+所以这里有一个使用元组的修改实现。
+
+```F#
+module FizzBuzz_Pipeline_WithTuple =
+
+    // type Data = int * string option
+
+    let carbonate factor label data =
+        let (i,labelSoFar) = data
+        if i % factor = 0 then
+            // pass on a new data record
+            let newLabel =
+                labelSoFar
+                |> Option.map (fun s -> s + label)
+                |> defaultArg <| label
+            (i,Some newLabel)
+        else
+            // pass on the unchanged data
+            data
+
+    let labelOrDefault data =
+        let (i,labelSoFar) = data
+        labelSoFar
+        |> defaultArg <| sprintf "%i" i
+
+    let fizzBuzz i =
+        (i,None)   // use tuple instead of record
+        |> carbonate 3 "Fizz"
+        |> carbonate 5 "Buzz"
+        |> labelOrDefault     // convert to string
+        |> printf "%s; "      // print
+
+    [1..100] |> List.iter fizzBuzz
+```
+
+作为练习，试着找到所有必须更改的代码。
+
+### 取消对 Some 和 None 的显式测试
+
+在上面的元组代码中，我还用内置的 Option 函数、`map` 和 `defaultArg` 替换了显式的 Option 匹配代码 `match .. Some .. None`。
+
+以下是 `carbonate` 的变化：
+
+```F#
+// before
+let newLabel =
+    match labelSoFar with
+    | Some s -> s + label
+    | None -> label
+
+// after
+let newLabel =
+    labelSoFar
+    |> Option.map (fun s -> s + label)
+    |> defaultArg <| label
+```
+
+在 `labelOrDefault` 中：
+
+```F#
+// before
+match labelSoFar with
+| Some s -> s
+| None -> sprintf "%i" i
+
+// after
+labelSoFar
+|> defaultArg <| sprintf "%i" i
+```
+
+您可能想知道外观奇怪的 `|> defaultArg <|` 习语。
+
+我使用它是因为该选项是 `defaultArg` 的第一个参数，而不是第二个参数，因此正常的部分应用程序无法工作。但“双向”管道确实有效，因此代码看起来很奇怪。
+
+我的意思是：
+
+```F#
+// OK - normal usage
+defaultArg myOption defaultValue
+
+// ERROR: piping doesn't work
+myOption |> defaultArg defaultValue
+
+// OK - bi-directional piping does work
+myOption |> defaultArg <| defaultValue
+```
+
+### 管道版本 3
+
+我们的 `carbonate` 函数对任何因素都是通用的，因此我们可以很容易地扩展代码以支持“规则”，就像早期的命令式版本一样。
+
+但有一个问题似乎是，我们已经将“3”和“5”案例硬编码到管道中，如下所示：
+
+```F#
+|> carbonate 3 "Fizz"
+|> carbonate 5 "Buzz"
+```
+
+我们如何动态地将新函数添加到管道中？
+
+答案很简单。我们为每个规则动态创建一个函数，然后使用组合将所有这些函数组合成一个。
+
+下面是一个片段来演示：
+
+```F#
+let allRules =
+    rules
+    |> List.map (fun (factor,label) -> carbonate factor label)
+    |> List.reduce (>>)
+```
+
+每个规则都映射到一个函数中。然后使用 `>>` 将函数列表组合成一个函数。
+
+综合起来，我们得到了最终的实现：
+
+```F#
+module FizzBuzz_Pipeline_WithRules =
+
+    let carbonate factor label data =
+        let (i,labelSoFar) = data
+        if i % factor = 0 then
+            // pass on a new data record
+            let newLabel =
+                labelSoFar
+                |> Option.map (fun s -> s + label)
+                |> defaultArg <| label
+            (i,Some newLabel)
+        else
+            // pass on the unchanged data
+            data
+
+    let labelOrDefault data =
+        let (i,labelSoFar) = data
+        labelSoFar
+        |> defaultArg <| sprintf "%i" i
+
+    let fizzBuzz rules i =
+
+        // create a single function from all the rules
+        let allRules =
+            rules
+            |> List.map (fun (factor,label) -> carbonate factor label)
+            |> List.reduce (>>)
+
+        (i,None)
+        |> allRules
+        |> labelOrDefault     // convert to string
+        |> printf "%s; "      // print
+
+    // test
+    let rules = [ (3,"Fizz"); (5,"Buzz"); (7,"Baz") ]
+    [1..105] |> List.iter (fizzBuzz rules)
+```
+
+将这个“管道”版本与之前的命令式版本进行比较，设计功能要强大得多。没有可变性，也没有任何副作用（除了最后的 `printf` 语句）。
+
+然而，在使用 `List.reduce` 时存在一个微妙的错误。你能看到它是什么吗？**有关问题和修复的讨论，请参阅本页底部的附言。
+
+**提示：尝试一个空的规则列表。
+
+## FizzBuzz：面向铁路的版本
+
+管道版本是 FizzBuzz 的完美功能实现，但为了好玩，让我们看看我们是否可以使用面向铁路的编程文章中描述的“双轨”设计。
+
+作为一个快速提醒，在“面向铁路的编程”（也称为“Either”单子）中，我们定义了一个有两种情况的联合类型：“成功”和“失败”，每种情况都代表一个不同的“轨道”。然后，我们将一组“双轨”功能连接在一起，形成铁路。
+
+我们实际使用的大多数函数都是我所说的“开关”或“点”函数，有一个单轨输入，但有一个双轨输出，一个用于成功情况，一个适用于失败情况。这些开关函数使用称为“bind”的粘合函数转换为双轨函数。
+
+这是一个包含我们需要的函数定义的模块。
+
+```F#
+module RailwayCombinatorModule =
+
+    let (|Success|Failure|) =
+        function
+        | Choice1Of2 s -> Success s
+        | Choice2Of2 f -> Failure f
+
+    /// convert a single value into a two-track result
+    let succeed x = Choice1Of2 x
+
+    /// convert a single value into a two-track result
+    let fail x = Choice2Of2 x
+
+    // apply either a success function or failure function
+    let either successFunc failureFunc twoTrackInput =
+        match twoTrackInput with
+        | Success s -> successFunc s
+        | Failure f -> failureFunc f
+
+    // convert a switch function into a two-track function
+    let bind f =
+        either f fail
+```
+
+我在这里使用的是 `Choice` 类型，它内置于 F# 核心库中。但我创建了一些助手，使其看起来像成功/失败类型：一个活动模式和两个构造函数。
+
+现在，我们将如何使 FizzBuzz 适应这种情况？
+
+让我们从一件显而易见的事情开始：将“carbonation”定义为成功，将一个未匹配的整数定义为失败。
+
+换句话说，成功轨道包含标签，失败轨道包含整数。
+
+因此，我们的 `carbonate` “开关”功能看起来像这样：
+
+```F#
+let carbonate factor label i =
+    if i % factor = 0 then
+        succeed label
+    else
+        fail i
+```
+
+这个实现类似于上面讨论的管道设计中使用的实现，但它更清晰，因为输入只是一个 int，而不是记录或元组。
+
+接下来，我们需要将组件连接在一起。逻辑是：
+
+- 如果 int 已经碳化了，忽略它
+- 如果 int 没有碳化，请将其连接到下一个开关函数的输入端
+
+以下是实现：
+
+```F#
+let connect f =
+    function
+    | Success x -> succeed x
+    | Failure i -> f i
+```
+
+另一种写作方式是使用我们在库模块中定义的 `either` 函数：
+
+```F#
+let connect' f =
+    either succeed f
+```
+
+确保你明白这两个实现做的是完全相同的事情！
+
+接下来，我们可以创建我们的“双轨”管道，如下所示：
+
+```F#
+let fizzBuzz =
+    carbonate 15 "FizzBuzz"      // need the 15-FizzBuzz rule because of short-circuit
+    >> connect (carbonate 3 "Fizz")
+    >> connect (carbonate 5 "Buzz")
+    >> either (printf "%s; ") (printf "%i; ")
+```
+
+这表面上类似于“单轨”管道，但实际上使用了不同的技术。开关通过组合（`>>`）而不是管道（`|>`）连接在一起。
+
+因此，`fizzBuzz` 函数没有 int 参数——我们通过组合其他函数来定义一个函数。任何地方都没有数据。
+
+其他一些事情也发生了变化：
+
+- 我们不得不重新引入对“15”案例的明确测试。这是因为我们只有两条轨道（成功或失败）。没有“半成品轨道”允许“5”案例添加到“3”案例的输出中。
+- 前面示例中的 `labelOrDefault` 函数已被替换为 `either`。在成功的情况下，会打印一个字符串。在Failure的情况下，会打印一个 int。
+
+以下是完整的实现：
+
+```F#
+module FizzBuzz_RailwayOriented_CarbonationIsSuccess =
+
+    open RailwayCombinatorModule
+
+    // carbonate a value
+    let carbonate factor label i =
+        if i % factor = 0 then
+            succeed label
+        else
+            fail i
+
+    let connect f =
+        function
+        | Success x -> succeed x
+        | Failure i -> f i
+
+    let connect' f =
+        either succeed f
+
+    let fizzBuzz =
+        carbonate 15 "FizzBuzz"      // need the 15-FizzBuzz rule because of short-circuit
+        >> connect (carbonate 3 "Fizz")
+        >> connect (carbonate 5 "Buzz")
+        >> either (printf "%s; ") (printf "%i; ")
+
+    // test
+    [1..100] |> List.iter fizzBuzz
+```
+
+### 碳化是失败吗？
+
+在上面的例子中，我们将碳化定义为“成功”——当然，这似乎是很自然的事情。但如果你还记得，在面向铁路的编程模型中，“成功”意味着数据应该传递给下一个函数，而“失败”意味着绕过所有中间函数，直接走到最后。
+
+对于 FizzBuzz 来说，“绕过所有中间函数”轨道是带有碳化标签的轨道，而“传递给下一个函数”轨道则是带有整数的轨道。
+
+因此，我们应该真正扭转这种趋势：“失败”现在意味着碳化，而“成功”意味着没有碳化。
+
+通过这样做，我们还可以重用预定义的绑定函数，而不必编写自己的连接函数。
+
+以下是轨道切换后的代码：
+
+```F#
+module FizzBuzz_RailwayOriented_CarbonationIsFailure =
+
+    open RailwayCombinatorModule
+
+    // carbonate a value
+    let carbonate factor label i =
+        if i % factor = 0 then
+            fail label
+        else
+            succeed i
+
+    let fizzBuzz =
+        carbonate 15 "FizzBuzz"
+        >> bind (carbonate 3 "Fizz")
+        >> bind (carbonate 5 "Buzz")
+        >> either (printf "%i; ") (printf "%s; ")
+
+    // test
+    [1..100] |> List.iter fizzBuzz
+```
+
+### 这两条轨道到底是什么？
+
+我们可以如此容易地交换轨道的事实意味着设计中可能存在弱点。我们是否试图使用不合适的设计？
+
+为什么一个轨道必须是“成功”，另一个轨道无论如何都必须是“失败”？这似乎没什么区别。
+
+那么，我们为什么不保持双轨制的想法，但去掉“成功”和“失败”的标签呢。
+
+相反，我们可以称一首轨道为“碳化”，另一首为“未碳化”。
+
+为了实现这一点，我们可以定义一个活动模式和构造函数方法，就像我们为“成功/失败”所做的那样。
+
+```F#
+let (|Uncarbonated|Carbonated|) =
+    function
+    | Choice1Of2 u -> Uncarbonated u
+    | Choice2Of2 c -> Carbonated c
+
+/// convert a single value into a two-track result
+let uncarbonated x = Choice1Of2 x
+let carbonated x = Choice2Of2 x
+```
+
+如果你正在进行领域驱动的设计，最好使用适当的统一语言（ [Ubiquitous Language](http://martinfowler.com/bliki/UbiquitousLanguage.html) ）而不是不适用的语言编写代码。
+
+在这种情况下，如果 FizzBuzz 是我们的领域，那么我们的函数现在可以使用对领域友好的术语，即碳化和非酸化，而不是“成功”或“失败”。
+
+```F#
+let carbonate factor label i =
+    if i % factor = 0 then
+        carbonated label
+    else
+        uncarbonated i
+
+let connect f =
+    function
+    | Uncarbonated i -> f i
+    | Carbonated x -> carbonated x
+```
+
+请注意，与之前一样，`connect` 函数可以使用 `either` 重写（或者我们可以像以前一样使用预定义的 `bind`）：
+
+```F#
+let connect' f =
+    either f carbonated
+```
+
+以下是一个模块中的所有代码：
+
+```F#
+module FizzBuzz_RailwayOriented_UsingCustomChoice =
+
+    open RailwayCombinatorModule
+
+    let (|Uncarbonated|Carbonated|) =
+        function
+        | Choice1Of2 u -> Uncarbonated u
+        | Choice2Of2 c -> Carbonated c
+
+    /// convert a single value into a two-track result
+    let uncarbonated x = Choice1Of2 x
+    let carbonated x = Choice2Of2 x
+
+    // carbonate a value
+    let carbonate factor label i =
+        if i % factor = 0 then
+            carbonated label
+        else
+            uncarbonated i
+
+    let connect f =
+        function
+        | Uncarbonated i -> f i
+        | Carbonated x -> carbonated x
+
+    let connect' f =
+        either f carbonated
+
+    let fizzBuzz =
+        carbonate 15 "FizzBuzz"
+        >> connect (carbonate 3 "Fizz")
+        >> connect (carbonate 5 "Buzz")
+        >> either (printf "%i; ") (printf "%s; ")
+
+    // test
+    [1..100] |> List.iter fizzBuzz
+```
+
+### 添加规则
+
+到目前为止，我们的版本存在一些问题：
+
+- “15”测试是丑陋的。我们能否摆脱它，重新使用“3”和“5”案例？
+- “3”和“5”案例是硬编码的。我们能让它更有动态吗？
+
+碰巧的是，我们可以一箭双雕，同时解决这两个问题。
+
+我们可以并行地将它们“添加”在一起，而不是将所有“开关”功能串联组合在一起。在面向铁路的编程岗位上，我们使用了这种技术来组合验证函数。对于 FizzBuzz，我们将使用它来同时处理所有因素。
+
+诀窍是定义一个“append”或“concat”函数来组合两个函数。一旦我们可以以这种方式添加两个函数，我们就可以继续添加任意数量的函数。
+
+那么，考虑到我们有两个碳化功能，我们如何将它们结合起来呢？
+
+以下是可能的情况：
+
+- 如果它们都有碳化输出，我们将标签连接成一个新的碳化标签。
+- 如果一个有碳化输出而另一个没有，那么我们使用碳化输出。
+- 如果两者都没有碳化输出，那么我们使用未碳化输出（它们将是相同的）。
+
+代码如下：
+
+```F#
+// concat two carbonation functions
+let (<+>) switch1 switch2 x =
+    match (switch1 x),(switch2 x) with
+    | Carbonated s1,Carbonated s2 -> carbonated (s1 + s2)
+    | Uncarbonated f1,Carbonated s2  -> carbonated s2
+    | Carbonated s1,Uncarbonated f2 -> carbonated s1
+    | Uncarbonated f1,Uncarbonated f2 -> uncarbonated f1
+```
+
+顺便说一句，请注意，这段代码几乎就像数学，`uncarbonated` 扮演“零”的角色，如下所示：
+
+```
+something + something = combined somethings
+zero + something = something
+something + zero = something
+zero + zero = zero
+```
+
+这不是巧合！我们会看到这种东西在函数式代码中反复出现。我将在以后的文章中讨论这个问题。
+
+不管怎样，有了这个“concat”函数，我们可以这样重写主 `buzzBuzz`：
+
+```F#
+let fizzBuzz =
+    let carbonateAll =
+        carbonate 3 "Fizz" <+> carbonate 5 "Buzz"
+
+    carbonateAll
+    >> either (printf "%i; ") (printf "%s; ")
+```
+
+添加这两种 `carbonate` 函数，然后像以前一样传递给其中一种。
+
+以下是完整的代码：
+
+```F#
+module FizzBuzz_RailwayOriented_UsingAppend =
+
+    open RailwayCombinatorModule
+
+    let (|Uncarbonated|Carbonated|) =
+        function
+        | Choice1Of2 u -> Uncarbonated u
+        | Choice2Of2 c -> Carbonated c
+
+    /// convert a single value into a two-track result
+    let uncarbonated x = Choice1Of2 x
+    let carbonated x = Choice2Of2 x
+
+    // concat two carbonation functions
+    let (<+>) switch1 switch2 x =
+        match (switch1 x),(switch2 x) with
+        | Carbonated s1,Carbonated s2 -> carbonated (s1 + s2)
+        | Uncarbonated f1,Carbonated s2  -> carbonated s2
+        | Carbonated s1,Uncarbonated f2 -> carbonated s1
+        | Uncarbonated f1,Uncarbonated f2 -> uncarbonated f1
+
+    // carbonate a value
+    let carbonate factor label i =
+        if i % factor = 0 then
+            carbonated label
+        else
+            uncarbonated i
+
+    let fizzBuzz =
+        let carbonateAll =
+            carbonate 3 "Fizz" <+> carbonate 5 "Buzz"
+
+        carbonateAll
+        >> either (printf "%i; ") (printf "%s; ")
+
+    // test
+    [1..100] |> List.iter fizzBuzz
+```
+
+有了这个添加逻辑，我们可以很容易地重构代码以使用规则。就像早期的“管道”实现一样，我们可以使用 `reduce` 一次将所有规则添加在一起。
+
+以下是带有规则的版本：
+
+```F#
+module FizzBuzz_RailwayOriented_UsingAddition =
+
+    // code as above
+
+    let fizzBuzzPrimes rules =
+        let carbonateAll  =
+            rules
+            |> List.map (fun (factor,label) -> carbonate factor label)
+            |> List.reduce (<+>)
+
+        carbonateAll
+        >> either (printf "%i; ") (printf "%s; ")
+
+    // test
+    let rules = [ (3,"Fizz"); (5,"Buzz"); (7,"Baz") ]
+    [1..105] |> List.iter (fizzBuzzPrimes rules)
+```
+
+## 摘要
+
+在这篇文章中，我们看到了三种不同的实现：
+
+- 一种使用可变值和逻辑混合副作用的命令式版本。
+- 通过一系列函数传递数据结构的“管道”版本。
+- 一个“面向铁路”的版本，有两条单独的轨道，并使用“加法”并行组合功能。
+
+在我看来，命令式版本是最糟糕的设计。尽管它很容易快速讨巧写出（hack out），但它存在许多问题，使其变得脆弱且容易出错。
+
+在这两个函数式版本中，我认为“面向铁路”的版本更清晰，至少在这个问题上是这样。
+
+通过使用 `Choice` 类型而不是元组或特殊记录，我们使代码在整个过程中更加优雅。如果你比较管道版的碳化和铁路版的碳化，你可以看到区别。
+
+当然，在其他情况下，面向铁路的方法可能不起作用，管道方法可能更好。我希望这篇文章对两者都有一些有益的见解。
+
+如果你是 FizzBuzz 的粉丝，请查看函数式响应式编程页面，该页面还有另一个问题变体。
+
+## 后记：使用 List.reduce 时要小心
+
+小心 `List.reduce`——它会在空列表时失败。因此，如果你有一个空的规则集，代码将抛出一个 `System.ArgumentException`。
+
+在管道的情况下，您可以通过将以下代码段添加到模块中来看到这一点：
+
+```F#
+module FizzBuzz_Pipeline_WithRules =
+
+    // code as before
+
+    // bug
+    let emptyRules = []
+    [1..105] |> List.iter (fizzBuzz emptyRules)
+```
+
+修复方法是将 `List.reduce` 替换为 `List.fold`。`List.fold` 需要一个额外的参数：初始值（或“零”）。在这种情况下，我们可以使用单位元函数(identity function) `id` 作为初始值。
+
+以下是代码的修复版本：
+
+```F#
+let allRules =
+    rules
+    |> List.map (fun (factor,label) -> carbonate factor label)
+    |> List.fold (>>) id
+```
+
+同样，在面向铁路的示例中，我们有：
+
+```F#
+let allRules =
+    rules
+    |> List.map (fun (factor,label) -> carbonate factor label)
+    |> List.reduce (<+>)
+```
+
+应将其修正为：
+
+```F#
+let allRules =
+    rules
+    |> List.map (fun (factor,label) -> carbonate factor label)
+    |> List.fold (<+>) zero
+```
+
+其中 `zero` 是列表为空时使用的“默认”函数。
+
+作为练习，为这种情况定义零函数。（提示：我们实际上已经用另一个名称定义了它）。
 
 
 
@@ -2987,42 +4112,895 @@ https://fsharpforfunandprofit.com/series/computation-expressions/
 
 
 
-# “基于属性的测试”系列
+# “F#面向对象编程”系列
 
-https://fsharpforfunandprofit.com/series/property-based-testing/
+https://fsharpforfunandprofit.com/series/object-oriented-programming-in-fsharp/
 
-本系列文章将向您介绍基于属性的测试的基本原理：它与传统的基于示例的测试有何不同，为什么它很重要，以及如何在理论和实践中使用属性。
+正如之前多次强调的那样，F# 本质上是一种函数式语言，但 OO 特性已经很好地集成在一起，没有“附加”的感觉。因此，将 F# 作为面向对象语言，作为 C# 的替代品，是非常可行的。
 
-还有一个后续系列：《企业开发者从地狱归来》。
+在本系列中，我们将探讨 F# 如何支持面向对象的类和方法。
 
-基于这些帖子，还有一个关于基于属性的测试的讨论。幻灯片和视频在这里。
-
-1. 来自地狱的企业开发者
-   发现恶意遵守基于属性的测试
-2. 了解 FsCheck
-   生成器、收缩器等
-3. 为基于属性的测试选择属性
-   或者，我想使用 PBT，但我永远想不出任何属性可以使用
-4. 在实践中选择属性，第1部分
-   列表函数的属性
-5. 在实践中选择属性，第2部分
-   罗马数字转换的性质
-6. 在实践中选择属性，第3部分
-   美元对象的属性
+1. F# 中的面向对象编程：简介
+2. 类
+3. 继承和抽象类
+4. 接口
+5. 对象表达式
 
 
 
-# “EDFH的回归”系列
+## [跳转系列独立 Markdown](./FSharpForFunAndProfit翻译-“F#面向对象编程”系列.md)
 
-https://fsharpforfunandprofit.com/series/return-of-the-edfh/
 
-本系列文章是我之前关于基于属性的测试和来自地狱的企业开发人员的系列文章的后续。它重新审视了基于属性的测试的基本原理，以及如何使用 EDFH 来帮助设计有用和有效的测试。
 
-1. 企业开发者从地狱归来
-   更多的恶意合规性，更多的基于属性的测试
-2. 为基于属性的测试生成有趣的输入
-   以及如何对它们进行分类
-3. EDFH 再次被击败
+# “函数式应用程序的配方”系列
+
+- 如何设计和编写一个完整的程序
+  函数式应用程序的配方，第 1 部分
+- 面向铁路的编程
+  函数式应用程序的配方，第 2 部分
+- 在项目中组织模块
+  函数式应用程序的配方，第 3 部分
+
+
+
+## [跳转系列独立 Markdown](./FSharpForFunAndProfit翻译-“函数式应用程序的配方”系列.md)
+
+
+
+# “依赖循环”系列
+
+https://fsharpforfunandprofit.com/series/dependency-cycles/
+
+关于 F# 最常见的抱怨之一是，它要求代码按照依赖顺序排列。也就是说，您不能对编译器尚未看到的代码使用正向引用。
+
+在本系列中，我将讨论依赖循环，为什么它们是坏的，以及如何摆脱它们。
+
+1. 循环依赖是邪恶的
+   循环依赖关系：第1部分
+2. 重构以消除循环依赖关系
+   循环依赖关系：第2部分
+3. 野外的循环和模块化
+   比较 C# 和 F# 项目的一些实际指标
+
+
+
+## [跳转系列独立 Markdown](./FSharpForFunAndProfit翻译-“依赖循环”系列.md)
+
+
+
+# “从C#移植”系列
+
+https://fsharpforfunandprofit.com/series/porting-from-csharp/
+
+您想将 C# 代码移植到 F# 吗？在本系列文章中，我们将探讨实现这一目标的各种方法，以及所涉及的设计决策和权衡。
+
+1. 从 C# 到 F# 的移植：引言
+   将现有 C# 代码移植到 F# 的三种方法
+2. 开始使用直接移植
+   F# 相当于 C#
+
+
+
+## [跳转系列独立 Markdown](./FSharpForFunAndProfit翻译-“从C#移植”系列.md)
+
+
+
+# 领域驱动设计
+
+我演讲的幻灯片和视频“用 F# 类型系统实现领域建模功能”
+
+https://fsharpforfunandprofit.com/ddd/
+
+此页面包含我演讲“领域建模函数化”中的幻灯片、视频和代码的链接。
+
+以下是演讲的简介：
+
+> 像 F# 这样的静态类型函数式编程语言鼓励人们以一种非常不同的方式思考类型。类型系统是你的朋友，而不是烦人的东西，它可以以许多面向对象程序员可能不熟悉的方式使用。
+>
+> 类型可用于以细粒度、自文档化的方式表示域。在许多情况下，类型甚至可以用来对业务规则进行编码，这样你就不会创建错误的代码。然后，您可以将静态类型检查几乎用作即时单元测试，以确保您的代码在编译时是正确的。
+>
+> 在本次演讲中，我们将通过 F# 中的一些简单的现实世界示例，探讨将类型用作领域驱动设计过程的一部分的一些方法。没有行话，没有数学，也不需要之前的 F# 经验。
+
+我也计划很快上传一些关于这些主题的帖子。同时，请参阅“用类型设计”系列，该系列涵盖了类似的领域。
+
+您还应该阅读 Tomas Petricek 的“为什么类型优先开发很重要”和 Lev Gorodinski 的一系列文章。
+
+## 视频
+
+（点击图片观看视频）
+
+奥斯陆 NDC 视频，2017 年 6 月
+
+## 幻灯片
+
+F# 型系统的领域驱动设计——从我在 Slideshare 上的幻灯片看 2014 年 F# 函数式伦敦人
+
+幻灯片也可从以下链接获得：
+
+NDC 伦敦 2013 版（Slideshare），（Github）
+F# 函数式伦敦人 2014 版（Speakerdeck），增加了关于为什么 OO 而不是 FP 是可怕的部分，以及使用状态和转换进行设计。
+
+## 书
+
+我有一本关于这个主题的书——你可以在书籍页面上找到更多细节。
+
+领域建模函数化
+
+## 获取代码
+
+如果你想跟随代码，那么：
+
+- 如果您在本地安装了 F#，请下载此文件。
+- 如果您没有在本地安装 F#，可以在您的web浏览器中运行代码：[tryfsharp.org/create/scottw/ddd.fsx](http://www.tryfsharp.org/create/scottw/ddd.fsx)
+
+
+
+# “用类型设计”系列
+
+https://fsharpforfunandprofit.com/series/designing-with-types/
+
+在本系列中，我们将探讨在设计过程中使用类型的一些方法。特别是，周到地使用类型可以使设计更加透明，同时提高正确性。
+
+本系列将聚焦于设计的“微观层面”。也就是说，在单个类型和函数的最低级别上工作。更高层次的设计方法，以及使用函数式或面向对象风格的相关决策，将在另一个系列中讨论。
+
+许多建议在 C# 或 Java 中也是可行的，但 F# 类型的轻量级特性意味着我们更有可能进行这种重构。
+
+1. 用类型设计：简介
+   使设计更加透明，提高正确性
+2. 用类型设计：单箱联合类型
+   为基本类型添加意义
+3. 用类型设计：使非法状态无法表示
+   以类型编码业务逻辑
+4. 用类型设计：发现新概念
+   深入了解该领域
+5. 用类型设计：明确状态
+   使用状态机确保正确性
+6. 使用类型进行设计：约束字符串
+   向基元类型添加更多语义信息
+7. 使用类型进行设计：非字符串类型
+   安全地处理整数和日期
+8. 用类型设计：结论
+   前后对比
+
+
+
+## [跳转系列独立 Markdown](./FSharpForFunAndProfit翻译-“用类型设计”系列.md)
+
+
+
+# 代数类型大小和领域建模
+
+理解基数以获得乐趣和利润
+2015年8月13日 这篇文章已经超过3年了
+
+https://fsharpforfunandprofit.com/posts/type-size-and-design/
+
+在这篇文章中，我们将看看如何计算代数类型的“大小”或基数，并看看这些知识如何帮助我们做出设计决策。
+
+## 开始使用
+
+我将通过将类型视为一个集合并计算可能元素的数量来定义类型的“大小”。
+
+例如，有两种可能的 `Boolean`，因此布尔类型的大小为 2。
+
+有尺寸为 1 的型号吗？是 –  `unit` 类型只有一个值：`()`。
+
+有尺寸为零的类型吗？也就是说，是否存在一个完全没有值的类型？在 F# 中没有，但在 Haskell 中有。它被称为 `Void`。
+
+像这样的类型怎么样：
+
+```F#
+type ThreeState =
+    | Checked
+    | Unchecked
+    | Unknown
+```
+
+它的尺寸是多少？有三个可能的值，因此大小为三。
+
+像这样的类型怎么样：
+
+```F#
+type Direction =
+    | North
+    | East
+    | South
+    | West
+```
+
+显然，四。
+
+我想你明白了！
+
+## 计算复合类型的大小
+
+现在让我们来看看计算复合类型的大小。如果你还记得从理解 F# 类型系列开始，有两种代数类型：“乘积”类型，如元组和记录，以及“求和”类型，在 F# 中称为可区分联合。
+
+例如，假设我们有一个 `Speed` 和一个 `Direction`，我们将它们组合成一个名为 `Velocity` 的记录类型：
+
+```F#
+type Speed =
+    | Slow
+    | Fast
+
+type Velocity = {
+    direction: Direction
+    speed: Speed
+    }
+```
+
+`Velocity` 的大小是多少？
+
+以下是所有可能的值：
+
+```F#
+{direction=North; speed=Slow}; {direction=North; speed=Fast}
+{direction=East;  speed=Slow}; {direction=East;  speed=Fast}
+{direction=South; speed=Slow}; {direction=South; speed=Fast}
+{direction=West;  speed=Slow}; {direction=West;  speed=Fast}
+```
+
+有八个可能的值，每个值对应两个速度值和四个方向值的每个可能组合。
+
+我们可以将其概括为一条规则：
+
+- **规则：产品类型的大小是组件类型大小的乘积。**
+
+也就是说，给定这样的记录类型：
+
+```F#
+type RecordType = {
+    a : TypeA
+    b : TypeB }
+```
+
+大小计算如下：
+
+```F#
+size(RecordType) = size(TypeA) * size(TypeB)
+```
+
+对于元组也是如此：
+
+```F#
+type TupleType = TypeA * TypeB
+```
+
+尺寸为：
+
+```F#
+size(TupleType) = size(TypeA) * size(TypeB)
+```
+
+### 总和类型
+
+求和类型也可以用同样的方法进行分析。给定这样定义的 `Movement` 类型：
+
+```F#
+type Movement =
+    | Moving of Direction
+    | NotMoving
+```
+
+我们可以写出并计算所有的可能性：
+
+```
+Moving North
+Moving East
+Moving South
+Moving West
+NotMoving
+```
+
+所以，总共五个。恰好是 `size(Direction) + 1`。这是另一个有趣的：
+
+```F#
+type ThingsYouCanSay =
+    | Yes
+    | Stop
+    | Goodbye
+
+type ThingsICanSay =
+    | No
+    | GoGoGo
+    | Hello
+
+type HelloGoodbye =
+    | YouSay of ThingsYouCanSay
+    | ISay of ThingsICanSay
+```
+
+同样，我们可以写出并计算所有的可能性：
+
+```
+YouSay Yes
+ISay No
+YouSay Stop
+ISay GoGoGo
+YouSay Goodbye
+ISay Hello
+```
+
+YouSay 案例中有三个可能的值，ISay 案例中也有三个可能性的值，总共有六个。
+
+同样，我们可以制定一个一般规则。
+
+- **规则：求和或并集类型的大小是组件类型大小的总和**。
+
+也就是说，给定这样的联合类型：
+
+```F#
+type SumType =
+    | CaseA of TypeA
+    | CaseB of TypeB
+```
+
+大小计算如下：
+
+```
+size(SumType) = size(TypeA) + size(TypeB)
+```
+
+## 使用泛型类型
+
+如果我们将泛型类型加入其中，会发生什么？
+
+例如，这样的类型的大小是多少：
+
+```F#
+type Optional<'a> =
+    | Something of 'a
+    | Nothing
+```
+
+首先，`Optional<'a>` 不是一个类型，而是一个类型构造函数。`Option<string>` 是一种类型。`Optional<int>` 是一种类型，但 `Optional<'a>` 不是。
+
+尽管如此，我们仍然可以通过注意 `size(Optional<string>)` 只是 `size(string) + 1`，`size(Optionally<int>)` 就是 `size(int) + 1` 来计算它的大小，以此类推。
+
+所以我们可以说：
+
+```F#
+size(Optional<'a>) = size('a) + 1
+```
+
+同样，对于具有两个泛型的类型，如下所示：
+
+```F#
+type Either<'a,'b> =
+    | Left of 'a
+    | Right of 'b
+```
+
+我们可以说，它的大小可以使用通用组件的大小来计算（使用上面的“求和规则”）：
+
+```
+size(Either<'a,'b>) = size('a) + size('b)
+```
+
+## 递归类型
+
+递归类型呢？让我们看看最简单的一个，链表。
+
+链表要么是空的，要么它有一个带有元组的单元格：一个头和一个尾。头部是 `'a`，尾部是另一个列表。定义如下：
+
+```F#
+type LinkedList<'a> =
+    | Empty
+    | Node of head:'a * tail:LinkedList<'a>
+```
+
+为了计算大小，让我们为各个组件指定一些名称：
+
+```F#
+let S = size(LinkedList<'a>)
+let N = size('a)
+```
+
+现在我们可以写：
+
+```F#
+S =
+    1         // Size of "Empty" case
+    +         // Union type
+    N * S     // Size of "Cell" case using tuple size calculation
+```
+
+让我们来试试这个公式。我们从以下几点开始：
+
+```
+S = 1 + (N * S)
+```
+
+让我们用公式替换最后一个 S，得到：
+
+```
+S = 1 + (N * (1 + (N * S)))
+```
+
+如果我们把它清理干净，我们会得到：
+
+```
+S = 1 + N + (N^2 * S)
+```
+
+（其中 `N^2` 表示“N的平方”）
+
+让我们再次用公式替换最后一个s：
+
+```
+S = 1 + N + (N^2 * (1 + (N * S)))
+```
+
+再次清理：
+
+```
+S = 1 + N + N^2 + (N^3 * S)
+```
+
+你可以看到这是怎么回事！`S` 的公式可以无限扩展为：
+
+```
+S = 1 + N + N^2 + N^3 + N^4 + N^5 + ...
+```
+
+我们如何解释这一点？那么，我们可以说列表是以下情况的结合：
+
+- 空列表（大小=1）
+- 单元素列表（大小=N）
+- 双元素列表（大小=N x N）
+- 三元素列表（大小=N x N x N）
+- 等等。
+
+这个公式已经捕捉到了这一点。
+
+另外，您可以直接使用公式 `S = 1/(1-N)` 计算 `S`，这意味着 `Direction` 列表（大小=4）的大小为“-1/3”。嗯，真奇怪！这让我想起了这个“-1/12”视频。
+
+## 计算函数的大小
+
+那么函数呢？它们可以调整大小吗？
+
+是的，我们需要做的就是写下每一个可能的实现，并对其进行计数。容易的！
+
+例如，假设我们有一个函数 `SuiteColor`，它将卡片 `Suit` 映射到红色或黑色。
+
+```F#
+type Suit = Heart | Spade | Diamond | Club
+type Color = Red | Black
+
+type SuitColor = Suit -> Color
+```
+
+一种实现方式是返回红色，无论提供何种花色：
+
+```F#
+(Heart -> Red); (Spade -> Red); (Diamond -> Red); (Club -> Red)
+```
+
+另一种实施方式是，除 `Club` 外，所有花色都将返回红色：
+
+```F#
+(Heart -> Red); (Spade -> Red); (Diamond -> Red); (Club -> Black)
+```
+
+事实上，我们可以写下这个函数的所有16种可能实现：
+
+```F#
+(Heart -> Red); (Spade -> Red); (Diamond -> Red); (Club -> Red)
+(Heart -> Red); (Spade -> Red); (Diamond -> Red); (Club -> Black)
+(Heart -> Red); (Spade -> Red); (Diamond -> Black); (Club -> Red)
+(Heart -> Red); (Spade -> Red); (Diamond -> Black); (Club -> Black)
+
+(Heart -> Red); (Spade -> Black); (Diamond -> Red); (Club -> Red)
+(Heart -> Red); (Spade -> Black); (Diamond -> Red); (Club -> Black)  // the right one!
+(Heart -> Red); (Spade -> Black); (Diamond -> Black); (Club -> Red)
+(Heart -> Red); (Spade -> Black); (Diamond -> Black); (Club -> Black)
+
+(Heart -> Black); (Spade -> Red); (Diamond -> Red); (Club -> Red)
+(Heart -> Black); (Spade -> Red); (Diamond -> Red); (Club -> Black)
+(Heart -> Black); (Spade -> Red); (Diamond -> Black); (Club -> Red)
+(Heart -> Black); (Spade -> Red); (Diamond -> Black); (Club -> Black)
+
+(Heart -> Black); (Spade -> Black); (Diamond -> Red); (Club -> Red)
+(Heart -> Black); (Spade -> Black); (Diamond -> Red); (Club -> Black)
+(Heart -> Black); (Spade -> Black); (Diamond -> Black); (Club -> Red)
+(Heart -> Black); (Spade -> Black); (Diamond -> Black); (Club -> Black)
+```
+
+另一种思考方式是，我们可以定义一个记录类型，其中每个值代表一个特定的实现：我们为 `Heart` 输入返回哪种颜色，为 `Spade` 输入返回哪一种颜色，等等。
+
+因此，`SuiteColor` 实现的类型定义如下：
+
+```F#
+type SuitColorImplementation = {
+    Heart : Color
+    Spade : Color
+    Diamond : Color
+    Club : Color }
+```
+
+此记录类型的大小是多少？
+
+```
+size(SuitColorImplementation) = size(Color) * size(Color) * size(Color) * size(Color)
+```
+
+这里有四种 `size(Color)` 。换句话说，每个输入都有一个 `size(Color)` ，所以我们可以这样写：
+
+```F#
+size(SuitColorImplementation) = size(Color) to the power of size(Suit)
+```
+
+一般来说，给定一个函数类型：
+
+```F#
+type Function<'input,'output> = 'input -> 'output
+```
+
+函数的大小是 `size(output type)` 的 `size(input type)` 次幂：
+
+```
+size(Function) =  size(output) ^ size(input)
+```
+
+让我们也把它编纂成一条规则：
+
+- **规则：函数类型的大小是 `size(output type)` 的 `size(input type)` 次幂**。
+
+## 类型之间的转换
+
+好吧，这些都很有趣，但有用吗？
+
+是的，我认为是的。我认为理解这样的类型大小有助于我们设计从一种类型到另一种类型的转换，这是我们经常做的事情！
+
+假设我们有一个联合类型和一个记录类型，两者都表示是/否答案：
+
+```F#
+type YesNoUnion =
+    | Yes
+    | No
+
+type YesNoRecord = {
+    isYes: bool }
+```
+
+我们如何在它们之间进行映射？
+
+它们的大小都为 2，因此我们应该能够将一种类型中的每个值映射到另一种类型，反之亦然：
+
+```F#
+let toUnion yesNoRecord =
+    if yesNoRecord.isYes then
+        Yes
+    else
+        No
+
+let toRecord yesNoUnion =
+    match yesNoUnion with
+    | Yes -> {isYes = true}
+    | No ->  {isYes = false}
+```
+
+这就是你所说的“无损”转换。如果您往返转换，则可以恢复原始值。数学家称之为同构（源自希腊语“相等形状”）。
+
+另一个例子呢？这是一个有三个案例的类型，yes，no，和 maybe。
+
+```F#
+type YesNoMaybe =
+    | Yes
+    | No
+    | Maybe
+```
+
+我们能无损地将其转换为这种类型吗？
+
+```F#
+type YesNoOption = { maybeIsYes: bool option }
+```
+
+那么，`option` 的大小是多少？1 加上内部类型的大小，在本例中为 `bool`。所以 `size(YesNoOption)` 也是三。
+
+以下是转换函数：
+
+```F#
+let toYesNoMaybe yesNoOption =
+    match yesNoOption.maybeIsYes with
+    | None -> Maybe
+    | Some b -> if b then Yes else No
+
+let toYesNoOption yesNoMaybe =
+    match yesNoMaybe with
+    | Yes ->   {maybeIsYes = Some true}
+    | No ->    {maybeIsYes = Some false}
+    | Maybe -> {maybeIsYes = None}
+```
+
+所以我们可以制定一个规则：
+
+- **规则：如果两种类型的大小相同，则可以创建一对无损转换函数**
+
+让我们试试。这里有一个 `Nibble` 类型和一个 `TwoNibbles` 类型：
+
+```F#
+type Nibble = {
+    bit1: bool
+    bit2: bool
+    bit3: bool
+    bit4: bool }
+
+type TwoNibbles = {
+    high: Nibble
+    low: Nibble }
+```
+
+我们可以将 `TwoNibbles` 转换为 `byte` 并返回吗？
+
+`Nibble` 的大小是 `2 x 2 x 2 x 2` =16（使用乘积大小规则），`TwoNibbles` 的大小是 size(Nibble) x size(Nibble)，或 `16 x 16`，即 256。
+
+所以，是的，我们可以将 `TwoNibbles` 转换为 `byte`，然后再转换回来。
+
+## 有损转化
+
+如果类型大小不同，会发生什么？
+
+如果目标类型比源类型“大”，则始终可以无损失地映射，但如果目标类型“小”于源类型，则会出现问题。
+
+例如，`int` 类型小于 `string` 类型。你可以准确地将 `int` 转换为 `string`，但你不能轻易地将 `string` 转换为 `int`。
+
+如果你确实想将字符串映射到 int，那么一些非整数字符串必须映射到目标类型中的特殊非整数值：
+
+
+
+换句话说，我们从大小中知道，目标类型不能只是 `int` 类型，它必须是 `int+1` 类型。换句话说，一个选项类型！
+
+有趣的是，BCL 中的 `Int32.TryParse` 函数返回两个值，一个是成功/失败的 `bool` 值，另一个是解析结果为 `int` 值。换句话说，一个元组 `bool * int`。
+
+该元组的大小为 `2 x int`，实际需要更多的值。选项类型 ftw！
+
+现在，假设我们正在从 `string` 转换为 `Direction`。有些字符串是有效的，但大多数字符串都是无效的。但这一次，与其说有一个无效的情况，不如说我们想区分空输入、太长的输入和其他无效输入。
+
+
+
+我们无法再使用Option对目标进行建模，因此让我们设计一个包含所有七种情况的自定义类型：
+
+```F#
+type StringToDirection_V1 =
+    | North
+    | East
+    | South
+    | West
+    | Empty
+    | NotValid
+    | TooLong
+```
+
+但这种设计混淆了成功的转换和失败的转换。为什么不把它们分开呢？
+
+```F#
+type Direction =
+    | North
+    | East
+    | South
+    | West
+
+type ConversionFailure =
+    | Empty
+    | NotValid
+    | TooLong
+
+type StringToDirection_V2 =
+    | Success of Direction
+    | Failure of ConversionFailure
+```
+
+`StringToDirection_V2` 的大小是多少？
+
+在 `Success` 案例中有4个 `Direction` 选项，在 `Failure` 案例中有3个 `ConversionFailure` 选项，因此总大小为 7，与第一个版本一样。
+
+换句话说，这两种设计是等效的，我们可以使用其中任何一种。
+
+就个人而言，我更喜欢版本 2，但如果我们的遗留代码中有版本 1，好消息是我们可以无损地从版本 1 转换到版本 2，然后再转换回来。这反过来意味着，如果需要，我们可以安全地重构到版本 2。
+
+## 设计核心域
+
+知道不同类型可以无损转换，可以让你根据需要调整你的域名设计。
+
+例如，这种类型：
+
+```F#
+type Something_V1 =
+    | CaseA1 of TypeX * TypeY
+    | CaseA2 of TypeX * TypeZ
+```
+
+可以无损地转换为这个：
+
+```F#
+type Inner =
+    | CaseA1 of TypeY
+    | CaseA2 of TypeZ
+
+type Something_V2 =
+    TypeX * Inner
+```
+
+或者这个：
+
+```F#
+type Something_V3 = {
+    x: TypeX
+    inner: Inner }
+```
+
+下面是一个真实的例子：
+
+- 你有一个网站，有些用户注册了，有些没有。
+- 对于所有用户，您都有一个会话 id
+- 仅限注册用户，您有额外信息
+
+我们可以这样建模该需求：
+
+```F#
+module Customer_V1 =
+
+    type UserInfo = {name:string} //etc
+    type SessionId = SessionId of int
+
+    type WebsiteUser =
+        | RegisteredUser of SessionId * UserInfo
+        | GuestUser of SessionId
+```
+
+或者，我们可以将公共 `SessionId` 拉到更高的级别，如下所示：
+
+```F#
+module Customer_V2 =
+
+    type UserInfo = {name:string} //etc
+    type SessionId = SessionId of int
+
+    type WebsiteUserInfo =
+        | RegisteredUser of UserInfo
+        | GuestUser
+
+    type WebsiteUser = {
+        sessionId : SessionId
+        info: WebsiteUserInfo }
+```
+
+哪个更好？从某种意义上说，它们都是“相同的”，但显然最好的设计取决于使用模式。
+
+- 如果你更关心用户的类型而不是会话 id，那么版本 1 会更好。
+- 如果你经常查看会话 id 而不关心用户类型，那么版本 2 会更好。
+
+知道它们是同构的好处是，如果你愿意，你可以定义这两种类型，在不同的上下文中使用它们，并根据需要在它们之间进行无损映射。
+
+## 与外界的联系
+
+我们有所有这些不错的域名类型，如 `Direction` 或 `WebsiteUser`，但在某些时候，我们需要与外界进行交互——将它们存储在数据库中，以 JSON 格式接收它们，等等。
+
+问题是外界没有一个好的类型系统！一切都趋向于原始：字符串、整数和布尔。
+
+从我们的域到外部世界意味着从具有“小”值集的类型到具有“大”值集，我们可以直接做到这一点。但是，从外部世界进入我们的领域意味着从一组“大”值变成一组“小”值，这需要验证和错误案例。
+
+例如，域类型可能看起来像这样：
+
+```F#
+type DomainCustomer = {
+    Name: String50
+    Email: EmailAddress
+    Age: PositiveIntegerLessThan130 }
+```
+
+这些值受到限制：姓名最多 50 个字符，一封经过验证的电子邮件，年龄在 1 到 129 之间。
+
+另一方面，DTO 类型可能看起来像这样：
+
+```F#
+type CustomerDTO = {
+    Name: string
+    Email: string
+    Age: int }
+```
+
+这些值不受约束：姓名的任何字符串、未验证的电子邮件、年龄可以是2^32个不同值中的任何一个，包括负数。
+
+这意味着我们无法创建 `CustomerDTO` 到 `DomainCustomer` 的映射。我们必须至少有一个其他值（`DomainCustomer + 1`）来映射无效输入，最好有更多值来记录各种错误。
+
+这自然导致了我在函数式错误处理演讲中描述的 `Success/Failure` 模型，
+
+映射的最终版本将是从 `CustomerDTO` 到 `SuccessFailure<DomainCustomer>` 或类似对象。
+
+这就引出了最后一条规则：
+
+- **规则：不要相信任何人。如果从外部源导入数据，请务必处理无效输入。**
+
+如果我们认真对待这条规则，它会产生一些连锁反应，例如：
+
+- 永远不要尝试直接反序列化到域类型（例如没有 ORM），只反序列化到 DTO 类型。
+- 始终验证从数据库或其他“可信”来源读取的每条记录。
+
+你可能会认为把所有东西都包装成 `Success/Failure` 类型会让人恼火，这是真的（！），但有一些方法可以让这更容易。例如，请参阅这篇文章。
+
+## 进一步阅读
+
+代数数据类型的“代数”是众所周知的。克里斯·泰勒最近在《代数数据类型的代数（和微积分！）》和一系列文章中做了很好的总结。
+
+在我写了这篇文章之后，有人向我指出了两篇类似的帖子：
+
+- Tomas Petricek的一篇几乎内容相同！
+- Bartosz Milewski在其关于范畴理论的系列文章中。
+
+正如其中一些帖子所提到的，你可以用这些类型公式做奇怪的事情，比如区分它们！
+
+如果你喜欢学术论文，你可以阅读 Conor McBride 2001 年发表的“正则类型的导数是它的单洞上下文类型”（PDF）中关于导数的原始讨论，以及“区分数据结构”（PDF）[Abbott，Altenkirch，Ghani 和 McBride，2005] 中的后续讨论。
+
+## 摘要
+
+这可能不是世界上最令人兴奋的话题，但我发现这种方法既有趣又有用，我想与大家分享。
+
+让我知道你的想法。感谢您的阅读！
+
+
+
+# 组合的力量
+
+为什么组合是函数式编程的基本原则
+
+https://fsharpforfunandprofit.com/composition/
+
+本页包含我演讲“组合的力量”中的幻灯片和代码的链接。
+
+以下是演讲的简介：
+
+> 组合是函数式编程的基本原则，但它与面向对象的方法有什么不同，你在实践中如何使用它？
+>
+> 在本次面向初学者的演讲中，我们将首先介绍函数式编程的基本概念，然后探讨一些不同的方法，即组合可以用来从小事物构建大事物。
+>
+> 之后，我们将看到如何在实践中使用组合，从一个简单的 FizzBuzz 示例开始，到一个完整的（无对象！）web 应用程序结束。
+
+## 视频
+
+2019年莫斯科 dotNext 视频（点击图片查看视频）
+
+2019年莫斯科 dotNext 视频
+
+## 幻灯片
+
+2018年1月17日伦敦 NDC 幻灯片
+
+从我在 Slideshare 上的幻灯片看构图的力量
+
+
+
+# 观察乌龟的十三种方法
+
+https://fsharpforfunandprofit.com/turtle/
+
+本页包含我演讲“观察乌龟的十三种方法”中的幻灯片和代码的链接。
+
+以下是演讲的简介：
+
+> 在这篇快节奏的演讲中，我将从著名的乌龟图形API开始，然后通过创建13个不同的实现将其扩展到临界点，每个实现演示不同的功能编程技术。
+>
+> 在此过程中，我们将使用部分应用程序、函数依赖注入、成功/失败结果验证、要么单子、状态单子、消息队列代理、事件源、流处理、基于能力的设计和解释器模式（又名自由单子）。呼！
+
+这次演讲是基于我关于这个话题的博客文章：
+
+- 观察乌龟的十三种方法
+- 看乌龟的十三种方法，第二部分
+
+## 视频
+
+视频来自NDC伦敦，2017年1月18日。为橙色调道歉！
+
+NDC伦敦，2017年1月18日
+
+## 幻灯片
+
+2017年1月18日伦敦NDC幻灯片
+
+
+从我在Slideshare上的幻灯片看乌龟的13种方式
 
 
 
@@ -3070,6 +5048,159 @@ https://fsharpforfunandprofit.com/posts/13-ways-of-looking-at-a-turtle/
 
 
 ## [跳转系列独立 Markdown](./FSharpForFunAndProfit翻译-“观察乌龟的十三种方法”系列.md)
+
+
+
+# 企业 Tic-Tac-Toe
+
+其中，我荒谬地过度设计了一个简单的游戏，使其“企业就绪”
+
+https://fsharpforfunandprofit.com/ettt/
+
+此页面包含指向我的演讲“Enterprise Tic Tac Toe”中的幻灯片和代码的链接。
+
+以下是演讲的简介：
+
+> 跟随我荒谬地过度设计了一个简单的游戏，以演示如何使用函数式编程来创建一个现实世界的“企业就绪”应用程序。
+>
+> 所涵盖的主题包括：将业务规则编码为类型、使用参数多态性隐藏数据、使用功能实现基于功能的安全性、使用 HATEAOS 公开 REST API、日志记录的功能方法、参与者、可扩展性等等。
+
+这次演讲是基于我关于这个话题的博客文章：
+
+- 企业Tic Tac Toe
+- 企业Tic Tac Toe 第 2 部分，我扔掉了之前的设计
+
+此外，还有我关于基于能力的安全和 DDD 的帖子和演讲：
+
+- 更多关于函数式设计的信息：
+- 函数式授权方法
+- 基于身份和角色限制能力
+- 使用类型作为访问令牌
+- 我的“用能力设计”演讲的视频和幻灯片
+- 更多关于领域驱动设计的信息：
+- 我的“用 F# 类型系统进行领域驱动设计”演讲的视频和幻灯片
+
+## 视频
+
+奥斯陆NDC视频，2015年6月17日（点击图片查看视频）
+
+奥斯陆NDC视频，2015年6月17日
+
+## 幻灯片
+
+2015年6月17日，奥斯陆NDC幻灯片
+
+
+我在Slideshare上的幻灯片中的企业 Tic Tac Toe
+
+
+
+# 用能力设计
+
+设计使用能力和最小权限原则
+
+https://fsharpforfunandprofit.com/cap/
+
+此页面包含指向我演讲“用功能设计”中的幻灯片和代码的链接。
+
+以下是演讲的简介：
+
+> 我们都希望生成易于测试和重构的模块化和健壮的代码，我们有 SOLID 等设计原则可以帮助我们做到这一点。
+>
+> 在这次演讲中，我将介绍一种使用“能力”和最小权威原则进行设计的非常不同的方法。我将展示如何在整个核心领域（而不仅仅是在 API 边界）使用这些设计技术，从而产生设计良好的模块化代码。
+>
+> 我将演示如何设计和使用基于功能的方法，如何快速组合和轻松限制功能，以及如何将功能与使用 HATEAOS 的 REST API 自然结合。
+
+这次演讲是基于我关于这个话题的博客文章：
+
+- 函数式授权方法
+- 基于身份和角色限制能力
+- 使用类型作为访问令牌
+
+此外，还有关于设计Enterprise Tic Tac Toe的演讲和帖子：
+
+- 企业Tic Tac Toe
+- 企业Tic Tac Toe第2部分，我扔掉了之前的设计
+- 我的“企业Tic Tac Toe”演讲的视频和幻灯片
+
+## 视频
+
+2016年1月15日伦敦NDC视频（点击图片查看视频）
+
+2016年1月15日伦敦NDC视频
+
+## 代码
+
+演示中使用的代码可以在github上找到。
+
+## 聚焦 F# 的幻灯片
+
+2016年1月15日伦敦NDC幻灯片
+
+使用我在Slideshare上的幻灯片中的功能进行设计
+
+## 聚焦 DDD 的幻灯片
+
+这些来自2017年2月3日DDD欧洲的幻灯片更侧重于DDD
+
+
+我在Slideshare上的幻灯片中展示的“用能力设计”（DDD-EU 2017）
+
+
+
+# “了解幺半群”系列
+
+https://fsharpforfunandprofit.com/posts/monoids-without-tears/
+
+1. 没有眼泪的幺半群
+   一种常见函数模式的无数学讨论
+2. 实践中的幺半群
+   没有眼泪的幺半群-第2部分
+3. 与非幺半群合作
+   没有眼泪的幺半群-第3部分
+
+
+
+## [跳转系列独立 Markdown](./FSharpForFunAndProfit翻译-“了解幺半群”系列.md)
+
+
+
+# “基于属性的测试”系列
+
+https://fsharpforfunandprofit.com/series/property-based-testing/
+
+本系列文章将向您介绍基于属性的测试的基本原理：它与传统的基于示例的测试有何不同，为什么它很重要，以及如何在理论和实践中使用属性。
+
+还有一个后续系列：《企业开发者从地狱归来》。
+
+基于这些帖子，还有一个关于基于属性的测试的讨论。幻灯片和视频在这里。
+
+1. 来自地狱的企业开发者
+   发现恶意遵守基于属性的测试
+2. 了解 FsCheck
+   生成器、收缩器等
+3. 为基于属性的测试选择属性
+   或者，我想使用 PBT，但我永远想不出任何属性可以使用
+4. 在实践中选择属性，第1部分
+   列表函数的属性
+5. 在实践中选择属性，第2部分
+   罗马数字转换的性质
+6. 在实践中选择属性，第3部分
+   美元对象的属性
+
+
+
+# “EDFH的回归”系列
+
+https://fsharpforfunandprofit.com/series/return-of-the-edfh/
+
+本系列文章是我之前关于基于属性的测试和来自地狱的企业开发人员的系列文章的后续。它重新审视了基于属性的测试的基本原理，以及如何使用 EDFH 来帮助设计有用和有效的测试。
+
+1. 企业开发者从地狱归来
+   更多的恶意合规性，更多的基于属性的测试
+2. 为基于属性的测试生成有趣的输入
+   以及如何对它们进行分类
+3. EDFH 再次被击败
 
 
 
@@ -3409,6 +5540,92 @@ https://fsharpforfunandprofit.com/posts/why-i-wont-be-writing-a-monad-tutorial/
 关键是你必须按这个顺序做——你不能直接跳到最后一步，然后倒退。正是通过细节来理解抽象的行为，使你能够在看到它时理解它。
 
 祝你的教程顺利——我要去吃墨西哥卷饼了。
+
+
+
+# 内向和外向的编程语言
+
+语言人格类型的深夜思考
+2015年7月18日 这篇文章已经超过3年了
+
+https://fsharpforfunandprofit.com/posts/introvert-vs-extrovert/
+
+> 内向和外向的数学家有什么区别？
+> 一个内向的数学家在和你说话的时候看着他的鞋子；一个外向的数学家看着你的鞋子。
+
+长期以来，我一直意识到编程语言向外界展示自己的方式存在差异。
+
+如果编程语言有个性，我会倾向于称其中一些为“内向”，另一些为“外向”。
+
+外向的编程语言完全是关于外部世界的，从来没有比与 IO 和外部数据源聚会更快乐的了。
+
+另一方面，内向的编程语言很乐意独处，如果可能的话，也不愿意与外界打交道。当然，它可以是社交的，在需要的时候与 IO 一起工作，但它觉得这项活动很累，当 IO 回家后，它就放心了，可以回去读一本好书了。
+
+有趣的是，通过查看用户指南或教程中被认为重要的内容，你可以了解很多关于语言个性类型的信息。
+
+例如，经典的《C 编程语言》一书一开始就有 `printf("hello, world\n")`，而大多数其他 C 书也遵循同样的模式。
+
+事实上，C 是一种非常外向的语言。编码示例中充斥着文件和控制台 IO。同样，只需看一眼它们的手册，你就可以看出 PHP、Python 和 Perl 同样外向。
+
+事实上，我想说所有最流行的语言都是外向的，原因很明显。他们散发着自信，他们很容易交到朋友，他们把事情做好。
+
+另一方面，我想说 Haskell 是内向语言的一个很好的例子。
+
+例如，在《Haskell 趣学指南（Learn You A Haskell）》一书中，“hello world”的例子直到第 9 章才出现！在《真实世界 Haskell》中，IO 直到第 7 章才被邀请共进晚餐。
+
+如果你手边没有完整的手册，另一个表明语言内向的线索是，如果它很早就把你介绍给它的亲密朋友，斐波那契函数。内向的语言喜欢递归！
+
+现在，就像在现实世界中一样，内向的语言会被外向的人误解。他们被指责过于傲慢、过于严肃、过于规避风险。
+
+但这并不公平——内向的语言实际上更具反思性和思考性，因此比肤浅、喋喋不休的外向者更有可能有深刻的见解。
+
+## **但是…**
+
+> “所有的概括都是错误的，包括这个”
+
+你可能会认为命令式语言和面向对象语言是外向的，而具有更多声明性范式（函数式、逻辑式）的语言是内向的，但事实并非总是如此。
+
+例如，SQL 是一种声明性语言，但它在生活中的全部目的是数据处理，这使得它在我的书中显得外向。
+
+更接近家庭，F# 是一种函数式第一语言，但很乐意做 IO，事实上，它通过类型提供者和 Deedle 对现实世界的数据处理提供了很好的支持。
+
+正如人不是一个或另一个一样，编程语言也是如此。有一个范围。有些语言非常外向，有些非常内向，有些介于两者之间。
+
+## 很多人说我以自我为中心，但他们已经说得够多了
+
+> “现实只是一种幻觉，尽管是一种非常持久的幻觉。”
+
+有些语言并不完全属于这种性格类型。
+
+以 Smalltalk 为例。
+
+在很多方面，Smalltalk 都非常外向。它对用户界面交互有很多支持，它本身就是首批图形开发环境之一。
+
+但有一个问题。当然，它友好、健谈，非常适合进行激烈的一对一对话，但它也有黑暗的一面——它与他人相处得不好。它只是不情愿地承认操作系统，而不是处理外部库的混乱，更喜欢以自己的完美方式实现东西。
+
+大多数 Lisp 也有同样的失败。理想主义和优雅，但相当孤立。我将这种人格类型称为唯我论。
+
+在他们的辩护中，许多重要的编程概念最初是在唯我主义语言中发展起来的。但遗憾的是，尽管他们是狂热的追随者，但他们从未得到应有的广泛认可。
+
+## 我们从哪里来？我们是什么？我们要去哪里？
+
+这不可避免地把我带到了吞噬一切的黑洞——JavaScript。这在这个愚蠢的计划（scheme）中有什么意义？
+
+显然，它最初的目的是帮助和用户沟通（也用于制作猴子动画），所以乍一看它似乎很外向。
+
+但它在沙箱中运行的事实（直到最近才做过很多种 IO）让我不这么认为。对我来说，最关键的是 node.js。需要服务器语言吗？让我们按照自己的形象创造一个！让我们从头开始写所有的库！
+
+但至少目前看来，这似乎奏效了。所以，唯我论赢了！
+
+## 结束不科学的后记
+
+“大自然让我们轻浮，来安慰我们的痛苦”
+
+在这一点上，我应该总结一下对不同编程社区的一些深刻观察，以及他们的语言偏好对他们的启示。
+
+但实际上，这只是一点异想天开，所以我不会。
+
+
 
 # 关于本网站
 
