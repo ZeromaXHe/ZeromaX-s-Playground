@@ -139,6 +139,8 @@ let dummyDrawLine log oldPos newPos color =
 - 状态将存储在可变的本地字段（`currentPosition`、`currentAngle` 等）中。
 - 我们将注入一个日志函数 `log`，以便我们可以监视发生了什么。
 
+![img](https://fsharpforfunandprofit.com/posts/13-ways-of-looking-at-a-turtle/turtle-oo.png)
+
 这是完整的代码，应该是不言自明的：
 
 ```F#
@@ -254,7 +256,7 @@ let drawPolygon n =
 
 在这种方法中，客户端负责跟踪当前状态并将其传递给下一个函数调用。
 
-
+![img](https://fsharpforfunandprofit.com/posts/13-ways-of-looking-at-a-turtle/turtle-fp.png)
 
 以下是TurtleState的定义和初始状态的值：
 
@@ -389,7 +391,7 @@ let drawPolygon n =
 
 在这种情况下，API 将是基于字符串的，带有文本命令，如“`move 100`”或“`turn 90`”。API 必须验证这些命令，并将它们转换为对 turtle 的方法调用（我们将再次使用有状态 `Turtle` 类的 OO 方法）。
 
-
+![img](https://fsharpforfunandprofit.com/posts/13-ways-of-looking-at-a-turtle/turtle-oo-api.png)
 
 如果命令无效，API 必须将其指示给客户端。由于我们使用的是 OO 方法，我们将通过抛出包含字符串的 `TurtleApiException` 来实现这一点，如下所示。
 
@@ -520,7 +522,7 @@ Gary Bernhardt 将这种方法命名为“函数式核心/命令式外壳”。
 
 此外，为了更函数式，如果命令文本无效，API 将不会抛出异常，而是返回具有 `Success` 和 `Failure` 情况的 `Result` 值，其中 `Failure` 情况用于任何错误。（有关此技术的更深入讨论，请参阅我关于错误处理的函数方法的演讲）。
 
-
+![img](https://fsharpforfunandprofit.com/posts/13-ways-of-looking-at-a-turtle/turtle-fp-api.png)
 
 让我们从实现 API 类开始。这一次，它包含了一个 `mutable` 乌龟状态：
 
@@ -688,7 +690,7 @@ let drawPolygon n =
 
 在该设计中，API 层通过消息队列与 `TurtleAgent` 通信，客户端与 API 层进行通信，与以前一样。
 
-
+![img](https://fsharpforfunandprofit.com/posts/13-ways-of-looking-at-a-turtle/turtle-agent.png)
 
 API（或任何地方）中没有可变项。`TurtleAgent` 通过将当前状态作为参数存储在递归消息处理循环中来管理状态。
 
@@ -1360,11 +1362,13 @@ drawTriangle(api)
 
 （有关状态 monad 的更多信息，请参阅我关于解析器组合子的“monaster”演讲和帖子）
 
+![img](https://fsharpforfunandprofit.com/posts/13-ways-of-looking-at-a-turtle/turtle-monad.png)
+
 ### 定义 `turtle` 工作流程
 
 我们在一开始定义的核心乌龟函数遵循与许多其他状态转换函数相同的“形状”，即输入加乌龟状态，输出加乌龟状态。
 
-
+![img](https://fsharpforfunandprofit.com/posts/13-ways-of-looking-at-a-turtle/turtle-monad-1.png)
 
 *（确实，到目前为止，我们还没有海龟函数的任何可用输出，但在后面的示例中，我们将看到这个输出被用于做出决策。）*
 
@@ -1374,11 +1378,11 @@ drawTriangle(api)
 
 首先，请注意，由于 currying，我们可以将这种形状的函数重新定义为两个单独的单参数函数：处理输入会生成另一个函数，该函数反过来将状态作为参数：
 
-
+![img](https://fsharpforfunandprofit.com/posts/13-ways-of-looking-at-a-turtle/turtle-monad-2.png)
 
 然后，我们可以将海龟函数视为接受输入并返回新函数的东西，如下所示：
 
-
+![img](https://fsharpforfunandprofit.com/posts/13-ways-of-looking-at-a-turtle/turtle-monad-3.png)
 
 在我们的例子中，使用 `TurtleState` 作为状态，返回的函数如下：
 
@@ -1388,7 +1392,7 @@ TurtleState -> 'a * TurtleState
 
 最后，为了更容易使用，我们可以将返回的函数视为一个独立的东西，给它起一个名字，比如 `TurtleStateComputation`：
 
-
+![img](https://fsharpforfunandprofit.com/posts/13-ways-of-looking-at-a-turtle/turtle-monad-4.png)
 
 在实现中，我们通常会用一个区分大小写的联合来包装函数，如下所示：
 
@@ -1551,7 +1555,7 @@ let drawPolygon n =
 
 当你“运行”命令列表时，你可以使用标准的 Turtle 库函数依次执行每个命令，使用 `fold` 将状态贯穿序列。
 
-
+![img](https://fsharpforfunandprofit.com/posts/13-ways-of-looking-at-a-turtle/turtle-batch.png)
 
 由于所有命令都是同时运行的，这种方法意味着客户端在调用之间不需要持久化任何状态。
 
@@ -1733,6 +1737,8 @@ https://fsharpforfunandprofit.com/posts/13-ways-of-looking-at-a-turtle-2/#series
 - 在处理 `Command` 之前，`CommandHandler` 首先使用与特定乌龟相关的过去事件从头开始重建当前状态。
 - 然后，`CommandHandler` 验证命令，并根据当前（重建）状态决定要做什么。它生成一个（可能为空）事件列表。
 - 生成的事件存储在 `EventStore` 中，供下一个命令使用。
+
+![img](https://fsharpforfunandprofit.com/posts/13-ways-of-looking-at-a-turtle-2/turtle-event-source.png)
 
 
 这样，客户端和命令处理程序都不需要跟踪状态。只有 `EventStore` 是可变的。
@@ -1963,13 +1969,13 @@ let drawTriangle() =
 
 然而，`commandHandler` 只做最少量的工作，比如更新状态，不做任何复杂的域逻辑。复杂的逻辑由订阅事件流的一个或多个下游“处理器”（有时也称为“聚合器”）执行。
 
-
+![img](https://fsharpforfunandprofit.com/posts/13-ways-of-looking-at-a-turtle-2/turtle-frp.png)
 
 您甚至可以将这些事件视为对处理器的“命令”，当然，处理器可以生成新的事件供另一个处理器使用，因此这种方法可以扩展到一种架构风格，其中应用程序由一组由事件存储链接的命令处理程序组成。
 
 这种技术通常被称为“流处理”。然而，Jessica Kerr 曾将这种方法称为“函数式回溯编程（Functional Retroactive Programming）”——我喜欢这样，所以我要盗用这个名字！
 
-
+![img](https://fsharpforfunandprofit.com/posts/13-ways-of-looking-at-a-turtle-2/turtle-stream-processor.png)
 
 ### 实现设计
 
@@ -2444,7 +2450,7 @@ Move 60.0
 
 换句话说，我们有一系列交错的命令和乌龟函数，看起来像这样：
 
-
+![img](https://fsharpforfunandprofit.com/posts/13-ways-of-looking-at-a-turtle-2/turtle-interpreter-chain.png)
 
 那么，我们如何在代码中对这种设计进行建模呢？
 
@@ -2492,7 +2498,7 @@ etc
 
 因此，我们可以将整个成对链建模为递归结构：
 
-
+![img](https://fsharpforfunandprofit.com/posts/13-ways-of-looking-at-a-turtle-2/turtle-interpreter-nested.png)
 
 或者在代码中：
 

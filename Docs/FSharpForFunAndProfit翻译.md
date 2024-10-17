@@ -426,11 +426,11 @@ F# 编译器是一个免费的开源工具，可用于 Windows、Mac 和 Linux�
 
 安装 F# 后，您应该创建一个 F# 项目。
 
-新项目
+![New project](https://fsharpforfunandprofit.com/installing-and-using/fsharp_new_project2.png)
 
-然后创建一个脚本（FSX）文件来运行其中的示例。
+然后创建一个脚本（FSX)文件来运行其中的示例。
 
-新 FSX 脚本
+![New FSX script](https://fsharpforfunandprofit.com/installing-and-using/fsharp_new_script2.png)
 
 接下来，确保 F# 交互窗口处于活动状态（通常通过“视图”>“其他窗口”>“F# 交互”）。
 
@@ -439,7 +439,7 @@ F# 编译器是一个免费的开源工具，可用于 Windows、Mac 和 Linux�
 - 右键单击以获取上下文菜单，然后执行“发送到交互式”。请注意，如果 F# 交互式窗口不可见，则“发送到交互式”菜单选项将不会出现。
 - 使用 `Alt+Enter` 组合键（但请参阅下面关于键盘映射的注释）。
 
-发送到互动
+![Send to Interactive](https://fsharpforfunandprofit.com/installing-and-using/send_to_interactive.png)
 
 > **Resharper 警报**
 >
@@ -449,7 +449,7 @@ F# 编译器是一个免费的开源工具，可用于 Windows、Mac 和 Linux�
 
 您也可以直接在交互式窗口中工作。但在这种情况下，您必须始终用双分号终止代码块。
 
-互动
+![Interactive](https://fsharpforfunandprofit.com/installing-and-using/fsharp_interactive2.png)
 
 ## 在 Linux 和 Mac 上使用 F# 和 Mono
 
@@ -464,19 +464,19 @@ F# 编译器是一个免费的开源工具，可用于 Windows、Mac 和 Linux�
 
 如果你不想下载任何东西，你可以直接从浏览器尝试 F#。该网站位于 try.fsharp.org。请注意，它确实需要 Silverlight 才能运行。
 
-互动
+![Interactive](https://fsharpforfunandprofit.com/installing-and-using/fsharp_web2.png)
 
 ## 在交互式 shell 中使用F#
 
 F# 有一个名为 FSI.exe 的简单交互式控制台，也可用于在中运行代码。就像 Visual Studio 中的交互式窗口一样，您必须用双分号终止一段代码。
 
-FSI
+![FSI](https://fsharpforfunandprofit.com/installing-and-using/fsharp_fsi2.png)
 
 ## 在 SharpDevelop 中使用 F#
 
 SharpDevelop 对 F# 有一些支持。您可以创建一个 F# 项目，然后在其中创建一个 FSX 脚本文件。然后在脚本窗口中键入一些代码，并使用上下文菜单将代码发送到交互式窗口（如下所示）。
 
-发送到互动
+![Send to Interactive](https://fsharpforfunandprofit.com/installing-and-using/fsharp_eval_sharpdevelop2.png)
 
 ## 编译错误？
 
@@ -967,7 +967,7 @@ https://fsharpforfunandprofit.com/rop/
 
 我在 2014 年伦敦 NDC 上就这个话题发表了演讲（点击图片观看视频）
 
-2014 年伦敦 NDC 视频
+[![Video from NDC London 2014](https://fsharpforfunandprofit.com/rop/rop427.jpg)](https://goo.gl/Lv5ZAo)
 
 本次演讲的其他视频可从 2014 年奥斯陆 NDC 和 2014 年 Functional Programming eXchange 获得
 

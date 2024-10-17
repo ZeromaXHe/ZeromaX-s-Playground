@@ -65,11 +65,11 @@ https://fsharpforfunandprofit.com/posts/cyclic-dependencies/
 
 我敢肯定，你对此非常熟悉。以下是一些简单层的示意图：
 
-
+![img](https://fsharpforfunandprofit.com/posts/cyclic-dependencies/Layering1.png)
 
 但现在，当你像这样从底层向顶层引入依赖关系时，会发生什么？
 
-
+![img](https://fsharpforfunandprofit.com/posts/cyclic-dependencies/Layering2.png)
 
 通过自下而上的依赖，我们引入了邪恶的“循环依赖”。
 
@@ -77,23 +77,23 @@ https://fsharpforfunandprofit.com/posts/cyclic-dependencies/
 
 例如，我们可以把底层放在上面，就像这样：
 
-
+![img](https://fsharpforfunandprofit.com/posts/cyclic-dependencies/Layering3.png)
 
 从逻辑的角度来看，这种替代分层与原始分层完全相同。
 
 或者我们把中间层放在上面怎么样？
 
-
+![img](https://fsharpforfunandprofit.com/posts/cyclic-dependencies/Layering3b.png)
 
 事情出了大问题！很明显，我们真的把事情搞砸了。
 
 事实上，一旦组件之间存在任何形式的循环依赖，你唯一能做的就是将它们全部放入同一层。
 
-
+![img](https://fsharpforfunandprofit.com/posts/cyclic-dependencies/Layering4.png)
 
 换句话说，循环依赖完全破坏了我们的“分而治之”方法，这是拥有组件的全部原因。我们现在只有一个“超级组件”，而不是三个组件，它比需要的大三倍，也更复杂。
 
-
+![img](https://fsharpforfunandprofit.com/posts/cyclic-dependencies/Layering5.png)
 
 这就是为什么循环依赖是邪恶的。
 
@@ -1397,7 +1397,7 @@ F# 代码的“代码/顶部”比率始终大于 C# 代码。总体而言，C# 
 
 如果我们直观地绘制“代码大小”与“顶级类型”的关系图，我们会得到这个图表：
 
-
+![img](https://fsharpforfunandprofit.com/posts/cycles-and-modularity-in-the-wild/Metrics_CodeSize_TopLevel.png)
 
 令我惊讶的是，在这个图表中，F# 和 C# 项目有多么不同。C# 项目似乎具有每 1000 条指令约 1-2 个顶级类型的一致比率，即使在不同的项目规模中也是如此。F# 项目也是一致的，每 1000 条指令的顶级类型比例约为 0.6。
 
@@ -1415,7 +1415,7 @@ F# 代码的“代码/顶部”比率始终大于 C# 代码。总体而言，C# 
 
 以下是“代码大小”与“所有类型”的对应图表：
 
-
+![img](https://fsharpforfunandprofit.com/posts/cycles-and-modularity-in-the-wild/Metrics_CodeSize_AllTypes.png)
 
 这对 F# 来说是令人惊讶的线性。类型的总数（包括编译器生成的类型）似乎与项目的大小密切相关。另一方面，C# 的类型数量似乎变化很大。
 
@@ -1427,7 +1427,7 @@ F# 代码的类型的平均“大小”略小于 C# 代码。C# 中的平均类�
 
 将类型计数与代码大小进行比较后，现在让我们将它们相互比较：
 
-
+![img](https://fsharpforfunandprofit.com/posts/cycles-and-modularity-in-the-wild/Metrics_TopLevel_AuthTypes.png)
 
 再次，存在显著差异。在 C# 中，每个模块化单元平均有 1.1 个编写类型。但在 F# 中，平均值为 1.9，对于一些项目来说，平均值要高得多。
 
@@ -1500,7 +1500,7 @@ F# 代码的类型的平均“大小”略小于 C# 代码。C# 中的平均类�
 
 下面是代码大小和依赖关系数量之间关系的图表：
 
-
+![img](https://fsharpforfunandprofit.com/posts/cycles-and-modularity-in-the-wild/Metrics_CodeSize_Dependencies.png)
 
 C# 和 F# 项目之间的差异非常明显。C# 依赖关系似乎随着项目规模的增加而线性增长，而 F# 依赖关系似乎是平稳的。
 
@@ -1514,9 +1514,9 @@ C# 和 F# 项目之间的差异非常明显。C# 依赖关系似乎随着项目�
 
 以下是视觉显示的相同结果：
 
+![img](https://fsharpforfunandprofit.com/posts/cycles-and-modularity-in-the-wild/Metrics_CS_DependencyPercent.png)
 
-
-
+![img](https://fsharpforfunandprofit.com/posts/cycles-and-modularity-in-the-wild/Metrics_FS_DependencyPercent.png)
 
 那么，我们能从这些数字中推断出什么呢？
 
@@ -1536,11 +1536,11 @@ F# 组中最糟糕的违规者是我自己的 F# 应用程序，就这些指标�
 
 以下是 SpecFlow 的示例：
 
-
+[![img](https://fsharpforfunandprofit.com/posts/cycles-and-modularity-in-the-wild/specflow_svg.png)](https://fsharpforfunandprofit.com/assets/svg/specFlow.all.dot.svg)
 
 以下是 TickSpec 的示例：
 
-
+[![img](https://fsharpforfunandprofit.com/posts/cycles-and-modularity-in-the-wild/tickspec_svg.png)](https://fsharpforfunandprofit.com/assets/svg/tickSpec.all.dot.svg)
 
 每个图表都列出了项目中发现的所有顶级类型。如果一种类型与另一种类型之间存在依赖关系，则用箭头表示。在可能的情况下，依赖关系从左向右指向，因此任何从右向左的箭头都意味着存在循环依赖关系。
 
@@ -1661,7 +1661,7 @@ F# 方法是好是坏取决于你的偏好。因此，它确实使某些类型�
 
 即使是 NDepend 也有循环，尽管公平地说，这可能有很好的理由。第一个 NDepend 侧重于删除命名空间之间的循环，而不是类之间的循环；第二个，循环可能是在同一源文件中声明的类型之间的循环。因此，我的方法可能会在一定程度上惩罚组织良好的 C# 代码（如上文 FParsec 与 FParsecCS 讨论中所述）。
 
-
+![img](https://fsharpforfunandprofit.com/posts/cycles-and-modularity-in-the-wild/Metrics_TopLevel_Participation.png)
 
 为什么 C# 和 F# 有区别？
 

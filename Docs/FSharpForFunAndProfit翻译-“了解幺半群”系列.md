@@ -1063,13 +1063,13 @@ Text "Hello world"
 
 一种方法是将单独的页面添加在一起，形成一个完整的文本块，然后将 `wordCount` 函数应用于该文本块。这是一个图表：
 
-【通过添加页面进行字数统计】
+![Word count via adding pages](https://fsharpforfunandprofit.com/posts/monoids-part2/monoid_h1.jpg)
 
 但每次我们完成一个新页面时，我们都必须将所有文本加在一起，并重新进行字数统计。
 
 毫无疑问，你可以看到有更好的方法。与其将所有文本加在一起然后计数，不如分别计算每页的字数，然后将这些计数加起来，如下所示：
 
-【通过添加计数进行字数统计】
+![Word count via adding counts](https://fsharpforfunandprofit.com/posts/monoids-part2/monoid_h2.jpg)
 
 第二种方法依赖于这样一个事实，即整数（计数）本身就是一个单体，您可以将它们相加以获得所需的结果。
 
@@ -1302,11 +1302,11 @@ module FrequentWordTest =
 
 让我们像以前一样比较这两种方法。第一种方法将合并所有页面，然后应用 `mostFrequentWord`，如下所示。
 
-【通过添加页面获取最常用单词】
+![mostFrequentWord via adding pages](https://fsharpforfunandprofit.com/posts/monoids-part2/monoid_non_h1.jpg)
 
 第二种方法将在每个页面上分别执行 `mostFrequentWord`，然后组合结果，如下所示：
 
-【mostFrequentWord 通过添加计数】
+![mostFrequentWord via adding counts](https://fsharpforfunandprofit.com/posts/monoids-part2/monoid_non_h2.jpg)
 
 代码如下：
 
@@ -1347,11 +1347,11 @@ Using map reduce, the most frequent word is hellogoodbyefoobar
 
 在字数统计示例中，无论是先添加块然后进行字数统计，还是先进行字数统计然后将它们加在一起，我们都得到了相同的最终结果。这是一个图表：
 
-【双向字数统计】
+![word count both ways](https://fsharpforfunandprofit.com/posts/monoids-part2/monoid_h1_both.jpg)
 
 但对于最常见的单词示例，我们没有从两种不同的方法中得到相同的答案。
 
-【双向最常见的单词】
+![most frequent word both ways](https://fsharpforfunandprofit.com/posts/monoids-part2/monoid_non_h1_both.jpg)
 
 换句话说，对于 `wordCount`，我们有
 
@@ -2704,7 +2704,7 @@ printHeader()
 
 我不会列出所有详细的输出——你可以自己运行代码——但这里有一个结果图表。
 
-【幺半群性能】
+![monoid performance](https://fsharpforfunandprofit.com/posts/monoids-part3/monoid_performance.jpg)
 
 有几件事需要注意：
 

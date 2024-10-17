@@ -52,6 +52,8 @@ https://fsharpforfunandprofit.com/posts/mathematical-functions/
 - 函数的一组可能输出值称为范围（技术上称为共域上的图像）。在这种情况下，它也是整数集。
 - 据说该函数将域映射到范围。
 
+![img](https://fsharpforfunandprofit.com/posts/mathematical-functions/Functions_Add1.png)
+
 以下是 F# 中的定义
 
 ```F#
@@ -216,7 +218,7 @@ val functionName : domain -> range
 
 想象一下，一个操作总是返回整数5，并且没有任何输入。
 
-
+![img](https://fsharpforfunandprofit.com/posts/function-values-and-simple-values/Functions_Const.png)
 
 这将是一个“常量”的操作。
 
@@ -572,7 +574,7 @@ val printInt : int -> unit
 
 好吧，即使一个函数没有返回输出，它仍然需要一个范围。数学世界中没有“空”函数。每个函数都必须有一些输出，因为函数是一个映射，映射必须有一些东西可以映射！
 
-
+![img](https://fsharpforfunandprofit.com/posts/how-types-work-with-functions/Functions_Unit.png)
 
 因此，在F#中，像这样的函数返回一个称为“`unit`”的特殊范围。此范围中只有一个值，称为“`()`”。你可以把`unit` 和 `()` 看作是C#中的“void”（类型）和“null”（值）。但与void/null不同，`unit` 是实数类型，（）是实数值。要看到这一点，请评估：
 
@@ -1414,6 +1416,8 @@ let F x y z = x <| y z    // using backward pipe
 我们现在已经多次提到函数组合，但它实际上是什么意思？起初看起来很吓人，但实际上很简单。
 
 假设你有一个从类型“T1”映射到类型“T2”的函数“f”，并且假设你还有一个从“T2”映射到“T3”类型的函数“g”。然后，您可以将“f”的输出连接到“g”的输入，创建一个从类型“T1”映射到类型“T3”的新函数。
+
+![img](https://fsharpforfunandprofit.com/posts/function-composition/Functions_Composition.png)
 
 这里是例子
 

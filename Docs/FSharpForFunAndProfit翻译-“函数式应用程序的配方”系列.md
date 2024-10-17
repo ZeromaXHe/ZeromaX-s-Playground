@@ -1,4 +1,4 @@
-# 如何设计和编写一个完整的程序
+# 1 如何设计和编写一个完整的程序
 
 *Part of the "A recipe for a functional app" series (*[link](https://fsharpforfunandprofit.com/posts/recipe-part1/#series-toc)*)*
 
@@ -49,13 +49,13 @@ https://fsharpforfunandprofit.com/posts/recipe-part1
 
 以下是各种组件的示意图：
 
-【食谱快乐之路】
+![Recipe Happy Path](https://fsharpforfunandprofit.com/posts/recipe-part1/Recipe_HappyPath.png)
 
 但这仅描述了“幸福之路”。现实从未如此简单！如果在数据库中找不到用户 ID，或者电子邮件地址无效，或者数据库有错误，会发生什么？
 
 让我们更新图表，显示所有可能出错的地方。
 
-【配方错误路径】
+![Recipe Error Path](https://fsharpforfunandprofit.com/posts/recipe-part1/Recipe_ErrorPath.png)
 
 在用例的每个步骤中，各种事情都可能导致错误，如图所示。解释如何以优雅的方式处理这些错误将是本系列的目标之一。
 
@@ -69,11 +69,11 @@ https://fsharpforfunandprofit.com/posts/recipe-part1
 
 这是一个基于用例简化版本的图表，显示了我的意思：
 
-【命令式数据流】
+![A imperative data flow](https://fsharpforfunandprofit.com/posts/recipe-part1/Recipe_ResponseBack.png)
 
 但在函数模型中，函数是一个有输入和输出的黑匣子，如下所示：
 
-【具有一个输出的函数】
+![A function with one output](https://fsharpforfunandprofit.com/posts/recipe-part1/Recipe_Function1.png)
 
 我们如何调整用例以适应这种模型？
 
@@ -83,15 +83,15 @@ https://fsharpforfunandprofit.com/posts/recipe-part1
 
 在我们的例子中，这意味着所有错误都必须被发送到最后，作为通往幸福之路的替代路径。
 
-【函数式数据流】
+![A functional data flow](https://fsharpforfunandprofit.com/posts/recipe-part1/Recipe_ResponseForward.png)
 
 一旦我们做到了这一点，我们就可以将整个流程转换为一个“黑匣子”函数，如下所示：
 
-【具有多个输出的函数】
+![A function with many outputs](https://fsharpforfunandprofit.com/posts/recipe-part1/Recipe_FunctionMany.png)
 
 当然，如果你看看大函数的内部，它是由（用函数的话说是“由”组成的）较小的函数组成的，每个步骤一个，连接在一个管道中。
 
-【具有多个输出的函数】
+![A function with many outputs](https://fsharpforfunandprofit.com/posts/recipe-part1/Recipe_FunctionMany2.png)
 
 ### 错误处理
 
@@ -113,7 +113,7 @@ type UseCaseResult =
 
 这是重新绘制的图表，显示了一个包含四个不同案例的单一输出：
 
-【具有4个案例联合输出的函数】
+![A function with a 4 case union output](https://fsharpforfunandprofit.com/posts/recipe-part1/Recipe_Function_Union4.png)
 
 ### 简化错误处理
 
@@ -127,7 +127,7 @@ type UseCaseResult =
     | Failure
 ```
 
-【具有2个案例联合输出的函数】
+![A function with a 2 case union output](https://fsharpforfunandprofit.com/posts/recipe-part1/Recipe_Function_Union2.png)
 
 这种类型非常通用，适用于任何工作流！事实上，您很快就会看到，我们可以创建一个很好的有用函数库，这些函数可以与这种类型一起使用，并且可以在各种场景中重用。
 
@@ -145,7 +145,7 @@ type Result<'TSuccess,'TFailure> =
 
 所以，现在，再次显示各个步骤，我们可以看到，我们必须将每个步骤的错误合并到一个“失败”路径上。
 
-【具有两个输出的函数】
+![A function with two outputs](https://fsharpforfunandprofit.com/posts/recipe-part1/Recipe_Function_ErrorTrack.png)
 
 如何做到这一点将是下一篇文章的主题。
 
@@ -160,7 +160,7 @@ type Result<'TSuccess,'TFailure> =
 - 用例函数将由一系列较小的函数构建，每个函数代表数据流中的一个步骤。
 - 每个步骤的错误将合并到一个错误路径中。
 
-# 面向铁路的编程
+# 2 面向铁路的编程
 
 *Part of the "A recipe for a functional app" series (*[link](https://fsharpforfunandprofit.com/posts/recipe-part2/#series-toc)*)*
 
@@ -175,7 +175,7 @@ https://fsharpforfunandprofit.com/posts/recipe-part2/
 
 在上一篇文章中，我们看到了如何将用例分解为步骤，并将所有错误分流到单独的错误轨道上，如下所示：
 
-【具有两个输出的函数】
+![A function with two outputs](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Function_ErrorTrack.png)
 
 在这篇文章中，我们将探讨将这些步骤函数连接到单个单元中的各种方法。这些功能的详细内部设计将在稍后的帖子中描述。
 
@@ -185,7 +185,7 @@ https://fsharpforfunandprofit.com/posts/recipe-part2/
 
 好吧，有两种可能的情况：要么数据有效（快乐路径），要么出了问题，在这种情况下，我们走上失败路径，绕过其余步骤，如下所示：
 
-【具有两个输出的验证功能】
+![The validation function with a two outputs](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Validation_Paths.png)
 
 但和以前一样，这不是一个有效的函数。一个函数只能有一个输出，因此我们必须使用上次定义的 `Result` 类型：
 
@@ -197,7 +197,7 @@ type Result<'TSuccess,'TFailure> =
 
 现在的图表看起来像这样：
 
-【具有成功/失败输出的验证功能】
+![The validation function with a success/failure output](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Validation_Union2.png)
 
 为了向您展示这在实践中是如何工作的，这里有一个实际验证函数的示例：
 
@@ -226,35 +226,35 @@ validateInput : Request -> Result<Request,string>
 
 我们想做的是将一个的 `Success` 输出连接到下一个的输入，但在 `Failure` 输出的情况下，以某种方式绕过第二个函数。此图给出了总体思路：
 
-【将验证功能与更新功能连接起来】
+![Connecting validation function with update function](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Validation_Update.png)
 
 这样做有一个很好的类比——你可能已经熟悉了。铁路！
 
 铁路有道岔（英国的“道岔”），用于将列车引导到不同的轨道上。我们可以将这些“成功/失败”功能视为铁路道岔，如下所示：
 
-【铁路道岔】
+![A railway switch](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_RailwaySwitch.png)
 
 这里我们有两个连续。
 
-【2个铁路道岔断开】
+![2 railway switches disconnected](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_RailwaySwitch1.png)
 
 我们如何将它们结合起来，使两条故障轨道相互连接？很明显，就像这样！
 
-【连接2个铁路道岔】
+![2 railway switches connected](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_RailwaySwitch2.png)
 
 如果我们有一系列的开关，我们最终会得到一个双轨系统，看起来像这样：
 
-【已连接3个铁路道岔】
+![3 railway switches connected](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_RailwaySwitch3.png)
 
 最上面的轨道是快乐的道路，最下面的轨道是失败的道路。
 
 现在回过头来看看大局，我们可以看到，我们将有一系列黑匣子函数，它们似乎跨越了一条双轨铁路，每个函数都处理数据并将其传递给下一个函数：
 
-【不透明函数】
+![Opaque functions](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_Opaque.png)
 
 但如果我们看看函数内部，我们可以看到每个函数内部实际上都有一个开关，用于将坏数据分流到故障轨道上：
 
-【透明函数】
+![Transparent functions](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_Transparent.png)
 
 请注意，一旦我们走上了失败的道路，我们就永远不会（通常）回到快乐的道路上。我们只是绕过其余的函数，直到到达末尾。
 
@@ -266,17 +266,17 @@ validateInput : Request -> Result<Request,string>
 
 如果我们想连接一系列这些单轨函数，我们可以使用从左到右的组合运算符，符号为 `>>`。
 
-【单轨函数的组成】
+![Composition of one-track functions](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_Compose1.png)
 
 同样的合成操作也适用于双轨函数：
 
-【双轨函数的构成】
+![Composition of two-track functions](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_Compose2.png)
 
 组合的唯一约束是左侧函数的输出类型必须与右侧函数的输入类型匹配。
 
 在我们的铁路类比中，这意味着你可以将一个轨道输出连接到一个轨道输入，或将两个轨道输出链接到两个轨道输入。
 
-【双轨函数的构成】
+![Composition of two-track functions](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_Compose3.png)
 
 ## 将开关转换为双轨输入
 
@@ -288,7 +288,7 @@ validateInput : Request -> Result<Request,string>
 
 答案很简单。我们可以创建一个“适配器”函数，它有一个用于开关函数的“孔”或“槽”，并将其转换为适当的双轨函数。以下是一个示例：
 
-【绑定适配器】
+![Bind adapter](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_BindAdapter.png)
 
 这是实际代码的样子。我将把适配器函数命名为 `bind`，这是它的标准名称。
 
@@ -401,7 +401,7 @@ let combinedValidation =
 
 这是一个显示 `Validate1` 开关（未绑定）、`Validate2` 和 `Validate3` 开关以及 `Validate2'` 和 `Validate3'` 适配器的图。
 
-【Validate2 和 Validate3 已连接】
+![Validate2 and Validate3 connected](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_Validator2and3.png)
 
 我们也可以“内联” `bind`，如下所示：
 
@@ -488,19 +488,19 @@ let combinedValidation =
 
 换言之，这：
 
-【2个铁路道岔断开】
+![2 railway switches disconnected](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_RailwaySwitch1.png)
 
 变成这样：
 
-【连接2个铁路道岔】
+![2 railway switches connected](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_RailwaySwitch2.png)
 
 但如果你仔细想想，这条组合赛道实际上只是另一个转折点！如果你盖住中间的位，你可以看到这一点。有一个输入和两个输出：
 
-【连接2个铁路道岔】
+![2 railway switches connected](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_RailwaySwitch2a.png)
 
 所以我们真正做的是一种开关的组合形式，就像这样：
 
-【开关组成】
+![switches composition](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_MComp.png)
 
 因为每个组合只会产生另一个开关，所以我们总是可以再次添加另一个切换，从而产生一个更大的东西，它仍然是一个开关等等。
 
@@ -537,11 +537,11 @@ let combinedValidation =
 
 那么，为什么要使用绑定而不是切换组合呢？这取决于上下文。如果您有一个现有的双轨系统，并且需要插入一个开关，那么您必须使用 bind 作为适配器将开关转换为需要双轨输入的东西。
 
-【开关组成】
+![switches composition](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_WhyBind.png)
 
 另一方面，如果您的整个数据流由一系列开关组成，那么开关组合可以更简单。
 
-【开关组成】
+![switches composition](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_WhyCompose.png)
 
 ### 从绑定角度切换组合
 
@@ -549,15 +549,15 @@ let combinedValidation =
 
 这里有两个单独的开关：
 
-【2个铁路道岔断开】
+![2 railway switches disconnected](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_RailwaySwitch1.png)
 
 然后，以下是组合在一起的开关，以形成一个新的更大的开关：
 
-【2个铁路道岔断开】
+![2 railway switches disconnected](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_RailwaySwitch2.png)
 
 在第二个开关上使用 `bind` 也可以完成同样的事情：
 
-【绑定为开关组合】
+![bind as switch composition](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_BindIsCompose.png)
 
 以下是使用这种思维方式重写的开关组合运算符：
 
@@ -589,7 +589,7 @@ let canonicalizeEmail input =
 
 换句话说，我们需要一个适配器块。它与我们用于 `bind` 的概念相同，只是这次我们的适配器块将有一个用于一个轨道功能的插槽，适配器块的整体“形状”是一个开关。
 
-【提升一个简单的函数】
+![lifting a simple function](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_SwitchAdapter.png)
 
 执行此操作的代码很简单。我们需要做的就是将单轨函数的输出转化为双轨结果。在这种情况下，结果总是成功。
 
@@ -601,7 +601,7 @@ let switch f x =
 
 在铁路方面，我们增加了一些故障轨道。总的来说，它看起来像一个开关功能（一个轨道输入，两个轨道输出），但当然，故障轨道只是一个虚拟的，开关从未被实际使用过。
 
-【提升一个简单的函数】
+![lifting a simple function](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_SwitchAdapter2.png)
 
 一旦 `switch` 可用，我们就可以很容易地将 `canonicalizeEmail` 函数附加到链的末尾。既然我们开始扩展它，让我们将函数重命名为 `usecase`。
 
@@ -635,11 +635,11 @@ usecase badInput
 
 不过，有时您想直接使用双轨模型，在这种情况下，您想直接将单轨函数转换为双轨函数。
 
-【映射一个简单函数】
+![mapping a simple function](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_MapAdapter2.png)
 
 同样，我们只需要一个带有插槽的适配器块来实现简单的功能。我们通常称之为适配器 `map`。
 
-【映射一个简单函数】
+![mapping a simple function](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_MapAdapter.png)
 
 而且，实际实施非常简单。如果双轨输入是 `Success`，则调用该函数，并将其输出转换为 Success。另一方面，如果双轨输入为 `Failure`，则完全绕过该功能。
 
@@ -683,11 +683,11 @@ let usecase =
 
 从铁路的角度来看，这相当于创建一个死胡同，就像这样。
 
-【tee 用于死胡同函数】
+![tee for a dead end function](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_Tee.png)
 
 为了实现这一点，我们需要另一个适配器函数，比如 `switch`，除了这次它有一个用于单轨道死端函数的插槽，并将其转换为具有单轨道输出的单轨道直通函数。
 
-【tee 用于死胡同函数】
+![tee for a dead end function](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_TeeAdapter.png)
 
 以下是遵循 UNIX tee 命令之后我将称之为 `tee` 的代码：
 
@@ -760,7 +760,7 @@ let usecase =
 
 正如我们之前所做的那样，我们将创建一个适配器块，但这次它将有两个单独的单轨函数的插槽。
 
-【双映射适配器】
+![double map adapter](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_DoubleMapAdapter.png)
 
 代码如下：
 
@@ -831,11 +831,11 @@ let fail x =
 
 到目前为止，我们已经将功能串联在一起。但是，对于验证之类的事情，我们可能希望并行运行多个开关，并组合结果，如下所示：
 
-【并联开关】
+![switches in parallel](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_Parallel.png)
 
 为了使这更容易，我们可以重用我们为切换组合所做的相同技巧。与其一次做很多，如果我们只关注一对，并“添加”它们以进行新的切换，那么我们可以很容易地将“添加”链接在一起，这样我们就可以添加任意数量的。换句话说，我们只需要实现这一点：
 
-【并联添加两个开关】
+![add two switches in parallel](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_MPlus.png)
 
 那么，并行添加两个开关的逻辑是什么？
 
@@ -1114,15 +1114,15 @@ let plus addSuccess addFailure switch1 switch2 x =
 
 例如，一批菠萝在通过名为 `function1` 的隧道时会神奇地变成苹果。
 
-【菠萝到苹果】
+![pineapples to apples](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_Cargo1.png)
 
 当一批苹果通过名为 `function2` 的隧道时，它会变成香蕉。
 
-【从苹果到香蕉】
+![apples to bananas](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_Cargo2.png)
 
 这条神奇的铁路有一个重要的规则，即你只能连接运载同种货物的轨道。在这种情况下，我们可以将 `function1` 连接到 `function2` ，因为从 `function1` 出来的货物（苹果）与进入 `function2` 的货物（也是苹果）相同。
 
-【连接函数】
+![connecting functions](https://fsharpforfunandprofit.com/posts/recipe-part2/Recipe_Railway_Cargo3.png)
 
 当然，轨道运载的货物并不总是相同的，货物种类的不匹配会导致错误。
 
@@ -1246,6 +1246,8 @@ let usecase =
 
 我在 2014 年奥斯陆 NDC 上就这一主题发表了演讲（点击图片观看视频）
 
+[![Video from NDC Oslo 2014](https://fsharpforfunandprofit.com/posts/recipe-part2/rop-ndcoslo.jpg)](http://vimeo.com/97344498)
+
 以下是我使用的幻灯片：
 
 从我在 Slideshare 上的幻灯片看面向铁路的编程
@@ -1254,7 +1256,7 @@ let usecase =
 
 
 
-# 在项目中组织模块
+# 3 在项目中组织模块
 
 *Part of the "A recipe for a functional app" series (*[link](https://fsharpforfunandprofit.com/posts/recipe-part3/#series-toc)*)*
 
@@ -1281,7 +1283,7 @@ F# 的新手可能会像 C# 一样在类中组织代码。每个文件一个类�
 
 思考代码的一种标准方式是将其分为多个层：域层、表示层等，如下所示：
 
-【设计层次】
+![Design layers](https://fsharpforfunandprofit.com/posts/recipe-part3/Recipe_DesignLayers1.png)
 
 每一层只包含与该层相关的代码。
 
@@ -1291,7 +1293,7 @@ F# 的新手可能会像 C# 一样在类中组织代码。每个文件一个类�
 
 因此，我们需要调整层图，使其看起来更像这样（其中每个箭头代表一个依赖关系）：
 
-【设计层次】
+![Design layers](https://fsharpforfunandprofit.com/posts/recipe-part3/Recipe_DesignLayers1a.png)
 
 理想情况下，这种重组将更加细粒度，有一个单独的“服务层”，包含应用程序服务、域服务等。当我们完成时，核心域类是“纯”的，不依赖于域外的任何其他东西。这通常被称为“六边形建筑”或“洋葱式建筑”。但这篇文章不是关于 OO 设计的微妙之处，所以现在，让我们只使用更简单的模型。
 
@@ -1320,13 +1322,13 @@ F# 的新手可能会像 C# 一样在类中组织代码。每个文件一个类�
 
 一旦我们将这两个元素分开，我们的图表将如下所示：
 
-【设计层次】
+![Design layers](https://fsharpforfunandprofit.com/posts/recipe-part3/Recipe_DesignLayers2.png)
 
 不过请注意，我们可能有一些反向引用（如红色箭头所示）。例如，域层中的函数可能依赖于持久性相关的类型，如 `IRepository`。
 
 在面向对象的设计中，我们会添加更多的层（例如应用程序服务）来处理这个问题。但在功能设计中，我们不需要这样做——我们可以将与持久性相关的类型移动到层次结构中域函数下方的不同位置，如下所示：
 
-【设计层次】
+![Design layers](https://fsharpforfunandprofit.com/posts/recipe-part3/Recipe_DesignLayers2a.png)
 
 在这个设计中，我们现在消除了层之间的所有循环引用。所有的箭头都指向下方。
 
@@ -1340,11 +1342,11 @@ F# 的新手可能会像 C# 一样在类中组织代码。每个文件一个类�
 
 因此，如果我们回顾第 1 部分中讨论的用例示例：
 
-【食谱快乐之路】
+![Recipe Happy Path](https://fsharpforfunandprofit.com/posts/recipe-part1/Recipe_HappyPath.png)
 
 那么 F# 项目中的相应代码可能看起来像这样：
 
-【设计层次】
+![Design layers](https://fsharpforfunandprofit.com/posts/recipe-part3/Recipe_DesignLayers_CodeLayout.png)
 
 列表的最底部是主文件，称为“main”或“program”，其中包含程序的入口点。
 
