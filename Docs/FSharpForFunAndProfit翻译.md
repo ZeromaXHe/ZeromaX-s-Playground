@@ -4193,7 +4193,7 @@ https://fsharpforfunandprofit.com/posts/roslyn-vs-fsharp-compiler/
 
 
 
-# 依赖注入的函数方法
+# 依赖注入的函数式方法
 
 系列文章的第一部分，从部分应用开始。
 05十二月2016 这篇文章是超过3年
@@ -4216,6 +4216,870 @@ https://fsharpforfunandprofit.com/posts/dependency-injection-1/
 
 本文将介绍部分应用，并在以后的文章中介绍 Reader monad 和 Interpreter 模式。
 
+## 依赖注入的原因
+
+*在我开始谈论依赖注入之前，我必须指出，我很感激 Mark Seemann，他写了这本关于这个主题的书。如果我歪曲了其中一些想法，那都是我的错！*
+
+因此，以下是使用依赖注入的三个常见原因：
+
+- 首先，促进信息隐藏和松耦合。这些概念可以追溯到 1971 年，以及 David Parnas 关于分解系统和设计方法的两篇经典论文。
+  - 第一篇论文可以概括为“查看可能发生变化的设计决策，并创建旨在向系统其他部分隐藏这些决策的模块。”这当然是 OO 原则背后的一个关键原则，即将实现细节封装在对象中（“程序到接口，而不是实现”），但正如我们稍后将看到的，它同样适用于 FP 设计。
+  - 第二篇论文可以概括为：“如果你提供信息，程序员就忍不住要利用它，所以除非你真的需要，否则不要公开它！”
+- 第二，支持快速单元测试。将 I/O 相关操作（数据库、文件系统、网络）隔离到易于模拟的依赖关系中是很常见的。即使实现不太可能改变，这也是有用的。
+- 第三，允许自主发展。如果两个组件仅通过有文档记录的接口连接，那么开发可以安全地并行进行。
+
+请注意，第二个原因（“隔离”）对函数式程序员来说非常重要。为了对我们的代码进行推理，我们喜欢将“效果”与纯代码分开。“Effects”当然可以指 I/O，也可以指随机性、全局状态（如 DateTime.Now）和可变性。测试和模拟的能力只是这种方法的一个方便的结果。
+
+例如，F# 并没有像 Haskell 那样严格执行效果与纯代码的分离，但这仍然是一个值得追求的目标。
+
+## 依赖注入的用例
+
+让我们来看一个具体的用例，我们可以将其作为实验不同实现的基础。
+
+假设我们有一个带有用户的网络应用程序，每个用户都有一个“个人资料”，上面有他们的姓名、电子邮件、偏好等。更新他们的个人资料的用例可能是这样的：
+
+- 定义“更新用户配置文件”
+- input：一个表示请求的 JSON 对象
+- 步骤：
+  1. 将 JSON 请求解析为表示该请求的域对象
+  2. 从数据库中读取用户的当前电子邮件地址（步骤4需要）
+  3. 更新数据库中的用户配置文件
+  4. 如果电子邮件已更改，请向用户的旧电子邮件发送一封礼貌电子邮件，通知他们电子邮件已更改
+
+当然，我们还需要实现其他东西，例如：
+
+- 日志
+- 审计
+- 分析
+
+等等。现在，我们只包括日志记录。
+
+## 有和没有依赖注入的 OO 实现
+
+让我们以这个用例为例，做两个不同的 OO 实现，一个有依赖注入，一个没有依赖注入。
+
+首先，让我们定义将在所有实现（OO 和函数式）中共享的域类型：
+
+```F#
+type UserId = int
+type UserName = string
+type EmailAddress = string
+
+type UpdateProfileRequest = {
+    UserId : UserId
+    Name : UserName
+    EmailAddress : EmailAddress
+}
+```
+
+现在，我只会为 `UserId`、`UserName` 使用类型别名。对于更复杂的方法，我们将使用约束类型而不是 `int` 和 `string` 等基元。此外，我也不会进行任何类型的验证。这是另一个时间的大话题！
+
+所以，这是第一个没有依赖注入的 OO 版本：
+
+```F#
+type UserProfileUpdater() =
+
+  member this.UpdateCustomerProfile(json: string) =
+    try
+      let request = this.ParseRequest(json)
+      let currentEmail = DbService.GetEmail(request.UserId)
+      DbService.UpdateProfile(request.UserId, request.Name, request.EmailAddress)
+      Logger.Info("Updated Profile")
+
+      if currentEmail <> request.EmailAddress then
+        Logger.Info("Sending Email Changed Notification")
+        EmailService.SendEmailChangedNotification(currentEmail,request.EmailAddress)
+    with
+    | ex ->
+      Logger.Error(sprintf "UpdateCustomerProfile failed: '%s'" ex.Message)
+```
+
+您可以看到，我们已经将 `DbService`、`EmailService` 和 `Logger` 等服务硬编码到方法中。这可不好！
+
+解决这个问题的标准 OO 方法是为每个服务定义接口，然后将它们注入类构造函数中。
+
+以下是我们将使用的接口：
+
+```F#
+type ILogger =
+  abstract Info : string -> unit
+  abstract Error : string -> unit
+
+type IDbService =
+  abstract GetEmail : UserId -> EmailAddress
+  abstract UpdateProfile : UserId * UserName * EmailAddress -> unit
+
+type IEmailService =
+  abstract SendEmailChangedNotification : EmailAddress * EmailAddress -> unit
+```
+
+你可以这样阅读这些界面：
+
+- `Info` 接受 `string` 作为输入，不返回任何内容。
+- `GetEmail` 接收 `UserId` 作为输入，并返回 `EmailAddress`
+- `UpdateProfile` 接受 `UserId`、`UserName` 和 `EmailAddress` 的 3 元组，不返回任何内容。
+- 等等。
+
+这是更新的实现，现在有了依赖注入：
+
+```F#
+type UserProfileUpdater
+  ( dbService:IDbService,
+    emailService:IEmailService,
+    logger:ILogger ) =
+
+  member this.UpdateCustomerProfile(json: string) =
+    try
+      let request = this.ParseRequest(json)
+      let currentEmail = dbService.GetEmail(request.UserId)
+      dbService.UpdateProfile(request.UserId, request.Name, request.EmailAddress)
+      logger.Info("Updated Profile")
+
+      if currentEmail <> request.EmailAddress then
+        logger.Info("Sending Email Changed Notification")
+        emailService.SendEmailChangedNotification(currentEmail,request.EmailAddress)
+    with
+    | ex ->
+      logger.Error(sprintf "UpdateCustomerProfile failed: '%s'" ex.Message)
+
+  member this.ParseRequest(json:string) : UpdateProfileRequest =
+    ...
+```
+
+这样更好。所有的服务都被注入到类构造函数中，并且对服务实现没有直接依赖关系。因此，正如所承诺的那样，我们获得了松耦合、可模仿性和并行开发的好处。
+
+但这种方法也不完美。让我们看看仍然存在的一些问题：
+
+- **对本地方法的隐藏依赖**。`UpdateCustomerProfile` 方法对同一类中的另一个方法 `ParseRequest` 具有隐藏的依赖关系。OO 的一个问题是，你可能会意外地依赖于同一范围内的其他方法，这通常会使重构变得尴尬。特别是，您可能会意外地依赖父类中的方法，从而导致“脆弱基类”问题。
+- **无意的依赖**。在类级别使用依赖注入意味着类中的任何方法都可以使用任何注入的依赖关系。例如，如何阻止 `ParseRequest` 方法使用 `emailService` 依赖项？不太可能，你说？但请记住这句格言：“如果你提供信息，程序员就忍不住要利用它。”根据我的经验，这是真的，可能会导致维护噩梦。
+- **不需要的接口方法**。更糟糕的是，随着时间的推移，接口自然会积累新的方法，变得越来越通用。如果 `IDbService` 很快开始获得其他方法，如 `DeleteCustomer` 和 `ResetPassword`，我不会感到惊讶。那么，如何阻止 `UpdateCustomerProfile` 错误地调用 `DeleteCustomer` 呢？换句话说，我们在信息隐藏方面失败了——这是我们的核心设计原则之一！接口隔离原则提醒我们不要这样做，但这通常是一场艰苦的战斗。
+- 最后，类 `UserProfileUpdater` 的名称很尴尬，有点代码味。这表明这种业务逻辑不适合一个明显的领域类。
+
+哦，但我确实知道最后一个问题的修复方法——我们只是将其重命名为 `UserProfileUpdateService`——问题解决了！：）
+
+还有一件事。为了使用这个类，我们需要创建具体的实现并传递它们。有多种方法可以做到这一点，但通常有一些应用程序级组件（“组合根”）负责创建和连接组件和服务。
+
+例如，在我们的实现中，我们可能有这样的东西：
+
+```F#
+module CompositionRoot =
+
+  // read from config file for example
+  let dbConnectionString = "server=dbserver; database=mydatabase"
+  let smtpConnectionString = "server=emailserver"
+
+  // construct the services
+  let dbService = Services.DbService(dbConnectionString)
+  let emailService = Services.EmailService(smtpConnectionString)
+  let logger = Services.Logger()
+
+  // construct the class, injecting the services
+  let customerUpdater = UserProfileUpdater(dbService,emailService,logger)
+```
+
+好的。这些应该都很熟悉。请注意，`DbService` 需要一个 `dbConnectionString`，并将其传递给构造函数。同样，`EmailService` 需要一个 `smtpConnectionString`。
+
+现在让我们看看 FP 方法。
+
+## 将用例实现为函数
+
+在 FP 中，我们没有类，只有函数。因此，每个函数都必须显式传递其所有依赖项，而不是类构造函数。
+
+现在，我们可以复制 OO 方法，并将接口作为参数传递给函数，如下所示：
+
+```F#
+let updateCustomerProfile
+  (dbService:IDbService)
+  (emailService:IEmailService)
+  (logger:ILogger)
+  (json: string) =
+
+  try
+    let request = parseRequest(json)
+    let currentEmail = dbService.GetEmail(request.UserId)
+    dbService.UpdateProfile(request.UserId, request.Name, request.EmailAddress)
+    // etc
+```
+
+但是使用接口仍然存在我们上面提到的意外依赖关系的问题。
+
+更好的方法是将每个单独的依赖关系分解为一个独立的函数。
+
+例如，如果每个接口只有一个方法，那么它们看起来像这样：
+
+```F#
+type ILogInfo  =
+    abstract LogInfo : string -> unit
+
+type ILogError =
+    abstract LogError : string -> unit
+
+type IDbGetEmail  =
+    abstract GetEmail : UserId -> EmailAddress
+
+type IDbUpdateProfile =
+    abstract UpdateProfile : UserId * UserName * EmailAddress -> unit
+
+type ISendEmailChangedNotification =
+    abstract Notify : EmailAddress * EmailAddress -> unit
+```
+
+当然，一个只有一个方法的接口只是一个函数类型，所以我们可以将这些“接口”重写为：
+
+```F#
+type LogInfo = string -> unit
+type LogError = string -> unit
+
+type DbGetEmail = UserId -> EmailAddress
+type DbUpdateProfile = UserId * UserName * EmailAddress -> unit
+type Notify = EmailAddress * EmailAddress -> unit
+```
+
+请注意，在函数式方法中，`DbGetEmail` 和 `DbUpdateProfile` 没有任何 `dbConnectionString` 参数。这些函数只定义了从调用者的角度来看需要什么，调用者不需要知道任何关于连接字符串的信息。但结果是，这些函数中根本没有提到数据库。现在名字中有一个 `Db` 是误导！
+
+好的，让我们改变我们的函数，使用这些函数类型而不是接口。现在看起来是这样的：
+
+```F#
+module CustomerUpdater =
+
+  let updateCustomerProfile
+    (logInfo:LogInfo)
+    (logError:LogError)
+    (getEmail:DbGetEmail)
+    (updateProfile:DbUpdateProfile)
+    (notify:Notify)
+    (json: string) =
+    try
+      let request = parseRequest(json)
+      let currentEmail = getEmail(request.UserId)
+      updateProfile(request.UserId, request.Name, request.EmailAddress)
+      logInfo("Updated Profile")
+    // etc
+```
+
+我们实际上根本不需要参数的类型注释，我们也可以这样写：
+
+```F#
+let updateCustomerProfile logInfo logError getEmail updateProfile notify json =
+    try
+      let request = parseRequest(json)
+      let currentEmail = getEmail(request.UserId)
+      updateProfile(request.UserId, request.Name, request.EmailAddress)
+      logInfo("Updated Profile")
+    // etc
+```
+
+但是，如果您自上而下地工作，类型注释可能很有用——您知道服务是什么，并且希望确保在 `updateCustomerProfile` 中出错时发生编译器错误。
+
+好的，让我们暂停一下，分析一下这个版本。
+
+首先，好消息是所有的依赖关系现在都是显式的。而且没有它不需要的依赖关系。例如，此功能不能意外删除客户。
+
+如果你想测试它，很容易模拟所有函数参数，我们很快就会看到。
+
+当然，缺点是该函数现在有五个额外的参数，这看起来很痛苦。（当然，OO 版本中的等效方法也有这五个依赖关系，但它们是隐式的）。
+
+在我看来，这种痛苦实际上是有帮助的！对于 OO 风格的接口，随着时间的推移，它们自然会积垢。但是，使用这样的显式参数，自然会抑制过多的依赖性！对接口隔离原则等指导方针的需求大大降低。
+
+## 部分应用构建函数
+
+让我们看看这个函数是如何创建的。就像 OO 设计一样，我们需要一些负责设置所有内容的组件。我现在将窃取 OO 词汇表，并再次将其称为 `CompositionRoot`。
+
+```F#
+module CompositionRoot =
+
+  let dbConnectionString = "server=dbserver; database=mydatabase"
+  let smtpConnectionString = "server=emailserver"
+
+  let getEmail =
+      // partial application
+      DbService.getEmail dbConnectionString
+
+  let updateProfile =
+      // partial application
+      DbService.updateProfile dbConnectionString
+
+  let notify =
+      // partial application
+      EmailService.sendEmailChangedNotification smtpConnectionString
+
+  let logInfo = Logger.info
+  let logError = Logger.error
+
+  let parser = CustomerUpdater.parseRequest
+
+  let updateCustomerProfile =
+      // partial application
+      CustomerUpdater.updateCustomerProfile logInfo logError getEmail updateProfile notify
+```
+
+我们在这里所做的是使用部分应用程序来提供每个函数所需的所有依赖关系。（如果您不熟悉部分应用程序，请参阅此讨论）
+
+![img](https://fsharpforfunandprofit.com/posts/dependency-injection-1/partial_appl.png)
+
+例如，数据库函数可以这样实现，除了主参数外，还可以使用显式的 `connectionString` 参数：
+
+```F#
+module DbService =
+
+    let getEmail connectionString (userId:UserId) :EmailAddress =
+        // ...
+
+    let updateProfile connectionString ((userId:UserId),(name:UserName),(emailAddress:EmailAddress)) =
+        // ...
+```
+
+在我们的组合根中，我们只传入 `dbConnectionString`，而其他参数保持打开状态：
+
+```F#
+let getEmail =
+  // partial application
+  DbService.getEmail dbConnectionString
+
+let updateProfile =
+  // partial application
+  DbService.updateProfile dbConnectionString
+```
+
+生成的函数与我们需要传递给主 `updateCustomerProfile` 函数的类型相匹配：
+
+```F#
+type DbGetEmail = UserId -> EmailAddress
+type DbUpdateProfile = UserId * UserName * EmailAddress -> unit
+```
+
+在模块的最后，我们对 `updateCustomerProfile` 本身采取了相同的方法。我们传入五个依赖项，让 `json` 字符串参数保持打开状态，稍后提供。
+
+```F#
+let updateCustomerProfile =
+  // partial application
+  CustomerUpdater.updateCustomerProfile logInfo logError getEmail updateProfile notify
+```
+
+这意味着当我们实际使用该函数时，我们只需要传入 json 字符串，如下所示：
+
+```F#
+let json = """{"UserId" : "1","Name" : "Alice","EmailAddress" : "new@example.com"}"""
+CompositionRoot.updateCustomerProfile json
+```
+
+这样，调用者就不需要确切地知道 `updateCustomerProfile` 的依赖关系是什么。我们实现了我们想要的脱钩。
+
+当然，它很容易测试，因为所有的依赖关系都可以被 mock。这是一个测试示例，用于检查数据库更新失败时是否未发送电子邮件通知。你可以看到，我们可以快速模拟每一个依赖关系。
+
+```F#
+// test
+let ``when email changes but db update fails, expect notification email not sent``() =
+
+  // --------------------
+  // arrange
+  // --------------------
+  let getEmail _ =
+      "old@example.com"
+
+  let updateProfile _ =
+      // deliberately fail
+      failwith "update failed"
+
+  let mutable notificationWasSent = false
+  let notify _ =
+      // just set flag
+      notificationWasSent <- true
+
+  let logInfo msg = printfn "INFO: %s" msg
+  let logError msg = printfn "ERROR: %s" msg
+
+  let updateCustomerProfile =
+      CustomerUpdater.updateCustomerProfile logInfo logError getEmail updateProfile notify
+
+  // --------------------
+  // act
+  // --------------------
+
+  let json = """{"UserId" : "1","Name" : "Alice","EmailAddress" : "new@example.com"}"""
+  updateCustomerProfile json
+
+  // --------------------
+  // assert
+  // --------------------
+
+  if notificationWasSent then failwith "test failed"
+```
+
+## 将依赖关系传递给内部函数
+
+如果内部依赖关系与主函数共享参数，会发生什么？
+
+例如，假设 `DbService` 函数也需要日志功能，就像这样？
+
+```F#
+module DbService =
+
+  let getEmail connectionString logInfo logError userId  =
+                // logging functions ^
+    ...
+
+  let updateProfile connectionString logInfo logError (userId,name,emailAddress) =
+                   // logging functions ^
+    ...
+```
+
+我们应该如何处理这个问题？我们应该采用 `logInfo` 参数并将其传递给依赖项，如下所示：
+
+```F#
+let updateCustomerProfile logInfo logError getEmail updateProfile notify json =
+    try
+        let request = parseRequest json
+        let currentEmail = getEmail logInfo logError request.UserId
+                            // Added ^logInfo ^logError
+        updateProfile logInfo logError (request.UserId, request.Name, request.EmailAddress)
+               Added ^logInfo ^logError
+        ...
+```
+
+不，这（通常）是错误的方法。`getEmail` 的依赖关系与 `updateCustomerProfile` 无关。
+
+相反，传递这些新的依赖关系应该是顶级组合根的责任：
+
+```F#
+module CompositionRoot =
+
+    let logInfo = Logger.info
+    let logError = Logger.error
+
+    let dbConnectionString = "server=dbserver; database=mydatabase"
+    let smtpConnectionString = "server=emailserver"
+
+    let getEmail =
+        DbService.getEmail dbConnectionString logInfo logError
+                                  // Pass in ^logInfo ^logError
+    let updateProfile =
+        DbService.updateProfile dbConnectionString logInfo logError
+                                       // Pass in ^logInfo ^logError
+```
+
+最终的结果是，`getEmail` 和 `updateProfile` 具有与以前完全相同的“接口”，并且我们没有破坏任何依赖于它们的代码。
+
+## 重构
+
+不过，`updateCustomerProfile` 函数对我来说很难看。让我们看看我们是否可以做一些重构来让它变得更好！
+
+### 重构步骤 1：在震中（epicenter）进行日志
+
+我们要做的第一个重构是移动日志记录。
+
+谁应该负责记录操作的结果：调用者还是被调用者？总的来说，我认为是被叫方。在被叫方内部，通常有更多信息可供记录。这也意味着被调用的函数更加自包含，可以更容易地组合。
+
+因此，如前所述，假设日志记录函数被传递给服务，并且它们自己进行日志记录：
+
+```F#
+module DbService =
+  let getEmail connectionString logInfo logError userId  =
+    ...
+
+  let updateProfile connectionString logInfo logError (userId,name,emailAddress) =
+    logInfo (sprintf "profile updated to %s; %s" name emailAddress)
+
+module EmailService =
+
+  let sendEmailChangedNotification smtpConnectionString logInfo (oldEmailAddress,newEmailAddress) =
+    logInfo (sprintf "email sent to old %s and new %s" oldEmailAddress newEmailAddress)
+```
+
+有了这些更改，main 函数现在根本不需要任何日志记录：
+
+```F#
+let updateCustomerProfile logError getEmail updateProfile notify json =
+  try
+    let request = parseRequest json
+    let currentEmail = getEmail request.UserId
+    updateProfile (request.UserId, request.Name, request.EmailAddress)
+
+    if currentEmail <> request.EmailAddress then
+      notify(currentEmail,request.EmailAddress)
+  with
+  | ex -> logError (sprintf "UpdateCustomerProfile failed: '%s'" ex.Message)
+```
+
+嗯，除了异常处理中的 `logError`！我们将在下一节中讨论这个问题。
+
+但首先有一个简短的题外话。如果你确实需要更高层次的上下文，会发生什么？或者，假设数据库接口是固定的，您无法更改它以添加日志记录。
+
+答案很简单——当所有内容都设置在组合根中时，只需将依赖关系包装在您自己的日志逻辑中！
+
+例如，假设 `updateProfile` 和 `notify` 只是给你的，没有任何日志记录，如下所示：
+
+```F#
+let updateProfile =
+    DbService.updateProfile dbConnectionString
+                                // No logging ^
+let notify =
+    EmailService.sendEmailChangedNotification smtpConnectionString
+                                                     // No logging ^
+```
+
+你需要做的就是创建一个小的日志助手函数，并用它来“装饰”这些函数：
+
+```F#
+// helper function
+let withLogInfo msg f x =
+    logInfo msg
+    f x
+
+let updateProfileWithLog =
+    updateProfile |> withLogInfo "Updated Profile"
+
+let notifyWithLog =
+    notify |> withLogInfo "Sending Email Changed Notification"
+```
+
+新函数 `updateProfileWithLog` 和 `notifyWithLog` 的签名与原始函数完全相同，因此可以像原始函数一样传递给 `updateCustomerProfile`。
+
+```F#
+let updateCustomerProfile =
+    updateCustomerProfile logError getEmail updateProfileWithLog notifyWithLog
+                                  // With logging ^    With logging ^
+```
+
+这是一个非常简单的例子，但当然你可以扩展这个想法来处理更复杂的场景。
+
+### 重构步骤 2：用结果替换异常
+
+正如所承诺的，现在让我们摆脱异常处理逻辑。
+
+以下是我们正在使用的异常处理代码：
+
+```F#
+let updateCustomerProfile ... =
+    try
+       ...
+    with
+    | ex ->
+      logError(sprintf "UpdateCustomerProfile failed: '%s'" ex.Message)
+```
+
+它的设计不是很好，因为它捕获了所有异常，即使是我们可能希望由于编程错误而快速失败的异常（如 `NullReferenceException`）。
+
+让我们用选择类型 `Result` 替换异常处理逻辑（有关此概念的更多信息，请参阅我的函数错误处理演讲）。
+
+首先，我们可以定义 `Result` 类型本身（这是 F# 4.1 内置的，太棒了！）。
+
+```F#
+type Result<'a> =
+    | Ok of 'a
+    | Error of string
+```
+
+然后我们需要一些常见的函数，如 `map` 和 `bind`：
+
+```F#
+module Result =
+
+    let map f xResult =
+        match xResult with
+        | Ok x -> Ok (f x)
+        | Error err -> Error err
+
+    let bind f xResult =
+        match xResult with
+        | Ok x -> f x
+        | Error err -> Error err
+```
+
+最后，一个最小的“结果”计算表达式
+
+```F#
+type ResultBuilder() =
+    member this.Return x = Ok x
+    member this.Zero() = Ok ()
+    member this.Bind(xResult,f) = Result.bind f xResult
+
+let result = ResultBuilder()
+```
+
+假设我们的服务现在返回 `Result` 而不是抛出异常，我们可以在 `result` 计算表达式中重写 `updateCustomerProfile`，如下所示：
+
+```F#
+let parseRequest json :Result<UpdateProfileRequest> =
+    ...
+
+let updateCustomerProfile getEmail updateProfile notify json :Result<unit> =
+    result {
+        let! request = parseRequest json
+        let! currentEmail = getEmail request.UserId
+        do! updateProfile(request.UserId,request.Name,request.EmailAddress)
+
+        if currentEmail <> request.EmailAddress then
+            do! notify (currentEmail,request.EmailAddress)
+    }
+```
+
+现在它更干净了，我们已经删除了对 `logError` 的依赖，但我们可以做得更好！
+
+### 重构步骤 3：用一个函数参数替换多个函数参数
+
+在迄今为止的所有代码中，我们传递了两个日志函数 `logInfo` 和 `logError`。这有点烦人，因为它们太相似了。我可以看到，我们可能还需要传递更多的函数，如 `logDebug`、`logWarn` 等。
+
+那么，有没有一种方法可以避免一直传递所有这些函数呢？
+
+一种方法是回到使用 `ILogger` 接口的面向对象方法，该接口包含我们需要的所有方法。
+
+另一种方法是使用数据来表示选择。也就是说，我们传入一个函数参数，然后向该函数传递一个有三到四个不同选择的值，而不是将三到四种不同的函数作为参数传入。
+
+让我们看看这在实践中是如何工作的。
+
+这是一个原始方法的示例，使用三个不同的函数进行日志记录：
+
+```F#
+let example1 logDebug logInfo logError =
+    //       ^ three  ^ dependencies ^
+    logDebug "Testing"
+    if 1 = 1 then
+        logInfo "OK"
+    else
+        logError "Unexpected"
+```
+
+但我们可以用与每个函数相关的案例来定义一个受歧视的联合：
+
+```F#
+type LogMessage =
+    | Debug of string
+    | Info of string
+    | Error of string
+```
+
+使用日志记录的代码现在只需要一个依赖项：
+
+```F#
+let example2 logger =
+    //       ^ one dependency
+    logger (Debug "Testing")
+    if 1 = 1 then
+        logger (Info "OK")
+    else
+        logger (Error "Unexpected")
+```
+
+然后，日志功能的实现只需根据情况进行匹配，以确定如何处理消息：
+
+```F#
+let logger logMessage =
+    match logMessage with
+    | Debug msg -> printfn "DEBUG %s" msg
+    | Info msg -> printfn "INFO %s" msg
+    | Error msg -> printfn "ERROR %s" msg
+```
+
+我们可以在任何地方使用这种方法吗？例如，我们有两个单独的数据库函数 `getEmail` 和 `updateProfile`。我们能否使用相同的技巧将它们合并为一个依赖项？
+
+唉，不。在这种情况下不是这样。原因是它们返回不同的类型。`getEmail` 返回一个 `EmailAddress`，`updateProfile` 返回一个 `unit`。因此，我们无法轻易创建一个同时封装两者的函数。
+
+然而，有一种方法可以将这种面向“数据”的方法扩展到所有依赖项，尽管这会使事情变得更加复杂。这将是即将发布的“解释器”/“免费单子”帖子的主题
+
+### 重构步骤 4：将两个数据库函数替换为一个
+
+但是，我们不应该放弃替换这两个数据库函数。
+
+如果我们查看代码，我们可以看到我们正在做出一些假设，特别是我们需要对数据库进行两次调用：一次是获取旧电子邮件，一次是进行更新。
+
+```F#
+...
+let! currentEmail = getEmail request.UserId
+do! updateProfile(request.UserId,request.Name,request.EmailAddres
+if currentEmail <> request.EmailAddress then
+    ...
+...
+```
+
+也许这是错的？也许我们的 SQL 专家可以编写一个可以在一次调用中完成的存储过程？
+
+但我们如何将它们合并为一个？一种方法是让 `updateProfile` 返回更新后的原始电子邮件：
+
+```F#
+...
+let! oldEmail = updateProfile(request.UserId,request.Name,request.EmailAddress)
+if oldEmail <> request.EmailAddress then
+    do! notify (oldEmail,request.EmailAddress)
+...
+```
+
+这样更好。我们不再关心需要多少 SQL 调用，我们只关注调用者需要什么。
+
+但现在我们引入了一种微妙的耦合。为什么 `updateProfile` 会返回电子邮件？这只是因为业务逻辑的下一步需要它。如果你只是孤立地看待 `updateProfile`，就不清楚为什么它是这样设计的。
+
+如果我们要引入耦合，我认为我们应该明确说明。我认为 `updateProfile` 应该返回一个选择：要么发生了一个简单的更新，不需要通知，要么电子邮件发生了变化，需要通知。
+
+这两种情况可以用一种类型来描述：
+
+```F#
+type ProfileUpdated =
+    | NoNotificationNeeded
+    | NotificationNeeded of oldEmail:EmailAddress * newEmail:EmailAddress
+```
+
+当 `updateProfile` 函数返回此类型的值时，至少业务逻辑现在更明确了。
+
+我们现在已经将逻辑与实现分离。这种类型告诉我们什么时候发生了感兴趣的事情，但没有说明应该如何处理。
+
+我们可以将这两种情况的模式匹配直接放在 `updateCustomerProfile` 中，如下所示：
+
+```F#
+let updateCustomerProfile updateProfile notify json =
+    result {
+        let! request = parseRequest json
+        let! updateResult = updateProfile(request.UserId,request.Name,request.EmailAddress)
+        match updateResult with
+        | NoNotificationNeeded -> ()
+        | NotificationNeeded (oldEmail,newEmail) ->
+            do! notify oldEmail newEmail
+    }
+```
+
+但就我个人而言，我更喜欢创建一个辅助函数来隐藏它，然后 main 函数只是一系列没有分支的线性调用：
+
+```F#
+let updateCustomerProfile updateProfile handleProfileUpdateResult json =
+    //                                  ^replaces "notify"
+    result {
+        let! request = parseRequest json
+        let! updateResult = updateProfile(request.UserId,request.Name,request.EmailAddress)
+        do! handleProfileUpdateResult updateResult
+    }
+
+// implementation of helper function
+let handleProfileUpdateResult notify updateResult =
+    result {
+        match updateResult with
+        | NoNotificationNeeded -> ()
+        | NotificationNeeded (oldEmail,newEmail) ->
+            do! notify oldEmail newEmail
+    }
+```
+
+请注意，`handleProfileUpdateResult` 作为参数传递给 `updateCustomerProfile`，替换了 `notify` 参数。我们还没有硬编码。
+
+### 重构步骤 5：传入 `parseRequest`
+
+我想做的最后一件事是也将 `parseRequest` 函数作为参数传递，如下所示：
+
+```F#
+let updateCustomerProfile parseRequest updateProfile handleProfileUpdateResult json =
+    //                    ^new parameter
+    result {
+        let! request = parseRequest json
+        let! updateResult = updateProfile(request.UserId,request.Name,request.EmailAddress)
+        do! handleProfileUpdateResult updateResult
+    }
+```
+
+我到底为什么要这么做？为什么要添加一个额外的参数——我们正试图摆脱它们！
+
+一个原因是，我们可以在一个完全不同的模块中定义 `parseRequest`。特别是，我们可以在定义 `updateCustomerProfile` 之后定义它。
+
+这是绕过 F# 对文件施加的线性顺序的一种方法。如果我们显式引用 `parseRequest` 的实现，那么 `parseRequest` 必须在早于（或相同于）定义 `updateCustomerProfile` 的模块中定义。通过将其作为参数传递，我们可以断开连接并消除对任何特殊文件顺序的需要。
+
+这样做的另一个原因是 `updateCustomerProfile` 真的不应该关心 `parseRequest` 的特定实现或它的位置。通过将其设置为参数，我们可以强制执行。
+
+我想这样做的最后一个原因是，我们现在非常接近能够将三个函数（`parseRequest`、`updateProfile`、`handleProfileUpdateResult`）直接链接在一起，如下所示：
+
+```F#
+let updateCustomerProfile parseRequest updateProfile handleProfileUpdateResult =
+    parseRequest
+    >=> updateProfile
+    >=> handleProfileUpdateResult
+```
+
+`>=>` 是 Kleisli 组合运算符，它将两个返回 `Result` 的函数组合成一个新的返回 `Result` 函数。也就是说，如果函数 `f` 具有签名 `'a -> Result<'b>`，函数 `g` 具有签名 `'b -> Result<'c>`，则 `f >=> g` 是一个具有签名 `'a -> Result<'c>` 的新函数
+
+使用我们到目前为止编写的代码，我们可以这样定义它：
+
+```F#
+let (>=>) f g = f >> Result.bind g
+```
+
+但这里有一个想法。一旦我们能够直接链接这些函数，我们甚至需要一个单独的 `updateCustomerProfile` 函数吗？
+
+不！我们可以在组合根中完成所有操作，并完全摆脱 `updateCustomerProfile`！
+
+这是组合根模块的最终版本，其中组装了各种组件：
+
+```F#
+module CompositionRoot =
+
+    // -------------
+    // Get the configuration
+    // -------------
+    let dbConnectionString = "server=dbserver; database=mydatabase"
+    let smtpConnectionString = "server=emailserver"
+
+    // -------------
+    // Line up the components and "inject the dependencies" using partial application
+    // -------------
+    let logInfo = Logger.info
+    let logError = Logger.error
+
+    let getEmail = DbService.getEmail dbConnectionString logInfo logError
+    let updateProfile = DbService.updateProfile dbConnectionString logInfo logError
+
+    let notify = EmailService.sendEmailChangedNotification smtpConnectionString logInfo logError
+
+    let parseRequest = JsonParsers.parseRequest
+
+    // -------------
+    // Create some helper functions to make the components fit together smoothly
+    // -------------
+
+    // helper 1: a variant of updateProfile to use in the pipeline
+    let updateProfile' request = updateProfile(request.UserId,request.Name,request.EmailAddress)
+
+    // helper 2: handle the updateResult
+    let handleProfileUpdateResult updateResult =
+        result {
+            match updateResult with
+            | NoNotificationNeeded -> ()
+            | NotificationNeeded (oldEmail,newEmail) ->
+                do! notify(oldEmail,newEmail)
+        }
+
+    // -------------
+    // Assemble the pipeline
+    // -------------
+
+    let updateCustomerProfile =
+        parseRequest
+        >=> updateProfile'
+        >=> handleProfileUpdateResult
+```
+
+在这个版本的 `CompositionRoot` 中，它不再仅仅是一个注入依赖关系的地方，而是一个组装整个管道以供应用程序其余部分使用的地方。如果管道的各个部分不能很好地组合在一起，则会创建一些小辅助函数来平衡粗糙点。
+
+您可以在 Suave（web 框架）组合子中看到这种方法。例如，我们可能会看到 Suave web 应用程序的代码如下：
+
+```F#
+// define the routes and the pipelines for each route
+let app =
+    choose [
+      GET  >=> something >=> somethingElse >=> OK "Hello"
+      POST >=> something >=> somethingElse >=> OK "Thanks for posting"
+      ]
+
+// start the app
+startWebServer defaultConfig app
+```
+
+不再需要特殊的 `UserProfileUpdater` 类或模块。相反，各种管道就在应用程序（或控制器）中组装在一起。
+
+## 结论
+
+在这篇文章中，我们对一些解耦组成应用程序的各种组件的方法进行了一些探索。
+
+我们从 `UpdateCustomerProfile` 方法开始，该方法使用一些业务逻辑（if-then-else 分支）将一些组件粘合在一起。然后，我们实现了 OO 方法来处理依赖关系（注入接口）和 FP 类等价物（部分应用）。
+
+但到最后，通过一些重构，我们根本不需要任何特殊的“粘合在一起”功能！也就是说，我们将代码从面向“注入”的方法演变为面向组合的方法（使用 Kleisli 组合）。这就是解耦的终极：独立实现的独立函数，可以根据需要以各种方式粘合在一起。
+
+现在就这样。下次再见，节日快乐！
+
 
 
 # “依赖注入”系列
@@ -4231,6 +5095,10 @@ https://fsharpforfunandprofit.com/posts/dependencies/#series-toc
 4. 依赖注入的六种方法，第4部分
    重新审视六种方法
 5. 依赖注入的六种方法，第5部分
+
+
+
+## [跳转系列独立 Markdown](./FSharpForFunAndProfit翻译-“依赖注入”系列.md)
 
 
 
@@ -5497,6 +6365,10 @@ https://fsharpforfunandprofit.com/series/recursive-types-and-folds/
 
 
 
+## [跳转系列独立 Markdown](./FSharpForFunAndProfit翻译-“递归类型和折叠”系列.md)
+
+
+
 # 基于属性的测试介绍
 
 懒惰程序员编写1000个测试的指南
@@ -6201,11 +7073,11 @@ https://fsharpforfunandprofit.com/posts/fsharp-is-the-best-enterprise-language/
 - 如果你是一名从事长期项目的开发人员，那么大部分代码都不是你写的，甚至不是你团队中的任何人写的。
   Robert Smallshire有一个非常有趣的演讲，他在演讲中模拟了不同时间段内不同规模团队的代码生成。因此，例如，五年后，目前的团队通常只贡献了 37% 的代码。
 
-
+![img](https://fsharpforfunandprofit.com/posts/fsharp-is-the-best-enterprise-language/enterprise1.jpg)
 
 对于一个更大的团队，在更长的时间内，贡献率可能会下降得更低。
 
-
+![img](https://fsharpforfunandprofit.com/posts/fsharp-is-the-best-enterprise-language/enterprise2.jpg)
 
 是的，这些是模拟，但根据我的经验，它们听起来很真实。
 

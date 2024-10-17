@@ -3287,4 +3287,1216 @@ https://fsharpforfunandprofit.com/posts/elevated-world-6/
 
 ## 系列内容
 
-以下是本系列中提到的各种功能的快捷方式列表：
+以下是本系列中提到的各种函数的快捷方式列表：
+
+- **第 1 部分：提升到更高的世界**
+  - `map` 函数
+  - `return` 函数
+  - `apply` 函数
+  - `liftN` 系列函数
+  - `zip` 函数和 ZipList 世界
+- **第 2 部分：如何构建跨世界函数**
+  - `bind` 函数
+  - List 不是单子。Option 不是单子。
+- **第 3 部分：在实践中使用核心函数**
+  - 独立和依赖数据
+  - 示例：使用应用函子风格和单子风格进行验证
+  - 迈向一致的世界
+  - Kleisli 世界
+- **第 4 部分：混合列表和提升值**
+  - 混合列表和提升值
+  - `traverse` / `MapM` 函数
+  - `sequence` 函数
+  - “序列”作为ad-hoc实现的配方
+  - 可读性与性能
+  - 老兄，我的 `filter` 在哪里？
+- **第 5 部分：使用所有技术的真实世界示例**
+  - 示例：下载和处理网站列表
+  - 将两个世界视为一体
+- **第 6 部分：设计你自己的提升世界**
+  - 设计你自己的提升世界
+  - 过滤掉故障
+  - Reader monad
+- **第 7 部分：总结**
+  - 提到的操作符名单
+  - 进一步阅读
+
+## 第 6 部分：设计你自己的高雅世界
+
+我们将在这篇文章中使用的场景是这样的：
+
+*一位客户来到您的网站，想查看他们购买的产品的信息。*
+
+在本例中，我们假设您有一个用于键/值存储（如 Redis 或 NoSql 数据库）的 API，并且您需要的所有信息都存储在那里。
+
+所以我们需要的代码看起来像这样：
+
+```
+打开API连接
+使用API获取客户id购买的产品id
+对于每个产品id：
+	使用API获取该id的产品信息
+关闭API连接
+返回产品信息列表
+```
+
+这有多难？
+
+好吧，结果却出乎意料地棘手！幸运的是，我们可以找到一种方法来更容易地使用本系列中的概念。
+
+## 定义领域和虚拟 ApiClient
+
+首先，让我们定义域类型：
+
+- 当然会有 `CustomerId` 和 `ProductId`。
+- 对于产品信息，我们只需定义一个带有 `ProductName` 字段的简单 `ProductInfo`。
+
+以下是类型：
+
+```F#
+type CustId = CustId of string
+type ProductId = ProductId of string
+type ProductInfo = {ProductName: string; }
+```
+
+为了测试我们的 api，让我们创建一个 `ApiClient` 类，其中包含一些 `Get` 和 `Set` 方法，并由静态可变字典支持。这是基于类似的 API，如 Redis 客户端。
+
+笔记：
+
+- `Get` 和 `Set` 都可以处理对象，所以我添加了一个强制转换机制。
+- 如果出现错误，如转换失败或缺少密钥，我将使用我们在本系列中一直使用的 `Result` 类型。因此，`Get` 和 `Set` 都返回 `Result`s 而不是普通对象。
+- 为了使它更真实，我还为 `Open`、`Close` 和 `Dispose` 添加了虚拟（dummy）方法。
+- 所有方法都将日志跟踪到控制台。
+
+```F#
+type ApiClient() =
+    // static storage
+    static let mutable data = Map.empty<string,obj>
+
+    /// Try casting a value
+    /// Return Success of the value or Failure on failure
+    member private this.TryCast<'a> key (value:obj) =
+        match value with
+        | :? 'a as a ->
+            Result.Success a
+        | _  ->
+            let typeName = typeof<'a>.Name
+            Result.Failure [sprintf "Can't cast value at %s to %s" key typeName]
+
+    /// Get a value
+    member this.Get<'a> (id:obj) =
+        let key =  sprintf "%A" id
+        printfn "[API] Get %s" key
+        match Map.tryFind key data with
+        | Some o ->
+            this.TryCast<'a> key o
+        | None ->
+            Result.Failure [sprintf "Key %s not found" key]
+
+    /// Set a value
+    member this.Set (id:obj) (value:obj) =
+        let key =  sprintf "%A" id
+        printfn "[API] Set %s" key
+        if key = "bad" then  // for testing failure paths
+            Result.Failure [sprintf "Bad Key %s " key]
+        else
+            data <- Map.add key value data
+            Result.Success ()
+
+    member this.Open() =
+        printfn "[API] Opening"
+
+    member this.Close() =
+        printfn "[API] Closing"
+
+    interface System.IDisposable with
+        member this.Dispose() =
+            printfn "[API] Disposing"
+```
+
+让我们做一些测试：
+
+```F#
+do
+    use api = new ApiClient()
+    api.Get "K1" |> printfn "[K1] %A"
+
+    api.Set "K2" "hello" |> ignore
+    api.Get<string> "K2" |> printfn "[K2] %A"
+
+    api.Set "K3" "hello" |> ignore
+    api.Get<int> "K3" |> printfn "[K3] %A"
+```
+
+结果如下：
+
+```
+[API] Get "K1"
+[K1] Failure ["Key "K1" not found"]
+[API] Set "K2"
+[API] Get "K2"
+[K2] Success "hello"
+[API] Set "K3"
+[API] Get "K3"
+[K3] Failure ["Can't cast value at "K3" to Int32"]
+[API] Disposing
+```
+
+## 首次实现尝试
+
+对于我们实现场景的第一次尝试，让我们从上面的伪代码开始：
+
+```F#
+let getPurchaseInfo (custId:CustId) : Result<ProductInfo list> =
+
+    // Open api connection
+    use api = new ApiClient()
+    api.Open()
+
+    // Get product ids purchased by customer id
+    let productIdsResult = api.Get<ProductId list> custId
+
+    let productInfosResult = ??
+
+    // Close api connection
+    api.Close()
+
+    // Return the list of product infos
+    productInfosResult
+```
+
+到目前为止一切顺利，但已经有点问题了。
+
+`getPurchaseInfo` 函数接受 `CustId` 作为输入，但它不能只输出 `ProductInfo` 列表，因为可能会出现故障。这意味着返回类型需要是 `Result<ProductInfo list>`。
+
+好的，我们如何创建我们的 `productInfosResult`？
+
+嗯，这应该很容易。如果 `productIdsResult` 为 Success，则循环遍历每个 id 并获取每个 id 的信息。如果 `productIdsResult` 为 Failure，则只需返回失败。
+
+```F#
+let getPurchaseInfo (custId:CustId) : Result<ProductInfo list> =
+
+    // Open api connection
+    use api = new ApiClient()
+    api.Open()
+
+    // Get product ids purchased by customer id
+    let productIdsResult = api.Get<ProductId list> custId
+
+    let productInfosResult =
+        match productIdsResult with
+        | Success productIds ->
+            let productInfos = ResizeArray()  // Same as .NET List<T>
+            for productId in productIds do
+                let productInfo = api.Get<ProductInfo> productId
+                productInfos.Add productInfo  // mutation!
+            Success productInfos
+        | Failure err ->
+            Failure err
+
+    // Close api connection
+    api.Close()
+
+    // Return the list of product infos
+    productInfosResult
+```
+
+嗯，它看起来有点难看。我必须使用可变数据结构（`productInfos`）来积累每个产品信息，然后将其包装在`Success` 中。
+
+还有一个更糟糕的问题，我从 `api.Get<productInfo>` 获取的 `productInfo` 根本不是 `ProductInfo`，而是 `Result<ProductInfo>`，因此 `productInfos` 根本不是正确的类型！
+
+让我们添加代码来测试每个 `ProductInfo` 结果。如果成功，则将其添加到产品信息列表中，如果失败，则返回失败。
+
+```F#
+let getPurchaseInfo (custId:CustId) : Result<ProductInfo list> =
+
+    // Open api connection
+    use api = new ApiClient()
+    api.Open()
+
+    // Get product ids purchased by customer id
+    let productIdsResult = api.Get<ProductId list> custId
+
+    let productInfosResult =
+        match productIdsResult with
+        | Success productIds ->
+            let productInfos = ResizeArray()  // Same as .NET List<T>
+            let mutable anyFailures = false
+            for productId in productIds do
+                let productInfoResult = api.Get<ProductInfo> productId
+                match productInfoResult with
+                | Success productInfo ->
+                    productInfos.Add productInfo
+                | Failure err ->
+                    Failure err
+            Success productInfos
+        | Failure err ->
+            Failure err
+
+    // Close api connection
+    api.Close()
+
+    // Return the list of product infos
+    productInfosResult
+```
+
+嗯，不。那根本行不通。上面的代码无法编译。当发生故障时，我们不能在循环中进行“提前返回”。
+
+那么，到目前为止，我们有什么？一些非常丑陋的代码甚至无法编译。
+
+一定有更好的办法。
+
+## 第二次实现尝试
+
+如果我们能隐藏所有这些 `Result`s 的展开和测试，那就太好了。还有——计算表达式可以帮忙。
+
+如果我们为 `Result` 创建一个计算表达式，我们可以编写如下代码：
+
+```F#
+/// CustId -> Result<ProductInfo list>
+let getPurchaseInfo (custId:CustId) : Result<ProductInfo list> =
+
+    // Open api connection
+    use api = new ApiClient()
+    api.Open()
+
+    let productInfosResult = Result.result {
+
+        // Get product ids purchased by customer id
+        let! productIds = api.Get<ProductId list> custId
+
+        let productInfos = ResizeArray()  // Same as .NET List<T>
+        for productId in productIds do
+            let! productInfo = api.Get<ProductInfo> productId
+            productInfos.Add productInfo
+        return productInfos |> List.ofSeq
+        }
+
+    // Close api connection
+    api.Close()
+
+    // Return the list of product infos
+    productInfosResult
+```
+
+在 `let productInfosResult = Result.Result { .. }` 代码中，我们创建了一个结果计算表达式，简化了所有的解包（使用 `let!`）和换行（使用 `return`）。
+
+因此，此实现在任何地方都没有显式的 `xxxResult` 值。然而，它仍然必须使用可变集合类来进行累加，因为 `for productId in productIds do` 实际上不是一个真正的 `for` 循环，我们不能用 `List.map` 替换它。
+
+### `result` 计算表达式
+
+这就引出了 `result` 计算表达式的实现。在之前的帖子中，`ResultBuilder` 只有两个方法，`Return` 和 `Bind`，但为了获得 `for..in..do` 功能中，我们还必须实现许多其他方法，最终会变得有点复杂。
+
+```F#
+module Result =
+
+    let bind f xResult = ...
+
+    type ResultBuilder() =
+        member this.Return x = retn x
+        member this.ReturnFrom(m: Result<'T>) = m
+        member this.Bind(x,f) = bind f x
+
+        member this.Zero() = Failure []
+        member this.Combine (x,f) = bind f x
+        member this.Delay(f: unit -> _) = f
+        member this.Run(f) = f()
+
+        member this.TryFinally(m, compensation) =
+            try this.ReturnFrom(m)
+            finally compensation()
+
+        member this.Using(res:#System.IDisposable, body) =
+            this.TryFinally(body res, fun () ->
+            match res with
+            | null -> ()
+            | disp -> disp.Dispose())
+
+        member this.While(guard, f) =
+            if not (guard()) then
+                this.Zero()
+            else
+                this.Bind(f(), fun _ -> this.While(guard, f))
+
+        member this.For(sequence:seq<_>, body) =
+            this.Using(sequence.GetEnumerator(), fun enum ->
+                this.While(enum.MoveNext, this.Delay(fun () ->
+                    body enum.Current)))
+
+    let result = new ResultBuilder()
+```
+
+我有一个关于计算表达式内部的系列，所以我不想在这里解释所有的代码。相反，在本文的其余部分，我们将对 `getPurchaseInfo` 进行重构，到本文结束时，我们将看到我们根本不需要结果计算表达式。
+
+## 重构函数
+
+`getPurchaseInfo` 函数目前的问题是它混合了关注点：它既创建了 `ApiClient`，又对它做了一些工作。
+
+这种方法存在许多问题：
+
+- 如果我们想用API做不同的工作，我们必须重复这个代码的打开/关闭部分。其中一个实现可能会打开API，但忘记关闭它。
+- 它不能用模拟API客户端进行测试。
+
+我们可以通过参数化操作将 `ApiClient` 的创建与其使用分开来解决这两个问题，就像这样。
+
+```F#
+let executeApiAction apiAction  =
+
+    // Open api connection
+    use api = new ApiClient()
+    api.Open()
+
+    // do something with it
+    let result = apiAction api
+
+    // Close api connection
+    api.Close()
+
+    // return result
+    result
+```
+
+传入的动作函数如下，`ApiClient` 和 `CustId` 都有一个参数：
+
+```F#
+/// CustId -> ApiClient -> Result<ProductInfo list>
+let getPurchaseInfo (custId:CustId) (api:ApiClient) =
+
+    let productInfosResult = Result.result {
+        let! productIds = api.Get<ProductId list> custId
+
+        let productInfos = ResizeArray()  // Same as .NET List<T>
+        for productId in productIds do
+            let! productInfo = api.Get<ProductInfo> productId
+            productInfos.Add productInfo
+        return productInfos |> List.ofSeq
+        }
+
+    // return result
+    productInfosResult
+```
+
+请注意，`getPurchaseInfo` 有两个参数，但 `executeApiAction` 需要一个只有一个参数的函数。
+
+没问题！只需使用局部应用程序来烘焙第一个参数：
+
+```F#
+let action = getPurchaseInfo (CustId "C1")  // partially apply
+executeApiAction action
+```
+
+这就是为什么 `ApiClient` 是参数列表中的第二个参数——这样我们就可以进行部分应用。
+
+### 更多重构
+
+我们可能需要出于其他目的获取产品 id，以及 productInfo，所以让我们也将它们重构为单独的函数：
+
+```F#
+/// CustId -> ApiClient -> Result<ProductId list>
+let getPurchaseIds (custId:CustId) (api:ApiClient) =
+    api.Get<ProductId list> custId
+
+/// ProductId -> ApiClient -> Result<ProductInfo>
+let getProductInfo (productId:ProductId) (api:ApiClient) =
+    api.Get<ProductInfo> productId
+
+/// CustId -> ApiClient -> Result<ProductInfo list>
+let getPurchaseInfo (custId:CustId) (api:ApiClient) =
+
+    let result = Result.result {
+        let! productIds = getPurchaseIds custId api
+
+        let productInfos = ResizeArray()
+        for productId in productIds do
+            let! productInfo = getProductInfo productId api
+            productInfos.Add productInfo
+        return productInfos |> List.ofSeq
+        }
+
+    // return result
+    result
+```
+
+现在，我们有了这些很好的核心函数 `getPurchaseIds` 和 `getProductInfo`，但我很恼火，我必须编写混乱的代码才能将它们粘在 `getPurchaseInfo` 中。
+
+理想情况下，我想做的是将 `getPurchaseIds` 的输出管道到 `getProductInfo` 中，如下所示：
+
+```F#
+let getPurchaseInfo (custId:CustId) =
+    custId
+    |> getPurchaseIds
+    |> List.map getProductInfo
+```
+
+或者以图表的形式：
+
+![img](https://fsharpforfunandprofit.com/posts/elevated-world-6/vgfp_api_pipe.png)
+
+但我不能，原因有两个：
+
+- 首先，`getProductInfo` 有两个参数。不仅是 `ProductId`，还有 `ApiClient`。
+- 其次，即使 `ApiClient` 不存在，`getProductInfo` 的输入也是一个简单的 `ProductId`，但 `getPurchaseIds` 的输出是一个 `Result`。
+
+如果我们能同时解决这两个问题，那岂不是太好了！
+
+## 介绍我们自己的提升世界
+
+让我们解决第一个问题。当额外的 `ApiClient` 参数不断阻碍时，我们如何组合函数？
+
+这是典型的 API 调用函数的样子：
+
+![img](https://fsharpforfunandprofit.com/posts/elevated-world-6/vgfp_api_action1.png)
+
+如果我们看看类型签名，我们会看到这是一个有两个参数的函数：
+
+![img](https://fsharpforfunandprofit.com/posts/elevated-world-6/vgfp_api_action2.png)
+
+但是，另一种解释此函数的方法是将其视为一个具有一个参数的函数，该参数返回另一个函数。返回的函数有一个 `ApiClient` 参数，并返回最终输出。
+
+![img](https://fsharpforfunandprofit.com/posts/elevated-world-6/vgfp_api_action3.png)
+
+你可能会这样想：我现在有一个输入，但稍后我才会有一个真正的 `ApiClient`，所以让我使用输入来创建一个 api 消费函数，我现在可以用各种方式将其粘合在一起，而根本不需要 `ApiClient`。
+
+让我们为这个 api 消费函数命名。我们称之为 `ApiAction`。
+
+![img](https://fsharpforfunandprofit.com/posts/elevated-world-6/vgfp_api_action4.png)
+
+事实上，让我们做得更多——让我们把它变成一种类型！
+
+```F#
+type ApiAction<'a> = (ApiClient -> 'a)
+```
+
+不幸的是，就目前而言，这只是一个函数的类型别名，而不是一个单独的类型。我们需要将其包装在一个单独的案例联合中，使其成为一个独特的类型。
+
+```F#
+type ApiAction<'a> = ApiAction of (ApiClient -> 'a)
+```
+
+### 重写以使用 ApiAction
+
+现在我们有了一个真正的类型可以使用，我们可以重写我们的核心域函数来使用它。
+
+首次 `getPurchaseIds`：
+
+```F#
+// CustId -> ApiAction<Result<ProductId list>>
+let getPurchaseIds (custId:CustId) =
+
+    // create the api-consuming function
+    let action (api:ApiClient) =
+        api.Get<ProductId list> custId
+
+    // wrap it in the single case
+    ApiAction action
+```
+
+签名现在是 `CustId -> ApiAction<Result<ProductId-list>>`，您可以将其解释为：“给我一个 CustId，我会给你一个 ApiAction，当给你 api 时，它会生成一个 ProductId 列表”。
+
+同样，可以重写 `getProductInfo` 以返回 `ApiAction`：
+
+```F#
+// ProductId -> ApiAction<Result<ProductInfo>>
+let getProductInfo (productId:ProductId) =
+
+    // create the api-consuming function
+    let action (api:ApiClient) =
+        api.Get<ProductInfo> productId
+
+    // wrap it in the single case
+    ApiAction action
+```
+
+请注意这些签名：
+
+- `CustId -> ApiAction<Result<ProductId list>>`
+- `ProductId -> ApiAction<Result<ProductInfo>>`
+
+这开始看起来非常熟悉。我们在上一篇文章中没有看到类似 `Async<Result<_>>`的东西吗？
+
+### ApiAction 作为一个提升的世界
+
+若我们绘制这两个函数中涉及的各种类型的图表，我们可以清楚地看到 `ApiAction` 是一个提升的世界，就像 `List` 和 `Result` 一样。这意味着我们应该能够使用与以前相同的技术： `map`, `bind`, `traverse` 等。
+
+这是 `getPurchaseIds` 的堆栈图。输入是 `CustId`，输出是 `ApiAction<Result<List<ProductId>>>`：
+
+![img](https://fsharpforfunandprofit.com/posts/elevated-world-6/vgfp_api_getpurchaseids.png)
+
+在 `getProductInfo` 中，输入是一个 `ProductId`，输出是一个 `ApiAction<Result<ProductInfo>>`：
+
+![img](https://fsharpforfunandprofit.com/posts/elevated-world-6/vgfp_api_getproductinfo.png)
+
+我们想要的组合函数 `getPurchaseInfo` 应该如下所示：
+
+![img](https://fsharpforfunandprofit.com/posts/elevated-world-6/vgfp_api_getpurchaseinfo.png)
+
+现在，组合这两个函数的问题非常明显：`getPurchaseIds` 的输出不能用作 `getProductInfo` 的输入：
+
+![img](https://fsharpforfunandprofit.com/posts/elevated-world-6/vgfp_api_noncompose.png)
+
+但我想你可以看到我们有一些希望！应该有一些方法来操纵这些层，使它们匹配起来，然后我们就可以很容易地组合它们。
+
+这就是我们下一步要做的。
+
+### ApiActionResult 介绍
+
+在上一篇文章中，我们将 `Async` 和 `Result` 合并为复合类型 `AsyncResult`。我们可以在这里做同样的事情，并创建 `ApiActionResult` 类型。
+
+当我们进行此更改时，我们的两个函数会变得稍微简单一些：
+
+![img](https://fsharpforfunandprofit.com/posts/elevated-world-6/vgfp_api_apiactionresult_functions.png)
+
+足够的图表了——现在让我们写一些代码。
+
+首先，我们需要为 `ApiAction` 定义 `map`、`apply`、`return` 和 `bind`：
+
+```F#
+module ApiAction =
+
+    /// Evaluate the action with a given api
+    /// ApiClient -> ApiAction<'a> -> 'a
+    let run api (ApiAction action) =
+        let resultOfAction = action api
+        resultOfAction
+
+    /// ('a -> 'b) -> ApiAction<'a> -> ApiAction<'b>
+    let map f action =
+        let newAction api =
+            let x = run api action
+            f x
+        ApiAction newAction
+
+    /// 'a -> ApiAction<'a>
+    let retn x =
+        let newAction api =
+            x
+        ApiAction newAction
+
+    /// ApiAction<('a -> 'b)> -> ApiAction<'a> -> ApiAction<'b>
+    let apply fAction xAction =
+        let newAction api =
+            let f = run api fAction
+            let x = run api xAction
+            f x
+        ApiAction newAction
+
+    /// ('a -> ApiAction<'b>) -> ApiAction<'a> -> ApiAction<'b>
+    let bind f xAction =
+        let newAction api =
+            let x = run api xAction
+            run api (f x)
+        ApiAction newAction
+
+    /// Create an ApiClient and run the action on it
+    /// ApiAction<'a> -> 'a
+    let execute action =
+        use api = new ApiClient()
+        api.Open()
+        let result = run api action
+        api.Close()
+        result
+```
+
+请注意，所有函数都使用一个名为 `run` 的辅助函数，该函数解包 `ApiAction` 以获取内部函数，并将其应用于传入的 `api`。结果是封装在 `ApiAction` 中的值。
+
+例如，如果我们有一个 `ApiAction<int>`，那么 `run api myAction` 会得到一个 `int`。
+
+在底部，有一个 `execute` 函数，它创建一个 `ApiClient`，打开连接，运行操作，然后关闭连接。
+
+定义了 `ApiAction` 的核心函数后，我们可以继续定义复合类型 `ApiActionResult` 的函数，就像我们在上一篇文章中对 `AsyncResult` 所做的那样：
+
+```F#
+module ApiActionResult =
+
+    let map f  =
+        ApiAction.map (Result.map f)
+
+    let retn x =
+        ApiAction.retn (Result.retn x)
+
+    let apply fActionResult xActionResult =
+        let newAction api =
+            let fResult = ApiAction.run api fActionResult
+            let xResult = ApiAction.run api xActionResult
+            Result.apply fResult xResult
+        ApiAction newAction
+
+    let bind f xActionResult =
+        let newAction api =
+            let xResult = ApiAction.run api xActionResult
+            // create a new action based on what xResult is
+            let yAction =
+                match xResult with
+                | Success x ->
+                    // Success? Run the function
+                    f x
+                | Failure err ->
+                    // Failure? wrap the error in an ApiAction
+                    (Failure err) |> ApiAction.retn
+            ApiAction.run api yAction
+        ApiAction newAction
+```
+
+## 计算变换
+
+现在我们已经有了所有的工具，我们必须决定使用什么转换来更改 `getProductInfo` 的形状，以便输入匹配。
+
+我们应该选择 `map`、`bind` 还是 `traverse`？
+
+让我们在视觉上玩弄堆栈，看看每种转换会发生什么。
+
+在我们开始之前，让我们明确一下我们想要实现的目标：
+
+- 我们有两个函数 `getPurchaseIds` 和 `getProductInfo`，我们想将它们组合成一个函数 `getPurchaseInfo`。
+- 我们必须操纵 `getProductInfo` 的左侧（输入），使其与 `getPurchaseIds` 的输出相匹配。
+- 我们必须操纵 `getProductInfo` 的右侧（输出），使其与我们理想的 `getPurchaseInfo` 的输出相匹配。
+
+![img](https://fsharpforfunandprofit.com/posts/elevated-world-6/vgfp_api_wanted.png)
+
+### Map
+
+作为提醒，`map` 在两侧添加了一个新的堆栈。因此，如果我们从这样一个通用的世界穿越函数开始：
+
+![img](https://fsharpforfunandprofit.com/posts/elevated-world-6/vgfp_api_generic.png)
+
+然后，在 `List.map` 之后，我们将在每个站点上都有一个新的 `List` 堆栈。
+
+![img](https://fsharpforfunandprofit.com/posts/elevated-world-6/vgfp_api_map_generic.png)
+
+以下是转换前的 `getProductInfo`：
+
+![img](https://fsharpforfunandprofit.com/posts/elevated-world-6/vgfp_api_getproductinfo2.png)
+
+这是使用 `List.map` 后的样子
+
+![img](https://fsharpforfunandprofit.com/posts/elevated-world-6/vgfp_api_map_getproductinfo.png)
+
+这似乎很有希望——我们现在有一个 `ProductId` `List` 作为输入，如果我们能在上面堆叠一个 `ApiActionResult`，我们就会匹配 `getPurchaseId` 的输出。
+
+但输出完全错误。我们希望 `ApiActionResult` 保持在顶部。也就是说，我们不想要 `ApiActionResult` 的 `List`，而是想要 `List` 的 `ApiActionResult`。
+
+### 绑定
+
+好吧，那 `bind` 呢？
+
+如果你还记得，`bind` 通过在左侧添加一个新的堆栈，将一个“对角线”函数变成一个水平函数。因此，例如，无论顶部升高的世界在右边，它都会被添加到左边。
+
+![img](https://fsharpforfunandprofit.com/posts/elevated-world-6/vgfp_api_generic.png)
+
+![img](https://fsharpforfunandprofit.com/posts/elevated-world-6/vgfp_api_bind_generic.png)
+
+这是使用 `ApiActionResult.bind` 后我们的 `getProductInfo` 的样子
+
+![img](https://fsharpforfunandprofit.com/posts/elevated-world-6/vgfp_api_bind_getproductinfo.png)
+
+这对我们没有好处。我们需要一个 `ProductId` `List` 作为输入。
+
+### 遍历
+
+最后，让我们尝试 `traverse`。
+
+`traverse` 将值的对角函数转换为包含值的列表的对角函数。也就是说，`List` 被添加为左侧的顶部堆栈，右侧的顶部堆栈中的第二个堆栈。
+
+![img](https://fsharpforfunandprofit.com/posts/elevated-world-6/vgfp_api_generic.png)
+
+![img](https://fsharpforfunandprofit.com/posts/elevated-world-6/vgfp_api_traverse_generic.png)
+
+如果我们在 `getProductInfo` 上尝试一下，我们会得到一些非常有前景的东西。
+
+![img](https://fsharpforfunandprofit.com/posts/elevated-world-6/vgfp_api_traverse_getproductinfo.png)
+
+输入是所需的列表。输出是完美的。我们想要一个 `ApiAction<Result<List<ProductInfo>>>`，现在我们有了它。
+
+所以我们现在需要做的就是在左侧添加一个 `ApiActionResult`。
+
+我们刚刚看到这个！这是 `bind`。所以如果我们也这样做，我们就完成了。
+
+![img](https://fsharpforfunandprofit.com/posts/elevated-world-6/vgfp_api_complete_getproductinfo.png)
+
+在这里，它被表示为代码：
+
+```F#
+let getPurchaseInfo =
+    let getProductInfo1 = traverse getProductInfo
+    let getProductInfo2 = ApiActionResult.bind getProductInfo1
+    getPurchaseIds >> getProductInfo2
+```
+
+或者让它稍微不那么丑陋：
+
+```F#
+let getPurchaseInfo =
+    let getProductInfoLifted =
+        getProductInfo
+        |> traverse
+        |> ApiActionResult.bind
+    getPurchaseIds >> getProductInfoLifted
+```
+
+让我们将其与早期版本的 `getPurchaseInfo` 进行比较：
+
+```F#
+let getPurchaseInfo (custId:CustId) (api:ApiClient) =
+
+    let result = Result.result {
+        let! productIds = getPurchaseIds custId api
+
+        let productInfos = ResizeArray()
+        for productId in productIds do
+            let! productInfo = getProductInfo productId api
+            productInfos.Add productInfo
+        return productInfos |> List.ofSeq
+        }
+
+    // return result
+    result
+```
+
+让我们在表格中比较这两个版本：
+
+| 早先版本                                                     | 最近函数                         |
+| :----------------------------------------------------------- | :------------------------------- |
+| 复合函数是不平凡的，需要特殊的代码将两个较小的函数粘合在一起 | 复合功能只是管道和组合           |
+| 使用“结果”计算表达式                                         | 无需特殊语法                     |
+| 有特殊的代码来循环结果                                       | 使用“遍历”                       |
+| 使用中间（可变）List对象来累积产品信息列表                   | 不需要中间值。只是一个数据管道。 |
+
+### 实现遍历
+
+上面的代码使用 `traverse`，但我们还没有实现它。正如我之前提到的，它可以按照模板机械地实现。
+
+这是：
+
+```F#
+let traverse f list =
+    // define the applicative functions
+    let (<*>) = ApiActionResult.apply
+    let retn = ApiActionResult.retn
+
+    // define a "cons" function
+    let cons head tail = head :: tail
+
+    // right fold over the list
+    let initState = retn []
+    let folder head tail =
+        retn cons <*> f head <*> tail
+
+    List.foldBack folder list initState
+```
+
+### 测试实现
+
+让我们来测试一下！
+
+首先，我们需要一个辅助函数来显示结果：
+
+```F#
+let showResult result =
+    match result with
+    | Success (productInfoList) ->
+        printfn "SUCCESS: %A" productInfoList
+    | Failure errs ->
+        printfn "FAILURE: %A" errs
+```
+
+接下来，我们需要在 API 中加载一些测试数据：
+
+```F#
+let setupTestData (api:ApiClient) =
+    //setup purchases
+    api.Set (CustId "C1") [ProductId "P1"; ProductId "P2"] |> ignore
+    api.Set (CustId "C2") [ProductId "PX"; ProductId "P2"] |> ignore
+
+    //setup product info
+    api.Set (ProductId "P1") {ProductName="P1-Name"} |> ignore
+    api.Set (ProductId "P2") {ProductName="P2-Name"} |> ignore
+    // P3 missing
+
+// setupTestData is an api-consuming function
+// so it can be put in an ApiAction
+// and then that apiAction can be executed
+let setupAction = ApiAction setupTestData
+ApiAction.execute setupAction
+```
+
+- 客户 C1 购买了两个产品：P1 和 P2。
+- 客户 C2 购买了两种产品：PX 和 P2。
+- 产品 P1 和 P2 有一些信息。
+- 产品 PX 没有任何信息。
+
+让我们看看这对不同的客户 id 是如何起作用的。
+
+我们将从客户 C1 开始。对于该客户，我们希望收到两份产品信息：
+
+```F#
+CustId "C1"
+|> getPurchaseInfo
+|> ApiAction.execute
+|> showResult
+```
+
+结果如下：
+
+```
+[API] Opening
+[API] Get CustId "C1"
+[API] Get ProductId "P1"
+[API] Get ProductId "P2"
+[API] Closing
+[API] Disposing
+SUCCESS: [{ProductName = "P1-Name";}; {ProductName = "P2-Name";}]
+```
+
+如果我们使用一个缺失的客户，比如 CX，会发生什么？
+
+```F#
+CustId "CX"
+|> getPurchaseInfo
+|> ApiAction.execute
+|> showResult
+```
+
+正如预期的那样，我们遇到了一个很好的“未找到密钥”失败，一旦找不到密钥，其余的操作就会被跳过。
+
+```
+[API] Opening
+[API] Get CustId "CX"
+[API] Closing
+[API] Disposing
+FAILURE: ["Key CustId "CX" not found"]
+```
+
+如果其中一个购买的产品没有信息怎么办？例如，客户 C2 购买了 PX 和 P2，但没有 PX 的信息。
+
+```F#
+CustId "C2"
+|> getPurchaseInfo
+|> ApiAction.execute
+|> showResult
+```
+
+总体结果是失败。任何不良产品都会导致整个操作失败。
+
+```
+[API] Opening
+[API] Get CustId "C2"
+[API] Get ProductId "PX"
+[API] Get ProductId "P2"
+[API] Closing
+[API] Disposing
+FAILURE: ["Key ProductId "PX" not found"]
+```
+
+但请注意，即使产品 PX 失败，也会获取产品 P2 的数据。为什么？因为我们使用的是 `traverse` 的应用函子版本，所以列表中的每个元素都是“并行”获取的。
+
+如果我们只想在知道 PX 存在后获取 P2，那么我们应该使用单子风格。我们已经看到了如何编写遍历的单子版本，所以我把它留给你做练习！
+
+## 过滤掉故障
+
+在上面的实现中，如果找不到任何产品，`getPurchaseInfo` 函数就会失败。严厉！
+
+一个真正的应用程序可能会更宽容。可能应该发生的是，失败的产品会被记录下来，但所有的成功都会被累积并返回。
+
+我们怎么能这样做？
+
+答案很简单——我们只需要修改 `traverse` 函数来跳过失败。
+
+首先，我们需要为 `ApiActionResult` 创建一个新的辅助函数。它将允许我们传递两个函数，一个用于成功情况，另一个用于错误情况：
+
+```F#
+module ApiActionResult =
+
+    let map = ...
+    let retn =  ...
+    let apply = ...
+    let bind = ...
+
+    let either onSuccess onFailure xActionResult =
+        let newAction api =
+            let xResult = ApiAction.run api xActionResult
+            let yAction =
+                match xResult with
+                | Result.Success x -> onSuccess x
+                | Result.Failure err -> onFailure err
+            ApiAction.run api yAction
+        ApiAction newAction
+```
+
+这个辅助函数帮助我们在 `ApiAction` 中匹配这两种情况，而无需进行复杂的解包。我们需要这个来 `traverse` 跳过失败。
+
+顺便说一句，请注意，`ApiActionResult.bind` 可以根据以 `either` 方式定义：
+
+```F#
+let bind f =
+    either
+        // Success? Run the function
+        (fun x -> f x)
+        // Failure? wrap the error in an ApiAction
+        (fun err -> (Failure err) |> ApiAction.retn)
+```
+
+现在我们可以定义我们的“遍历并记录失败”函数：
+
+```F#
+let traverseWithLog log f list =
+    // define the applicative functions
+    let (<*>) = ApiActionResult.apply
+    let retn = ApiActionResult.retn
+
+    // define a "cons" function
+    let cons head tail = head :: tail
+
+    // right fold over the list
+    let initState = retn []
+    let folder head tail =
+        (f head)
+        |> ApiActionResult.either
+            (fun h -> retn cons <*> retn h <*> tail)
+            (fun errs -> log errs; tail)
+    List.foldBack folder list initState
+```
+
+这个和之前的实现之间的唯一区别是这一点：
+
+```F#
+let folder head tail =
+    (f head)
+    |> ApiActionResult.either
+        (fun h -> retn cons <*> retn h <*> tail)
+        (fun errs -> log errs; tail)
+```
+
+这表明：
+
+- 如果新的第一个元素（`f head`）成功，则提升内部值（`retn h`）并将其与尾部进行对比，以构建一个新的列表。
+- 但是，如果新的第一个元素失败，则使用传入的日志函数（`log`）记录内部错误（`errs`），并重用当前的尾部。这样，失败的元素不会添加到列表中，但也不会导致整个函数失败。
+
+让我们创建一个新函数 `getPurchasesInfoWithLog`，并尝试使用客户 C2 和缺少的产品 PX：
+
+```F#
+let getPurchasesInfoWithLog =
+    let log errs = printfn "SKIPPED %A" errs
+    let getProductInfoLifted =
+        getProductInfo
+        |> traverseWithLog log
+        |> ApiActionResult.bind
+    getPurchaseIds >> getProductInfoLifted
+
+CustId "C2"
+|> getPurchasesInfoWithLog
+|> ApiAction.execute
+|> showResult
+```
+
+结果现在是 Success，但只返回了 P2 的一个 `ProductInfo`。日志显示跳过了 PX。
+
+```
+[API] Opening
+[API] Get CustId "C2"
+[API] Get ProductId "PX"
+SKIPPED ["Key ProductId "PX" not found"]
+[API] Get ProductId "P2"
+[API] Closing
+[API] Disposing
+SUCCESS: [{ProductName = "P2-Name";}]
+```
+
+## 阅读器 monad
+
+如果你仔细查看 `ApiResult` 模块，你会发现 `map`、`bind` 和所有其他函数都不使用任何关于传递的 `api` 的信息。我们可以把它做成任何类型，这些功能仍然可以工作。
+
+那么，本着“参数化所有事物”的精神，为什么不把它变成一个参数呢？
+
+这意味着我们可以将 `ApiAction` 定义如下：
+
+```F#
+type ApiAction<'anything,'a> = ApiAction of ('anything -> 'a)
+```
+
+但如果它可以是任何东西，为什么还要称之为 `ApiAction` 呢？它可以表示依赖于传递给它们的对象（如 `api`）的任何一组事物。
+
+我们不是第一个发现这一点的人！这种类型通常被称为 `Reader` 类型，其定义如下：
+
+```F#
+type Reader<'environment,'a> = Reader of ('environment -> 'a)
+```
+
+额外类型的 `'emvironment` 与 `ApiClient` 在 `ApiAction` 的定义中所起的作用相同。有一些环境作为额外的参数传递给所有函数，就像 `api` 实例一样。
+
+事实上，我们可以很容易地用 `Reader` 来定义 `ApiAction`：
+
+```F#
+type ApiAction<'a> = Reader<ApiClient,'a>
+```
+
+`Reader` 的函数集与 `ApiAction` 完全相同。我刚刚拿到代码，用 `Reader` 替换了 `ApiAction`，用 `environment` 替换了 `api`！
+
+```F#
+module Reader =
+
+    /// Evaluate the action with a given environment
+    /// 'env -> Reader<'env,'a> -> 'a
+    let run environment (Reader action) =
+        let resultOfAction = action environment
+        resultOfAction
+
+    /// ('a -> 'b) -> Reader<'env,'a> -> Reader<'env,'b>
+    let map f action =
+        let newAction environment =
+            let x = run environment action
+            f x
+        Reader newAction
+
+    /// 'a -> Reader<'env,'a>
+    let retn x =
+        let newAction environment =
+            x
+        Reader newAction
+
+    /// Reader<'env,('a -> 'b)> -> Reader<'env,'a> -> Reader<'env,'b>
+    let apply fAction xAction =
+        let newAction environment =
+            let f = run environment fAction
+            let x = run environment xAction
+            f x
+        Reader newAction
+
+    /// ('a -> Reader<'env,'b>) -> Reader<'env,'a> -> Reader<'env,'b>
+    let bind f xAction =
+        let newAction environment =
+            let x = run environment xAction
+            run environment (f x)
+        Reader newAction
+```
+
+不过，现在类型签名有点难读了！
+
+`Reader` 类型加上 `bind` 和 `return`，再加上 `bind` 和 `return` 实现了 monad 定律，这意味着 `Reader` 通常被称为“Reader monad”。
+
+我不打算在这里深入研究阅读器单子，但我希望你能看到它实际上是一件有用的事情，而不是一些奇怪的象牙塔概念。
+
+### Reader monad vs. 显式类型
+
+现在，如果你愿意，你可以用 `Reader` 代码替换上面的所有 `ApiAction` 代码，它的工作原理也一样。但你应该吗？
+
+就我个人而言，我认为虽然理解 Reader monad 背后的概念很重要也很有用，但我更喜欢我最初定义的 `ApiAction` 的实际实现，一个显式类型，而不是别名 `Reader<ApiClient, 'a>`。
+
+为什么？好吧，F# 没有类型类，F# 没有部分应用类型构造函数，F# 没有“newtype”。基本上，F# 不是 Haskell！我认为，当语言不支持 F# 时，在 Haskell 中运行良好的习语不应该直接转移到 F# 中。
+
+如果你理解了这些概念，你就可以在几行代码中实现所有必要的转换。是的，这是一项额外的工作，但好处是抽象性和依赖性更少。
+
+如果你的团队都是 Haskell 专家，并且每个人都熟悉 Reader monad，我可能会破例。但对于不同能力的团队，我会过于具体而不是过于抽象。
+
+## 摘要
+
+在这篇文章中，我们通过另一个实际例子，创建了我们自己的提升世界，这让事情变得容易得多，在这个过程中，我们意外地重新发明了阅读器 monad。
+
+如果你喜欢这个，你可以看到一个类似的实际例子，这次是在我关于“弗兰肯芬克特博士和莫纳德斯特”的系列文章中，以状态单子为例。
+
+下一篇也是最后一篇文章对该系列进行了快速总结，并提供了一些进一步的阅读。
+
+# 7 映射、绑定和应用，总结
+
+*Part of the "Map and Bind and Apply, Oh my!" series (*[link](https://fsharpforfunandprofit.com/posts/elevated-world-7/#series-toc)*)*
+
+08八月2015 这篇文章是超过3年
+
+https://fsharpforfunandprofit.com/posts/elevated-world-7/
+
+## 系列总结
+
+好吧，这个系列比我最初计划的要长。谢谢你坚持到最后！
+
+我希望这次讨论有助于理解各种函数转换，如 `map` 和 `bind`，并为您提供一些处理跨世界函数的有用技术——甚至可能稍微揭开 m-word 的神秘面纱！
+
+如果你想在自己的代码中开始使用这类函数，我希望你能看到它们是多么容易编写，但你也应该考虑使用一个优秀的 F# 实用程序库，其中包含这些以及更多内容：
+
+- **ExtCore**（源代码，NuGet）。ExtCore 为 F# 核心库（FSharp.Core）提供扩展，旨在帮助您构建工业级 F# 应用程序。这些扩展包括 Array、List、Set 和 Map 等模块的附加功能；不可变的 IntSet、IntMap、LazyList 和 Queue 集合；各种计算表达式（工作流）；以及“工作流集合”——已调整为在工作流内无缝工作的集合模块。
+- **FSharpx.Extras**（主页）。FSharpx.Extras 是 FSharpx 系列库的一部分。它实现了几个标准 monad（State、Reader、Writer、Either、Continuation、Distribution）、使用应用函子进行验证、flip 等通用函数和一些异步编程实用程序，以及使 C# - F# 互操作更容易的函数。
+
+例如，我在本文中实现的单子遍历 `List.traverseResultM` 已经在 ExtCore 中可用。
+
+如果你喜欢这个系列，我在我的“弗兰肯芬顿博士与单子”系列文章中有关于状态单子的解释，在我的演讲“面向铁路的编程”中有关于 Either 单子的解释。
+
+正如我一开始所说，写这篇文章对我来说也是一个学习过程。我不是专家，所以如果我犯了任何错误，请告诉我。
+
+谢谢！
+
+## 系列内容
+
+以下是本系列中提到的各种函数的快捷方式列表：
+
+- **第 1 部分：提升到更高的世界**
+  - `map` 函数
+  - `return` 函数
+  - `apply` 函数
+  - `liftN` 系列函数
+  - `zip` 函数和 ZipList 世界
+- **第 2 部分：如何构建跨世界函数**
+  - `bind` 函数
+  - List 不是单子。Option 不是单子。
+- **第 3 部分：在实践中使用核心函数**
+  - 独立和依赖数据
+  - 示例：使用应用函子风格和单子风格进行验证
+  - 迈向一致的世界
+  - Kleisli 世界
+- **第 4 部分：混合列表和提升值**
+  - 混合列表和提升值
+  - `traverse` / `MapM` 函数
+  - `sequence` 函数
+  - “序列”作为ad-hoc实现的配方
+  - 可读性与性能
+  - 老兄，我的 `filter` 在哪里？
+- **第 5 部分：使用所有技术的真实世界示例**
+  - 示例：下载和处理网站列表
+  - 将两个世界视为一体
+- **第 6 部分：设计你自己的提升世界**
+  - 设计你自己的提升世界
+  - 过滤掉故障
+  - Reader monad
+- **第 7 部分：总结**
+  - 提到的操作符名单
+  - 进一步阅读
+
+## 附录：提及的操作符名单
+
+与面向对象语言不同，函数式编程语言以其奇怪的运算符而闻名，因此我认为记录本系列中使用的运算符并提供相关讨论的链接会有所帮助。
+
+| 操作符 | 等效函数              | 讨论                                                         |
+| ------ | --------------------- | ------------------------------------------------------------ |
+| `>>`   | 从左到右组合          | Not part of this series, but [discussed here](https://fsharpforfunandprofit.com/posts/function-composition/) |
+| `<<`   | 从右到左组合          | 同上                                                         |
+| `|>`   | 从左到右管道          |                                                              |
+| `<|`   | 从右到左管道          |                                                              |
+| `<!>`  | `map`                 | [Discussed here](https://fsharpforfunandprofit.com/posts/elevated-world/#map) |
+| `<$>`  | `map`                 | 用于 map 的 Haskell 运算符，但在 F# 中不是有效的运算符，所以我使用了`<!>`在这个系列中。 |
+| `<*>`  | `apply`               | [Discussed here](https://fsharpforfunandprofit.com/posts/elevated-world/#apply) |
+| `<*`   | -                     | One sided combiner. [Discussed here](https://fsharpforfunandprofit.com/posts/elevated-world/#lift) |
+| `*>`   | -                     | One sided combiner. [Discussed here](https://fsharpforfunandprofit.com/posts/elevated-world/#lift) |
+| `>>=`  | 从左到右 `bind`       | [Discussed here](https://fsharpforfunandprofit.com/posts/elevated-world-2/#bind) |
+| `=<<`  | 从右到左 `bind`       | 同上                                                         |
+| `>=>`  | 从左到右 Kleisli 组合 | [Discussed here](https://fsharpforfunandprofit.com/posts/elevated-world-3/#kleisli) |
+| `<=<`  | 从右到左 Kleisli 组合 | 同上                                                         |
+
+## 附录：进一步阅读
+
+替代教程：
+
+- 你本可以发明单子的！（也许你已经有了）。
+- 图片中的函数、应用程序和单子。
+- [Kleisli composition à la Up-Goer Five](http://mergeconflict.com/kleisli-composition-a-la-up-goer-five/)。我觉得这个很有趣。
+- Eric Lippert 的 C# 单子系列。
+
+对于有学术头脑的人：
+
+- 函数式编程单子（PDF），作者 Philip Wadler。最早的单子论文之一。
+- Conor McBride 和 Ross Paterson的《带效果的应用函子设计》（PDF）。
+- 《迭代器模式的本质》（PDF），作者：Jeremy Gibbons 和 Bruno Oliveira。
+
+F# 示例：
+
+- F# ExtCore 和 FSharpx.Extras 有很多有用的代码。
+- FSharpx.Async 为 Async 提供了 `map`、`apply`、`liftN`（称为“Parallel”）、`bind` 和其他有用的扩展。
+- 应用程序非常适合解析，如下文所述：
+  - 在 F# 中使用应用函数进行解析。
+  - 深入了解解析器组合子：在 Kiln 中使用 F# 和 FParsec 解析搜索查询。
