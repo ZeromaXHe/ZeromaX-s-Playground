@@ -7,7 +7,13 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="FSharp.Core" Version="8.0.301" />
       <PackageReference Include="LanguageExt.Core" Version="4.4.9" />
+      <PackageReference Include="LanguageExt.FSharp" Version="4.4.9" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\BackEnd4IdleStrategyFS\BackEnd4IdleStrategyFS.fsproj" />
     </ItemGroup>
 
 </Project>

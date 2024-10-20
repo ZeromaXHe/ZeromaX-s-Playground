@@ -4,3 +4,10 @@
 
 # csv localization generation
 *.translation
+
+# .NET Core
+bin/
+obj/
+
+# JetBrains IDEs
+.idea/

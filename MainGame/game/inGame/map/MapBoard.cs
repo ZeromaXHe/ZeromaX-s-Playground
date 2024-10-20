@@ -12,7 +12,7 @@ namespace ZeromaXPlayground.game.inGame.map;
 public partial class MapBoard : Node2D
 {
     #region on-ready nodes
-    
+
     private GlobalNode _globalNode;
 
     private TileMapLayer _baseTerrain;
@@ -64,6 +64,10 @@ public partial class MapBoard : Node2D
                 usedCells.Select(BackEndUtil.To),
                 NavigationService.Instance)
             .ToDictionary(t => BackEndUtil.From(t.Coord), t => t.Id);
+
+        // var tileIds = string.Join(", ", tileDict);
+        // GD.Print($"初始化地块 {tileIds}");
+
         foreach (var cell in usedCells)
         {
             // 完成连接图
@@ -82,7 +86,12 @@ public partial class MapBoard : Node2D
         usedCells.Shuffle();
         _globalNode.GameControllerContainer.InitPlayerAndSpawnOnTile(
             usedCells.Take(_playerCount)
-                .Select(v => BackEndUtil.To(v)));
+                .Select(BackEndUtil.To));
+
+        var playerIds = string.Join(", ",
+            _globalNode.GameControllerContainer.QueryAllPlayers()
+                .Select(dto => dto.Id));
+        GD.Print($"玩家初始化完成：{playerIds}");
 
         _tickTimer.Timeout += OnTickTimerTimeout;
         _tickTimer.Start();
@@ -102,6 +111,7 @@ public partial class MapBoard : Node2D
     {
         var marchingArmy =
             _globalNode.GameControllerContainer.RandomSendMarchingArmy(player.Id, NavigationService.Instance);
+        GD.Print($"AI 玩家 {player.Id} 发出部队 {marchingArmy.Id} 人数为 {marchingArmy.Population}");
         // 初始化一次行军部队
         var marchingLine = _marchingLineScene.Instantiate<MarchingLine>();
         _marchingLines.AddChild(marchingLine);
@@ -126,6 +136,7 @@ public partial class MapBoard : Node2D
 
     private void OnTileConquered(int tileId, int conquerorId, int loserId)
     {
+        GD.Print($"地块 {tileId} 被玩家 {conquerorId} 占领！");
         var tileInfo = _globalNode.GameControllerContainer.QueryTileById(tileId);
         if (conquerorId == Constants.NullId)
         {
