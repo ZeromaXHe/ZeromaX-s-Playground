@@ -44,6 +44,8 @@
 - [x] 不用 Godot 信号的话，C# 原生的回调怎么写？
 - [x] C# 的函数式编程
 - [ ] 单元测试
+- [ ] **【2024-10-21 10:04】**：为啥 Rider psvm 生成 Main(string[] args) 就运行不了，Main() 就可以？
+- [ ] **【2024-10-21 10:04】**：为啥 Main 函数里面 nullable foreach 会提示处理空，但自己 F# 互操作函数里就不提示？F# 生成的返回用元组匹配为啥第一个都会变成 nullable？越来越看不懂了属于是
 
 ## 架构设计
 
@@ -118,6 +120,8 @@ https://learn.microsoft.com/zh-cn/dotnet/csharp/
 - 匿名类型（引用类型）与元组（值类型）
 
 - C# 特性类似于 Java 注解
+
+- C# 局部变量作用域和 Java 不同。`foreach (var i in ints) {}` 外面就不能再声明 `var i` 了
 
 ### 访问修饰符
 

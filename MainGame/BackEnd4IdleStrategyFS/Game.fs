@@ -336,39 +336,38 @@ module MainEntry =
         | Some ma -> ma
         | None -> failwith $"No tile to send army, playerId:{playerIdInt}"
 
-    // TODO：现在这个 option 嵌套的解决逻辑写的就是一坨……
     /// 部队抵达目的地
     let marchingArmyArriveDestination gameState marchingArmyIdInt =
         let marchingArmyId = MarchingArmyId marchingArmyIdInt
-        let armyOpt = QueryRepositoryF.getMarchingArmy gameState marchingArmyId 
-        match armyOpt with
-        | None -> failwith $"Invalid marching army id, id:{marchingArmyIdInt}"
-        | Some marchingArmy ->
-            let tileOpt = QueryRepositoryF.getTile gameState marchingArmy.toTileId
-            match tileOpt with
-            | None -> failwith $"Invalid tile id, armyId:{marchingArmyIdInt}, tileId:{marchingArmy.toTileId}"
-            | Some tile ->
-                    let playerOpt = QueryRepositoryF.getPlayer gameState marchingArmy.playerId
-                    match playerOpt with
-                    | None -> failwith $"Invalid player id, armyId:{marchingArmyIdInt}, playerId:{marchingArmy.playerId}"
-                    | Some player ->
-                        let tile', eOpt =
-                            match tile.playerId with
-                            | None ->
+        let resultOpt = 
+            QueryRepositoryF.getMarchingArmy gameState marchingArmyId
+            |> Option.bind (fun marchingArmy ->
+                QueryRepositoryF.getTile gameState marchingArmy.toTileId
+                |> Option.map (fun tile -> tile, marchingArmy))
+            |> Option.bind (fun (tile, marchingArmy) ->
+                QueryRepositoryF.getPlayer gameState marchingArmy.playerId
+                |> Option.map (fun player ->
+                    let tile', eOpt =
+                        match tile.playerId with
+                        | None ->
+                            let tile2, e = DomainF.conquerTile tile player
+                            { tile2 with population = tile2.population + marchingArmy.population}, Some e
+                        | Some playerId->
+                            if playerId = marchingArmy.playerId then
+                                { tile with population = tile.population + marchingArmy.population}, None
+                            elif tile.population > marchingArmy.population then
+                                { tile with population = tile.population - marchingArmy.population}, None
+                            else
                                 let tile2, e = DomainF.conquerTile tile player
-                                { tile2 with population = tile2.population + marchingArmy.population}, Some e
-                            | Some playerId->
-                                if playerId = marchingArmy.playerId then
-                                    { tile with population = tile.population + marchingArmy.population}, None
-                                elif tile.population > marchingArmy.population then
-                                    { tile with population = tile.population - marchingArmy.population}, None
-                                else
-                                    let tile2, e = DomainF.conquerTile tile player
-                                    { tile with population = marchingArmy.population - tile2.population}, None
-                        let gameState' = CommandRepositoryF.updateTile gameState tile'
-                        let gameState'' = CommandRepositoryF.deleteMarchingArmy gameState' marchingArmyId
-                        let (PlayerId marchingArmyPlayerIdInt) = marchingArmy.playerId 
-                        gameState'', marchingArmyPlayerIdInt, eOpt
+                                { tile with population = marchingArmy.population - tile2.population}, Some e
+                    let gameState' = CommandRepositoryF.updateTile gameState tile'
+                    let gameState'' = CommandRepositoryF.deleteMarchingArmy gameState' marchingArmyId
+                    let (PlayerId marchingArmyPlayerIdInt) = marchingArmy.playerId 
+                    gameState'', marchingArmyPlayerIdInt, eOpt))
+        match resultOpt with
+        | None -> failwith $"Invalid marching army id, id:{marchingArmyIdInt}"
+        | Some (gameState', marchingArmyPlayerIdInt, eOpt) ->
+            gameState', marchingArmyPlayerIdInt, eOpt
 
     let queryTileById gameState tileIdInt =
         let tileId = TileId tileIdInt

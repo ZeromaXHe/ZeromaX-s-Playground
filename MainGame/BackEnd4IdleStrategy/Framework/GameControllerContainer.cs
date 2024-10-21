@@ -62,6 +62,7 @@ public class GameControllerContainer
 
         var (gameState, eventSeq) = MainEntry.addPopulationToPlayerTiles(_gameState, incr);
         _gameState = gameState;
+
         foreach (var tilePopulationChangedEvent in eventSeq)
         {
             TilePopulationChanged?.Invoke(tilePopulationChangedEvent.id.Item);
@@ -75,9 +76,10 @@ public class GameControllerContainer
         var (gameState, eventSeq) =
             MainEntry.initPlayerAndSpawnOnTile(_gameState, tileCoords.Select(FSharpUtil.ToTupleIntInt));
         _gameState = gameState;
+
         foreach (var e in eventSeq)
         {
-            var loserId = LanguageExt.FSharp.fs(e.loserId).IsSome ? e.loserId.Value.Item : Constant.NullId;
+            var loserId = e.loserId?.Value.Item ?? Constant.NullId;
             TileConquered?.Invoke(e.id.Item, e.conquerorId.Item, loserId);
         }
     }
@@ -88,14 +90,13 @@ public class GameControllerContainer
 
         var (gameState, playerId, tileConqueredEventOpt) =
             MainEntry.marchingArmyArriveDestination(_gameState, marchingArmyId);
-        // TODO: F# 的 option 转到 C# 就这么麻烦吗？还必须引 LanguageExt.FSharp 包？
-        var conqueredEventOpt = LanguageExt.FSharp.fs(tileConqueredEventOpt);
         _gameState = gameState;
 
-        if (conqueredEventOpt.IsNone) return playerId;
+        // TODO：为啥 F# 的 option 返回 C# 后转为 nullable 就不会编译期提示了？
+        if (tileConqueredEventOpt == null) return playerId;
 
         var loserIdOpt = tileConqueredEventOpt.Value.loserId;
-        var loserId = LanguageExt.FSharp.fs(loserIdOpt).IsSome ? loserIdOpt.Value.Item : Constant.NullId;
+        var loserId = loserIdOpt?.Value.Item ?? Constant.NullId;
         TileConquered?.Invoke(tileConqueredEventOpt.Value.id.Item, tileConqueredEventOpt.Value.conquerorId.Item,
             loserId);
 
@@ -106,9 +107,7 @@ public class GameControllerContainer
     {
         // return _commandGameController.RandomSendMarchingArmy(playerId, navService);
 
-        // TODO: 这个函数转换搞死人啊！！！
-        var navServiceQueryConverter = new Converter<int, FSharpList<int>>(NavServiceQuery);
-        var navFSharpFunc = FSharpFunc<int, FSharpList<int>>.FromConverter(navServiceQueryConverter);
+        var navFSharpFunc = FSharpFunc<int, FSharpList<int>>.FromConverter(NavServiceQuery);
         var (gameState, marchingArmy) = MainEntry.randomSendMarchingArmy(_gameState, playerId, navFSharpFunc);
         _gameState = gameState;
         return MarchingArmyDto.From(marchingArmy,
