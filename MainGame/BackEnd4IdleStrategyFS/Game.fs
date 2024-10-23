@@ -94,9 +94,9 @@ module private DomainF =
         |> Seq.zip tiles
         |> Seq.map (fun (tile, player) ->
             { tile with playerId = Some player.id },
-            {id = tile.id
-             conquerorId = player.id
-             loserId = tile.playerId })
+            { id = tile.id
+              conquerorId = player.id
+              loserId = tile.playerId })
 
 /// 数据存储库类型
 module RepositoryT =
@@ -165,7 +165,7 @@ module private CommandRepositoryF =
         { gameState with
             playerNextId = gameState.playerNextId + 1
             playerRepo = gameState.playerRepo.Add(player.id, player) }
-        
+
     let rec insertPlayers gameState count =
         match count with
         | 0 -> gameState
@@ -266,7 +266,9 @@ module MainEntry =
                 match tileOpt with
                 | Some tile -> tile
                 | None -> failwith $"init tile not found, coord: {c}")
-        let idToCoords = tiles |> Seq.map (fun tile -> { tileId = tile.id; coord = tile.coord })
+
+        let idToCoords =
+            tiles |> Seq.map (fun tile -> { tileId = tile.id; coord = tile.coord })
 
         gameState', tiles, idToCoords
 
@@ -274,10 +276,10 @@ module MainEntry =
         let incr = incrInt * 1<Pop>
         let tiles = QueryRepositoryF.getAllTiles gameState
         let resSeq = DomainF.addPopulationToPlayerTiles tiles incr
+
         let gameState' =
-            resSeq
-                |> Seq.map fst
-                |> Seq.fold CommandRepositoryF.updateTile gameState
+            resSeq |> Seq.map fst |> Seq.fold CommandRepositoryF.updateTile gameState
+
         let eventSeq = resSeq |> Seq.map snd
         gameState', eventSeq
 
@@ -291,14 +293,13 @@ module MainEntry =
         let eventSeq = tileEventSeq |> Seq.map snd
 
         let gameState'' =
-            tileEventSeq
-            |> Seq.map fst
-            |> Seq.fold CommandRepositoryF.updateTile gameState'
+            tileEventSeq |> Seq.map fst |> Seq.fold CommandRepositoryF.updateTile gameState'
 
         gameState'', eventSeq
 
     let randomSendMarchingArmy gameState playerIdInt (navService: int -> int list) =
         let playerId = PlayerId playerIdInt
+
         let randomSendMarchingArmyFrom gameState playerId =
             let playerTiles = QueryRepositoryF.getTilesByPlayer gameState playerId |> Seq.toList
 
@@ -336,41 +337,60 @@ module MainEntry =
         | Some ma -> ma
         | None -> failwith $"No tile to send army, playerId:{playerIdInt}"
 
+    type Maybe() =
+        member this.Bind(opt, func) = opt |> Option.bind func
+        member this.Return v = Some v
+        member this.Zero() = None
+        member this.ReturnFrom opt = opt
+
     /// 部队抵达目的地
     let marchingArmyArriveDestination gameState marchingArmyIdInt =
         let marchingArmyId = MarchingArmyId marchingArmyIdInt
-        let resultOpt = 
-            QueryRepositoryF.getMarchingArmy gameState marchingArmyId
-            |> Option.bind (fun marchingArmy ->
-                QueryRepositoryF.getTile gameState marchingArmy.toTileId
-                |> Option.map (fun tile -> tile, marchingArmy))
-            |> Option.bind (fun (tile, marchingArmy) ->
-                QueryRepositoryF.getPlayer gameState marchingArmy.playerId
-                |> Option.map (fun player ->
-                    let tile', eOpt =
-                        match tile.playerId with
-                        | None ->
-                            let tile2, e = DomainF.conquerTile tile player
-                            { tile2 with population = tile2.population + marchingArmy.population}, Some e
-                        | Some playerId->
-                            if playerId = marchingArmy.playerId then
-                                { tile with population = tile.population + marchingArmy.population}, None
-                            elif tile.population > marchingArmy.population then
-                                { tile with population = tile.population - marchingArmy.population}, None
-                            else
-                                let tile2, e = DomainF.conquerTile tile player
-                                { tile with population = marchingArmy.population - tile2.population}, Some e
-                    let gameState' = CommandRepositoryF.updateTile gameState tile'
-                    let gameState'' = CommandRepositoryF.deleteMarchingArmy gameState' marchingArmyId
-                    let (PlayerId marchingArmyPlayerIdInt) = marchingArmy.playerId 
-                    gameState'', marchingArmyPlayerIdInt, eOpt))
+
+        let maybe = Maybe()
+
+        let resultOpt =
+            maybe {
+                let! marchingArmy = QueryRepositoryF.getMarchingArmy gameState marchingArmyId
+                let! tile = QueryRepositoryF.getTile gameState marchingArmy.toTileId
+                let! player = QueryRepositoryF.getPlayer gameState marchingArmy.playerId
+
+                let tile', eOpt =
+                    match tile.playerId with
+                    | None ->
+                        let tile2, e = DomainF.conquerTile tile player
+
+                        { tile2 with
+                            population = tile2.population + marchingArmy.population },
+                        Some e
+                    | Some playerId when playerId = marchingArmy.playerId ->
+                        { tile with
+                            population = tile.population + marchingArmy.population },
+                        None
+                    | Some _ when tile.population > marchingArmy.population ->
+                        { tile with
+                            population = tile.population - marchingArmy.population },
+                        None
+                    | Some _ ->
+                        let tile2, e = DomainF.conquerTile tile player
+
+                        { tile with
+                            population = marchingArmy.population - tile2.population },
+                        Some e
+
+                let gameState' = CommandRepositoryF.updateTile gameState tile'
+                let gameState'' = CommandRepositoryF.deleteMarchingArmy gameState' marchingArmyId
+                let (PlayerId marchingArmyPlayerIdInt) = marchingArmy.playerId
+                return gameState'', marchingArmyPlayerIdInt, eOpt
+            }
+
         match resultOpt with
         | None -> failwith $"Invalid marching army id, id:{marchingArmyIdInt}"
-        | Some (gameState', marchingArmyPlayerIdInt, eOpt) ->
-            gameState', marchingArmyPlayerIdInt, eOpt
+        | Some(gameState', marchingArmyPlayerIdInt, eOpt) -> gameState', marchingArmyPlayerIdInt, eOpt
 
     let queryTileById gameState tileIdInt =
         let tileId = TileId tileIdInt
+
         match QueryRepositoryF.getTile gameState tileId with
         | Some tile -> tile
         | None -> failwith $"Invalid tile id, id:{tileIdInt}"
@@ -378,10 +398,10 @@ module MainEntry =
     let queryTilesByPlayerId gameState playerIdInt =
         let playerId = PlayerId playerIdInt
         QueryRepositoryF.getTilesByPlayer gameState playerId
-        
+
     let queryAllPlayers gameState =
         QueryRepositoryF.getAllPlayers gameState
-        
+
     let queryPlayerById gameState playerIdInt =
         match QueryRepositoryF.getPlayer gameState (PlayerId playerIdInt) with
         | Some player -> player
