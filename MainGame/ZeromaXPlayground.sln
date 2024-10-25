@@ -8,6 +8,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "BackEnd4IdleStrategyFS", "B
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "BackEnd4IdleStrategyFS.Test", "BackEnd4IdleStrategyFS.Test\BackEnd4IdleStrategyFS.Test.fsproj", "{B7F28BAB-EB05-42D0-AA33-79233247E253}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FrontEnd4IdleStrategyFS", "FrontEnd4IdleStrategyFS\FrontEnd4IdleStrategyFS.fsproj", "{4A263E9C-33DD-4004-AF78-532C6366AB5A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 	Debug|Any CPU = Debug|Any CPU
@@ -39,5 +41,11 @@ Global
 		{B7F28BAB-EB05-42D0-AA33-79233247E253}.ExportDebug|Any CPU.Build.0 = Debug|Any CPU
 		{B7F28BAB-EB05-42D0-AA33-79233247E253}.ExportRelease|Any CPU.ActiveCfg = Debug|Any CPU
 		{B7F28BAB-EB05-42D0-AA33-79233247E253}.ExportRelease|Any CPU.Build.0 = Debug|Any CPU
+		{4A263E9C-33DD-4004-AF78-532C6366AB5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A263E9C-33DD-4004-AF78-532C6366AB5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A263E9C-33DD-4004-AF78-532C6366AB5A}.ExportDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A263E9C-33DD-4004-AF78-532C6366AB5A}.ExportDebug|Any CPU.Build.0 = Debug|Any CPU
+		{4A263E9C-33DD-4004-AF78-532C6366AB5A}.ExportRelease|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A263E9C-33DD-4004-AF78-532C6366AB5A}.ExportRelease|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 EndGlobal

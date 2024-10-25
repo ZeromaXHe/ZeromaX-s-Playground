@@ -41,6 +41,21 @@ public class GameControllerContainer
     //     _queryGameController = new QueryGameController(gameService);
     // }
 
+    public GameControllerContainer()
+    {
+        DomainT.tileConqueredSubject.Subscribe(e =>
+        {
+            // TODO：为啥 F# 的 option 返回 C# 后转为 nullable 就不会编译期提示了？
+            var loserId = e.loserId?.Value.Item ?? Constant.NullId;
+            TileConquered?.Invoke(e.id.Item, e.conquerorId.Item, loserId);
+        });
+
+        DomainT.tilePopulationChangedEventSubject.Subscribe(e =>
+        {
+            TilePopulationChanged?.Invoke(e.id.Item);
+        });
+    }
+
     public IEnumerable<InitTileDto> InitTiles(IEnumerable<Vector2> usedCells, INavigationService navService)
     {
         // return _commandGameController.InitTiles(usedCells, navService);
@@ -60,46 +75,23 @@ public class GameControllerContainer
     {
         // _commandGameController.AddPopulationToPlayerTiles(incr);
 
-        var (gameState, eventSeq) = MainEntry.addPopulationToPlayerTiles(_gameState, incr);
-        _gameState = gameState;
-
-        foreach (var tilePopulationChangedEvent in eventSeq)
-        {
-            TilePopulationChanged?.Invoke(tilePopulationChangedEvent.id.Item);
-        }
+        _gameState = MainEntry.addPopulationToPlayerTiles(_gameState, incr);
     }
 
     public void InitPlayerAndSpawnOnTile(IEnumerable<Vector2> tileCoords)
     {
         // _commandGameController.InitPlayerAndSpawnOnTile(tileCoords);
 
-        var (gameState, eventSeq) =
-            MainEntry.initPlayerAndSpawnOnTile(_gameState, tileCoords.Select(FSharpUtil.ToTupleIntInt));
-        _gameState = gameState;
-
-        foreach (var e in eventSeq)
-        {
-            var loserId = e.loserId?.Value.Item ?? Constant.NullId;
-            TileConquered?.Invoke(e.id.Item, e.conquerorId.Item, loserId);
-        }
+        _gameState = MainEntry.initPlayerAndSpawnOnTile(_gameState, tileCoords.Select(FSharpUtil.ToTupleIntInt));
     }
 
     public int MarchingArmyArriveDestination(int marchingArmyId)
     {
         // return _commandGameController.MarchingArmyArriveDestination(marchingArmyId);
 
-        var (gameState, playerId, tileConqueredEventOpt) =
+        var (gameState, playerId) =
             MainEntry.marchingArmyArriveDestination(_gameState, marchingArmyId);
         _gameState = gameState;
-
-        // TODO：为啥 F# 的 option 返回 C# 后转为 nullable 就不会编译期提示了？
-        if (tileConqueredEventOpt == null) return playerId;
-
-        var loserIdOpt = tileConqueredEventOpt.Value.loserId;
-        var loserId = loserIdOpt?.Value.Item ?? Constant.NullId;
-        TileConquered?.Invoke(tileConqueredEventOpt.Value.id.Item, tileConqueredEventOpt.Value.conquerorId.Item,
-            loserId);
-
         return playerId;
     }
 

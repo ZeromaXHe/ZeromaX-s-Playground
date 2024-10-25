@@ -1,9 +1,8 @@
 namespace BackEnd4IdleStrategyFS.Game
 
-open System
-
 /// 领域层类型
 module DomainT =
+    open System.Reactive.Subjects
 
     /// 玩家 ID
     type PlayerId = PlayerId of int
@@ -37,6 +36,10 @@ module DomainT =
           beforePopulation: int<Pop>
           afterPopulation: int<Pop> }
 
+    // TODO: 这样生命周期会有问题，内存泄漏
+    let tilePopulationChangedEventSubject = new Subject<TilePopulationChangedEvent>()
+    let tileConqueredSubject = new Subject<TileConqueredEvent>()
+
     /// 行军部队 ID
     type MarchingArmyId = MarchingArmyId of int
 
@@ -55,11 +58,14 @@ module private DomainF =
 
     // 增加人口
     let increaseTilePopulation increment (tile: Tile) =
-        ({ tile with
-            population = tile.population + increment },
-         { id = tile.id
-           beforePopulation = tile.population
-           afterPopulation = tile.population + increment })
+        tilePopulationChangedEventSubject.OnNext(
+            { id = tile.id
+              beforePopulation = tile.population
+              afterPopulation = tile.population + increment }
+        )
+
+        { tile with
+            population = tile.population + increment }
 
     // 增加玩家领土人口
     let addPopulationToPlayerTiles (tiles: seq<Tile>) incr =
@@ -69,11 +75,14 @@ module private DomainF =
 
     /// 占领地块
     let conquerTile (tile: Tile) (conqueror: Player) =
-        ({ tile with
-            playerId = Some conqueror.id },
-         { id = tile.id
-           conquerorId = conqueror.id
-           loserId = tile.playerId })
+        tileConqueredSubject.OnNext(
+            { id = tile.id
+              conquerorId = conqueror.id
+              loserId = tile.playerId }
+        )
+
+        { tile with
+            playerId = Some conqueror.id }
 
     /// 出兵
     let marchArmy (fromTile: Tile) (toTile: Tile) =
@@ -93,10 +102,13 @@ module private DomainF =
         players
         |> Seq.zip tiles
         |> Seq.map (fun (tile, player) ->
-            { tile with playerId = Some player.id },
-            { id = tile.id
-              conquerorId = player.id
-              loserId = tile.playerId })
+            tileConqueredSubject.OnNext(
+                { id = tile.id
+                  conquerorId = player.id
+                  loserId = tile.playerId }
+            )
+
+            { tile with playerId = Some player.id })
 
 /// 数据存储库类型
 module RepositoryT =
@@ -240,6 +252,7 @@ module private CommandRepositoryF =
 
 /// 对外主接口
 module MainEntry =
+    open System
     open DomainT
     open RepositoryT
 
@@ -275,27 +288,17 @@ module MainEntry =
     let addPopulationToPlayerTiles gameState incrInt =
         let incr = incrInt * 1<Pop>
         let tiles = QueryRepositoryF.getAllTiles gameState
-        let resSeq = DomainF.addPopulationToPlayerTiles tiles incr
 
-        let gameState' =
-            resSeq |> Seq.map fst |> Seq.fold CommandRepositoryF.updateTile gameState
-
-        let eventSeq = resSeq |> Seq.map snd
-        gameState', eventSeq
+        DomainF.addPopulationToPlayerTiles tiles incr
+        |> Seq.fold CommandRepositoryF.updateTile gameState
 
     let initPlayerAndSpawnOnTile gameState tileCoords =
         let tiles = QueryRepositoryF.getTileByCoords gameState tileCoords
         let gameState' = CommandRepositoryF.insertPlayers gameState (Seq.length tiles)
         let players = QueryRepositoryF.getAllPlayers gameState'
 
-        let tileEventSeq = DomainF.playersFirstConquerTiles tiles players
-
-        let eventSeq = tileEventSeq |> Seq.map snd
-
-        let gameState'' =
-            tileEventSeq |> Seq.map fst |> Seq.fold CommandRepositoryF.updateTile gameState'
-
-        gameState'', eventSeq
+        DomainF.playersFirstConquerTiles tiles players
+        |> Seq.fold CommandRepositoryF.updateTile gameState'
 
     let randomSendMarchingArmy gameState playerIdInt (navService: int -> int list) =
         let playerId = PlayerId playerIdInt
@@ -355,38 +358,34 @@ module MainEntry =
                 let! tile = QueryRepositoryF.getTile gameState marchingArmy.toTileId
                 let! player = QueryRepositoryF.getPlayer gameState marchingArmy.playerId
 
-                let tile', eOpt =
+                let tile' =
                     match tile.playerId with
                     | None ->
-                        let tile2, e = DomainF.conquerTile tile player
+                        let tile2 = DomainF.conquerTile tile player
 
                         { tile2 with
-                            population = tile2.population + marchingArmy.population },
-                        Some e
+                            population = tile2.population + marchingArmy.population }
                     | Some playerId when playerId = marchingArmy.playerId ->
                         { tile with
-                            population = tile.population + marchingArmy.population },
-                        None
+                            population = tile.population + marchingArmy.population }
                     | Some _ when tile.population > marchingArmy.population ->
                         { tile with
-                            population = tile.population - marchingArmy.population },
-                        None
+                            population = tile.population - marchingArmy.population }
                     | Some _ ->
-                        let tile2, e = DomainF.conquerTile tile player
+                        let tile2 = DomainF.conquerTile tile player
 
                         { tile with
-                            population = marchingArmy.population - tile2.population },
-                        Some e
+                            population = marchingArmy.population - tile2.population }
 
                 let gameState' = CommandRepositoryF.updateTile gameState tile'
                 let gameState'' = CommandRepositoryF.deleteMarchingArmy gameState' marchingArmyId
                 let (PlayerId marchingArmyPlayerIdInt) = marchingArmy.playerId
-                return gameState'', marchingArmyPlayerIdInt, eOpt
+                return gameState'', marchingArmyPlayerIdInt
             }
 
         match resultOpt with
         | None -> failwith $"Invalid marching army id, id:{marchingArmyIdInt}"
-        | Some(gameState', marchingArmyPlayerIdInt, eOpt) -> gameState', marchingArmyPlayerIdInt, eOpt
+        | Some(gameState', marchingArmyPlayerIdInt) -> gameState', marchingArmyPlayerIdInt
 
     let queryTileById gameState tileIdInt =
         let tileId = TileId tileIdInt
@@ -407,14 +406,14 @@ module MainEntry =
         | Some player -> player
         | None -> failwith $"Invalid player id, id:{playerIdInt}"
 
-// TODO：为啥这里的 main 就跑不了？
+// TODO：为啥这里 [<EntryPoint>] let main argv = 0 就跑不了？main() = () 就可以？但运行后报错
+// （感觉和 Rider 识别出来的运行类型有关：单测那边 EntryPoint 识别出来是 .NET Project，而这里 main() 识别出来是 .NET Static Method
+// 不知道是不是当成 C# 跑了所以跑不起来）
 module Program =
 
     // 定义 main 函数
-    [<EntryPoint>]
-    let main argv =
+    let main () =
         printfn "Hello, World!"
-        printfn $"Arguments: %A{argv}"
 
         // 返回退出状态码
-        0
+        ()

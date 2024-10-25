@@ -1,1 +1,4 @@
-module Program = let [<EntryPoint>] main _ = 0
+module Program =
+    let [<EntryPoint>] main _ =
+        printfn "Hello World!"
+        0

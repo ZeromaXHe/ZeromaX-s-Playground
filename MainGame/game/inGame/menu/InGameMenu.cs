@@ -1,4 +1,5 @@
 using System.Linq;
+using FrontEnd4IdleStrategyFS.Display;
 using Godot;
 using ZeromaXPlayground.game.inGame.map.scripts.constant;
 
@@ -22,20 +23,7 @@ public partial class InGameMenu : Control
         _playerInfosGrid = GetNode<GridContainer>("TopLeftPanel/TopLeftVBox/PlayerInfosGrid");
         _refreshTimer = GetNode<Timer>("RefreshTimer");
 
-        _tabBar.TabClicked += tab =>
-        {
-            if (tab == 0)
-            {
-                if (_tabBar.CurrentTab == tab)
-                {
-                    _playerInfosGrid.Show();
-                }
-                else
-                {
-                    _playerInfosGrid.Hide();
-                }
-            }
-        };
+        _tabBar.TabClicked += tab => InGameMenuFS.onTabBarTabClicked(_tabBar, _playerInfosGrid, (int)tab);
 
         _refreshTimer.Timeout += OnRefreshTimerTimeout;
         // 通过设置 Size 使得 PanelContainer 刷新大小为本地化后字符长度，否则会因为默认待替换的本地化字符串长度太长导致它宽度太大
@@ -84,10 +72,5 @@ public partial class InGameMenu : Control
             populationLabel.SetText(playerData.Population.ToString());
             _playerInfosGrid.AddChild(populationLabel);
         }
-    }
-
-    // Called every frame. 'delta' is the elapsed time since the previous frame.
-    public override void _Process(double delta)
-    {
     }
 }

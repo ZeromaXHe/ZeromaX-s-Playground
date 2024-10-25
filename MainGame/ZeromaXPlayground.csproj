@@ -13,5 +13,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="BackEnd4IdleStrategy\BackEnd4IdleStrategy.csproj" />
+    <ProjectReference Include="FrontEnd4IdleStrategyFS\FrontEnd4IdleStrategyFS.fsproj" />
   </ItemGroup>
 </Project>
