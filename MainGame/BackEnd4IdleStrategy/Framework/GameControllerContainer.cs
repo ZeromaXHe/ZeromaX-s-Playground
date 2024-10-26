@@ -1,11 +1,7 @@
 using System.Numerics;
-using System.Reactive.Subjects;
 using BackEnd4IdleStrategy.Common.Constants;
 using BackEnd4IdleStrategy.Common.Util;
-using BackEnd4IdleStrategy.Game.Domain.Services;
-using BackEnd4IdleStrategy.Game.Infrastructure.Repositories;
 using BackEnd4IdleStrategy.Game.UserInterface.Adapter;
-using BackEnd4IdleStrategy.Game.UserInterface.Controller;
 using BackEnd4IdleStrategy.Game.UserInterface.Dto;
 using BackEnd4IdleStrategyFS.Game;
 using LanguageExt;
@@ -28,28 +24,14 @@ public class GameControllerContainer
 
     private EventT.EventSubject _eventSubject;
 
-    // private readonly CommandGameController _commandGameController;
-    // private readonly QueryGameController _queryGameController;
+    private INavigationService _navService;
 
-    // public GameControllerContainer()
-    // {
-    //     var gameService = new GameService(
-    //         new PlayerRepository(),
-    //         new TileRepository(),
-    //         new MarchingArmyRepository());
-    //     gameService.TileConquered += (id, conquerorId, loserId) => TileConquered?.Invoke(id, conquerorId, loserId);
-    //     gameService.TilePopulationChanged += id => TilePopulationChanged?.Invoke(id);
-    //
-    //     _commandGameController = new CommandGameController(gameService);
-    //     _queryGameController = new QueryGameController(gameService);
-    // }
-
-    public GameControllerContainer()
+    public GameControllerContainer(INavigationService navService)
     {
-        _eventSubject = new EventT.EventSubject(
-            new Subject<EventT.TileConqueredEvent>(),
-            new Subject<EventT.TilePopulationChangedEvent>());
-        
+        _navService = navService;
+
+        _eventSubject = MainEntry.initEventSubject();
+
         _eventSubject.tileConquered.Subscribe(e =>
         {
             // TODO：为啥 F# 的 option 返回 C# 后转为 nullable 就不会编译期提示了？
@@ -58,46 +40,32 @@ public class GameControllerContainer
         });
 
         _eventSubject.tilePopulationChanged.Subscribe(e =>
-        {
-            TilePopulationChanged?.Invoke(e.id.Item);
-        });
+            TilePopulationChanged?.Invoke(e.id.Item));
+
+        _eventSubject.tileAdded.Subscribe(e =>
+            _navService.AddPoint(e.tileId.Item, FSharpUtil.ToVector2(e.coord)));
     }
 
-    public IEnumerable<InitTileDto> InitTiles(IEnumerable<Vector2> usedCells, INavigationService navService)
+    public IEnumerable<InitTileDto> InitTiles(IEnumerable<Vector2> usedCells)
     {
-        // return _commandGameController.InitTiles(usedCells, navService);
-
-        var (gameState, tiles, navServiceAddEvents) =
-            MainEntry.initTiles(_gameState, usedCells.Select(FSharpUtil.ToTupleIntInt));
-        foreach (var navServiceAddEvent in navServiceAddEvents)
-        {
-            navService.AddPoint(navServiceAddEvent.tileId.Item, FSharpUtil.ToVector2(navServiceAddEvent.coord));
-        }
+        var (gameState, tiles) =
+            MainEntry.initTiles(_eventSubject, _gameState, usedCells.Select(FSharpUtil.ToTupleIntInt));
 
         _gameState = gameState;
         return tiles.Select(InitTileDto.From);
     }
 
-    public void AddPopulationToPlayerTiles(int incr)
-    {
-        // _commandGameController.AddPopulationToPlayerTiles(incr);
-
+    public void AddPopulationToPlayerTiles(int incr) =>
         _gameState = MainEntry.addPopulationToPlayerTiles(_eventSubject, _gameState, incr);
-    }
 
-    public void InitPlayerAndSpawnOnTile(IEnumerable<Vector2> tileCoords)
-    {
-        // _commandGameController.InitPlayerAndSpawnOnTile(tileCoords);
-
-        _gameState = MainEntry.initPlayerAndSpawnOnTile(_eventSubject, _gameState, tileCoords.Select(FSharpUtil.ToTupleIntInt));
-    }
+    public void InitPlayerAndSpawnOnTile(IEnumerable<Vector2> tileCoords) =>
+        _gameState = MainEntry.initPlayerAndSpawnOnTile(
+            _eventSubject, _gameState, tileCoords.Select(FSharpUtil.ToTupleIntInt));
 
     public int MarchingArmyArriveDestination(int marchingArmyId)
     {
-        // return _commandGameController.MarchingArmyArriveDestination(marchingArmyId);
-
-        var (gameState, playerId) =
-            MainEntry.marchingArmyArriveDestination(_eventSubject, _gameState, marchingArmyId);
+        var (gameState, playerId) = MainEntry.marchingArmyArriveDestination(
+            _eventSubject, _gameState, marchingArmyId);
         _gameState = gameState;
         return playerId;
     }
@@ -120,32 +88,16 @@ public class GameControllerContainer
         }
     }
 
-    public QueryTileDto QueryTileById(int tileId)
-    {
-        // return _queryGameController.QueryTileById(tileId);
+    public QueryTileDto QueryTileById(int tileId) =>
+        QueryTileDto.From(MainEntry.queryTileById(_gameState, tileId));
 
-        return QueryTileDto.From(MainEntry.queryTileById(_gameState, tileId));
-    }
-
-    public IEnumerable<QueryTileDto> QueryTilesByPlayerId(int playerId)
-    {
-        // return _queryGameController.QueryTilesByPlayerId(playerId);
-
-        return MainEntry.queryTilesByPlayerId(_gameState, playerId)
+    public IEnumerable<QueryTileDto> QueryTilesByPlayerId(int playerId) =>
+        MainEntry.queryTilesByPlayerId(_gameState, playerId)
             .Select(QueryTileDto.From);
-    }
 
-    public IEnumerable<QueryPlayerDto> QueryAllPlayers()
-    {
-        // return _queryGameController.QueryAllPlayers();
+    public IEnumerable<QueryPlayerDto> QueryAllPlayers() =>
+        MainEntry.queryAllPlayers(_gameState).Select(QueryPlayerDto.From);
 
-        return MainEntry.queryAllPlayers(_gameState).Select(QueryPlayerDto.From);
-    }
-
-    public QueryPlayerDto QueryPlayerById(int id)
-    {
-        // return _queryGameController.QueryPlayerById(id);
-
-        return QueryPlayerDto.From(MainEntry.queryPlayerById(_gameState, id));
-    }
+    public QueryPlayerDto QueryPlayerById(int id) =>
+        QueryPlayerDto.From(MainEntry.queryPlayerById(_gameState, id));
 }

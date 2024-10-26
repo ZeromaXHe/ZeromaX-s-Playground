@@ -1,7 +1,6 @@
 using System.Numerics;
 using BackEnd4IdleStrategy.Common.Constants;
 using BackEnd4IdleStrategy.Common.Util;
-using BackEnd4IdleStrategy.Game.Domain.Entities;
 using BackEnd4IdleStrategyFS.Game;
 
 namespace BackEnd4IdleStrategy.Game.UserInterface.Dto;
@@ -13,9 +12,6 @@ public record QueryTileDto(
     int PlayerId
 )
 {
-    internal static QueryTileDto From(Tile tile) =>
-        new(tile.Id, tile.Coord, tile.Population, tile.PlayerId);
-
     internal static QueryTileDto From(DomainT.Tile tile)
     {
         var playerId = LanguageExt.FSharp.fs(tile.playerId).IsSome

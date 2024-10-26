@@ -61,8 +61,7 @@ public partial class MapBoard : Node2D
 
         // 初始化地图
         var tileDict = _globalNode.GameControllerContainer.InitTiles(
-                usedCells.Select(BackEndUtil.To),
-                NavigationService.Instance)
+                usedCells.Select(BackEndUtil.To))
             .ToDictionary(t => BackEndUtil.From(t.Coord), t => t.Id);
 
         // var tileIds = string.Join(", ", tileDict);

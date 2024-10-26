@@ -16,8 +16,10 @@ module EventT =
           beforePopulation: int<Pop>
           afterPopulation: int<Pop> }
 
+    type TileAddedEvent = { tileId: TileId; coord: int * int }
+
     /// 事件主题
-    type EventSubject = {
-        tileConquered: Subject<TileConqueredEvent>
-        tilePopulationChanged: Subject<TilePopulationChangedEvent>
-    }
+    type EventSubject =
+        { tileAdded: Subject<TileAddedEvent>
+          tileConquered: Subject<TileConqueredEvent>
+          tilePopulationChanged: Subject<TilePopulationChangedEvent> }

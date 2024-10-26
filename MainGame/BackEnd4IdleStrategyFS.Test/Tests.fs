@@ -1,8 +1,6 @@
 module Tests
 
 open FSharp.Control.Reactive
-open System
-open System.Reactive.Subjects
 open BackEnd4IdleStrategyFS.Game
 open BackEnd4IdleStrategyFS.Game.DomainT
 open BackEnd4IdleStrategyFS.Game.EventT
@@ -11,11 +9,17 @@ open Xunit
 [<Fact>]
 let ``initTiles test`` () =
     // 安排 Arrange
-    let gameState = MainEntry.emptyGameState
     let usedCells = [ (0, 0); (1, 0) ]
+    let gameState = MainEntry.emptyGameState
+    let eventSubject = MainEntry.initEventSubject ()
+    let mutable eventCount = 0
+
+    eventSubject.tileAdded
+    |> Observable.subscribe (fun _ -> eventCount <- eventCount + 1)
+    |> ignore
 
     // 行动 Act
-    let gameState', tileSeq, eventSeq = MainEntry.initTiles gameState usedCells
+    let gameState', tileSeq = MainEntry.initTiles eventSubject gameState usedCells
 
     // 断言 Assert
     Assert.Equal(gameState'.tileRepo.Count, 2)
@@ -46,26 +50,22 @@ let ``initTiles test`` () =
     Assert.Equal(gameState'.tilePlayerIndex.Count, 0)
     Assert.Equal(gameState'.tileNextId, 3)
     Assert.Equal(Seq.length tileSeq, 2)
-    Assert.Equal(Seq.length eventSeq, 2)
+    Assert.Equal(eventCount, 2)
 
 [<Fact>]
 let ``initPlayerAndSpawnOnTile test`` () =
     // 安排 Arrange
+    let gameState = MainEntry.emptyGameState
+    let usedCells = [ (0, 0); (1, 0) ]
+    let eventSubject = MainEntry.initEventSubject ()
     let mutable eventCount = 0
-
-    let eventSubject =
-        { tileConquered = new Subject<TileConqueredEvent>()
-          tilePopulationChanged = new Subject<TilePopulationChangedEvent>() }
 
     eventSubject.tileConquered
     |> Observable.subscribe (fun _ -> eventCount <- eventCount + 1)
     |> ignore
 
-    let gameState = MainEntry.emptyGameState
-    let usedCells = [ (0, 0); (1, 0) ]
-
     // 行动 Act
-    let gameState', _, _ = MainEntry.initTiles gameState usedCells
+    let gameState', _ = MainEntry.initTiles eventSubject gameState usedCells
 
     let gameState'' =
         MainEntry.initPlayerAndSpawnOnTile eventSubject gameState' usedCells

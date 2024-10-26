@@ -3,6 +3,7 @@ namespace BackEnd4IdleStrategyFS.Game
 /// 对外主接口
 module MainEntry =
     open System
+    open System.Reactive.Subjects
     open DomainT
     open EventT
     open RepositoryT
@@ -17,10 +18,13 @@ module MainEntry =
           marchingArmyRepo = Map.empty
           marchingArmyNextId = 1 }
 
-    type NavServiceAddEvent = { tileId: TileId; coord: int * int }
+    let initEventSubject () =
+        { tileAdded = new Subject<TileAddedEvent>()
+          tileConquered = new Subject<TileConqueredEvent>()
+          tilePopulationChanged = new Subject<TilePopulationChangedEvent>() }
 
-    let initTiles gameState usedCells =
-        let gameState' = CommandRepositoryF.insertTiles gameState usedCells
+    let initTiles eventSubject gameState usedCells =
+        let gameState' = CommandRepositoryF.insertTiles eventSubject gameState usedCells
 
         let tiles =
             usedCells
@@ -31,10 +35,7 @@ module MainEntry =
                 | Some tile -> tile
                 | None -> failwith $"init tile not found, coord: {c}")
 
-        let idToCoords =
-            tiles |> Seq.map (fun tile -> { tileId = tile.id; coord = tile.coord })
-
-        gameState', tiles, idToCoords
+        gameState', tiles
 
     let addPopulationToPlayerTiles eventSubject gameState incrInt =
         let incr = incrInt * 1<Pop>
@@ -112,10 +113,11 @@ module MainEntry =
                 let tile' =
                     match tile.playerId with
                     | None ->
-                        let tile2 = DomainF.conquerTile eventSubject.tileConquered tile player
+                        let tile2 =
+                            { tile with
+                                population = tile.population + marchingArmy.population }
 
-                        { tile2 with
-                            population = tile2.population + marchingArmy.population }
+                        DomainF.conquerTile eventSubject.tileConquered tile2 player
                     | Some playerId when playerId = marchingArmy.playerId ->
                         { tile with
                             population = tile.population + marchingArmy.population }
@@ -123,11 +125,13 @@ module MainEntry =
                         { tile with
                             population = tile.population - marchingArmy.population }
                     | Some _ ->
-                        let tile2 = DomainF.conquerTile eventSubject.tileConquered tile player
+                        let tile2 =
+                            { tile with
+                                population = marchingArmy.population - tile.population }
 
-                        { tile with
-                            population = marchingArmy.population - tile2.population }
+                        DomainF.conquerTile eventSubject.tileConquered tile2 player
 
+                // BUG: 现在有个问题就是这里比 tileConquered 事件慢，所以占领空地时 TileGui 第一次查出来的地块人口还是 0，会延迟显示
                 let gameState' = CommandRepositoryF.updateTile gameState tile'
                 let gameState'' = CommandRepositoryF.deleteMarchingArmy gameState' marchingArmyId
                 let (PlayerId marchingArmyPlayerIdInt) = marchingArmy.playerId

@@ -1,5 +1,4 @@
 using BackEnd4IdleStrategy.Common.Constants;
-using BackEnd4IdleStrategy.Game.Domain.Entities;
 using BackEnd4IdleStrategyFS.Game;
 
 namespace BackEnd4IdleStrategy.Game.UserInterface.Dto;
@@ -14,15 +13,6 @@ public record MarchingArmyDto
 )
 {
     // TODO：为了先跑通代码写的恶心构造，后续优化
-    internal static MarchingArmyDto From(MarchingArmy marchingArmy, Tile fromTile, Tile toTile) =>
-        new (
-            marchingArmy.Id,
-            marchingArmy.Population,
-            marchingArmy.PlayerId,
-            InitTileDto.From(fromTile),
-            InitTileDto.From(toTile)
-        );
-
     internal static MarchingArmyDto From(DomainT.MarchingArmy marchingArmy, InitTileDto fromTile, InitTileDto toTile) =>
         new (
             marchingArmy.id.Item,
