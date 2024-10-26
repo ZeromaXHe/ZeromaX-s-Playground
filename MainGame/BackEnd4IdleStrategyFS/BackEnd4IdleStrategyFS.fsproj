@@ -6,11 +6,17 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Compile Include="Game.fs" />
+        <Compile Include="Game\DomainT.fs" />
+        <Compile Include="Game\EventT.fs" />
+        <Compile Include="Game\DomainF.fs" />
+        <Compile Include="Game\RepositoryT.fs" />
+        <Compile Include="Game\QueryRepositoryF.fs" />
+        <Compile Include="Game\CommandRepositoryF.fs" />
+        <Compile Include="Game\MainEntry.fs" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="FSharp.Control.Reactive" Version="5.0.5" />
+        <PackageReference Include="FSharp.Control.Reactive" Version="5.0.5"/>
     </ItemGroup>
 
 </Project>

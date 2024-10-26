@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Reactive.Subjects;
 using BackEnd4IdleStrategy.Common.Constants;
 using BackEnd4IdleStrategy.Common.Util;
 using BackEnd4IdleStrategy.Game.Domain.Services;
@@ -25,6 +26,8 @@ public class GameControllerContainer
 
     private RepositoryT.GameState _gameState = MainEntry.emptyGameState;
 
+    private EventT.EventSubject _eventSubject;
+
     // private readonly CommandGameController _commandGameController;
     // private readonly QueryGameController _queryGameController;
 
@@ -43,14 +46,18 @@ public class GameControllerContainer
 
     public GameControllerContainer()
     {
-        DomainT.tileConqueredSubject.Subscribe(e =>
+        _eventSubject = new EventT.EventSubject(
+            new Subject<EventT.TileConqueredEvent>(),
+            new Subject<EventT.TilePopulationChangedEvent>());
+        
+        _eventSubject.tileConquered.Subscribe(e =>
         {
             // TODO：为啥 F# 的 option 返回 C# 后转为 nullable 就不会编译期提示了？
             var loserId = e.loserId?.Value.Item ?? Constant.NullId;
             TileConquered?.Invoke(e.id.Item, e.conquerorId.Item, loserId);
         });
 
-        DomainT.tilePopulationChangedEventSubject.Subscribe(e =>
+        _eventSubject.tilePopulationChanged.Subscribe(e =>
         {
             TilePopulationChanged?.Invoke(e.id.Item);
         });
@@ -75,14 +82,14 @@ public class GameControllerContainer
     {
         // _commandGameController.AddPopulationToPlayerTiles(incr);
 
-        _gameState = MainEntry.addPopulationToPlayerTiles(_gameState, incr);
+        _gameState = MainEntry.addPopulationToPlayerTiles(_eventSubject, _gameState, incr);
     }
 
     public void InitPlayerAndSpawnOnTile(IEnumerable<Vector2> tileCoords)
     {
         // _commandGameController.InitPlayerAndSpawnOnTile(tileCoords);
 
-        _gameState = MainEntry.initPlayerAndSpawnOnTile(_gameState, tileCoords.Select(FSharpUtil.ToTupleIntInt));
+        _gameState = MainEntry.initPlayerAndSpawnOnTile(_eventSubject, _gameState, tileCoords.Select(FSharpUtil.ToTupleIntInt));
     }
 
     public int MarchingArmyArriveDestination(int marchingArmyId)
@@ -90,7 +97,7 @@ public class GameControllerContainer
         // return _commandGameController.MarchingArmyArriveDestination(marchingArmyId);
 
         var (gameState, playerId) =
-            MainEntry.marchingArmyArriveDestination(_gameState, marchingArmyId);
+            MainEntry.marchingArmyArriveDestination(_eventSubject, _gameState, marchingArmyId);
         _gameState = gameState;
         return playerId;
     }
