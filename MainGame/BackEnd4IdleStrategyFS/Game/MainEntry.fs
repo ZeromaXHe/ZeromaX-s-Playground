@@ -41,7 +41,7 @@ module MainEntry =
         let incr = incrInt * 1<Pop>
         let tiles = QueryRepositoryF.getAllTiles gameState
 
-        DomainF.addPopulationToPlayerTiles eventSubject.tilePopulationChanged tiles incr
+        DomainF.addPopulationToPlayerTiles eventSubject tiles incr
         |> Seq.fold CommandRepositoryF.updateTile gameState
 
     let initPlayerAndSpawnOnTile eventSubject gameState tileCoords =
@@ -49,10 +49,10 @@ module MainEntry =
         let gameState' = CommandRepositoryF.insertPlayers gameState (Seq.length tiles)
         let players = QueryRepositoryF.getAllPlayers gameState'
 
-        DomainF.playersFirstConquerTiles eventSubject.tileConquered tiles players
+        DomainF.playersFirstConquerTiles eventSubject tiles players
         |> Seq.fold CommandRepositoryF.updateTile gameState'
 
-    let randomSendMarchingArmy gameState playerIdInt (navService: int -> int list) =
+    let randomSendMarchingArmy gameState playerIdInt (navService: Func<int, int seq>) =
         let playerId = PlayerId playerIdInt
 
         let randomSendMarchingArmyFrom gameState playerId =
@@ -64,9 +64,10 @@ module MainEntry =
                 let random = Random()
                 Some playerTiles[random.Next playerTiles.Length].id
 
-        let randomSendMarchingArmyTo gameState fromTileId (candidateToTileIds: int list) =
+        let randomSendMarchingArmyTo gameState fromTileId (candidateToTileIds: int seq) =
             let random = Random()
-            let toTileId = TileId candidateToTileIds[random.Next candidateToTileIds.Length]
+            let candidateToTileIdsList = candidateToTileIds |> Seq.toList
+            let toTileId = TileId candidateToTileIdsList[random.Next candidateToTileIdsList.Length]
             let fromTileOpt = QueryRepositoryF.getTile gameState fromTileId
 
             match fromTileOpt with
@@ -85,11 +86,12 @@ module MainEntry =
             randomSendMarchingArmyFrom gameState playerId
             |> Option.map (fun fromTileId ->
                 let (TileId tileId) = fromTileId
-                let candidateToTileIds = navService tileId
+                let candidateToTileIds = navService.Invoke(tileId)
                 randomSendMarchingArmyTo gameState fromTileId candidateToTileIds)
 
         match marchingArmyOpt with
         | Some ma -> ma
+        // TODO: 当国家灭亡时可能这里报错，不过 Godot 倒是会直接吞掉……
         | None -> failwith $"No tile to send army, playerId:{playerIdInt}"
 
     type Maybe() =
@@ -117,7 +119,7 @@ module MainEntry =
                             { tile with
                                 population = tile.population + marchingArmy.population }
 
-                        DomainF.conquerTile eventSubject.tileConquered tile2 player
+                        DomainF.conquerTile eventSubject tile2 player
                     | Some playerId when playerId = marchingArmy.playerId ->
                         { tile with
                             population = tile.population + marchingArmy.population }
@@ -129,7 +131,7 @@ module MainEntry =
                             { tile with
                                 population = marchingArmy.population - tile.population }
 
-                        DomainF.conquerTile eventSubject.tileConquered tile2 player
+                        DomainF.conquerTile eventSubject tile2 player
 
                 // BUG: 现在有个问题就是这里比 tileConquered 事件慢，所以占领空地时 TileGui 第一次查出来的地块人口还是 0，会延迟显示
                 let gameState' = CommandRepositoryF.updateTile gameState tile'

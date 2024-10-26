@@ -1,7 +1,8 @@
+using System;
 using System.Collections.Generic;
-using BackEnd4IdleStrategy.Game.UserInterface.Dto;
+using BackEnd4IdleStrategyFS.Game;
+using FrontEnd4IdleStrategyFS.Common;
 using Godot;
-using ZeromaXPlayground.game.inGame.map.scripts.Utils;
 
 namespace ZeromaXPlayground.game.inGame.map.scenes;
 
@@ -17,15 +18,20 @@ public partial class TileGui : Control
 
     private int _id;
     private Vector2I _coord;
-    
-    public void Init(QueryTileDto tileInfo, Vector2 globalPosition)
+
+    public void Init(int id, Tuple<int, int> coord, int population, Vector2 globalPosition)
     {
-        _id = tileInfo.Id;
+        _id = id;
         IdMap[_id] = this;
-        _coord = BackEndUtil.From(tileInfo.Coord);
-        _population.Text = tileInfo.Population.ToString();
+        _coord = BackEndUtil.fromBackEndI(coord.Item1, coord.Item2);
+        _population.Text = population.ToString();
 
         Position = globalPosition;
+    }
+
+    public static void ChangePopulation(int id, int population)
+    {
+        GetById(id).ChangePopulation(population);
     }
 
     public void ChangePopulation(int population)
@@ -43,13 +49,13 @@ public partial class TileGui : Control
     public override void _Process(double delta)
     {
     }
-    
+
     #region 查询接口
 
     public static TileGui GetById(int id)
     {
         return IdMap.TryGetValue(id, out var result) ? result : null;
     }
-    
+
     #endregion
 }

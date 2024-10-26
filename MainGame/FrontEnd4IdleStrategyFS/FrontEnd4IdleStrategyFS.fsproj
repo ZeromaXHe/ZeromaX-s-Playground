@@ -6,12 +6,20 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Display.fs" />
+        <Compile Include="Common\BackEndUtil.fs" />
+        <Compile Include="Display\MainMenuFS.fs" />
+        <Compile Include="Display\TileGuiFS.fs" />
+        <Compile Include="Display\MapBoardFS.fs" />
+        <Compile Include="Display\InGameMenuFS.fs" />
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="FSharp.Control.Reactive" Version="5.0.5" />
       <PackageReference Include="GodotSharp" Version="4.3.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\BackEnd4IdleStrategyFS\BackEnd4IdleStrategyFS.fsproj" />
     </ItemGroup>
 
 </Project>

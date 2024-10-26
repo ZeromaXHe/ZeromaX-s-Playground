@@ -35,17 +35,17 @@ public partial class InGameMenu : Control
         // 通过这个功能的实现，就发现现在架构还是很别扭
         // 暂时先每秒查一次，后续重构
         var allPlayerData =
-            from player in _globalNode.GameControllerContainer.QueryAllPlayers()
-            select player.Id
+            from player in _globalNode.QueryAllPlayers()
+            select player.id.Item
             into playerId
-            from tile in _globalNode.GameControllerContainer.QueryTilesByPlayerId(playerId)
+            from tile in _globalNode.QueryTilesByPlayerId(playerId)
             group tile by playerId
             into playerGroup
             select new
             {
                 PlayerId = playerGroup.Key,
                 Territory = playerGroup.Count(),
-                Population = playerGroup.Sum(tile => tile.Population)
+                Population = playerGroup.Sum(tile => tile.population)
             }
             into playerData
             orderby playerData.Population descending

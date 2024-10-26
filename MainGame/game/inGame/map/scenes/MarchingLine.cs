@@ -1,7 +1,6 @@
-using BackEnd4IdleStrategy.Common;
-using BackEnd4IdleStrategy.Common.Constants;
-using BackEnd4IdleStrategy.Game.UserInterface.Dto;
+using BackEnd4IdleStrategyFS.Game;
 using Godot;
+using ZeromaXPlayground.game.inGame.map.scripts.constant;
 using ZeromaXPlayground.game.inGame.map.scripts.eventBus;
 
 public partial class MarchingLine : Line2D
@@ -14,13 +13,13 @@ public partial class MarchingLine : Line2D
 
     #endregion
 
-    private int _marchingArmyId = Constant.NullId;
+    private int _marchingArmyId = Constants.NullId;
     private int _speed = 25;
 
-    public void Init(MarchingArmyDto marchingArmy, Vector2 from, Vector2 to, Color color)
+    public void Init(DomainT.MarchingArmy marchingArmy, Vector2 from, Vector2 to, Color color)
     {
-        _marchingArmyId = marchingArmy.Id;
-        _speed = marchingArmy.Population switch
+        _marchingArmyId = marchingArmy.id.Item;
+        _speed = marchingArmy.population switch
         {
             < 10 => 50, // 人数小于 10 人，2 秒后到达目的地
             < 50 => 25, // 小于 50 人，4 秒后
@@ -34,7 +33,7 @@ public partial class MarchingLine : Line2D
         // GD.Print($"MarchingLine Init Points: {string.Join(",", Points)}");
         DefaultColor = color;
         // 信息栏
-        _populationLabel.Text = $"{marchingArmy.Population}";
+        _populationLabel.Text = $"{marchingArmy.population}";
         _panelContainer.Position = (to - from) / 2 - _panelContainer.Size / 2;
         // 进度条
         _progressBar.Value = 0;

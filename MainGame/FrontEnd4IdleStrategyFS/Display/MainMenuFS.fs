@@ -1,9 +1,8 @@
 ﻿namespace FrontEnd4IdleStrategyFS.Display
 
-open FSharp.Control.Reactive
-open Godot
-
 module MainMenuFS =
+    open Godot
+
     let setLocale (languageOptionButton: OptionButton) index =
         let locale =
             match languageOptionButton.GetItemText index with
@@ -31,16 +30,3 @@ module MainMenuFS =
             match locale with
             | l when l <> null && l.StartsWith "zh_" -> 0
             | _ -> 1
-
-module InGameMenuFS =
-    let onTabBarTabClicked (tabBar: TabBar) (playerInfosGrid: GridContainer) (tab: int) =
-        if tab = 0 then
-            if tabBar.CurrentTab = tab then
-                playerInfosGrid.Show()
-            else
-                playerInfosGrid.Hide()
-
-    let onRefreshTimerTimeout() =
-        // TODO: 还在构思这里的实现，感觉得和 Reactive 一起改造
-        failwith "not implemented"
-

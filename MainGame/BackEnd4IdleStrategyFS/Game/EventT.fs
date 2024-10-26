@@ -7,6 +7,8 @@ module EventT =
     /// 地块被占领事件
     type TileConqueredEvent =
         { id: TileId
+          coord: int * int
+          population: int<Pop>
           conquerorId: PlayerId
           loserId: PlayerId option }
 
