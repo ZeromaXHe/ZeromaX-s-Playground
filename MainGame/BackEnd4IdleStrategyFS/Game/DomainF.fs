@@ -3,13 +3,14 @@ namespace BackEnd4IdleStrategyFS.Game
 /// 领域层逻辑
 module private DomainF =
     open System
+    open System.Reactive.Subjects
     open DomainT
     open EventT
 
     // 增加人口
-    let increaseTilePopulation (eventSubject: EventSubject) increment (tile: Tile) =
+    let increaseTilePopulation (tilePopulationChanged: Subject<TilePopulationChangedEvent>) increment (tile: Tile) =
 
-        eventSubject.tilePopulationChanged.OnNext(
+        tilePopulationChanged.OnNext(
             { id = tile.id
               beforePopulation = tile.population
               afterPopulation = tile.population + increment }
@@ -19,19 +20,23 @@ module private DomainF =
             population = tile.population + increment }
 
     // 增加玩家领土人口
-    let addPopulationToPlayerTiles (eventSubject: EventSubject) (tiles: seq<Tile>) incr =
+    let addPopulationToPlayerTiles
+        (tilePopulationChanged: Subject<TilePopulationChangedEvent>)
+        (tiles: seq<Tile>)
+        incr
+        =
 
         tiles
         |> Seq.filter (fun tile -> tile.playerId.IsSome && tile.population < 1000<Pop>)
-        |> Seq.map (increaseTilePopulation eventSubject incr)
+        |> Seq.map (increaseTilePopulation tilePopulationChanged incr)
 
     /// 占领地块
-    let conquerTile (eventSubject: EventSubject) (tile: Tile) (conqueror: Player) =
+    let conquerTile (tileConquered: Subject<TileConqueredEvent>) (tile: Tile) (conqueror: Player) =
 
-        eventSubject.tileConquered.OnNext(
+        tileConquered.OnNext(
             { id = tile.id
               coord = tile.coord
-              population = tile.population 
+              population = tile.population
               conquerorId = conqueror.id
               loserId = tile.playerId }
         )
@@ -54,7 +59,7 @@ module private DomainF =
 
     /// 将玩家分配在地块上
     let playersFirstConquerTiles
-        (eventSubject: EventSubject)
+        (tileConquered: Subject<TileConqueredEvent>)
         (tiles: seq<Tile>)
         (players: seq<Player>)
         =
@@ -62,10 +67,10 @@ module private DomainF =
         players
         |> Seq.zip tiles
         |> Seq.map (fun (tile, player) ->
-            eventSubject.tileConquered.OnNext(
+            tileConquered.OnNext(
                 { id = tile.id
                   coord = tile.coord
-                  population = tile.population 
+                  population = tile.population
                   conquerorId = player.id
                   loserId = tile.playerId }
             )

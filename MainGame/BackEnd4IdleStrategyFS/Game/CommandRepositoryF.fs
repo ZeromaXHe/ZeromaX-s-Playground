@@ -2,6 +2,7 @@ namespace BackEnd4IdleStrategyFS.Game
 
 /// 命令数据库逻辑
 module private CommandRepositoryF =
+    open System.Reactive.Subjects
     open DomainT
     open EventT
     open RepositoryT
@@ -50,7 +51,7 @@ module private CommandRepositoryF =
             { gameState with
                 tileRepo = gameState.tileRepo.Add(tile.id, tile) }
 
-    let insertTile eventSubject gameState coord =
+    let insertTile (tileAdded: Subject<TileAddedEvent>) gameState coord =
         // 新建 Tile 逻辑
         let nextId = gameState.tileNextId |> TileId
 
@@ -60,15 +61,15 @@ module private CommandRepositoryF =
               population = 0<Pop>
               playerId = None }
 
-        eventSubject.tileAdded.OnNext({ tileId = tile.id; coord = tile.coord })
+        tileAdded.OnNext({ tileId = tile.id; coord = tile.coord })
 
         { gameState with
             tileNextId = gameState.tileNextId + 1
             tileRepo = gameState.tileRepo.Add(nextId, tile)
             tileCoordIndex = gameState.tileCoordIndex.Add(tile.coord, nextId) }
 
-    let insertTiles eventSubject gameState coords =
-        coords |> Seq.fold (insertTile eventSubject) gameState
+    let insertTiles tileAdded gameState coords =
+        coords |> Seq.fold (insertTile tileAdded) gameState
 
     let insertMarchingArmy gameState playerId population fromTileId toTileId =
         let marchingArmy =

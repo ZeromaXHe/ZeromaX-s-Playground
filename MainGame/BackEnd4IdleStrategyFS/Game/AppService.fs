@@ -1,11 +1,9 @@
 namespace BackEnd4IdleStrategyFS.Game
 
-/// 对外主接口
-module MainEntry =
+/// 应用服务层
+module AppService =
     open System
-    open System.Reactive.Subjects
     open DomainT
-    open EventT
     open RepositoryT
 
     let emptyGameState =
@@ -18,13 +16,8 @@ module MainEntry =
           marchingArmyRepo = Map.empty
           marchingArmyNextId = 1 }
 
-    let initEventSubject () =
-        { tileAdded = new Subject<TileAddedEvent>()
-          tileConquered = new Subject<TileConqueredEvent>()
-          tilePopulationChanged = new Subject<TilePopulationChangedEvent>() }
-
-    let initTiles eventSubject gameState usedCells =
-        let gameState' = CommandRepositoryF.insertTiles eventSubject gameState usedCells
+    let initTiles tileAdded gameState usedCells =
+        let gameState' = CommandRepositoryF.insertTiles tileAdded gameState usedCells
 
         let tiles =
             usedCells
@@ -37,22 +30,22 @@ module MainEntry =
 
         gameState', tiles
 
-    let addPopulationToPlayerTiles eventSubject gameState incrInt =
+    let addPopulationToPlayerTiles tilePopulationChanged gameState incrInt =
         let incr = incrInt * 1<Pop>
         let tiles = QueryRepositoryF.getAllTiles gameState
 
-        DomainF.addPopulationToPlayerTiles eventSubject tiles incr
+        DomainF.addPopulationToPlayerTiles tilePopulationChanged tiles incr
         |> Seq.fold CommandRepositoryF.updateTile gameState
 
-    let initPlayerAndSpawnOnTile eventSubject gameState tileCoords =
+    let initPlayerAndSpawnOnTile tileConquered gameState tileCoords =
         let tiles = QueryRepositoryF.getTileByCoords gameState tileCoords
         let gameState' = CommandRepositoryF.insertPlayers gameState (Seq.length tiles)
         let players = QueryRepositoryF.getAllPlayers gameState'
 
-        DomainF.playersFirstConquerTiles eventSubject tiles players
+        DomainF.playersFirstConquerTiles tileConquered tiles players
         |> Seq.fold CommandRepositoryF.updateTile gameState'
 
-    let randomSendMarchingArmy gameState playerIdInt (navService: Func<int, int seq>) =
+    let randomSendMarchingArmy gameState playerIdInt (navService: int -> int seq) =
         let playerId = PlayerId playerIdInt
 
         let randomSendMarchingArmyFrom gameState playerId =
@@ -67,7 +60,10 @@ module MainEntry =
         let randomSendMarchingArmyTo gameState fromTileId (candidateToTileIds: int seq) =
             let random = Random()
             let candidateToTileIdsList = candidateToTileIds |> Seq.toList
-            let toTileId = TileId candidateToTileIdsList[random.Next candidateToTileIdsList.Length]
+
+            let toTileId =
+                TileId candidateToTileIdsList[random.Next candidateToTileIdsList.Length]
+
             let fromTileOpt = QueryRepositoryF.getTile gameState fromTileId
 
             match fromTileOpt with
@@ -86,7 +82,7 @@ module MainEntry =
             randomSendMarchingArmyFrom gameState playerId
             |> Option.map (fun fromTileId ->
                 let (TileId tileId) = fromTileId
-                let candidateToTileIds = navService.Invoke(tileId)
+                let candidateToTileIds = navService tileId
                 randomSendMarchingArmyTo gameState fromTileId candidateToTileIds)
 
         match marchingArmyOpt with
@@ -101,7 +97,7 @@ module MainEntry =
         member this.ReturnFrom opt = opt
 
     /// 部队抵达目的地
-    let marchingArmyArriveDestination eventSubject gameState marchingArmyIdInt =
+    let marchingArmyArriveDestination tileConquered gameState marchingArmyIdInt =
         let marchingArmyId = MarchingArmyId marchingArmyIdInt
 
         let maybe = Maybe()
@@ -119,7 +115,7 @@ module MainEntry =
                             { tile with
                                 population = tile.population + marchingArmy.population }
 
-                        DomainF.conquerTile eventSubject tile2 player
+                        DomainF.conquerTile tileConquered tile2 player
                     | Some playerId when playerId = marchingArmy.playerId ->
                         { tile with
                             population = tile.population + marchingArmy.population }
@@ -131,7 +127,7 @@ module MainEntry =
                             { tile with
                                 population = marchingArmy.population - tile.population }
 
-                        DomainF.conquerTile eventSubject tile2 player
+                        DomainF.conquerTile tileConquered tile2 player
 
                 // BUG: 现在有个问题就是这里比 tileConquered 事件慢，所以占领空地时 TileGui 第一次查出来的地块人口还是 0，会延迟显示
                 let gameState' = CommandRepositoryF.updateTile gameState tile'

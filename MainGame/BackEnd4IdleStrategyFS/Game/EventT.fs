@@ -1,7 +1,6 @@
 namespace BackEnd4IdleStrategyFS.Game
 
 module EventT =
-    open System.Reactive.Subjects
     open DomainT
 
     /// 地块被占领事件
@@ -18,10 +17,5 @@ module EventT =
           beforePopulation: int<Pop>
           afterPopulation: int<Pop> }
 
+    /// 地块添加事件
     type TileAddedEvent = { tileId: TileId; coord: int * int }
-
-    /// 事件主题
-    type EventSubject =
-        { tileAdded: Subject<TileAddedEvent>
-          tileConquered: Subject<TileConqueredEvent>
-          tilePopulationChanged: Subject<TilePopulationChangedEvent> }

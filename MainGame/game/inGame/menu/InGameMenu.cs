@@ -1,5 +1,4 @@
 using System.Linq;
-using FrontEnd4IdleStrategyFS.Display;
 using Godot;
 using ZeromaXPlayground.game.inGame.map.scripts.constant;
 
@@ -23,11 +22,19 @@ public partial class InGameMenu : Control
         _playerInfosGrid = GetNode<GridContainer>("TopLeftPanel/TopLeftVBox/PlayerInfosGrid");
         _refreshTimer = GetNode<Timer>("RefreshTimer");
 
-        _tabBar.TabClicked += tab => InGameMenuFS.onTabBarTabClicked(_tabBar, _playerInfosGrid, (int)tab);
-
+        _tabBar.TabClicked += OnTabBarTabClicked;
         _refreshTimer.Timeout += OnRefreshTimerTimeout;
         // 通过设置 Size 使得 PanelContainer 刷新大小为本地化后字符长度，否则会因为默认待替换的本地化字符串长度太长导致它宽度太大
         _topLeftPanel.Size = new Vector2(10, 10);
+    }
+
+    private void OnTabBarTabClicked(long tab)
+    {
+        if (tab != 0) return;
+        if (_tabBar.CurrentTab == tab)
+            _playerInfosGrid.Show();
+        else
+            _playerInfosGrid.Hide();
     }
 
     private void OnRefreshTimerTimeout()
@@ -35,10 +42,10 @@ public partial class InGameMenu : Control
         // 通过这个功能的实现，就发现现在架构还是很别扭
         // 暂时先每秒查一次，后续重构
         var allPlayerData =
-            from player in _globalNode.QueryAllPlayers()
+            from player in _globalNode.EntryContainer.QueryAllPlayers()
             select player.id.Item
             into playerId
-            from tile in _globalNode.QueryTilesByPlayerId(playerId)
+            from tile in _globalNode.EntryContainer.QueryTilesByPlayerId(playerId)
             group tile by playerId
             into playerGroup
             select new

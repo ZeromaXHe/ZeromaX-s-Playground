@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using BackEnd4IdleStrategyFS.Game;
-using FrontEnd4IdleStrategyFS.Common;
 using Godot;
+using ZeromaXPlayground.game.Global.Common;
 
 namespace ZeromaXPlayground.game.inGame.map.scenes;
 
@@ -23,7 +22,7 @@ public partial class TileGui : Control
     {
         _id = id;
         IdMap[_id] = this;
-        _coord = BackEndUtil.fromBackEndI(coord.Item1, coord.Item2);
+        _coord = BackEndUtil.FromI(coord);
         _population.Text = population.ToString();
 
         Position = globalPosition;
