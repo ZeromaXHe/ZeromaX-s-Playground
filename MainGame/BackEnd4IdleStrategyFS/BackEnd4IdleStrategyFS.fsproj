@@ -6,7 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Godot\Adapter.fs" />
+        <Compile Include="Godot\IAdapter.fs" />
         <Compile Include="Game\DomainT.fs" />
         <Compile Include="Game\EventT.fs" />
         <Compile Include="Game\DomainF.fs" />
@@ -19,6 +19,7 @@
 
     <ItemGroup>
         <PackageReference Include="FSharp.Control.Reactive" Version="5.0.5"/>
+        <PackageReference Include="FSharpPlus" Version="1.6.1" />
     </ItemGroup>
 
 </Project>

@@ -43,7 +43,7 @@ public partial class InGameMenu : Control
         // 暂时先每秒查一次，后续重构
         var allPlayerData =
             from player in _globalNode.EntryContainer.QueryAllPlayers()
-            select player.id.Item
+            select player.Id.Item
             into playerId
             from tile in _globalNode.EntryContainer.QueryTilesByPlayerId(playerId)
             group tile by playerId
@@ -52,7 +52,7 @@ public partial class InGameMenu : Control
             {
                 PlayerId = playerGroup.Key,
                 Territory = playerGroup.Count(),
-                Population = playerGroup.Sum(tile => tile.population)
+                Population = playerGroup.Sum(tile => tile.Population)
             }
             into playerData
             orderby playerData.Population descending

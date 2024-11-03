@@ -6,11 +6,21 @@ module RepositoryT =
 
     /// 游戏状态
     type GameState =
-        { playerRepo: Map<PlayerId, Player>
-          playerNextId: int
-          tileRepo: Map<TileId, Tile>
-          tileCoordIndex: Map<int * int, TileId>
-          tilePlayerIndex: Map<PlayerId, TileId list>
-          tileNextId: int
-          marchingArmyRepo: Map<MarchingArmyId, MarchingArmy>
-          marchingArmyNextId: int }
+        { PlayerRepo: Map<PlayerId, Player>
+          PlayerNextId: int
+          TileRepo: Map<TileId, Tile>
+          TileCoordIndex: Map<int * int, TileId>
+          TilePlayerIndex: Map<PlayerId, TileId list>
+          TileNextId: int
+          MarchingArmyRepo: Map<MarchingArmyId, MarchingArmy>
+          MarchingArmyNextId: int }
+
+    let emptyGameState =
+        { PlayerRepo = Map.empty
+          PlayerNextId = 1
+          TileRepo = Map.empty
+          TileCoordIndex = Map.empty
+          TilePlayerIndex = Map.empty
+          TileNextId = 1
+          MarchingArmyRepo = Map.empty
+          MarchingArmyNextId = 1 }

@@ -2,23 +2,22 @@ namespace BackEnd4IdleStrategyFS.Game
 
 /// 命令数据库逻辑
 module private CommandRepositoryF =
-    open System.Reactive.Subjects
     open DomainT
-    open EventT
     open RepositoryT
     open QueryRepositoryF
 
     let insertPlayer gameState =
-        let player = { id = PlayerId gameState.playerNextId }
+        let player = { Id = PlayerId gameState.PlayerNextId }
 
         { gameState with
-            playerNextId = gameState.playerNextId + 1
-            playerRepo = gameState.playerRepo.Add(player.id, player) }
+            PlayerNextId = gameState.PlayerNextId + 1
+            PlayerRepo = gameState.PlayerRepo.Add(player.Id, player) }, player
 
-    let rec insertPlayers gameState count =
-        match count with
-        | 0 -> gameState
-        | _ -> insertPlayers (insertPlayer gameState) (count - 1)
+    let insertPlayers gameState count =
+        [1..count]
+        |> List.fold (fun s _ ->
+            let s', _ = insertPlayer s
+            s') gameState
 
     let updateTilePlayerIndex (index: Map<PlayerId, TileId list>) tileId oldPlayerId newPlayerId =
         let index' =
@@ -37,55 +36,56 @@ module private CommandRepositoryF =
         | Some playerId when index'.ContainsKey playerId -> index'.Add(playerId, tileId :: index'[playerId])
         | Some playerId -> index'.Add(playerId, [ tileId ])
 
-    let updateTile gameState (tile: Tile) =
+    let updateTile (tile: Tile) gameState =
         // 更新 Tile 逻辑
-        let tileModelOption = getTile gameState tile.id
+        let tileModelOption = getTile tile.Id gameState
 
         match tileModelOption with
-        | Some tileModel when tileModel.playerId <> tile.playerId ->
+        | Some tileModel when tileModel.PlayerId <> tile.PlayerId ->
             { gameState with
-                tileRepo = gameState.tileRepo.Add(tile.id, tile)
-                tilePlayerIndex =
-                    updateTilePlayerIndex gameState.tilePlayerIndex tile.id tileModel.playerId tile.playerId }
+                TileRepo = gameState.TileRepo.Add(tile.Id, tile)
+                TilePlayerIndex =
+                    updateTilePlayerIndex gameState.TilePlayerIndex tile.Id tileModel.PlayerId tile.PlayerId }
         | _ ->
             { gameState with
-                tileRepo = gameState.tileRepo.Add(tile.id, tile) }
+                TileRepo = gameState.TileRepo.Add(tile.Id, tile) }
 
-    let insertTile (tileAdded: Subject<TileAddedEvent>) gameState coord =
+    let insertTile coord gameState =
         // 新建 Tile 逻辑
-        let nextId = gameState.tileNextId |> TileId
+        let nextId = gameState.TileNextId |> TileId
 
         let tile =
-            { id = nextId
-              coord = coord
-              population = 0<Pop>
-              playerId = None }
-
-        tileAdded.OnNext({ tileId = tile.id; coord = tile.coord })
+            { Id = nextId
+              Coord = coord
+              Population = 0<Pop>
+              PlayerId = None }
 
         { gameState with
-            tileNextId = gameState.tileNextId + 1
-            tileRepo = gameState.tileRepo.Add(nextId, tile)
-            tileCoordIndex = gameState.tileCoordIndex.Add(tile.coord, nextId) }
+            TileNextId = gameState.TileNextId + 1
+            TileRepo = gameState.TileRepo.Add(nextId, tile)
+            TileCoordIndex = gameState.TileCoordIndex.Add(tile.Coord, nextId) }, tile
 
-    let insertTiles tileAdded gameState coords =
-        coords |> Seq.fold (insertTile tileAdded) gameState
+    let insertTiles coords gameState =
+        coords
+        |> Seq.fold (fun s c ->
+            let s', _ = insertTile c s
+            s') gameState
 
-    let insertMarchingArmy gameState playerId population fromTileId toTileId =
+    let insertMarchingArmy population playerId fromTileId toTileId gameState =
         let marchingArmy =
-            { id = gameState.marchingArmyNextId |> MarchingArmyId
-              population = population
-              playerId = playerId
-              fromTileId = fromTileId
-              toTileId = toTileId }
+            { Id = gameState.MarchingArmyNextId |> MarchingArmyId
+              Population = population
+              PlayerId = playerId
+              FromTileId = fromTileId
+              ToTileId = toTileId }
 
         let gameState' =
             { gameState with
-                marchingArmyNextId = gameState.marchingArmyNextId + 1
-                marchingArmyRepo = gameState.marchingArmyRepo.Add(marchingArmy.id, marchingArmy) }
+                MarchingArmyNextId = gameState.MarchingArmyNextId + 1
+                MarchingArmyRepo = gameState.MarchingArmyRepo.Add(marchingArmy.Id, marchingArmy) }
 
         gameState', marchingArmy
 
-    let deleteMarchingArmy gameState marchingArmyId =
+    let deleteMarchingArmy marchingArmyId gameState =
         { gameState with
-            marchingArmyRepo = gameState.marchingArmyRepo.Remove marchingArmyId }
+            MarchingArmyRepo = gameState.MarchingArmyRepo.Remove marchingArmyId }

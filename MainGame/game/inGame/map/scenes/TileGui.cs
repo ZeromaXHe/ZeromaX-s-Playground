@@ -30,7 +30,7 @@ public partial class TileGui : Control
 
     public static void ChangePopulation(int id, int population)
     {
-        GetById(id).ChangePopulation(population);
+        GetById(id)?.ChangePopulation(population);
     }
 
     public void ChangePopulation(int population)

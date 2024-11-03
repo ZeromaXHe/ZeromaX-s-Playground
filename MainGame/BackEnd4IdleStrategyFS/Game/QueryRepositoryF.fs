@@ -4,37 +4,37 @@ namespace BackEnd4IdleStrategyFS.Game
 module private QueryRepositoryF =
     open RepositoryT
 
-    let getPlayer gameState playerId = gameState.playerRepo.TryFind playerId
+    let getPlayer playerId gameState = gameState.PlayerRepo.TryFind playerId
 
-    let getAllPlayers gameState = gameState.playerRepo.Values |> seq
+    let getAllPlayers gameState = gameState.PlayerRepo.Values |> seq
 
-    let getTile gameState tileId = gameState.tileRepo.TryFind tileId
+    let getTile tileId gameState = gameState.TileRepo.TryFind tileId
 
-    let getTileByCoord gameState coord =
-        gameState.tileCoordIndex.TryFind coord |> Option.bind (getTile gameState)
+    let getTileByCoord coord gameState =
+        gameState.TileCoordIndex.TryFind coord |> Option.bind (fun c -> getTile c gameState)
 
-    let getTileByCoords gameState coords =
+    let getTileByCoords coords gameState =
         coords
-        |> Seq.map (getTileByCoord gameState)
+        |> Seq.map (fun c -> getTileByCoord c gameState)
         |> Seq.filter Option.isSome
         |> Seq.map (fun x -> x.Value)
 
-    let getTilesByPlayer gameState playerId =
-        match gameState.tilePlayerIndex.TryFind playerId with
+    let getTilesByPlayer playerId gameState =
+        match gameState.TilePlayerIndex.TryFind playerId with
         | Some tileIds ->
             tileIds
-            |> Seq.map (getTile gameState)
+            |> Seq.map (fun t -> getTile t gameState)
             |> Seq.filter Option.isSome
             |> Seq.map (fun x -> x.Value) // TODO: 这样实现是不是不太好？
         | None -> []
 
-    let getAllTiles gameState = gameState.tileRepo.Values |> seq
+    let getAllTiles gameState = gameState.TileRepo.Values |> seq
 
-    let getMarchingArmy gameState marchingArmyId =
-        if gameState.marchingArmyRepo.ContainsKey marchingArmyId then
-            Some <| gameState.marchingArmyRepo[marchingArmyId]
+    let getMarchingArmy marchingArmyId gameState =
+        if gameState.MarchingArmyRepo.ContainsKey marchingArmyId then
+            Some <| gameState.MarchingArmyRepo[marchingArmyId]
         else
             None
 
     let getAllMarchingArmies gameState =
-        gameState.marchingArmyRepo.Values |> seq
+        gameState.MarchingArmyRepo.Values |> seq

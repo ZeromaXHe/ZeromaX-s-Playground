@@ -1,13 +1,12 @@
 using System;
-using System.Linq;
 using System.Reactive.Linq;
+using System.Threading;
 using BackEnd4IdleStrategyFS.Game;
 using Godot;
 using ZeromaXPlayground.game.Global.Common;
 using ZeromaXPlayground.game.inGame.map.scenes;
 using ZeromaXPlayground.game.inGame.map.scripts.constant;
-using ZeromaXPlayground.game.inGame.map.scripts.eventBus;
-using ZeromaXPlayground.game.inGame.map.scripts.service;
+using Timer = Godot.Timer;
 
 namespace ZeromaXPlayground.game.inGame.map;
 
@@ -20,7 +19,6 @@ public partial class MapBoard : Node2D
     private TileMapLayer _baseTerrain;
     private TileMapLayer _feature;
     private TileMapLayer _territory;
-    private Timer _tickTimer;
     private Node2D _marchingLines;
     private Control _tileGuis;
 
@@ -47,7 +45,6 @@ public partial class MapBoard : Node2D
         _baseTerrain = GetNode<TileMapLayer>("BaseTerrain");
         _feature = GetNode<TileMapLayer>("Feature");
         _territory = GetNode<TileMapLayer>("Territory");
-        _tickTimer = GetNode<Timer>("TickTimer");
         _marchingLines = GetNode<Node2D>("MarchingLines");
         _tileGuis = GetNode<Control>("TileGUIs");
 
@@ -55,82 +52,83 @@ public partial class MapBoard : Node2D
         // _feature.Clear();
         _territory.Clear();
 
-        _globalNode.InitIdleStrategyGame();
+        _globalNode.InitIdleStrategyGame(_baseTerrain, _playerCount);
+
+        var godotSyncContext = SynchronizationContext.Current!;
+
+        _globalNode.EntryContainer.GameTicked
+            .SubscribeOn(godotSyncContext)
+            .Subscribe(e => GD.Print($"tick {e}"));
+
+        _globalNode.EntryContainer.GameFirstArmyGenerated
+            .SubscribeOn(godotSyncContext)
+            .Subscribe(e => GD.Print($"第一次出兵！！！"));
+
+        _globalNode.EntryContainer.TileAdded
+            .SubscribeOn(godotSyncContext)
+            .Subscribe(e => GD.Print($"Tile {e.TileId} added at {e.Coord}"));
+
         _globalNode.EntryContainer.TileConquered
+            .SubscribeOn(godotSyncContext)
             .Subscribe(e =>
-                // Player 的 Id 从 1 开始，所以要减一
-                _territory.SetCell(BackEndUtil.FromI(e.coord),
-                    TerritorySrcId, TerritoryAtlasCoords[e.conquerorId.Item - 1]));
-        _globalNode.EntryContainer.TileConquered
-            .Where(e => e.loserId == null)
-            .Subscribe(e =>
-                NewTileGui(e.id.Item, e.coord, e.population));
-        _globalNode.EntryContainer.TilePopulationChanged
-            .Subscribe(e =>
-                TileGui.ChangePopulation(e.id.Item, e.afterPopulation));
-
-        EventBus.Instance.MarchingArmyArrivedDestination += OnMarchingArmyArrivedDestination;
-
-        var usedCells = _baseTerrain.GetUsedCells();
-
-        // 初始化地图
-        var tileDict = _globalNode.EntryContainer.InitTiles(usedCells.Select(BackEndUtil.To))
-            .ToDictionary(t => BackEndUtil.FromI(t.coord), t => t.id.Item);
-
-        var tileIds = string.Join(", ", tileDict);
-        GD.Print($"初始化地块 {tileIds}");
-
-        foreach (var cell in usedCells)
-        {
-            // 完成连接图
-            var surroundings = _baseTerrain.GetSurroundingCells(cell);
-            foreach (var surrounding in surroundings)
-            {
-                if (tileDict.TryGetValue(surrounding, out var surroundingTileId)
-                    && tileDict.TryGetValue(cell, out var cellTileId))
+                godotSyncContext.Post(_ =>
                 {
-                    NavigationService.Instance.ConnectPoints(cellTileId, surroundingTileId);
-                }
-            }
-        }
+                    // 涉及到 Godot 节点展示层绘制的内容必须在同步上下文中执行
+                    // Player 的 Id 从 1 开始，所以要减一
+                    _territory.SetCell(BackEndUtil.FromI(e.Coord),
+                        TerritorySrcId, TerritoryAtlasCoords[e.ConquerorId.Item - 1]);
+                }, null));
 
-        // 生成玩家
-        usedCells.Shuffle();
-        _globalNode.EntryContainer.InitPlayerAndSpawnOnTile(usedCells.Take(_playerCount).Select(BackEndUtil.To));
-
-        var playerIds = string.Join(", ",
-            _globalNode.EntryContainer.QueryAllPlayers()
-                .Select(dto => dto.id.Item));
-        GD.Print($"玩家初始化完成：{playerIds}");
-
-        _tickTimer.Timeout += OnTickTimerTimeout;
-        _tickTimer.Start();
-
-        // 临时测试各个玩家的第一次发起出兵
-        GetTree().CreateTimer(3).Timeout += () =>
-        {
-            GD.Print("各 AI 玩家第一次出征");
-            foreach (var player in _globalNode.EntryContainer.QueryAllPlayers())
+        _globalNode.EntryContainer.TileConquered
+            // 占领无主空地时
+            .Where(e => e.LoserId == null)
+            .SubscribeOn(godotSyncContext)
+            .Subscribe(e =>
             {
-                RandomSendMarchingArmy(player);
-            }
-        };
+                godotSyncContext.Post(_ =>
+                {
+                    GD.Print($"Player {e.ConquerorId} conquer tile at {e.Coord}");
+                    NewTileGui(e.TileId.Item, e.Coord, e.Population);
+                }, null);
+            });
+
+        _globalNode.EntryContainer.TilePopulationChanged
+            .SubscribeOn(godotSyncContext)
+            .Subscribe(e =>
+                godotSyncContext.Post(_ =>
+                    TileGui.ChangePopulation(e.TileId.Item, e.AfterPopulation), null));
+
+        _globalNode.EntryContainer.MarchingArmyAdded
+            .SubscribeOn(godotSyncContext)
+            .Subscribe(e =>
+            {
+                // 涉及到 Godot 节点展示层绘制的内容必须在同步上下文中执行
+                // 如果使用 CallDeferred / 信号等，还是会一样报错（信号是因为 EmitSignal 也必须在主线程里）
+                // 目前貌似只有同步上下文这种方式可以解决
+                godotSyncContext.Post(_ => ShowMarchingArmy(e), null);
+            });
+
+        // 必须在同步上下文中执行，否则 Init 内容不会被响应式编程 Subscribe 监听到（会比上面监听逻辑更早执行）
+        godotSyncContext.Post(_ => _globalNode.EntryContainer.Init(), null);
+        GD.Print("MapBoard 初始化完成!");
     }
 
-    private void RandomSendMarchingArmy(DomainT.Player player)
+    private void ShowMarchingArmy(EventT.MarchingArmyAddedEvent e)
     {
-        var marchingArmy =
-            _globalNode.EntryContainer.RandomSendMarchingArmy(player.id.Item);
-        GD.Print($"AI 玩家 {player.id.Item} 发出部队 {marchingArmy.id.Item} 人数为 {marchingArmy.population}");
+        var armyId = e.MarchingArmyId.Item;
+        var fromTileId = e.FromTileId.Item;
+        var toTileId = e.ToTileId.Item;
+        var playerId = e.PlayerId.Item;
+        GD.Print($"AI 玩家 {playerId} 发出部队 {armyId} 人数为 {e.Population}");
         // 初始化一次行军部队
         var marchingLine = _marchingLineScene.Instantiate<MarchingLine>();
         _marchingLines.AddChild(marchingLine);
-        var fromCoord = _globalNode.EntryContainer.QueryTileById(marchingArmy.fromTileId.Item).coord;
-        var toCoord = _globalNode.EntryContainer.QueryTileById(marchingArmy.toTileId.Item).coord;
-        marchingLine.Init(marchingArmy,
+        var fromCoord = _globalNode.EntryContainer.QueryTileById(fromTileId).Coord;
+        var toCoord = _globalNode.EntryContainer.QueryTileById(toTileId).Coord;
+        marchingLine.Init(e.MarchingArmyId.Item, e.Population,
             GetTileCoordGlobalPosition(BackEndUtil.FromI(fromCoord)),
             GetTileCoordGlobalPosition(BackEndUtil.FromI(toCoord)),
-            Constants.PlayerColors[player.id.Item - 1]); // Player 的 Id 从 1 开始，所以要减一
+            Constants.PlayerColors[playerId - 1]); // Player 的 Id 从 1 开始，所以要减一
     }
 
     private Vector2 GetTileCoordGlobalPosition(Vector2I coord)
@@ -138,28 +136,10 @@ public partial class MapBoard : Node2D
         return _territory.ToGlobal(_territory.MapToLocal(coord));
     }
 
-    private void OnMarchingArmyArrivedDestination(int marchingArmyId)
-    {
-        // 结束之前的行军
-        var playerId = _globalNode.EntryContainer.MarchingArmyArriveDestination(marchingArmyId);
-        // 让玩家再次发起出兵
-        RandomSendMarchingArmy(_globalNode.EntryContainer.QueryPlayerById(playerId));
-    }
-
     private void NewTileGui(int id, Tuple<int, int> coord, int population)
     {
         var tileGui = _tileGuiScene.Instantiate<TileGui>();
         _tileGuis.AddChild(tileGui); // 先添加子节点，Init 的时候 tileGui 的 _population 才拿得到 Label
         tileGui.Init(id, coord, population, GetTileCoordGlobalPosition(BackEndUtil.FromI(coord)));
-    }
-
-    private void OnTickTimerTimeout()
-    {
-        _globalNode.EntryContainer.AddPopulationToPlayerTiles(1);
-    }
-
-    // Called every frame. 'delta' is the elapsed time since the previous frame.
-    public override void _Process(double delta)
-    {
     }
 }

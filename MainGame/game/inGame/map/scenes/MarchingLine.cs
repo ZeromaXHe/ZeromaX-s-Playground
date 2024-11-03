@@ -1,7 +1,5 @@
-using BackEnd4IdleStrategyFS.Game;
 using Godot;
 using ZeromaXPlayground.game.inGame.map.scripts.constant;
-using ZeromaXPlayground.game.inGame.map.scripts.eventBus;
 
 public partial class MarchingLine : Line2D
 {
@@ -16,10 +14,10 @@ public partial class MarchingLine : Line2D
     private int _marchingArmyId = Constants.NullId;
     private int _speed = 25;
 
-    public void Init(DomainT.MarchingArmy marchingArmy, Vector2 from, Vector2 to, Color color)
+    public void Init(int id, int population, Vector2 from, Vector2 to, Color color)
     {
-        _marchingArmyId = marchingArmy.id.Item;
-        _speed = marchingArmy.population switch
+        _marchingArmyId = id;
+        _speed = population switch
         {
             < 10 => 50, // 人数小于 10 人，2 秒后到达目的地
             < 50 => 25, // 小于 50 人，4 秒后
@@ -33,7 +31,7 @@ public partial class MarchingLine : Line2D
         // GD.Print($"MarchingLine Init Points: {string.Join(",", Points)}");
         DefaultColor = color;
         // 信息栏
-        _populationLabel.Text = $"{marchingArmy.population}";
+        _populationLabel.Text = $"{population}";
         _panelContainer.Position = (to - from) / 2 - _panelContainer.Size / 2;
         // 进度条
         _progressBar.Value = 0;
@@ -60,7 +58,6 @@ public partial class MarchingLine : Line2D
     {
         if (_progressBar.Value >= 100)
         {
-            EventBus.Instance.EmitSignal(EventBus.SignalName.MarchingArmyArrivedDestination, _marchingArmyId);
             QueueFree();
         }
 
