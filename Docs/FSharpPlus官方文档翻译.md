@@ -3085,6 +3085,172 @@ let mappedMyList = map string (MyList [1; 2; 3])
 
 
 
+## Bifunctor
+
+https://fsprojects.github.io/FSharpPlus/abstraction-bifunctor.html
+
+直观地说，二函子（bifunctor）是一个有 2 个协变参数的函子。
+
+一个二函子（二元函子（binary functor）的缩写）或双变量函子（functor of two variables）只是一个值域是两种类型的乘积的函子。
+
+### 最小完整定义
+
+- `bimap f g x`
+
+```F#
+static member Bimap (x:'Bifunctor<'T,'V>, f:'T->'U, g:'V->'W) :'Bifunctor<'U,'W>
+```
+
+### 其他操作
+
+- `first f x`
+
+```F#
+static member First (x:Bifunctor<'T,'V>, f:'T->'U) :'Bifunctor<'U,'V>
+```
+
+- `second g x`
+
+```F#
+static member Map (x:Bifunctor<'T,'V>, f:'V->'W) :'Bifunctor<'T,'W>
+```
+
+### 规则
+
+```F#
+bimap f g = first f << second g
+```
+
+### 相关抽象
+
+- [Functor](https://fsprojects.github.io/FSharpPlus/abstraction-functor.html): 所有双函子也是两个参数上的函子。
+
+### 具体实现
+
+来自 .NET/F#
+
+- `'T1 * 'T2`
+- `struct ('T1 * 'T2)`
+- `Result<'T2, 'T1>`
+- `Choice<'T2, 'T1>`
+- `KeyValuePair<'T1, 'T2>`
+
+来自 F#+
+
+- [`Const<'C, 'T>`](https://fsprojects.github.io/FSharpPlus/type-const.html)
+- [`Validation<'Error, 'T>`](https://fsprojects.github.io/FSharpPlus/type-validation.html)
+
+[建议另一个](https://github.com/fsprojects/FSharpPlus/issues/new)具体实现
+
+### 例子
+
+```F#
+#r @"nuget: FSharpPlus"
+open FSharpPlus
+
+// convert (map) first element to an int and the second to a string
+let rInt10Str10 = bimap  int string (10.0, 10)
+
+
+let resOk11  = bimap  ((+) 1) string (Ok 10)
+let rStrTrue = first  string (true, 10)
+let rStr10   = second string (true, 10)
+```
+
+
+
+## Comonad
+
+https://fsprojects.github.io/FSharpPlus/abstraction-comonad.html
+
+Comonads 是单子的范畴对偶。
+
+### 最小完整定义
+
+- `extract s`
+- `extend g s` / `(=>>) s g`
+
+```F#
+static member Extract (s: 'Comonad<'T>) : 'T
+static member (=>>)   (s: 'Comonad<'T>, f: 'Comonad<'T> -> 'U) : 'Comonad<'U>
+```
+
+### 其他操作
+
+- `duplicate x`
+
+```F#
+static member Duplicate (x : 'Comonad<'T>) : 'Comonad<'Comonad<'T>>
+```
+
+### 规则
+
+```F#
+extend extract       = id
+extract << extend f  = f
+extend f << extend g = extend (f << extend g)
+```
+
+### 相关抽象
+
+- [Monad](https://fsprojects.github.io/FSharpPlus/abstraction-monad.html): Comonads 是单子的范畴对偶。
+
+### 具体实现
+
+来自 .NET/F#
+
+- `Async<'T>`
+- `Lazy<'T>`
+- `Id<'T>`
+- `('W * 'T)`
+- `struct ('W * 'T)`
+- `'Monoid -> 'T`
+- `ValueTask<'T>`
+
+来自 F#+
+
+- [`Reader<'R,'T>`](https://fsprojects.github.io/FSharpPlus/type-reader.html)
+- [`Writer<'Monoid,'T>`](https://fsprojects.github.io/FSharpPlus/type-writer.html)
+
+[建议另一个](https://github.com/fsprojects/FSharpPlus/issues/new)具体实现
+
+### 例子
+
+```F#
+#r @"nuget: FSharpPlus"
+open FSharpPlus
+open FSharpPlus.Data
+
+// A non-empty list
+let lst   = {Head = 1; Tail = [2;3;4;5]}
+
+// Get the head
+let elem1 = extract   lst
+
+// Get ALL tails
+let tails = duplicate lst
+
+// This should return the original list
+let lst'  = extend extract lst
+
+
+
+let ct1 = duplicate [1;2;3;4] // val it : List<List<int>> = [[1; 2; 3; 4]; [2; 3; 4]; [3; 4]; [4]]
+let ct2 = duplicate ("a", 10) // val it : string * (string * int) = ("a", ("a", 10))
+let ct3 = duplicate (fun (x:string) -> System.Int32.Parse x)
+let r80100 = ct3 "80" "100"
+
+let ct1' = extend id [1;2;3;4]
+let ct2' = extend id ("a", 10)
+let ct3' = extend id (fun (x:string) -> System.Int32.Parse x)
+
+let ct1'' = (=>>) [1;2;3;4] id
+let ct2'' = (=>>) ("a", 10) id
+let ct3'' = (=>>) (fun (x:string) -> System.Int32.Parse x) id
+```
+
+
+
 ## Applicative
 
 https://fsprojects.github.io/FSharpPlus/abstraction-applicative.html
@@ -3312,6 +3478,306 @@ let mappedMyList : MyList<_> = (MyList [(+) 1; (+) 2; (+) 3]) <*> (MyList [1; 2;
 ### 推荐阅读
 
 - 强烈推荐 Matt Thornton 的博客 [Grokking Applicatives](https://dev.to/choc13/grokking-applicatives-44o1)。它包含使用 F#+ 的示例和从头开始的解释。
+
+
+
+## ZipApplicative（又名 Non-sequential Applicative）
+
+https://fsprojects.github.io/FSharpPlus/abstraction-zipapplicative.html
+
+一个带应用的 functor，提供嵌入纯表达式（`pur`）、逐点和/或并行运行计算以及组合结果（`<.>`）的操作。
+
+### 最小完整定义
+
+- `pur x` 
+- `(<.>) f x`
+
+```F#
+static member Pure (x: 'T) : 'ZipApplicative<'T>
+static member (<.>) (f: 'ZipApplicative<'T -> 'U>, x: 'ZipApplicative<'T>) : 'ZipApplicative<'U>
+```
+
+### 其他操作
+
+- `zip`
+
+```F#
+static member Zip (x1: 'ZipApplicative<'T1>, x2: 'ZipApplicative<'T2>) : 'ZipApplicative<'T1 * 'T2>
+```
+
+- `unzip`
+
+```F#
+static member Unzip (x: 'ZipApplicative<'T1 * 'T2>) : 'ZipApplicative<'T1> * 'ZipApplicative<'T2>
+```
+
+- `map2`
+
+```F#
+static member Map2 (f: 'T1 -> 'T2 -> 'T, x1: 'ZipApplicative<'T1>, x2: 'ZipApplicative<'T2>) : 'ZipApplicative<'T>
+```
+
+- `map3`
+
+```F#
+static member Map3 (f: 'T1 -> 'T2 -> 'T3 -> 'T, x1: 'ZipApplicative<'T1>, x2: 'ZipApplicative<'T2>, x3: 'ZipApplicative<'T3>) : 'ZipApplicative<'T>
+```
+
+### 规则
+
+由于 ZipApplicatives 是 Applicatives，因此它们遵循相同的应用函子规则：
+
+```F#
+pur id <.> v = v
+pur (<<) <.> u <.> v <.> w = u <.> (v <.> w)
+pur f <*> pur x = pur (f x)
+u <*> pur y = pur ((|>) y) <.> u
+```
+
+但它们有一些额外规则：
+
+```F#
+zip x y = tuple2 <!> x <.> y
+unzip = map fst &&& map snd
+id = unzip >> (<||) zip = (<||) zip >> unzip
+```
+
+### 相关抽象
+
+- [Functor](https://fsprojects.github.io/FSharpPlus/abstraction-functor.html): zipApplictive 是一个函子，其 `map` 操作可以拆分为 `pur` 和 `(<.>)` 操作，
+- [Applicative](https://fsprojects.github.io/FSharpPlus/abstraction-applicative.html) : ZipApplicates 是通常不会形成 [Monad](https://fsprojects.github.io/FSharpPlus/abstraction-monad.html) 的应用函子，因此应用函子实例通常不相同。
+
+### 具体实现
+
+来自 .NET/F#
+
+- `seq<'T>`
+- `list<'T>`
+- `option<'T>` *
+- `voption<'T>` *
+- `Lazy<'T>` *
+- `Async<'T>`
+- `Result<'T, 'U>`
+- `Choice<'T, 'U>`
+- `KeyValuePair<'Key, 'T>` *
+- `'Monoid * 'T` *
+- `ValueTuple<'Monoid, 'T>` *
+- `Task<'T>`
+- `ValueTask<'T>`
+- `'R -> 'T` *
+- `Expr<'T>` *
+
+来自 F#+
+
+- [`NonEmptySeq<'T>`]
+- [`NonEmptyList<'T>`](https://fsprojects.github.io/FSharpPlus/type-nonempty.html)
+- [`Compose<'ZipApplicative1<'ZipApplicative2<'T>>>`](https://fsprojects.github.io/FSharpPlus/type-compose.html)
+
+（*）操作与正常应用函子相同
+
+仅适用于 <*> 操作： \- `array<'T>` - `ResizeArray<'T>` - `Map<'Key, 'T>` - `Dictionary<'Key, 'T>` - `IDictionary<'Key, 'T>` - `IReadOnlyDictionary<'Key, 'T>`
+
+[建议另一个](https://github.com/fsprojects/FSharpPlus/issues/new)具体实现
+
+### 例子
+
+```F#
+#r @"nuget: FSharpPlus"
+open FSharpPlus
+
+let (x, y) = zip (async { return 1 }) (async { return '2' }) |> Async.RunSynchronously
+// val y: char = '2'
+
+
+// crossproduct vs pointwise operations
+
+let arr1 = (+) <!> [|1;2;3|] <*> [|10;20;30|]
+let arr2 = (+) <!> [|1;2;3|] <.> [|10;20;30|]
+
+// val arr1: int array = [|11; 21; 31; 12; 22; 32; 13; 23; 33|]
+// val arr2: int array = [|11; 22; 33|]
+
+
+// Validations
+
+let validated = applicative2' {
+    let! x = async { return Ok 1 }
+    and! y = async { return Error ["Error1"] }
+    and! z = async { return Error ["Error2"] }
+    return x + y + z
+}
+
+validated |> Async.RunSynchronously
+// val it: Result<int,string list> = Error ["Error1"; "Error2"]
+```
+
+
+
+## Alternative
+
+https://fsprojects.github.io/FSharpPlus/abstraction-alternative.html
+
+也具有幺半群结构的应用函子___
+
+### 最小完整定义
+
+- `return x`  /  `result x`
+- `(<*>) f x`
+- `empty`
+- `append x y`  /  `(<|>) x y`
+
+```F#
+static member Return (x: 'T) : 'Alternative<'T>
+static member (<*>) (f: 'T -> 'U, x: 'Alternative<'T>) : 'Alternative<'U>
+static member get_Empty () : 'Alternative
+static member (<|>) (x: 'Alternative<'T>, y: 'Alternative<'T>) : 'Alternative<'T>
+```
+
+注意：`return` 不能在计算表达式之外使用，请使用 `result`。
+
+### 其他操作
+
+- `mfilter`
+
+```F#
+static member MFilter (x: seq<'Alternative>) : 'Alternative
+```
+
+- `choice`
+
+```F#
+static member inline Choice (source: 'Foldable<'Alt<'T>>) : 'Alt<'T>
+```
+
+### 规则
+
+```F#
+empty <|> x = x
+x <|> empty = x
+(x <|> y) <|> z = x <|> (y <|> z)
+f <!> (x <|> y) = (f <!> x) <|> (f <!> y)
+(f <|> g) <*> x = (f <*> x) <|> (g <*> x)
+empty <*> f = empty
+```
+
+### 相关抽象
+
+- [Monoid](https://fsprojects.github.io/FSharpPlus/abstraction-monoid.html): 一个 Alternative 是一个也是应用函子的幺半群
+- [Applicative](https://fsprojects.github.io/FSharpPlus/abstraction-applicative.html): 一个 Alternative 是一个也是应用函子的幺半群
+- MonadPlus: 也是 Monads 的 Alternatives
+
+### 具体实现
+
+来自 .NET/F#
+
+- `list<'T>`
+- `array<'T>`
+- `seq<'T>`
+- `option<'T>`
+- `voption<'T>`
+- `Result<'T, 'Monoid>`
+- `Choice<'T, 'Monoid>`
+- `'T -> 'Alternative`
+
+来自 F#+
+
+- [`ReaderT<'R, 'MonadPlus<'T>>`](https://fsprojects.github.io/FSharpPlus/type-readert.html)
+- [`WriterT<'MonadPlus<'T * 'Monoid>>`](https://fsprojects.github.io/FSharpPlus/type-writert.html)
+- [`StateT<'S,'MonadPlus<'T * 'S>>`](https://fsprojects.github.io/FSharpPlus/type-statet.html)
+- [`OptionT<'MonadPlus>>`](https://fsprojects.github.io/FSharpPlus/type-optiont.html)
+- [`ValueOptionT<'MonadPlus>>`](https://fsprojects.github.io/FSharpPlus/type-valueoptiont.html)
+- [`ResultT<'MonadPlus>>`](https://fsprojects.github.io/FSharpPlus/type-resultt.html)
+- [`ChoiceT<'MonadPlus>>`](https://fsprojects.github.io/FSharpPlus/type-choicet.html)
+- [`Compose<'AlternativeF<'AlternativeG<'T>>>`](https://fsprojects.github.io/FSharpPlus/type-compose.html)
+- [`DList<'T>`](https://fsprojects.github.io/FSharpPlus/type-dlist.html)
+- [`ZipList<'S>`](https://fsprojects.github.io/FSharpPlus/type-ziplist.html)
+- [`NonEmptySeq<'T>`](https://fsprojects.github.io/FSharpPlus/type-nonemptyseq.html) `*`
+- [`Validation<'Error, 'T>`](https://fsprojects.github.io/FSharpPlus/type-validation.html) `*`
+
+`*` 仅 `<|>` 操作
+
+[建议另一个](https://github.com/fsprojects/FSharpPlus/issues/new)具体实现
+
+### 例子
+
+```F#
+#r @"nuget: FSharpPlus"
+open FSharpPlus
+
+// this gives [2; 3; 4; 5]
+let x = [2;3] <|> [] <|> [4;5]
+
+// but I could have written
+let y = [2;3] <|> empty <|> [4;5]
+
+// choice sample usage
+let alternatives = [None; Some "Result is OK"; None ; Some "Result is still OK"]
+let firstGood = choice alternatives //Some "Result is OK"
+
+// it did something like
+let fstGood = None <|> Some "Result is OK" <|>  None <|> Some "Result is still OK"
+
+// mfilter usage
+let fstMatch = mfilter ((=) 5) [1;2;3;4]    // [] -> no element found, it uses the empty value
+
+
+// MonadPlus
+
+let getLine    = async { return System.Console.ReadLine() }
+let putStrLn x = async { printfn "%s" x}
+
+let nameAndAddress = traverse (fun x -> putStrLn x >>= fun _ -> getLine) ["name";"address"]
+
+let a:list<int> = empty
+let res123      = empty <|> [1;2;3]
+
+let inline mfilter p ma = monad.plus {
+  let! a = ma
+  if p a then return a else return! empty}
+
+let mfilterRes2 = mfilter ((=)2) (Some 2)
+
+// sample code from http://en.wikibooks.org/wiki/Haskell/MonadPlus
+let pythags = monad {
+  let! z = [1..50]
+  let! x = [1..z]
+  let! y = [x..z]
+  do! guard (x*x + y*y = z*z)
+  return (x, y, z)}
+
+// same operation but using the monad.plus computation expression
+let pythags' = monad.plus {
+  let! z = [1..50]
+  let! x = [1..z]
+  let! y = [x..z]
+  if (x*x + y*y = z*z) then return (x, y, z) else ()}
+
+let allCombinations = sequence [['a'; 'b'; 'c']; ['1'; '2']]
+
+
+// An Alternative is automatically a Monoid and a Functor
+
+type Maybe<'t> =
+    | Just of 't
+    | Nothing 
+    with
+        static member Return (x:'a)     = Just x
+        static member (<*>) (f, x) = 
+            match (f, x) with 
+            | Just f, Just x -> Just (f x) 
+            | _              -> Nothing
+        static member inline get_Empty () = Nothing
+        static member inline (<|>) (x, y) = match x with Nothing -> y | xs -> xs
+
+let r5 = Nothing ++ Just 5 ++ Just 6 ++ zero
+let r6 = map string (Just 6)
+
+
+// But not always the Monoidal behaviour is the same
+
+let r3 = Some 2 ++ Some 1   // addition         => Some 3
+let r2 = Some 2 <|> Some 1  // first success    => Some 2
+```
 
 
 
@@ -3856,6 +4322,704 @@ let res230hiSum2 = (zero, zero, 2) ++ ([2], ([3.0], "hi"), zero)
 let res230hiS4P3 = (zero, zero   ) ++ ([2], ([3.0], "hi", 4, Mult (6 % 2)))
 let tuple5 :string*(Any*string)*(All*All*All)*int*string = zero
 ```
+
+
+
+## Foldable
+
+https://fsprojects.github.io/FSharpPlus/abstraction-foldable.html
+
+可以折叠为摘要值的数据结构。
+
+### 最小完整定义
+
+- `toSeq x`
+
+```F#
+static member ToSeq (x:'Foldable<'T>) :seq<'T>
+```
+
+### 其他操作
+
+- `foldMap`
+
+```F#
+FoldMap (x:'Foldable<'T>, f:'T->'Monoid)
+```
+
+### 规则
+
+```F#
+foldMap (f >> g) = foldMap f >> g
+```
+
+### 相关抽象
+
+- [Monoid](https://fsprojects.github.io/FSharpPlus/abstraction-monoid.html)
+
+### 具体实现
+
+来自 .NET/F#
+
+- `seq<'T>`
+- `list<'T>`
+- `'T []`
+- `option<'T>`
+- `voption<'T>`
+- `ResizeArray<'T>`
+- `ReadOnlyCollection<'T>`
+- `IReadOnlyCollection<'T>`
+- `IReadOnlyList<'T>`
+
+来自 F#+
+
+- [`ZipList<'T>`](https://fsprojects.github.io/FSharpPlus/type-ziplist.html)
+- [`NonEmptyList<'S>`](https://fsprojects.github.io/FSharpPlus/type-nonempty.html)
+- [`DList<'T>`](https://fsprojects.github.io/FSharpPlus/type-dlist.html)
+
+[建议另一个](https://github.com/fsprojects/FSharpPlus/issues/new)具体实现
+
+### 例子
+
+```F#
+#r @"../../src/FSharpPlus/bin/Release/netstandard2.0/FSharpPlus.dll"
+
+open FSharpPlus
+open FSharpPlus.Data
+open FSharpPlus.Control
+
+let res1_Gt   = foldMap (compare 2) [1;2;3]
+let resHelloW = foldMap (fun x -> Some ("hello " + x)) (Some "world")
+
+module FoldableTree =
+    type Tree<'a> =
+        | Empty 
+        | Leaf of 'a 
+        | Node of (Tree<'a>) * 'a * (Tree<'a>)
+
+        // add instance for Foldable class
+        static member inline FoldMap (t:Tree<_>, f) =
+            let rec loop x f =
+                match x with
+                | Empty          -> zero
+                | Leaf  n        -> f n
+                | Node (l, k, r) -> loop l f ++ f k ++ loop r f
+            loop t f
+        static member inline FoldBack (x:Tree<_>, f, z) = FoldBack.FromFoldMap f z x
+        static member inline ToSeq    (x:Tree<_>) = Tree<_>.FoldBack (x, (fun x y -> seq {yield x; yield! y}), Seq.empty)
+    
+    let myTree = Node (Node (Leaf 1, 6, Leaf 3), 2 , Leaf 9)
+    let resSum21      = foldMap id   myTree
+    let resProduct324 = foldMap Mult myTree
+    let res21         = foldBack   (+) myTree 0
+    let res21'        = fold       (+) 0 myTree    // <- Tree.Fold is not defined but it fallbacks to the default method (Tree.ToSeq)
+
+module FoldableTree2 =
+    type Tree<'a> =
+        | Empty 
+        | Leaf of 'a 
+        | Node of (Tree<'a>) * 'a * (Tree<'a>)
+
+        // add instance for Foldable abstraction (ToSeq is the minimal definition).
+        static member ToSeq x =        
+            let rec loop t = seq {
+                match t with
+                | Empty        -> ()
+                | Leaf n       -> yield n
+                | Node (l,k,r) -> yield k; yield! loop l; yield! loop r}
+            loop x
+       
+        static member inline FoldBack (x, f, z) = 
+            let rec _foldMap x f =
+                match x with
+                | Empty        -> getZero()
+                | Leaf n       -> f n
+                | Node (l,k,r) -> plus (_foldMap l f) (plus (f k) (_foldMap r f))
+            Endo.run (_foldMap x (Endo << f )) z
+
+    
+    let tree = Node (Node (Leaf 1, 6, Leaf 3), 2 , Leaf 9)
+    let res21  = foldBack   (+) tree 0
+
+    // Following operations work by falling back to Tree.ToSeq which is the default
+    let res21' = fold   (+) 0   tree      
+    let resTr  = exists ((=) 3) tree
+    let resS3  = tryPick (fun x -> if x = 3 then Some x else None) tree
+```
+
+
+
+## Bifoldable
+
+https://fsprojects.github.io/FSharpPlus/abstraction-bifoldable.html
+
+直观地说，bifoldable 是一种有 2 个参数的类型，每个参数都是可折叠的。
+
+二可折叠（二元可折叠（binary foldable）的缩写）或两个变量的可折叠（foldable of two variables）是一个最多包含两个元素的容器，其组件可以折叠为一个值。
+
+与保留容器类型的 bimap 不同，bifoldable 将提取并折叠值。
+
+### 最小完整定义
+
+- `bifoldMap f g x`
+
+```F#
+static member BifoldMap (x:'Bifoldable<'T,'V>, f:'T->'U, g:'V->'U) :'U
+```
+
+- `bifold f g z x`
+
+```F#
+static member Bifold (x:'Bifoldable<'T,'V>, f:'T->'Monoid, g:'V->'Monoid, z: 'Monoid) :'Monoid
+```
+
+- `bifoldBack f g x z`
+
+```F#
+static member BifoldBack (x:'Bifoldable<'T,'V>, f:'T->'Monoid, g:'V->'Monoid, z: 'Monoid) :'Monoid
+```
+
+### 其他操作
+
+- `bisum x`
+
+```F#
+static member Bisum (x:Bifunctor<'T,'T>) :'T
+```
+
+### 规则
+
+```F#
+bisum x = bifoldMap id id x
+bifoldMap f g x = bifoldBack (f >> (++)) (g >> (++)) x zero
+bifoldBack f g x z = Endo.run (bifoldMap (f >> Endo) (g >> Endo) x) z
+```
+
+### 相关抽象
+
+- [Foldable](https://fsprojects.github.io/FSharpPlus/abstraction-foldable.html): 所有二可折叠都包含最多两个可折叠为单一常见类型的元素。
+- [Monoid](https://fsprojects.github.io/FSharpPlus/abstraction-monoid.html): 对于两个元素不相交的容器，可折叠有的关系，幺半群同样适用。
+
+### 具体实现
+
+来自 .NET/F#
+
+- `'T * 'U`
+- `struct ('T * 'U)`
+- `Result<'T, 'U>`
+- `Choice<'T, 'U>`
+
+来自 F#+
+
+- [`Const<'C, 'T>`](https://fsprojects.github.io/FSharpPlus/type-const.html)
+- [`Validation<'Error, 'T>`](https://fsprojects.github.io/FSharpPlus/type-validation.html)
+
+[建议另一个](https://github.com/fsprojects/FSharpPlus/issues/new)具体实现
+
+### 例子
+
+```F#
+#r @"../../src/FSharpPlus/bin/Release/netstandard2.0/FSharpPlus.dll"
+
+open FSharpPlus
+open FSharpPlus.Control
+
+let listMapSeqLength = List.map Seq.length
+let listMapTimes2 = List.map ((*) 2)
+
+let c1 : Choice<int list,string list> = Choice1Of2 [1..2]
+let c2 : Choice<int list,string list> = Choice2Of2 ["a";"bbbb"]
+
+bifoldBack (listMapSeqLength >> (++)) (listMapTimes2 >> (++)) c1 [0] // = [2;4;0]
+bifoldBack (listMapSeqLength >> (++)) (listMapTimes2 >> (++)) c2 [0] // = [1;4;0]
+bifoldMap listMapSeqLength listMapTimes2 c1 // = [2;4]
+bifoldMap listMapSeqLength listMapTimes2 c2 // = [1;4]
+
+let t = ("b","c")
+bifoldBack (++) (++) t "a" // = "bca"
+bifold (++) (++) "a" t // = "abc"
+
+// implementing on custom type:
+type MyEither<'a,'b> = 
+    | MyLeft of 'a 
+    | MyRight of 'b
+    static member inline BifoldMap (x: MyEither<_,_>, f, g) =
+      match x with
+      | MyLeft a -> f a
+      | MyRight a -> g a
+
+    static member BifoldBack (x: MyEither<_,_>, f, g, z) =
+        match x with
+        | MyLeft a -> f a z
+        | MyRight a -> g a z
+
+bisum (MyEither.MyLeft "a") // = "a"
+bisum (1,2) // = 3
+
+
+let inline law1 x =
+  bisum x = bifoldMap id id x
+
+law1 (1,1) // = true
+law1 (Ok [1;2;3]) // = true
+law1 (Error [1;2;3]) // = true
+law1 (Choice1Of2 [1;2;3]) // = true
+law1 (Choice2Of2 [1;2;3]) // = true
+law1 (MyLeft [1;2;3]) // = true
+law1 (MyRight [1;2;3]) // = true
+
+
+let inline law2 x f g =
+  bifoldMap f g x = bifoldBack (f >> (++)) (g >> (++)) x zero
+
+law2 (1,1) ((+) 1) ((+) 2) // = true
+law2 (Ok [1;2;3]) ((++) [1]) ((++) [2]) // = true
+law2 ("a","b") ((+) "bbbb") ((+) "aaaa") // = true
+
+open FSharpPlus.Data
+let inline law3 x f g z =
+  bifoldBack f g x z = Endo.run (bifoldMap (f >> Endo) (g >> Endo) x) z
+
+law3 (1,1) (++) (++) 5 // = true
+law3 ("a","b") (++) (++) "abcd" // = true
+law3 (Ok [1;2;3]) (++) (++) [0;1;2;3;4] // = true
+```
+
+
+
+## Traversable
+
+https://fsprojects.github.io/FSharpPlus/abstraction-traversable.html
+
+可以从左到右遍历的数据结构，对每个元素执行操作。
+
+### 最小完整定义
+
+- `traverse f x` | `sequence x`
+
+```F#
+static member Traverse (t: 'Traversable<'T>, f: 'T -> 'Applicative<'U>) : 'Applicative<'Traversable<'U>>
+static member Sequence (t: 'Traversable<'Applicative<'T>>) : 'Applicative<'Traversable<'T>>
+```
+
+### 其他操作
+
+- `gather f x` | `transpose x` (与 `traverse` 和 `sequence` 一样，但是操作的是 [ZipApplicatives](https://fsprojects.github.io/FSharpPlus/abstraction-zipapplicative.html) )
+
+```F#
+static member Gather (t: 'Traversable<'T>, f: 'T -> 'ZipApplicative<'U>) : 'ZipApplicative<'Traversable<'U>>
+static member Transpose (t: 'Traversable<'ZipApplicative<'T>>) : 'ZipApplicative<'Traversable<'T>>
+```
+
+### 规则
+
+```F#
+t << traverse f = traverse (t << f) 
+traverse Identity = Identity
+traverse (Compose << map g << f) = Compose << map (traverse g) << traverse f
+```
+
+### 相关抽象
+
+- [Functor](https://fsprojects.github.io/FSharpPlus/abstraction-functor.html)：遍历对象在遍历类型参数和（应用）函子内部类型参数上是泛型的。
+- [Applicative](https://fsprojects.github.io/FSharpPlus/abstraction-applicative.html)：应用程序是一个 functor，其 `map` 操作可以在 `return` 和 `(<*>)` 操作中拆分。
+- [Foldable](https://fsprojects.github.io/FSharpPlus/abstraction-foldable.html)：所有可遍历物都是可折叠的。
+
+### 具体实现
+
+来自 .NET/F#
+
+- `seq<'T>`
+- `list<'T>`
+- `array<'T>`
+- `option<'T>`
+- `voption<'T>`
+- `ResizeArray<'T>`
+- `Map<'K, 'T>`
+- `Result<'T, 'Error>`
+- `Choice<'T, 'Error>`
+
+来自 F#+
+
+- [`ZipList<'T>`](https://fsprojects.github.io/FSharpPlus/type-ziplist.html)
+- [`NonEmptyList<'T>`](https://fsprojects.github.io/FSharpPlus/type-nonempty.html)
+- [`NonEmptyMap<'Key, 'T>`](https://fsprojects.github.io/FSharpPlus/type-nonempty-map.html)
+- [`Validation<'Error, 'T>`](https://fsprojects.github.io/FSharpPlus/type-validation.html)
+
+[建议另一个](https://github.com/fsprojects/FSharpPlus/issues/new)具体实现
+
+### 例子
+
+```F#
+#r @"nuget: FSharpPlus"
+open FSharpPlus
+
+
+// Some functions
+let getLine    = async { return System.Console.ReadLine () }
+let f x = if x < 200 then [3 - x] else []
+let g x = if x < 200 then Some (3 - x) else None
+
+// traverse
+let resSomeminus100 = traverse f (Some 103)
+let resLstOfNull    = traverse f None 
+let res210          = traverse f [1; 2; 3]  
+let resSome210      = traverse g [1; 2; 3]  
+let resEmptyList    = traverse f [1000; 2000; 3000] 
+let resEListOfElist = traverse f []
+
+// sequence
+let resSome321  = sequence [Some 3; Some 2; Some 1]
+let resNone     = sequence [Some 3; None  ; Some 1]
+let res654      = (sequence [(+) 3; (+) 2; (+) 1]) 3
+let resCombined = sequence [ [1; 2; 3] ;  [4; 5; 6]  ]
+let resLstOfArr = sequence [|[1; 2; 3] ;  [4; 5; 6] |]  // <- Uses the default method.
+let resArrOfLst = sequence [[|1; 2; 3|]; [|4; 5; 6 |]]
+
+// This computation will ask for three user inputs
+// try Async.RunSynchronously get3strings
+let get3strings = sequence [getLine; getLine; getLine]
+```
+
+### 推荐阅读
+
+- 强烈推荐 Matt Thornton 的博客 [Grokking Traversable](https://dev.to/choc13/grokking-traversable-bla)。它包含使用 F#+ 的示例和从头开始的解释。
+
+
+
+## Bitraversable
+
+https://fsprojects.github.io/FSharpPlus/abstraction-bitraversable.html
+
+Bitraversable 识别其元素可以按顺序遍历的双函子数据结构，在每个元素上执行应用函子操作，并收集具有相同形状的结果结构。
+
+可遍历数据结构具有一种可以执行动作的元素，而 Bitraversable 数据结构具有两种这样的元素。
+
+### 最小完整定义
+
+- `bitraverse f g x` | `bisequence x` and `bimap f g x`
+
+```F#
+static member Bitraverse (t: 'Bitraversable<'T1,'U1>, f: 'T1->'Functor<'T2>, g: 'U1->'Functor<'U2>) : 'Functor<'Bitraversable<'T2,'U2>>
+static member Bisequence (t: 'Bitraversable<'Functor<'T>,'Functor<'U>>) : 'Functor<'Bitraversable<'T,'U>>
+```
+
+### 规则
+
+```F#
+t << bitraverse f g = bitraverse (t << f) (t << g)
+bitraverse Identity Identity = Identity
+bitraverse (Compose << map g1 << f1) = Compose << fmap (bitraverse g1 g21) << bitraverse f1 f2
+```
+
+### 相关抽象
+
+- [Functor](https://fsprojects.github.io/FSharpPlus/abstraction-functor.html): 一个 bitraversable 是在 bitraversable 类型参数和（Applictive）Functor 内部类型参数上泛型的。
+- [Applicative](https://fsprojects.github.io/FSharpPlus/abstraction-applicative.html): 应用函子是一个 functor，其 `map` 操作可以拆分为 `return` 和 `(<*>)` 操作。
+- [Bifoldable](https://fsprojects.github.io/FSharpPlus/abstraction-bifoldable.html) : 所有的 bitraversable 都是二可折叠的。
+
+### 具体实现
+
+来自 .NET/F#
+
+- `'T * 'U`
+- `struct ('T * 'U)`
+- `Result<'T, 'U>`
+- `Choice<'T, 'U>`
+
+来自 F#+
+
+- [`Const<'C, 'T>`](https://fsprojects.github.io/FSharpPlus/type-const.html)
+- [`Validation<'Error, 'T>`](https://fsprojects.github.io/FSharpPlus/type-validation.html)
+
+[建议另一个](https://github.com/fsprojects/FSharpPlus/issues/new)具体实现
+
+### 例子
+
+```F#
+#r @"nuget: FSharpPlus"
+open FSharpPlus
+
+
+let asyncSquareRoot x =
+    if x < 0 then 
+        Error   (async { printfn "Calc error message"; return "Negative Value"}) 
+        else Ok (async { printfn "Calc sqrt of %A" x ; return sqrt x})
+
+let res42 = asyncSquareRoot 1764 |> bisequence |> Async.RunSynchronously
+```
+
+
+
+## Contravariant
+
+https://fsprojects.github.io/FSharpPlus/abstraction-contravariant.html
+
+逆变函子（Contravariant Functor）可以映射到输入上。
+
+人们可以认为一个函子（Functor）包含或产生值，逆变函子是一个可以被认为是消费值的函子。
+
+### 最小完整定义
+
+- `contramap f x`
+
+```F#
+static member Contramap (x:'Contravariant<'T>, f:'U->'T) :'Contravariant<'U>
+```
+
+### 规则
+
+```F#
+contramap id = id
+contramap f << contramap g = contramap (g << f)
+```
+
+### 相关抽象
+
+- [Functor](https://fsprojects.github.io/FSharpPlus/abstraction-functor.html): 一个协变函子。（A Covariant Functor.）
+- [Profunctor](https://fsprojects.github.io/FSharpPlus/abstraction-profunctor.html) : profunctor 是一个 bifunctor，在第一个参数中是逆变的，在第二个参数中则是协变的。
+
+### 具体实现
+
+来自 .NET/F#
+
+- `('T -> 'U)`
+- `Predicate<'T>`
+- `IComparer<'T>`
+- `IEqualityComparer<'T>`
+
+来自 F#+
+
+- [`Const<'C,'T>`](https://fsprojects.github.io/FSharpPlus/type-const.html)
+
+[建议另一个](https://github.com/fsprojects/FSharpPlus/issues/new)具体实现
+
+### 例子
+
+```F#
+#r @"nuget: FSharpPlus"
+open System
+open FSharpPlus
+
+
+module Predicate = let run (p: Predicate<_>) x = p.Invoke (x)
+
+let intToString (x:int) = string x
+let resStr54 = contramap (fun (x:float) -> int x) intToString <| 54.
+let isEven      = Predicate (fun x -> x % 2 = 0)
+let fstIsEven   = contramap List.head isEven
+let resBoolTrue = Predicate.run fstIsEven [0..10]
+
+type Person = Person of string
+let personEqComp = HashIdentity.Structural<Person>
+let personList = [1, Person "me"; 2, Person "you"; 3, Person "you"]
+let cnt3 = Seq.length <| Linq.Enumerable.Distinct (personList)
+let cnt2 = Seq.length <| Linq.Enumerable.Distinct (personList, contramap snd personEqComp)
+```
+
+例如，从类型到 bool 的谓词（predicate）函数。这种函数的一个例子是将整数分类为负数的谓词：
+
+```F#
+let negative = Predicate( fun integer -> integer < 0 )
+```
+
+然而，给定这个谓词，我们可以在其他情况下重用它，前提是我们有一种将值映射到整数的方法。例如，我们可以使用一个人银行余额的 `negative` 谓词来计算他们目前是否透支。
+
+```F#
+let personBankBalance (person:Person) : int = failwith "query persons bank account" 
+let overdrawn = contramap personBankBalance negative
+```
+
+
+
+## Profunctor
+
+https://fsprojects.github.io/FSharpPlus/abstraction-profunctor.html
+
+在第一个参数中是逆变的（contravariant），在第二个参数中则是协变（covariant）的二函子（bifunctor）。
+
+### 最小完整定义
+
+- `dimap f g x`
+
+```F#
+static member Dimap (x: 'Profunctor<'T, 'V>, f: 'U -> 'T, g: 'V -> 'W) : 'Profunctor<'U, 'W>
+```
+
+### 其他操作
+
+- `lmap f x`
+
+```F#
+static member Contramap (x: 'Profunctor<'T, 'V>, f: 'U -> 'T) : 'Profunctor<'U, 'V>
+```
+
+- `rmap g x`
+
+```F#
+static member Map (x: 'Profunctor<'T,'V>, f: 'V -> 'W) : 'Profunctor<'T, 'W>
+```
+
+### 规则
+
+```F#
+dimap id id = id
+dimap (h' << h) (f << f') = dimap h f << dimap h' f'
+```
+
+### 相关抽象
+
+- [Functor](https://fsprojects.github.io/FSharpPlus/abstraction-functor.html): 所有 profunctor 也是第二个参数上的 functor。
+
+### 具体实现
+
+来自 .NET/F#
+
+- `('T -> 'U)`
+- `Func<'T,'U>`
+
+来自 F#+
+
+- [`Kleisli<'T, 'Monad<'U>>`](https://fsprojects.github.io/FSharpPlus/type-kleisli.html)
+
+[建议另一个](https://github.com/fsprojects/FSharpPlus/issues/new)具体实现
+
+### 例子
+
+```F#
+#r @"nuget: FSharpPlus"
+open System
+open FSharpPlus
+open FSharpPlus.Data
+open FSharpPlus.Math.Generic
+
+module Predicate = let run (p: Predicate<_>) x = p.Invoke (x)
+
+let isEven       = Predicate (fun x -> x % 2 = 0)
+
+let resStrFalse  = dimap int string (Predicate.run isEven) 99.0
+
+
+let lx x = Char.GetNumericValue x + 100.
+let rx x = string (x + 100)
+let kl = Kleisli (fun (y:float) -> [int y; int y * 2 ; int y * 3])
+
+let resl = lmap lx kl
+let r105n210n315 = Kleisli.run resl '5'
+let resr = rmap rx kl
+let r105n110n115 = Kleisli.run resr 5.0
+let resd = dimap lx rx kl
+let r205n310n415 = Kleisli.run resd '5'
+```
+
+
+
+## Category
+
+https://fsprojects.github.io/FSharpPlus/abstraction-category.html
+
+范畴有一个 id 和一个组合操作。
+
+### 最小完整定义
+
+- `catId`
+- `catComp f g` / `(<<<)` f g
+
+```F#
+static member get_Id() : 'Category<'T, 'T>
+static member (<<<) (f: 'Category<'U, 'V>, g: 'Category<'T, 'U>) : 'Category<'T, 'V>
+```
+
+### 其他操作
+
+- `(>>>)`
+
+```F#
+static member (>>>) (g: 'Category<'T, 'U>, f: 'Category<'U, 'V>) : 'Category<'T, 'V>
+```
+
+### 规则
+
+```F#
+catId <<< f = f <<< catId = f
+```
+
+### 具体实现
+
+来自 .NET/F#
+
+- `'T -> 'U`
+- `Func<'T, 'U>`
+
+来自 F#+
+
+- [`Kleisli<'T, 'Monad<'U>>`](https://fsprojects.github.io/FSharpPlus/type-kleisli.html)
+
+[建议另一个](https://github.com/fsprojects/FSharpPlus/issues/new)具体实现
+
+
+
+## Arrow
+
+https://fsprojects.github.io/FSharpPlus/abstraction-arrow.html
+
+Arrow<'T, 'U> 表示一个将 'T 类型的东西作为输入并输出 'U 类型的东西的过程。
+
+### 最小完整定义
+
+- `arr f` 和 `first f`
+
+```F#
+static member Arr(f: 'T -> 'U) : 'Arrow<'T, 'U>
+static member First (f: 'Arrow<'T, 'U>) : 'Arrow<('T * 'V),('U * 'V)>
+```
+
+### 其他操作
+
+- `second f`
+
+```F#
+static member Second (f: 'Arrow<'T, 'U>) : 'Arrow<('V * 'T),('V * 'U)>
+```
+
+- `(***) f g`
+
+```F#
+static member ``***`` (f : 'Arrow<'T1,'U1>) (g : 'Arrow<'T2,'U2>) : 'Arrow<('T1 * 'T2),('U1 * 'U2)>
+```
+
+- `(&&&) f g`
+
+```F#
+static member  (&&&) (f : 'Arrow<'T,'U1>) (g : 'Arrow<'T,'U2>) : 'Arrow<'T,('U1 * 'U2)>
+```
+
+### 规则
+
+```F#
+arr id = id
+arr (f >>> g) = arr f >>> arr g
+first (arr f) = arr (first f)
+first (f >>> g) = first f >>> first g
+first f >>> arr fst = arr fst >>> f
+first f >>> arr (id *** g) = arr (id *** g) >>> first f
+first (first f) >>> arr assoc = arr assoc >>> first f
+
+where assoc ((a,b),c) = (a,(b,c))
+```
+
+### 具体实现
+
+来自 .NET/F#
+
+- `'T->'U`
+- `Func<'T,'U>`
+
+来自 F#+
+
+- [`Kleisli<'T, 'Monad<'U>>`](https://fsprojects.github.io/FSharpPlus/type-kleisli.html)
+
+[建议另一个](https://github.com/fsprojects/FSharpPlus/issues/new)具体实现
 
 
 
