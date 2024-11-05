@@ -7,7 +7,7 @@ https://fsharpforfunandprofit.com/
 ## 你想了解函数式编程的细枝末节（fuss）是什么吗？
 
 本网站将向您介绍 F#，并向您展示 F# 如何帮助主流商业软件的日常开发。在路上，我希望让你对函数式编程的乐趣敞开心扉——它真的很有趣！
-如果你从未听说过 F#，它是一种通用函数式/混合编程语言，非常适合应对几乎任何类型的软件挑战。F# 是免费开源的，可以在 Linux、Mac、Windows 等平台上运行。更多信息请访问 F# 基金会。
+如果你从未听说过 F#，它是一种通用函数式/混合编程语言，非常适合应对几乎任何类型的软件挑战。F# 是免费开源的，可以在 Linux、Mac、Windows 等平台上运行。更多信息请访问 [F# 基金会](http://fsharp.org/)。
 
 ### 学会函数式思考
 
@@ -27,13 +27,13 @@ https://fsharpforfunandprofit.com/
 
 ## 开始使用
 
-如果您是 F# 的新手，请了解更多关于 F# 以及 F# 基金会如何使用F#的信息。要下载并安装 F#，请阅读安装和使用 F# 页面以开始。
+如果您是 F# 的新手，请了解更多关于 F# 以及 [F# 基金会](http://fsharp.org/)如何使用F#的信息。要下载并安装 F#，请阅读[安装和使用 F#](https://fsharpforfunandprofit.com/installing-and-using/) 页面以开始。
 
-接下来，在随机浏览帖子之前，你应该先阅读“为什么使用 F#？”页面，然后阅读整个“为什么使用 F#”系列。之后，“探索网站”页面提供了进一步阅读函数、类型等方面的建议。
+接下来，在随机浏览帖子之前，你应该先阅读[“为什么使用 F#？”](https://fsharpforfunandprofit.com/why-use-fsharp/)页面，然后阅读整个[“为什么使用 F#”](https://fsharpforfunandprofit.com/series/why-use-fsharp.html)系列。之后，[“探索网站”](https://fsharpforfunandprofit.com/site-contents/)页面提供了进一步阅读函数、类型等方面的建议。
 
-有一个页面提供了一些关于学习 F# 的建议，如果你在编译代码时遇到问题，故障排除 F# 页面可能会有所帮助。
+有一个页面提供了一些关于[学习 F#](https://fsharpforfunandprofit.com/learning-fsharp/) 的建议，如果你在编译代码时遇到问题，[故障排除 F#](https://fsharpforfunandprofit.com/troubleshooting-fsharp/) 页面可能会有所帮助。
 
-如果你更喜欢视频和幻灯片，而不是阅读冗长无聊的博客文章，为什么不看看视频页面呢？
+如果你更喜欢视频和幻灯片，而不是阅读冗长无聊的博客文章，为什么不看看[视频](https://fsharpforfunandprofit.com/video)页面呢？
 
 我假设您不需要编程基础知识的指导，并且您熟悉 C#、Java 或类似的 C 语言。如果您熟悉 Mono/.NET库，它也会有所帮助。
 
@@ -49,135 +49,137 @@ https://fsharpforfunandprofit.com/site-contents/
 
 ## 开始使用
 
-- 为什么使用F#？F#的一页导览。如果你喜欢，有一个30页的系列，详细介绍了每个功能。
-- 安装和使用F#将帮助您开始。
-- F#语法60秒
-- 学习F#有一些技巧可以帮助你更有效地学习。
-- 当您在编译代码时遇到问题时，对F#进行故障排除。
+- [为什么使用 F#？](https://fsharpforfunandprofit.com/why-use-fsharp/)F# 的一页导览。如果你喜欢，有一个 [30 页的系列](https://fsharpforfunandprofit.com/series/why-use-fsharp/)，详细介绍了每个功能。
+- [安装和使用 F#](https://fsharpforfunandprofit.com/installing-and-using/)将帮助您开始。
+- [F# 语法 60 秒](https://fsharpforfunandprofit.com/posts/fsharp-in-60-seconds/)
+- [学习 F#](https://fsharpforfunandprofit.com/learning-fsharp/) 有一些技巧可以帮助你更有效地学习。
+- 当您在编译代码时遇到问题时，[对 F# 进行故障排除](https://fsharpforfunandprofit.com/troubleshooting-fsharp/)。
 
 然后你可以试试…
 
-- 在工作中使用 F# 的 26 种低风险方法。你现在就可以开始——不需要许可！
+- [在工作中使用 F# 的 26 种低风险方法](https://fsharpforfunandprofit.com/posts/low-risk-ways-to-use-fsharp-at-work/)。你现在就可以开始——不需要许可！
 
 ## 函数式思维
 
-- 函数式思维从基础开始，解释函数如何以及为什么以这种方式工作。
-- “函数式设计模式介绍”讲座和“面向铁路的编程”讲座提供了更多函数式思维方式的例子。
+- [函数式思维](https://fsharpforfunandprofit.com/series/thinking-functionally/)从基础开始，解释函数如何以及为什么以这种方式工作。
+- [“函数式设计模式介绍”](https://fsharpforfunandprofit.com/fppatterns/)讲座和[“面向铁路的编程”](https://fsharpforfunandprofit.com/rop/)讲座提供了更多函数式思维方式的例子。
 
 ## 理解F#
 
 以下是关于 F# 关键概念的教程。
 
-- 演讲：C# 开发者的 F#
-- 表达式和语法涵盖了模式匹配等常见表达式，并有一篇关于缩进的文章。
-- 了解 F# 类型解释了如何定义和使用各种类型，包括元组、记录、联合和选项。
-- 在收集函数之间进行选择。如果你从 C# 开始学习 F#，那么大量的列表函数可能会让你不知所措，所以我写了这篇文章来帮助你找到你想要的。
-- 理解计算表达式可以揭开它们的神秘面纱，并展示如何创建自己的表达式。
-- F# 中的面向对象编程。
-- 在项目中组织模块，我们查看 F# 项目的整体结构。特别是：（a）哪些代码应该包含在哪些模块中，以及（b）如何在项目中组织这些模块。
-- 依赖循环。关于 F# 最常见的抱怨之一是，它要求代码按照依赖顺序排列。也就是说，您不能对编译器尚未看到的代码使用正向引用。在本系列中，我将讨论依赖循环，为什么它们是坏的，以及如何摆脱它们。
-- 从 C# 移植。您想将 C# 代码移植到 F# 吗？在本系列文章中，我们将探讨实现这一目标的各种方法，以及所涉及的设计决策和权衡。
+- [演讲：C# 开发者的 F#](https://fsharpforfunandprofit.com/csharp/)
+- [表达式和语法](https://fsharpforfunandprofit.com/series/expressions-and-syntax/)涵盖了模式匹配等常见表达式，并有一篇关于缩进的文章。
+- [了解 F# 类型](https://fsharpforfunandprofit.com/series/understanding-fsharp-types/)解释了如何定义和使用各种类型，包括元组、记录、联合和选项。
+- [在收集函数之间进行选择](https://fsharpforfunandprofit.com/posts/list-module-functions/)。如果你从 C# 开始学习 F#，那么大量的列表函数可能会让你不知所措，所以我写了这篇文章来帮助你找到你想要的。
+- [理解计算表达式](https://fsharpforfunandprofit.com/series/computation-expressions/)可以揭开它们的神秘面纱，并展示如何创建自己的表达式。
+- [F# 中的面向对象编程。](https://fsharpforfunandprofit.com/series/object-oriented-programming-in-fsharp/)
+- [在项目中组织模块](https://fsharpforfunandprofit.com/posts/recipe-part3/)，我们查看 F# 项目的整体结构。特别是：（a）哪些代码应该包含在哪些模块中，以及（b）如何在项目中组织这些模块。
+- [依赖循环](https://fsharpforfunandprofit.com/series/dependency-cycles/)。关于 F# 最常见的抱怨之一是，它要求代码按照依赖顺序排列。也就是说，您不能对编译器尚未看到的代码使用正向引用。在本系列中，我将讨论依赖循环，为什么它们是坏的，以及如何摆脱它们。
+- [从 C# 移植](https://fsharpforfunandprofit.com/series/porting-from-csharp/)。您想将 C# 代码移植到 F# 吗？在本系列文章中，我们将探讨实现这一目标的各种方法，以及所涉及的设计决策和权衡。
 
 ## 函数式设计
 
 这些演讲和帖子展示了面向 FP 的设计与面向对象的设计有何不同。
 
-- 讨论：使用 F# 类型系统进行领域建模。像 F# 这样的静态类型函数式编程语言鼓励人们以一种非常不同的方式思考类型。类型系统是你的朋友，而不是烦人的东西，它可以以许多面向对象程序员可能不熟悉的方式使用。类型可用于以细粒度、自文档化的方式表示域。在许多情况下，类型甚至可以用来对业务规则进行编码，这样你就不会创建错误的代码。然后，您可以将静态类型检查几乎用作即时单元测试，以确保您的代码在编译时是正确的。
-- 使用类型进行设计解释了如何将类型用作设计过程的一部分，使非法状态无法表示。
-- 代数类型大小和域建模
-- 演讲：组合的力量。组合是函数式编程的基本原则，但它与面向对象的方法有什么不同，你在实践中如何使用它？在本次面向初学者的演讲中，我们将首先介绍函数式编程的基本概念，然后探讨一些不同的方法，即组合可以用来从小事物构建大事物。
-- 演讲：观察乌龟的 13 种方法 演示了实现乌龟图形 API 的许多不同技术，包括状态 monad、代理、解释器等等！有关相关帖子，请参阅链接页面。
-- 演讲：企业 Tic Tac Toe。跟随我荒谬地过度设计了一个简单的游戏，以演示如何使用函数式编程来创建一个现实世界的“企业就绪”应用程序。
-- 演讲：使用能力进行设计展示了使用“能力”和最小权限原则进行设计的一种非常不同的方法。我将展示如何在整个核心领域（而不仅仅是在 API 边界）使用这些设计技术，从而产生设计良好的模块化代码。
+- [讨论：使用 F# 类型系统进行领域建模](https://fsharpforfunandprofit.com/ddd/)。像 F# 这样的静态类型函数式编程语言鼓励人们以一种非常不同的方式思考类型。类型系统是你的朋友，而不是烦人的东西，它可以以许多面向对象程序员可能不熟悉的方式使用。类型可用于以细粒度、自文档化的方式表示域。在许多情况下，类型甚至可以用来对业务规则进行编码，这样你就不会创建错误的代码。然后，您可以将静态类型检查几乎用作即时单元测试，以确保您的代码在编译时是正确的。
+- [使用类型进行设计](https://fsharpforfunandprofit.com/series/designing-with-types/)解释了如何将类型用作设计过程的一部分，使非法状态无法表示。
+- [代数类型大小和域建模](https://fsharpforfunandprofit.com/posts/type-size-and-design/)
+- [演讲：组合的力量](https://fsharpforfunandprofit.com/composition/)。组合是函数式编程的基本原则，但它与面向对象的方法有什么不同，你在实践中如何使用它？在本次面向初学者的演讲中，我们将首先介绍函数式编程的基本概念，然后探讨一些不同的方法，即组合可以用来从小事物构建大事物。
+- [演讲：观察乌龟的 13 种方法](https://fsharpforfunandprofit.com/turtle/) 演示了实现乌龟图形 API 的许多不同技术，包括状态 monad、代理、解释器等等！有关相关帖子，请参阅链接页面。
+- [演讲：企业 Tic-Tac-Toe](https://fsharpforfunandprofit.com/ettt/)。跟随我荒谬地过度设计了一个简单的游戏，以演示如何使用函数式编程来创建一个现实世界的“企业就绪”应用程序。
+- [演讲：使用能力进行设计](https://fsharpforfunandprofit.com/cap/)展示了使用“能力”和最小权限原则进行设计的一种非常不同的方法。我将展示如何在整个核心领域（而不仅仅是在 API 边界）使用这些设计技术，从而产生设计良好的模块化代码。
 
 ## 函数式模式
 
 这些讲座和帖子解释了函数式编程中的一些核心模式，如“map”、“bind”、monad 等概念。
 
-- 讲座：函数式设计模式介绍。
-- 讲座：面向铁路的编程：一种函数式错误处理方法。有关相关帖子，请参阅链接页面。
-- 没有眼泪的 Monoids：对一种常见函数式模式的无数学讨论。
-- 讲座：理解解析器组合器：从头开始创建解析器组合器库。有关相关帖子，请参阅链接页面。
-- 演讲：《状态 Monad》：用《弗兰肯函子（Frankenfunctor）博士和 Monadster》的故事介绍如何处理状态。有关相关帖子，请参阅链接页面。
-- Reader Monad：重塑阅读者单子。
-- 映射（map）、绑定（bind）、应用（apply）、提升（lift）、序列（sequence）和遍历（traverse）：描述处理泛型数据类型的一些核心函数的系列。
-- 折叠和递归类型：看看递归类型、同态、尾部递归、左折叠和右折叠之间的区别等等。
-- “函数式授权方法”系列。如何使用“能力（capabilities）”处理授权的常见安全挑战。也可作为讲座。
+- [讲座：函数式设计模式介绍](https://fsharpforfunandprofit.com/fppatterns/)。
+- [讲座：面向铁路的编程](https://fsharpforfunandprofit.com/rop/)：一种函数式错误处理方法。有关相关帖子，请参阅链接页面。
+- [没有眼泪的 Monoids](https://fsharpforfunandprofit.com/posts/monoids-without-tears/)：对一种常见函数式模式的无数学讨论。
+- [讲座：理解解析器组合器](https://fsharpforfunandprofit.com/parser/)：从头开始创建解析器组合器库。有关相关帖子，请参阅链接页面。
+- [演讲：《状态 Monad》](https://fsharpforfunandprofit.com/monadster/)：用《弗兰肯函子（Frankenfunctor）博士和 Monadster》的故事介绍如何处理状态。有关相关帖子，请参阅链接页面。
+- [Reader Monad](https://fsharpforfunandprofit.com/posts/elevated-world-6/)：重塑阅读者单子。
+- [映射（map）、绑定（bind）、应用（apply）、提升（lift）、序列（sequence）和遍历（traverse）](https://fsharpforfunandprofit.com/series/map-and-bind-and-apply-oh-my/)：描述处理泛型数据类型的一些核心函数的系列。
+- [折叠和递归类型](https://fsharpforfunandprofit.com/series/recursive-types-and-folds/)：看看递归类型、同态、尾部递归、左折叠和右折叠之间的区别等等。
+- [“函数式授权方法”系列](https://fsharpforfunandprofit.com/series/a-functional-approach-to-authorization/)。如何使用“能力（capabilities）”处理授权的常见安全挑战。也可作为[讲座](https://fsharpforfunandprofit.com/cap/)。
 
 ## 测试
 
-- 基于属性的测试介绍
-- 为基于属性的测试选择属性
-- 谈话：基于属性的测试：懒惰程序员编写 1000 个测试的指南。
+- [基于属性的测试介绍](https://fsharpforfunandprofit.com/posts/property-based-testing/)
+- [为基于属性的测试选择属性](https://fsharpforfunandprofit.com/posts/property-based-testing-2/)
+- [谈话：基于属性的测试](https://fsharpforfunandprofit.com/pbt/)：懒惰程序员编写 1000 个测试的指南。
 
 ## 示例和演练
 
 这些帖子提供了大量代码的详细工作示例！
 
-- 对“罗马数字 Kata 及其注释”的评论。我对罗马数字 Kata 的方法。
-- 示例：为正确性而设计：如何使非法状态不可代表（购物车示例）。
-- 示例：基于堆栈的计算器：使用一个简单的堆栈来演示组合子的威力。
-- 示例：解析命令行：结合自定义类型使用模式匹配。
-- 示例：罗马数字：另一个模式匹配示例。
-- 计算器详解：设计计算器的类型优先方法。
-- 企业 Tic Tac Toe：纯函数式实现中的设计决策演练
-- 编写JSON解析器。
+- [对“罗马数字 Kata 及其注释”的评论](https://fsharpforfunandprofit.com/posts/roman-numeral-kata/)。我对罗马数字 Kata 的方法。
+- [示例：为正确性而设计](https://fsharpforfunandprofit.com/posts/designing-for-correctness/)：如何使非法状态不可代表（购物车示例）。
+- [示例：基于堆栈的计算器](https://fsharpforfunandprofit.com/posts/stack-based-calculator/)：使用一个简单的堆栈来演示组合子的威力。
+- [示例：解析命令行](https://fsharpforfunandprofit.com/posts/pattern-matching-command-line/)：结合自定义类型使用模式匹配。
+- [示例：罗马数字](https://fsharpforfunandprofit.com/posts/roman-numerals/)：另一个模式匹配示例。
+- [计算器详解](https://fsharpforfunandprofit.com/posts/calculator-design/)：设计计算器的类型优先方法。
+- [企业 Tic-Tac-Toe](https://fsharpforfunandprofit.com/posts/enterprise-tic-tac-toe/)：纯函数式实现中的设计决策演练
+- [编写 JSON 解析器](https://fsharpforfunandprofit.com/posts/understanding-parser-combinators-4/)。
 
-## F中的特定主题#
+## F# 中的特定主题
 
 概述：
 
-- 区分F#与标准命令式语言的四个关键概念。
-- 理解F#缩进。
-- 使用方法的缺点。
-- 使用 `printf` 格式化文本。
+- 区分 F# 与标准命令式语言的[四个关键概念](https://fsharpforfunandprofit.com/posts/key-concepts/)。
+- [理解 F# 缩进](https://fsharpforfunandprofit.com/posts/fsharp-syntax/)。
+- [使用方法的缺点](https://fsharpforfunandprofit.com/posts/type-extensions/#downsides-of-methods)。
+- [使用 `printf` 格式化文本](https://fsharpforfunandprofit.com/posts/printf/)。
 
 函数：
 
-- 柯里化。
-- 部分应用。
+- [柯里化](https://fsharpforfunandprofit.com/posts/currying/)。
+- [部分应用](https://fsharpforfunandprofit.com/posts/partial-application/)。
 
 控制流程：
 
-- 匹配.. 使用表达式并创建折叠以隐藏匹配。
-- If-then-else 和循环。
-- 异常。
+- [匹配.. 使用表达式](https://fsharpforfunandprofit.com/posts/match-expression/)并[创建折叠以隐藏匹配](https://fsharpforfunandprofit.com/posts/match-expression/#folds)。
+- [If-then-else 和循环](https://fsharpforfunandprofit.com/posts/control-flow-expressions/)。
+- [异常](https://fsharpforfunandprofit.com/posts/exceptions/)。
 
 类型：
 
-- 选项类型，特别是关于为什么None不等于null。
-- 记录类型。
-- 元组类型。
-- 可区分联合（Discriminated Union）。
-- 代数类型大小和域建模。
+- [选项类型](https://fsharpforfunandprofit.com/posts/the-option-type/)，特别是关于为什么 [None 不等于 null](https://fsharpforfunandprofit.com/posts/the-option-type/#option-is-not-null)。
+- [记录类型](https://fsharpforfunandprofit.com/posts/records/)。
+- [元组类型](https://fsharpforfunandprofit.com/posts/tuples/)。
+- [可区分联合（Discriminated Union）](https://fsharpforfunandprofit.com/posts/discriminated-unions/)。
+- [代数类型大小和域建模](https://fsharpforfunandprofit.com/posts/type-size-and-design/)。
 
-C#开发者的F#：
+C# 开发者的 F#：
 
-- 演讲：F#面向C#开发人员。
-- 从C#移植。
+- [演讲：F# 面向 C# 开发人员](https://fsharpforfunandprofit.com/csharp/)。
+- [从C#移植](https://fsharpforfunandprofit.com/series/porting-from-csharp/)。
 
 ## 其他文章
 
-- 不使用静态类型函数式编程语言的十个理由。对我不理解的东西的咆哮。
-- 为什么我不写monad教程
-- 你的编程语言不合理吗？或者，为什么可预测性很重要。
-- 我们不需要糟糕的UML图，或者为什么在许多情况下，使用UML绘制类图是不必要的。
-- 内向和外向的编程语言
-- 使用编译器指令交换类型安全以实现高性能
+- [不使用静态类型函数式编程语言的十个理由](https://fsharpforfunandprofit.com/posts/ten-reasons-not-to-use-a-functional-programming-language/)。对我不理解的东西的咆哮。
+- [为什么我不写 monad 教程](https://fsharpforfunandprofit.com/posts/why-i-wont-be-writing-a-monad-tutorial/)
+- [你的编程语言不合理吗？](https://fsharpforfunandprofit.com/posts/is-your-language-unreasonable/)或者，为什么可预测性很重要。
+- [我们不需要糟糕的 UML 图](https://fsharpforfunandprofit.com/posts/no-uml-diagrams/)，或者为什么在许多情况下，使用UML绘制类图是不必要的。
+- [内向和外向的编程语言](https://fsharpforfunandprofit.com/posts/introvert-vs-extrovert/)
+- [使用编译器指令交换类型安全以实现高性能](https://fsharpforfunandprofit.com/posts/typesafe-performance-with-compiler-directives/)
 
-# 为什么使用F#？
 
-为什么你应该考虑在下一个项目中使用F#
+
+# 为什么使用 F#？
+
+为什么你应该考虑在下一个项目中使用 F#
 
 https://fsharpforfunandprofit.com/why-use-fsharp/
 
-尽管F#非常适合科学或数据分析等专业领域，但它也是企业发展的绝佳选择。以下是您应该考虑在下一个项目中使用F#的五个很好的理由。
+尽管 F# 非常适合科学或数据分析等专业领域，但它也是企业发展的绝佳选择。以下是您应该考虑在下一个项目中使用 F# 的五个很好的理由。
 
 ## 简洁
 
-F#不会被花括号、分号等编码“噪音”所困扰。
+F# 不会被花括号、分号等[编码“噪音”](https://fsharpforfunandprofit.com/posts/fvsc-sum-of-squares/)所困扰。
 
-得益于强大的类型推理系统，您几乎无需指定对象的类型。而且，与C#相比，解决同样的问题通常需要更少的代码行。
+得益于强大的[类型推理系统](https://fsharpforfunandprofit.com/posts/conciseness-type-inference/)，您几乎无需指定对象的类型。而且，与 C# 相比，解决同样的问题通常需要[更少的代码行](https://fsharpforfunandprofit.com/posts/fvsc-download/)。
 
 ```F#
 // one-liners
@@ -202,9 +204,9 @@ let worker = Worker jdoe
 
 ## 便利性
 
-许多常见的编程任务在F#中要简单得多。这包括创建和使用复杂类型定义、执行列表处理、比较和相等、状态机等等。
+许多常见的编程任务在F#中要简单得多。这包括创建和使用[复杂类型定义](https://fsharpforfunandprofit.com/posts/conciseness-type-definitions/)、执行[列表处理](https://fsharpforfunandprofit.com/posts/conciseness-extracting-boilerplate/)、[比较和相等](https://fsharpforfunandprofit.com/posts/convenience-types/)、[状态机](https://fsharpforfunandprofit.com/posts/conciseness-functions-as-building-blocks/)等等。
 
-由于函数是一级对象，因此通过创建具有其他函数作为参数的函数，或者组合现有函数以创建新功能，可以很容易地创建功能强大且可重用的代码。
+由于函数是一级对象，因此通过创建具有[其他函数作为参数](https://fsharpforfunandprofit.com/posts/conciseness-extracting-boilerplate/)的函数，或者[组合现有函数](https://fsharpforfunandprofit.com/posts/conciseness-functions-as-building-blocks/)以创建新功能，可以很容易地创建功能强大且可重用的代码。
 
 ```F#
 // automatic equality and comparison
@@ -223,11 +225,11 @@ let result = add2times3 5
 
 ## 正确性
 
-F# 有一个强大的类型系统，可以防止许多常见错误，如空引用异常。
+F# 有一个[强大的类型系统](https://fsharpforfunandprofit.com/posts/correctness-type-checking/)，可以防止许多常见错误，如[空引用异常](https://fsharpforfunandprofit.com/posts/the-option-type/#option-is-not-null)。
 
-默认情况下，值是不可变的，这可以防止出现大量错误。
+默认情况下，值是[不可变的](https://fsharpforfunandprofit.com/posts/correctness-immutability/)，这可以防止出现大量错误。
 
-此外，您通常可以使用类型系统本身对业务逻辑进行编码，这样实际上就不可能编写错误的代码或混淆度量单位，从而大大减少了对单元测试的需求。
+此外，您通常可以使用[类型系统](https://fsharpforfunandprofit.com/posts/correctness-exhaustive-pattern-matching/)本身对业务逻辑进行编码，这样实际上就[不可能编写错误的代码](https://fsharpforfunandprofit.com/posts/designing-for-correctness/)或混淆[度量单位](https://fsharpforfunandprofit.com/posts/units-of-measure/)，从而大大减少了对单元测试的需求。
 
 ```F#
 // strict type checking
@@ -251,7 +253,7 @@ let distance = 10<m> + 10<ft> // error!
 
 ## 并发性
 
-F#有许多内置库，可以在一次发生多件事时提供帮助。异步编程非常简单，并行性也是如此。F#还有一个内置的actor模型，对事件处理和函数式响应式编程有很好的支持。
+F# 有许多内置库，可以在一次发生多件事时提供帮助。异步编程[非常简单](https://fsharpforfunandprofit.com/posts/concurrency-async-and-parallel/)，并行性也是如此。F# 还有一个内置的 [actor 模型](https://fsharpforfunandprofit.com/posts/concurrency-actor-model/)，对事件处理和[函数式响应式编程](https://fsharpforfunandprofit.com/posts/concurrency-reactive/)有很好的支持。
 
 当然，由于数据结构在默认情况下是不可变的，因此共享状态和避免锁要容易得多。
 
@@ -272,11 +274,11 @@ MailboxProcessor.Start(fun inbox-> async{
 
 ## 完整性
 
-虽然F#本质上是一种函数式语言，但它确实支持其他并非100%纯的风格，这使得它更容易与网站、数据库、其他应用程序等非纯世界进行交互。特别是，F#被设计为混合函数式/OO语言，因此它几乎可以做C#能做的一切。
+虽然 F# 本质上是一种函数式语言，但它确实支持其他并非 100% 纯的风格，这使得它更容易与网站、数据库、其他应用程序等非纯世界进行交互。特别是，F# 被设计为混合函数式/OO 语言，因此它[几乎可以做 C# 能做的一切](https://fsharpforfunandprofit.com/posts/completeness-anything-csharp-can-do/)。
 
-当然，F# 是 .NET 生态系统其中的一部分，让您无缝访问所有第三方 .NET 库和工具。它可以在大多数平台上运行，包括Linux和智能手机（通过Mono）。
+当然，F# 是 [.NET 生态系统其中的一部分](https://fsharpforfunandprofit.com/posts/completeness-seamless-dotnet-interop/)，让您无缝访问所有第三方 .NET 库和工具。它可以在大多数平台上运行，包括 Linux 和智能手机（通过 Mono）。
 
-最后，它与Visual Studio很好地集成在一起，这意味着您可以获得一个具有 IntelliSense 支持的优秀 IDE、一个调试器和许多用于单元测试、源代码控制和其他开发任务的插件。或者在 Linux 上，您可以使用 MonoDevelop IDE。
+最后，它与 Visual Studio 很好地集成在一起，这意味着您可以获得一个具有 IntelliSense 支持的优秀 IDE、一个调试器和许多用于单元测试、源代码控制和其他开发任务的插件。或者在 Linux 上，您可以使用 MonoDevelop IDE。
 
 ```F#
 // impure code when needed
@@ -305,7 +307,7 @@ form.Show()
 
 ## 想要了解更多细节吗？
 
-如果你想了解更多信息，“为什么使用F#？”系列文章将更详细地介绍这些要点。
+如果你想了解更多信息，[“为什么使用F#？”系列文章](https://fsharpforfunandprofit.com/series/why-use-fsharp/)将更详细地介绍这些要点。
 
 # “为什么使用 F#？”系列
 
@@ -572,15 +574,15 @@ https://fsharpforfunandprofit.com/learning-fsharp/
 
 F# 确实允许非函数式风格，并且很容易保留你已经熟悉的习惯。你可能只是以一种非函数式的方式使用 F#，而不会真正改变你的思维方式，也不会意识到你错过了什么。为了充分利用 F#，并熟练掌握函数式编程，你必须从函数式而非命令式的角度思考。
 
-到目前为止，你能做的最重要的事情就是花时间和精力准确理解 F# 的工作原理，尤其是涉及函数和类型系统的核心概念。因此，在开始认真编码之前，请反复阅读“函数式思维”和“理解 F# 类型”系列文章，尝试使用示例，并熟悉这些想法。如果你不了解函数和类型是如何工作的，那么你将很难提高效率。
+到目前为止，你能做的最重要的事情就是花时间和精力准确理解 F# 的工作原理，尤其是涉及函数和类型系统的核心概念。因此，在开始认真编码之前，请反复阅读“[函数式思维](https://fsharpforfunandprofit.com/series/thinking-functionally.html)”和“[理解 F# 类型](https://fsharpforfunandprofit.com/series/understanding-fsharp-types.html)”系列文章，尝试使用示例，并熟悉这些想法。如果你不了解函数和类型是如何工作的，那么你将很难提高效率。
 
 ## 注意事项
 
 以下是一系列的注意事项，这将鼓励你进行函数式思考。这些起初会很难，但就像学习一门外语一样，你必须全身心投入，强迫自己像当地人一样说话。
 
-- 初学者**根本**不要使用mutable关键字。在不依赖可变状态的情况下编写复杂函数将真正迫使你理解函数范式。
-- 不要使用 for 循环或 if-then-else。使用模式匹配来测试布尔值和遍历列表。
-- 不要使用“点符号”。与其“点入”对象，不如尝试对所有对象都使用函数。也就是说，写 `String.length "hello"`而不是 `"hello".Length`。这可能看起来像是额外的工作，但在使用管道和 `List.map` 等高阶函数时，这种工作方式是必不可少的。也不要写自己的方法！请参阅这篇文章了解详细信息。
+- 初学者**根本**不要使用 `mutable` 关键字。在不依赖可变状态的情况下编写复杂函数将真正迫使你理解函数范式。
+- 不要使用 `for` 循环或 `if-then-else`。使用模式匹配来测试布尔值和遍历列表。
+- 不要使用“点符号”。与其“点入”对象，不如尝试对所有对象都使用函数。也就是说，写 `String.length "hello"`而不是 `"hello".Length`。这可能看起来像是额外的工作，但在使用管道和 `List.map` 等高阶函数时，这种工作方式是必不可少的。也不要写自己的方法！请参阅[这篇文章了解详细信息](https://fsharpforfunandprofit.com/posts/type-extensions/#downsides-of-methods)。
 - 因此，不要创建类。仅使用纯 F# 类型，如元组、记录和联合。
 - 不要使用调试器。如果你依赖调试器来查找和修复不正确的代码，你会受到严重的打击。在F#中，你可能不会走那么远，因为编译器在很多方面都要严格得多。当然，没有工具可以“调试”编译器并逐步处理它。调试编译器错误的最佳工具是你的大脑，F# 迫使你使用它！
 
@@ -595,7 +597,7 @@ F# 确实允许非函数式风格，并且很容易保留你已经熟悉的习�
 
 ## 故障排除
 
-初学者会犯一些非常常见的错误，如果你对编译代码感到沮丧，请阅读“F#故障排除”页面。
+初学者会犯一些非常常见的错误，如果你对编译代码感到沮丧，请阅读“[F# 故障排除](https://fsharpforfunandprofit.com/troubleshooting-fsharp/)”页面。
 
 
 
@@ -771,7 +773,1052 @@ F# 编译器目前是一个从左到右的单程编译器，因此如果程序�
 - [FS0072: Lookup on object of indeterminate type](https://fsharpforfunandprofit.com/troubleshooting-fsharp/#FS0072)
 - [FS0588: Block following this ‘let’ is unfinished](https://fsharpforfunandprofit.com/troubleshooting-fsharp/#FS0588)
 
-*（下面省略）*
+### FS0001: 类型“X”与类型“Y”不匹配
+
+这可能是你会遇到的最常见的错误。它可以在各种各样的环境中表现出来，因此我将最常见的问题与示例和修复方法分组在一起。一定要注意错误消息，因为它通常非常明确地说明问题所在。
+
+| 错误信息                                                     | 翻译                                                         | 可能原因                                                     |
+| :----------------------------------------------------------- | ------------------------------------------------------------ | :----------------------------------------------------------- |
+| The type 'float' does not match the type 'int'               | 类型“float”与类型“int”不匹配                                 | [A. Can't mix floats and ints](https://fsharpforfunandprofit.com/troubleshooting-fsharp/#FS0001A) |
+| The type 'int' does not support any operators named 'DivideByInt' | 类型“int”不支持任何名为“DivideByInt”的运算符                 | [A. Can't mix floats and ints.](https://fsharpforfunandprofit.com/troubleshooting-fsharp/#FS0001A) |
+| The type 'X' is not compatible with any of the types         | 类型“X”与任何类型都不兼容                                    | [B. Using the wrong numeric type.](https://fsharpforfunandprofit.com/troubleshooting-fsharp/#FS0001B) |
+| This type (function type) does not match the type (simple type). Note: function types have a arrow in them, like `'a -> 'b`. | 此类型（函数类型）与类型（简单类型）不匹配。注意：函数类型中有一个箭头，如 `'a -> 'b`。 | [C. Passing too many arguments to a function.](https://fsharpforfunandprofit.com/troubleshooting-fsharp/#FS0001C) |
+| This expression was expected to have (function type) but here has (simple type) | 此表达式本应具有（函数类型），但此处具有（简单类型）         | [C. Passing too many arguments to a function.](https://fsharpforfunandprofit.com/troubleshooting-fsharp/#FS0001C) |
+| This expression was expected to have (N part function) but here has (N-1 part function) | 此表达式预期具有（N 部分函数），但此处具有（N-1 部分函数）   | [C. Passing too many arguments to a function.](https://fsharpforfunandprofit.com/troubleshooting-fsharp/#FS0001C) |
+| This expression was expected to have (simple type) but here has (function type) | 此表达式本应具有（简单类型），但此处具有（函数类型）         | [D. Passing too few arguments to a function.](https://fsharpforfunandprofit.com/troubleshooting-fsharp/#FS0001D) |
+| This expression was expected to have (type) but here has (other type) | 此表达式本应具有（type），但此处具有（other type）           | [E. Straightforward type mismatch.](https://fsharpforfunandprofit.com/troubleshooting-fsharp/#FS0001E) [F. Inconsistent returns in branches or matches.](https://fsharpforfunandprofit.com/troubleshooting-fsharp/#FS0001F) [G. Watch out for type inference effects buried in a function.](https://fsharpforfunandprofit.com/troubleshooting-fsharp/#FS0001G) |
+| Type mismatch. Expecting a (simple type) but given a (tuple type). Note: tuple types have a star in them, like `'a * 'b`. | 类型不匹配。预期为（简单类型），但给定为（元组类型）。注意：元组类型中有一个星号，如 `'a * 'b`。 | [H. Have you used a comma instead of space or semicolon?](https://fsharpforfunandprofit.com/troubleshooting-fsharp/#FS0001H) |
+| Type mismatch. Expecting a (tuple type) but given a (different tuple type). | 类型不匹配。预期为（元组类型），但给出了（不同的元组类型）。 | [I. Tuples must be the same type to be compared.](https://fsharpforfunandprofit.com/troubleshooting-fsharp/#FS0001I) |
+| This expression was expected to have type `'a ref` but here has type X | 此表达式应具有类型 `'a ref`，但此处具有类型 X                | [J. Don't use ! as the "not" operator.](https://fsharpforfunandprofit.com/troubleshooting-fsharp/#FS0001J) |
+| The type (type) does not match the type (other type)         | 类型（type）与类型（其他类型）不匹配                         | [K. Operator precedence (especially functions and pipes).](https://fsharpforfunandprofit.com/troubleshooting-fsharp/#FS0001K) |
+| This expression was expected to have type (monadic type) but here has type `'b * 'c` | 此表达式应具有类型（一元类型），但此处具有类型 `'b * 'c`     | [L. let! error in computation expressions.](https://fsharpforfunandprofit.com/troubleshooting-fsharp/#FS0001L) |
+
+#### A. 不能混合使用 int 和 float
+
+与 C# 和大多数命令式语言不同，int 和 float 不能在表达式中混合使用。如果你尝试这样做，你会得到一个类型错误：
+
+```F#
+1 + 2.0  //wrong
+   // => error FS0001: The type 'float' does not match the type 'int'
+```
+
+修复方法是先将 int 转换为 `float`：
+
+```F#
+float 1 + 2.0  //correct
+```
+
+这个问题也可能在库函数和其他地方表现出来。例如，你不能对整数列表进行“`average`”。
+
+```F#
+[1..10] |> List.average   // wrong
+   // => error FS0001: The type 'int' does not support any
+   //    operators named 'DivideByInt'
+```
+
+您必须首先将每个 int 转换为浮点数，如下所示：
+
+```F#
+[1..10] |> List.map float |> List.average  //correct
+[1..10] |> List.averageBy float  //correct (uses averageBy)
+```
+
+#### B. 使用错误的数字类型
+
+当数值转换失败时，您将收到“不兼容”错误。
+
+```F#
+printfn "hello %i" 1.0  // should be a int not a float
+  // error FS0001: The type 'float' is not compatible
+  //               with any of the types byte,int16,int32...
+```
+
+一种可能的解决方案是在适当的情况下类型转换它。
+
+```F#
+printfn "hello %i" (int 1.0)
+```
+
+#### C. 向函数传递太多参数
+
+```F#
+let add x y = x + y
+let result = add 1 2 3
+// ==> error FS0001: The type ''a -> 'b' does not match the type 'int'
+```
+
+线索就在错误中。
+
+修复方法是删除其中一个参数！
+
+向 `printf` 传递太多参数也会导致类似的错误。
+
+```F#
+printfn "hello" 42
+// ==> error FS0001: This expression was expected to have type 'a -> 'b
+//                   but here has type unit
+
+printfn "hello %i" 42 43
+// ==> Error FS0001: Type mismatch. Expecting a 'a -> 'b -> 'c
+//                   but given a 'a -> unit
+
+printfn "hello %i %i" 42 43 44
+// ==> Error FS0001: Type mismatch. Expecting a  'a -> 'b -> 'c -> 'd
+//                   but given a 'a -> 'b -> unit
+```
+
+#### D. 传递给函数的参数太少
+
+如果你没有向函数传递足够的参数，你将得到一个部分应用。当你以后使用它时，你会得到一个错误，因为它不是一个简单的类型。
+
+```F#
+let reader = new System.IO.StringReader("hello");
+
+let line = reader.ReadLine        //wrong but compiler doesn't complain
+printfn "The line is %s" line     //compiler error here!
+// ==> error FS0001: This expression was expected to have type string
+//                   but here has type unit -> string
+```
+
+这对一些人来说尤其常见 .NET 库中需要单元参数的函数，如上面的 `ReadLine`。
+
+修复方法是传递正确数量的参数。检查结果值的类型，以确保它确实是一个简单类型。在 `ReadLine` 的情况下，修复方法是传递 `()` 参数。
+
+```F#
+let line = reader.ReadLine()      //correct
+printfn "The line is %s" line     //no compiler error
+```
+
+#### E. 直截了当的类型不匹配
+
+最简单的情况是，您的类型错误，或者您在打印格式字符串中使用了错误的类型。
+
+```F#
+printfn "hello %s" 1.0
+// => error FS0001: This expression was expected to have type string
+//                  but here has type float
+```
+
+#### F. 分支或匹配中的返回类型不一致
+
+一个常见的错误是，如果你有一个分支或匹配表达式，那么每个分支都必须返回相同的类型。否则，您将收到类型错误。
+
+```F#
+let f x =
+  if x > 1 then "hello"
+  else 42
+// => error FS0001: This expression was expected to have type string
+//                  but here has type int
+let g x =
+  match x with
+  | 1 -> "hello"
+  | _ -> 42
+// error FS0001: This expression was expected to have type
+//               string but here has type int
+```
+
+显然，最直接的解决方法是让每个分支返回相同的类型。
+
+```F#
+let f x =
+  if x > 1 then "hello"
+  else "42"
+
+let g x =
+  match x with
+  | 1 -> "hello"
+  | _ -> "42"
+```
+
+记住，如果缺少“else”分支，则假定它返回unit，因此“true”分支也必须返回unit。
+
+```F#
+let f x =
+  if x > 1 then "hello"
+// error FS0001: This expression was expected to have type
+//               unit but here has type string
+```
+
+如果两个分支不能返回相同的类型，则可能需要创建一个可以包含这两种类型的新联合类型。
+
+```F#
+type StringOrInt = | S of string | I of int  // new union type
+let f x =
+  if x > 1 then S "hello"
+  else I 42
+```
+
+#### G. 注意隐藏在函数中的类型推理效果
+
+函数可能会导致意外的类型推断，从而在代码中产生涟漪。例如，在下面的例子中，无辜的打印格式字符串意外地导致 doSomething 需要一个字符串。
+
+```F#
+let doSomething x =
+   // do something
+   printfn "x is %s" x
+   // do something more
+
+doSomething 1
+// => error FS0001: This expression was expected to have type string
+//    but here has type int
+```
+
+修复方法是检查函数签名并深入挖掘，直到找到有罪方。此外，尽可能使用最通用的类型，并尽可能避免类型注释。
+
+#### H. 你用逗号代替空格或分号了吗？
+
+如果你是F#的新手，你可能会不小心使用逗号而不是空格来分隔函数参数：
+
+```F#
+// define a two parameter function
+let add x y = x + 1
+
+add(x,y)   // FS0001: This expression was expected to have
+           // type int but here has type  'a * 'b
+```
+
+解决方法是：不要使用逗号！
+
+```F#
+add x y    // OK
+```
+
+调用时使用逗号的一个区域 .NET 库函数。这些都以元组作为参数，因此逗号形式是正确的。事实上，这些调用看起来与 C# 中的调用完全相同：
+
+```F#
+// correct
+System.String.Compare("a","b")
+
+// incorrect
+System.String.Compare "a" "b"
+```
+
+#### I. 元组必须是同一类型才能进行比较或模式匹配
+
+不同类型的元组无法进行比较。尝试将 `int * int` 类型的元组与 `int * string` 类型的元组进行比较会导致错误：
+
+```F#
+let  t1 = (0, 1)
+let  t2 = (0, "hello")
+t1 = t2
+// => error FS0001: Type mismatch. Expecting a int * int
+//    but given a int * string
+//    The type 'int' does not match the type 'string'
+```
+
+长度必须相同：
+
+```F#
+let  t1 = (0, 1)
+let  t2 = (0, 1, "hello")
+t1 = t2
+// => error FS0001: Type mismatch. Expecting a int * int
+//    but given a int * int * string
+//    The tuples have differing lengths of 2 and 3
+```
+
+在绑定过程中对元组进行模式匹配时，您可能会遇到同样的问题：
+
+```F#
+let x,y = 1,2,3
+// => error FS0001: Type mismatch. Expecting a 'a * 'b
+//                  but given a 'a * 'b * 'c
+//                  The tuples have differing lengths of 2 and 3
+
+let f (x,y) = x + y
+let z = (1,"hello")
+let result = f z
+// => error FS0001: Type mismatch. Expecting a int * int
+//                  but given a int * string
+//                  The type 'int' does not match the type 'string'
+```
+
+#### J. 不要用 ! 作为“not”运算符
+
+如果你使用 `!` 作为“not”运算符，您将收到一个提到单词“ref”的类型错误。
+
+```F#
+let y = true
+let z = !y     //wrong
+// => error FS0001: This expression was expected to have
+//    type 'a ref but here has type bool
+```
+
+解决方法是使用“not”关键字。
+
+```F#
+let y = true
+let z = not y   //correct
+```
+
+#### K. 操作员优先级（特别是函数和管道）
+
+如果混淆了运算符优先级，则可能会出现类型错误。通常，与其他运算符相比，函数应用具有最高优先级，因此在以下情况下会出现错误：
+
+```F#
+String.length "hello" + "world"
+   // => error FS0001:  The type 'string' does not match the type 'int'
+
+// what is really happening
+(String.length "hello") + "world"
+```
+
+解决方法是使用括号。
+
+```F#
+String.length ("hello" + "world")  // corrected
+```
+
+相反，与其他操作符相比，管道操作符的优先级较低。
+
+```F#
+let result = 42 + [1..10] |> List.sum
+ // => => error FS0001:  The type ''a list' does not match the type 'int'
+
+// what is really happening
+let result = (42 + [1..10]) |> List.sum
+```
+
+同样，修复方法是使用括号。
+
+```F#
+let result = 42 + ([1..10] |> List.sum)
+```
+
+#### L. 放手！计算表达式错误（单子）
+
+下面是一个简单的计算表达式：
+
+```F#
+type Wrapper<'a> = Wrapped of 'a
+
+type wrapBuilder() =
+    member this.Bind (wrapper:Wrapper<'a>) (func:'a->Wrapper<'b>) =
+        match wrapper with
+        | Wrapped(innerThing) -> func innerThing
+
+    member this.Return innerThing =
+        Wrapped(innerThing)
+
+let wrap = new wrapBuilder()
+```
+
+但是，如果你尝试使用它，你会得到一个错误。
+
+```F#
+wrap {
+    let! x1 = Wrapped(1)   // <== error here
+    let! y1 = Wrapped(2)
+    let z1 = x + y
+    return z
+    }
+// error FS0001: This expression was expected to have type Wrapper<'a>
+//               but here has type 'b * 'c
+```
+
+原因是“`Bind`”需要一个元组 `(wrapper,func)`，而不是两个参数。（检查 F# 文档中的绑定签名）。
+
+修复方法是更改绑定函数以接受元组作为其（单个）参数。
+
+```F#
+type wrapBuilder() =
+    member this.Bind (wrapper:Wrapper<'a>, func:'a->Wrapper<'b>) =
+        match wrapper with
+        | Wrapped(innerThing) -> func innerThing
+```
+
+### FS0003: 此值不是函数，无法应用
+
+当向函数传递太多参数时，通常会发生此错误。
+
+```F#
+let add1 x = x + 1
+let x = add1 2 3
+// ==>   error FS0003: This value is not a function and cannot be applied
+```
+
+当您进行运算符重载时也可能发生这种情况，但运算符不能用作前缀或中缀。
+
+```F#
+let (!!) x y = x + y
+(!!) 1 2              // ok
+1 !! 2                // failed !! cannot be used as an infix operator
+// error FS0003: This value is not a function and cannot be applied
+```
+
+### FS0008: 此运行时强制或类型测试涉及不确定类型
+
+在尝试使用“`:?`”运算符对类型进行匹配时，您经常会看到这种情况。
+
+```F#
+let detectType v =
+    match v with
+        | :? int -> printfn "this is an int"
+        | _ -> printfn "something else"
+// error FS0008: This runtime coercion or type test from type 'a to int
+// involves an indeterminate type based on information prior to this program point.
+// Runtime type tests are not allowed on some types. Further type annotations are needed.
+```
+
+消息告诉您问题：“不允许对某些类型进行运行时类型测试”。
+
+答案是将强制其进入引用类型的值“box”起来，然后您可以对其进行类型检查：
+
+```F#
+let detectTypeBoxed v =
+    match box v with      // used "box v"
+        | :? int -> printfn "this is an int"
+        | _ -> printfn "something else"
+
+//test
+detectTypeBoxed 1
+detectTypeBoxed 3.14
+```
+
+### FS0010: 绑定中存在意外标识符
+
+通常是由于违反了块中对齐表达式的“越位”规则造成的。
+
+```F#
+//3456789
+let f =
+  let x=1     // offside line is at column 3
+   x+1        // oops! don't start at column 4
+              // error FS0010: Unexpected identifier in binding
+```
+
+修复方法是正确对齐代码！
+
+另请参见 [FS0588：此“let”后的块未完成](https://fsharpforfunandprofit.com/troubleshooting-fsharp/#FS0588) 由于对齐引起的另一个问题。
+
+### FS0010: 结构构造不完整
+
+如果类构造函数中缺少括号，则经常发生这种情况：
+
+```F#
+type Something() =
+   let field = ()
+
+let x1 = new Something     // Error FS0010
+let x2 = new Something()   // OK!
+```
+
+如果您忘记在运算符周围加括号，也可能发生这种情况：
+
+```F#
+// define new operator
+let (|+) a = -a
+
+|+ 1    // error FS0010:
+        // Unexpected infix operator
+
+(|+) 1  // with parentheses -- OK!
+```
+
+如果缺少中缀运算符的一侧，也可能发生这种情况：
+
+```F#
+|| true  // error FS0010: Unexpected symbol '||'
+false || true  // OK
+```
+
+如果您尝试将命名空间定义发送到 F# interactive，也可能发生这种情况。交互式控制台不允许命名空间。
+
+### FS0013: 从类型 X 到 Y 的静态强制转换涉及不确定类型
+
+这通常是由内隐引起的
+
+### FS0020: 此表达式的类型应为“unit”
+
+此错误通常出现在两种情况下：
+
+- 不是块中最后一个表达式的表达式
+- 使用错误的赋值运算符
+
+#### FS0020 的表达式不是块中的最后一个表达式
+
+只有块中的最后一个表达式才能返回值。所有其他人必须返回单位。因此，当你在一个不是最后一个函数的地方有一个函数时，通常会发生这种情况。
+
+```F#
+let something =
+  2+2               // => FS0020: This expression should have type 'unit'
+  "hello"
+```
+
+简单的解决方法是使用 `ignore`。但问问自己，为什么你要使用一个函数，然后扔掉答案——这可能是一个 bug。
+
+```F#
+let something =
+  2+2 |> ignore     // ok
+  "hello"
+```
+
+如果您认为自己在编写 C#，并且意外地使用分号分隔表达式，也会发生这种情况：
+
+```F#
+// wrong
+let result = 2+2; "hello";
+
+// fixed
+let result = 2+2 |> ignore; "hello";
+```
+
+#### FS0020 带赋值
+
+在为属性赋值时，会出现此错误的另一种变体。
+
+`This expression should have type 'unit', but has type 'Y'.`（此表达式的类型应为“unit”，但类型为“Y”。）
+
+有了这个错误，你很可能把可变值的赋值运算符“`<-`”和相等比较运算符“`=`”混淆了。
+
+```F#
+// '=' versus '<-'
+let add() =
+    let mutable x = 1
+    x = x + 1          // warning FS0020
+    printfn "%d" x
+```
+
+解决方法是使用正确的赋值运算符。
+
+```F#
+// fixed
+let add() =
+    let mutable x = 1
+    x <- x + 1
+    printfn "%d" x
+```
+
+### FS0030：值限制
+
+这与F#尽可能自动泛化到泛型类型有关。
+
+例如，给定：
+
+```F#
+let id x = x
+let compose f g x = g (f x)
+let opt = None
+```
+
+F# 的类型推理将巧妙地找出泛型类型。
+
+```F#
+val id : 'a -> 'a
+val compose : ('a -> 'b) -> ('b -> 'c) -> 'a -> 'c
+val opt : 'a option
+```
+
+然而，在某些情况下，F# 编译器会觉得代码含糊不清，即使它看起来像是正确地猜测了类型，它也需要你更具体：
+
+```F#
+let idMap = List.map id             // error FS0030
+let blankConcat = String.concat ""  // error FS0030
+```
+
+这几乎总是由于试图定义一个部分应用的函数而导致的，而且几乎总是最简单的修复方法是显式添加缺少的参数：
+
+```F#
+let idMap list = List.map id list             // OK
+let blankConcat list = String.concat "" list  // OK
+```
+
+有关更多详细信息，请参阅 MSDN 上关于[“自动泛化”](http://msdn.microsoft.com/en-us/library/dd233183%28v=VS.100%29.aspx)的文章。
+
+### FS0035: 此构造已弃用
+
+F# 语法在过去几年中已经过清理，所以如果你使用的是旧 F# 书或网页中的示例，你可能会遇到这种情况。有关正确的语法，请参阅 MSDN 文档。
+
+```F#
+let x = 10
+let rnd1 = System.Random x         // Good
+let rnd2 = new System.Random(x)    // Good
+let rnd3 = new System.Random x     // error FS0035
+```
+
+### FS0039: 字段、构造函数或成员X未定义
+
+此错误通常出现在四种情况下：
+
+- 一个明显的情况是，有些东西真的没有被定义！确保你没有拼写错误或大小写不匹配。
+- 接口
+- 游览
+- 扩展方法
+
+#### 带接口的 FS0039
+
+在 F# 中，所有接口都是“显式”实现，而不是“隐式”实现。（阅读关于[“显式接口实现”](http://msdn.microsoft.com/en-us/library/aa288461%28v=vs.71%29.aspx)的 C# 文档，了解差异的解释）。
+
+关键在于，当一个接口成员被显式实现时，它不能通过普通的类实例访问，而只能通过接口的实例访问，因此您必须使用 `:>` 运算符转换为接口类型。
+
+下面是一个实现接口的类的示例：
+
+```F#
+type MyResource() =
+   interface System.IDisposable with
+       member this.Dispose() = printfn "disposed"
+```
+
+这行不通：
+
+```F#
+let x = new MyResource()
+x.Dispose()  // error FS0039: The field, constructor
+             // or member 'Dispose' is not defined
+```
+
+修复方法是将对象转换为接口，如下所示：
+
+```F#
+// fixed by casting to System.IDisposable
+(x :> System.IDisposable).Dispose()   // OK
+
+let y =  new MyResource() :> System.IDisposable
+y.Dispose()   // OK
+```
+
+#### 带有递归的 FS0039
+
+这是一个标准的斐波那契实现：
+
+```F#
+let fib i =
+   match i with
+   | 1 -> 1
+   | 2 -> 1
+   | n -> fib(n-1) + fib(n-2)
+```
+
+不幸的是，这将无法编译：
+
+`Error FS0039: The value or constructor 'fib' is not defined`（错误 FS0039:未定义值或构造函数'fib'）
+
+原因是当编译器在正文中看到'fib'时，它不知道该函数，因为它还没有完成编译！
+
+修复方法是使用“`rec`”关键字。
+
+```F#
+let rec fib i =
+   match i with
+   | 1 -> 1
+   | 2 -> 1
+   | n -> fib(n-1) + fib(n-2)
+```
+
+请注意，这仅适用于“`let`”函数。成员函数不需要这个，因为作用域规则略有不同。
+
+```F#
+type FibHelper() =
+    member this.fib i =
+       match i with
+       | 1 -> 1
+       | 2 -> 1
+       | n -> fib(n-1) + fib(n-2)
+```
+
+#### FS0039，带扩展方法
+
+如果你定义了一个扩展方法，除非模块在作用域内，否则你将无法使用它。
+
+这里有一个简单的扩展来演示：
+
+```F#
+module IntExtensions =
+    type System.Int32 with
+        member this.IsEven = this % 2 = 0
+```
+
+如果你尝试使用它的扩展名，你会得到 FS0039 错误：
+
+```F#
+let i = 2
+let result = i.IsEven
+    // FS0039: The field, constructor or
+    // member 'IsEven' is not defined
+```
+
+修复方法只是打开 `IntExtensions` 模块。
+
+```F#
+open IntExtensions // bring module into scope
+let i = 2
+let result = i.IsEven  // fixed!
+```
+
+### FS0041: 无法确定的唯一过载
+
+这可能是在调用具有多个重载的 .NET 库函数时引起的：
+
+```F#
+let streamReader filename = new System.IO.StreamReader(filename) // FS0041
+```
+
+有很多方法可以解决这个问题。一种方法是使用显式类型注释：
+
+```F#
+let streamReader filename = new System.IO.StreamReader(filename:string) // OK
+```
+
+有时可以使用命名参数来避免类型注释：
+
+```F#
+let streamReader filename = new System.IO.StreamReader(path=filename) // OK
+```
+
+或者，您可以尝试创建有助于类型推理的中间对象，同样不需要类型注释：
+
+```F#
+let streamReader filename =
+    let fileInfo = System.IO.FileInfo(filename)
+    new System.IO.StreamReader(fileInfo.FullName) // OK
+```
+
+### FS0049: 模式中通常不应使用大写变量标识符
+
+在模式匹配时，请注意纯 F# 联合类型（仅由标签组成）和 .NET 枚举类型之间的细微差异。
+
+纯 F# 联合类型：
+
+```F#
+type ColorUnion = Red | Yellow
+let redUnion = Red
+
+match redUnion with
+| Red -> printfn "red"     // no problem
+| _ -> printfn "something else"
+```
+
+但 .NET 枚举必须完全限定它们：
+
+```F#
+type ColorEnum = Green=0 | Blue=1      // enum
+let blueEnum = ColorEnum.Blue
+
+match blueEnum with
+| Blue -> printfn "blue"     // warning FS0049
+| _ -> printfn "something else"
+```
+
+修复版本：
+
+```F#
+match blueEnum with
+| ColorEnum.Blue -> printfn "blue"
+| _ -> printfn "something else"
+```
+
+### FS0072: 查找不确定类型的对象
+
+当“点入”类型未知的对象时，就会发生这种情况。
+
+考虑以下示例：
+
+```F#
+let stringLength x = x.Length // Error FS0072
+```
+
+编译器不知道“x”是什么类型，因此不知道“`Length`”是否是有效的方法。
+
+有很多方法可以解决这个问题。最粗糙的方法是提供显式的类型注释：
+
+```F#
+let stringLength (x:string) = x.Length  // OK
+```
+
+不过，在某些情况下，明智地重新排列代码会有所帮助。例如，下面的示例看起来应该可以工作。很明显，`List.map` 函数被应用于字符串列表，那么为什么 `x.Length` 会导致错误呢？
+
+```F#
+List.map (fun x -> x.Length) ["hello"; "world"] // Error FS0072
+```
+
+原因是 F# 编译器目前是一个单程编译器，因此如果程序中稍后出现的类型信息尚未解析，则无法使用。
+
+是的，您始终可以明确地注释：
+
+```F#
+List.map (fun x:string -> x.Length) ["hello"; "world"] // OK
+```
+
+但另一种更优雅的方法通常可以解决这个问题，那就是重新排列事物，使已知类型排在第一位，编译器可以在进入下一个子句之前对其进行消化。
+
+```F#
+["hello"; "world"] |> List.map (fun x -> x.Length)   // OK
+```
+
+避免显式类型注释是一种很好的做法，所以如果可行的话，这种方法是最好的。
+
+### FS0588: 此“let”后的块未完成
+
+由块中的表达式外显而导致，从而违反了“越位规则”。
+
+```F#
+//3456789
+let f =
+  let x=1    // offside line is at column 3
+ x+1         // offside! You are ahead of the ball!
+             // error FS0588: Block following this
+             // 'let' is unfinished
+```
+
+解决方法是正确对齐代码。
+
+另请参阅 [FS0010: 绑定中的意外标识符](https://fsharpforfunandprofit.com/troubleshooting-fsharp/#FS0010a)，了解对齐引起的另一个问题。
+
+
+
+# 书籍
+
+通过购买书籍来支持此网站
+
+https://fsharpforfunandprofit.com/books/
+
+## 领域建模函数化
+
+[![Domain Modeling Made Functional](https://fsharpforfunandprofit.com/books/domain-modeling-made-functional-200.jpg)](https://pragprog.com/titles/swdddf/domain-modeling-made-functional/)
+
+本书首先讨论了领域驱动设计，然后展示了如何使用类型对设计进行建模。最后一部分展示了如何使用 F# 函数式编程（函数组合、用于错误处理的“面向铁路的编程”等）来实现设计。
+
+### 以下是一些五星评价
+
+“对于任何希望使用 F# 或任何函数式语言深入研究领域驱动设计的人来说，这是一本很棒的书。”
+
+“这是我有史以来最喜欢的软件开发书籍之一。对于那些愿意走出舒适区学习函数式编程的 C# 开发人员来说，这将改变游戏规则。它们可能是你读过的最重要的 300 页文本。”
+
+“写得很好，很清楚。以一种平易近人、简单的方式解释了 F# 中一些非常复杂的主题。”
+
+“一本关于软件设计的好书，我会推荐给任何开发人员。”
+
+“大开眼界。这是我很久以来读过的最好的编程书籍之一。”
+
+### 如何购买
+
+[直接从 Pragmatic Programmers 网站购买（电子书和论文）](https://pragprog.com/titles/swdddf/domain-modeling-made-functional/)
+
+![img](https://fsharpforfunandprofit.com/books/US-flag.gif)[从美国亚马逊购买（联盟链接）](https://www.amazon.com/Domain-Modeling-Made-Functional-Domain-Driven/dp/1680502549?tag=fsharpforfu0d-20)
+
+![img](https://fsharpforfunandprofit.com/books/UK-flag.gif)[从亚马逊英国购买（联盟链接）](https://www.amazon.co.uk/Domain-Modeling-Made-Functional-Domain-Driven/dp/1680502549?tag=fsharpforfuna-21)
+
+![img](https://fsharpforfunandprofit.com/books/DE-flag.gif) [从亚马逊DE购买（联盟链接）](https://www.amazon.de/Domain-Modeling-Made-Functional-Domain-Driven/dp/1680502549?tag=fsharpforfu00-21)
+
+[从 The Book Depository 购买（全球免费送货）](https://www.bookdepository.com/Domain-Modeling-Made-Functional-Scott-Wlaschin/9781680502541)
+
+注意：有些人对 Kindle 版本的格式有问题。对于所有电子书格式（包括 .mobi），我建议直接从 [Pragmatic Programmers 网站购买（电子书和论文）](https://pragprog.com/titles/swdddf/domain-modeling-made-functional/)。
+
+如果你喜欢这本书，如果你能在 [Goodreads 页面](https://www.goodreads.com/book/show/34921689-domain-modeling-made-functional)上留下评论，我将不胜感激。
+
+### 它与本网站的内容有何不同？
+
+本书中的许多主题与本网站上的帖子相似，但本书结构合理，并有一个连贯的例子贯穿其中。
+
+此外，它确实有一些章节是我还没有在博客上写过的，比如理解 DDD、如何设计函数式架构、关于代数类型的序列化和持久性的整整两章（很重要，但不经常详细介绍），以及如何改进现有的设计。
+
+## 本网站可下载电子书
+
+[![Gitbook](https://fsharpforfunandprofit.com/books/gitbook-200.jpg)](https://fsharpforfunandprofit.com/books/)
+
+目前不可用。
+
+
+
+# 视频
+
+喜欢看视频吗？你来对地方了！
+
+https://fsharpforfunandprofit.com/video/
+
+此页面列出了我所有的视频演讲。每次演讲大约一个小时。每次演讲都有幻灯片和更多信息，请参阅每个描述末尾的链接。
+
+如需更多 F# 视频，请访问 [F# 社区](http://c4fsharp.net/#online-presentations)网站。
+
+## 函数式设计模式
+
+[![Video from NDC London 2014](https://fsharpforfunandprofit.com/video/fppatterns320.jpg)](https://goo.gl/aptvwN)
+
+在面向对象开发中，我们都熟悉策略模式和装饰器模式等设计模式，以及 SOLID 等设计原则。
+
+函数式编程社区也有设计模式和原则。
+
+本次演讲概述了其中一些，并展示了 FP 设计在实践中的一些演示。[**YouTube 上的浏览量超过 10 万**](https://www.youtube.com/watch?v=E8I19uA-wGY)！
+
+[幻灯片和更多信息](https://fsharpforfunandprofit.com/fppatterns/)
+
+## 领域建模函数化
+
+[![“Video from NDC Oslo, June 2017](https://fsharpforfunandprofit.com/video/ddd320.jpg)](https://goo.gl/kxVAWt)
+
+像 F# 这样的静态类型函数式编程语言鼓励人们以一种非常不同的方式思考类型。类型系统是你的朋友，而不是烦人的东西，它可以以许多面向对象程序员可能不熟悉的方式使用。
+
+类型可用于以细粒度、自文档化的方式表示领域。在许多情况下，类型甚至可以用来对业务规则进行编码，这样你就不会创建错误的代码。然后，您可以将静态类型检查几乎用作即时单元测试，以确保您的代码在编译时是正确的。
+
+在本次演讲中，我们将通过 F# 中的一些简单的现实世界示例，探讨将类型用作领域驱动设计过程的一部分的一些方法。没有行话，没有数学，也不需要之前的 F# 经验。
+
+[幻灯片和更多信息](https://fsharpforfunandprofit.com/ddd/)
+
+## 一种函数式的错误处理方法（面向铁路的编程）
+
+[![“Video from NDC London 2014](https://fsharpforfunandprofit.com/video/rop320.jpg)](https://goo.gl/Lv5ZAo)
+
+函数式编程中的许多例子都假设你总是走在“快乐的道路”上。但是，要创建一个健壮的现实世界应用程序，您必须处理验证、日志记录、网络和服务错误以及其他烦人的问题。
+
+那么，你如何以一种干净的函数式方式处理所有这些呢？
+
+本次演讲将简要介绍这一主题，使用一个有趣且易于理解的铁路类比。
+
+[幻灯片和更多信息](https://fsharpforfunandprofit.com/rop/)
+
+## C#程序员的F#
+
+[![“Video from NDC Oslo, June 14, 2017](https://fsharpforfunandprofit.com/video/csharp320.jpg)](https://goo.gl/LdQNGD)
+
+对 F# 感到好奇，想了解它与 C# 有何不同？
+
+在本次演讲中，我们将探讨 F# 编码的基础知识，以及函数式编程与面向对象编程的区别。在此过程中，将有许多示例显示用 C# 和 F# 编写的相同代码，以便您自己看到这两种语言在风格和方法上的差异。
+
+[幻灯片和更多信息](https://fsharpforfunandprofit.com/csharp/)
+
+## 组合的力量
+
+[![“Video from dotNext Moscow, 2019](https://fsharpforfunandprofit.com/video/composition320.jpg)](https://www.youtube.com/watch?v=oquuPOkz8xo)
+
+组合是函数式编程的基本原则，但它与面向对象的方法有什么不同，你在实践中如何使用它？
+
+在本次面向初学者的演讲中，我们将首先介绍函数式编程的基本概念，然后探讨一些不同的方法，即组合可以用来从小事物构建大事物。
+
+之后，我们将看到如何在实践中使用组合，从一个简单的 FizzBuzz 示例开始，到一个完整的（无对象！）web 应用程序结束。
+
+[幻灯片和更多信息](https://fsharpforfunandprofit.com/composition/)
+
+## 理解解析器组合子
+
+[![“Video from NDC Oslo, Jun 9, 2016](https://fsharpforfunandprofit.com/video/parser320.jpg)](https://goo.gl/Cxa7NR)
+
+传统上，编写解析器一直很困难，涉及 Lex 和 Yacc 等晦涩难懂的工具。另一种方法是用你最喜欢的编程语言编写一个解析器，使用“解析器组合子”库和不比正则表达式复杂的概念。
+
+在本次演讲中，我们将深入探讨解析器组合子。我们将使用函数式编程技术在 F# 中从头开始构建一个解析器组合子库，然后使用它来实现一个功能齐全的 JSON 解析器。
+
+[幻灯片和更多信息](https://fsharpforfunandprofit.com/parser/)
+
+这次演讲是基于我关于这个话题的博客文章：
+
+- [理解解析器组合子](https://fsharpforfunandprofit.com/series/understanding-parser-combinators/)
+
+## 观察乌龟的十三种方法
+
+[![“Video from NDC London, Jan 18, 2017](https://fsharpforfunandprofit.com/video/turtle320.jpg)](https://goo.gl/2BN161)
+
+在这篇快节奏的演讲中，我将从著名的乌龟图形 API 开始，然后通过创建 13 个不同的实现将其扩展到临界点，每个实现演示不同的函数式编程技术。
+
+在此过程中，我们将使用部分应用、函数依赖注入、成功/失败结果验证、Either 单子、状态单子、消息队列代理、事件源、流处理、基于能力的设计和解释器模式（又名自由单子）。呼！
+
+[幻灯片和更多信息](https://fsharpforfunandprofit.com/turtle/)
+
+这次演讲是基于我关于这个话题的博客文章：
+
+- [观察乌龟的十三种方法](https://fsharpforfunandprofit.com/posts/13-ways-of-looking-at-a-turtle/)
+
+## 基于属性的测试
+
+[![“Video from Functional Programming eXchange, Jun 11, 2015](https://fsharpforfunandprofit.com/video/pbt320.jpg)](https://goo.gl/p2kfWH)
+
+我们都熟悉以 TDD 和 BDD 为代表的基于示例（example-based）的测试。基于属性的测试采用了一种非常不同的方法，即使用随机生成的输入运行单个测试数百次。
+
+基于属性的测试是发现边缘情况的好方法，也有助于您理解和记录代码在所有条件下的行为。
+
+本次讲座将介绍基于属性的测试，并展示其工作原理，以及为什么你应该考虑将其添加到你的测试工具库中。
+
+[幻灯片和更多信息](https://fsharpforfunandprofit.com/pbt/)
+
+这次演讲是基于我关于这个话题的博客文章：
+
+- [基于属性的测试介绍](https://fsharpforfunandprofit.com/posts/property-based-testing/)
+- [为基于属性的测试选择属性](https://fsharpforfunandprofit.com/posts/property-based-testing-2/)
+
+## 弗兰肯福克托博士和莫纳德斯特
+
+[![“Video from NDC London 2016, Jan 14, 2016](https://fsharpforfunandprofit.com/video/monadster320.jpg)](https://goo.gl/8TwY8C)
+
+你有一堆各式各样的函数。每一个都是有用和可靠的，但它们只是不能正确地组合在一起。你怎么能把它们组装成一个完整的系统，能够自立并恐吓当地村民？
+
+在本课程中，我将展示函数式编程如何将各种现有代码转换为可插拔的形状，并且可以毫不费力地连接在一起。
+
+[幻灯片和更多信息](https://fsharpforfunandprofit.com/monadster/)
+
+这次演讲是基于我关于这个话题的博客文章：
+
+- [弗兰肯福克托博士和莫纳德斯特](https://fsharpforfunandprofit.com/posts/monadster/)
+
+## 企业 Tic-Tac-Toe
+
+[![“Video from NDC Oslo, Jun 17, 2015](https://fsharpforfunandprofit.com/video/ettt320.jpg)](https://goo.gl/YE4pW2)
+
+跟随我荒谬地过度设计了一个简单的游戏，以演示如何使用函数式编程来创建一个现实世界的“企业就绪”应用程序。
+
+所涵盖的主题包括：将业务规则编码为类型、使用参数多态性隐藏数据、使用功能实现基于功能的安全性、使用 HATEAOS 公开 REST API、日志记录的函数式方法、参与者、可扩展性等等。
+
+[幻灯片和更多信息](https://fsharpforfunandprofit.com/ettt/)
+
+这次演讲是基于我关于这个话题的博客文章：
+
+- [企业 Tic-Tac-Toe](https://fsharpforfunandprofit.com/posts/enterprise-tic-tac-toe/)
+- [企业 Tic-Tac-Toe第2部分，我扔掉了之前的设计](https://fsharpforfunandprofit.com/posts/enterprise-tic-tac-toe-2/)
+
+## 用能力设计
+
+[![“Video from NDC London, Jan 15, 2016](https://fsharpforfunandprofit.com/video/cap320.jpg)](https://goo.gl/hmzGFn)
+
+我们都希望生成易于测试和重构的模块化和健壮的代码，我们有 SOLID 等设计原则可以帮助我们做到这一点。
+
+在这次演讲中，我将介绍一种使用“能力”和最小权威原则进行设计的非常不同的方法。我将展示如何在整个核心领域（而不仅仅是在 API 边界）使用这些设计技术，从而产生设计良好的模块化代码。
+
+我将演示如何设计和使用基于能力的方法，如何快速组合和轻松限制能力，以及如何将能力与使用 HATEAOS 的 REST API 自然结合。
+
+[幻灯片和更多信息](https://fsharpforfunandprofit.com/cap/)
+
+这次演讲是基于我关于这个话题的博客文章：
+
+- [函数式授权方法](https://fsharpforfunandprofit.com/posts/capability-based-security/)
+- [基于身份和角色限制能力](https://fsharpforfunandprofit.com/posts/capability-based-security-2/)
+- [使用类型作为访问令牌](https://fsharpforfunandprofit.com/posts/capability-based-security-3/)
+
+## 四十年前的四种语言
+
+[![“Video from NDC Oslo, Jun 15, 2018](https://fsharpforfunandprofit.com/video/fourfromforty320.jpg)](https://www.youtube.com/watch?v=0fpDlAEQio4)
+
+20 世纪 70 年代是新编程语言的黄金时代，但它们与今天的编程有什么关系吗？我们还能向他们学习吗？
+
+在本次演讲中，我们将探讨 40 多年前设计的四种语言——SQL、Prolog、ML 和 Smalltalk——并讨论它们的编程哲学和方法，这与当今大多数流行的语言截然不同。
+
+我们将得出一些仍然非常适用于现代发展的实用原则。你可能会发现你最喜欢的新编程范式！
+
+[幻灯片和更多信息](https://fsharpforfunandprofit.com/fourfromforty/)
+
+## 函数式程序员工具包
+
+[![“Video from NDC Oslo, Jun 19, 2019](https://fsharpforfunandprofit.com/video/fptoolkit320.jpg)](https://www.youtube.com/watch?v=bK-Tz-GLfOs)
+
+函数式编程社区有许多具有奇怪名称的模式，如单子、幺半群、函子和同态（catamorphisms）。
+
+在这个适合初学者的演讲中，我们将揭开这些技术的神秘面纱，看看它们是如何组合成一个小而多功能的“工具包”的。
+
+然后，我们将了解如何将此工具包中的工具应用于各种编程问题，例如处理丢失的数据、使用列表以及实现依赖注入的函数式等效物。
+
+[幻灯片和更多信息](https://fsharpforfunandprofit.com/fptoolkit/)
+
+## 重新设计事务脚本
+
+[![NDC London, Jan 2020](https://fsharpforfunandprofit.com/video/transactionscript320.jpg)](https://www.youtube.com/watch?v=USSkidmaS6w)
+
+事务脚本模式将业务逻辑组织为单个过程。它一直被认为不如具有丰富领域模型的分层架构复杂和灵活。但这是真的吗？
+
+在本次演讲中，我们将使用函数式编程原理重新发明事务脚本。我们将看到，我们仍然可以进行领域驱动设计，并且仍然有解耦和可重用的代码，同时保持每个工作流一个脚本的原始方法的简单性和生产力。
+
+[幻灯片和更多信息](https://fsharpforfunandprofit.com/transactionscript/)
+
+## 代码审查/重构直播
+
+在这个 [F# 社区](http://c4fsharp.net/)的现场会议中，我将一些丑陋的代码重构为更清晰、更实用的代码，让观众了解基本的 F# 编码实践，并展示如何避免一些常见的代码异味。
+
+[带有代码示例的 GitHub 存储库在这里。](https://github.com/swlaschin/RefactoringFSharp)
 
 
 
