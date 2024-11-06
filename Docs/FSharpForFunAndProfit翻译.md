@@ -7434,19 +7434,19 @@ https://fsharpforfunandprofit.com/pbt/
 
 这次演讲是基于我关于这个话题的博客文章：
 
-- 基于属性的测试
+- [基于属性的测试](https://fsharpforfunandprofit.com/series/property-based-testing/)
 
 ## 视频
 
 或者声音更好的旧版本（点击图片查看视频-需要免费注册）
 
-函数式编程交换视频，2015年6月11日
+[![Video from Functional Programming eXchange, Jun 11, 2015](https://fsharpforfunandprofit.com/pbt/pbt427.jpg)](https://goo.gl/p2kfWH)
 
 ## 幻灯片
 
 函数式编程交换幻灯片，2015年6月11日
 
-从我在Slideshare上的幻灯片中介绍基于属性的测试
+从[我在Slideshare上的幻灯片](http://www.slideshare.net/ScottWlaschin)中[介绍基于属性的测试](https://www.slideshare.net/ScottWlaschin/an-introduction-to-property-based-testing)
 
 ## 进一步查看
 
@@ -7467,22 +7467,26 @@ https://fsharpforfunandprofit.com/series/property-based-testing/
 
 本系列文章将向您介绍基于属性的测试的基本原理：它与传统的基于示例的测试有何不同，为什么它很重要，以及如何在理论和实践中使用属性。
 
-还有一个后续系列：《企业开发者从地狱归来》。
+还有一个后续系列：[《企业开发者从地狱归来》](https://fsharpforfunandprofit.com/series/return-of-the-edfh)。
 
-基于这些帖子，还有一个关于基于属性的测试的讨论。幻灯片和视频在这里。
+基于这些帖子，还有一个关于基于属性的测试的讨论。[幻灯片和视频在这里](https://fsharpforfunandprofit.com/pbt/)。
 
-1. 来自地狱的企业开发者
+1. [来自地狱的企业开发者](https://fsharpforfunandprofit.com/posts/property-based-testing/)
    发现恶意遵守基于属性的测试
-2. 了解 FsCheck
+2. [了解 FsCheck](https://fsharpforfunandprofit.com/posts/property-based-testing-1/)
    生成器、收缩器等
-3. 为基于属性的测试选择属性
+3. [为基于属性的测试选择属性](https://fsharpforfunandprofit.com/posts/property-based-testing-2/)
    或者，我想使用 PBT，但我永远想不出任何属性可以使用
-4. 在实践中选择属性，第1部分
+4. [在实践中选择属性，第1部分](https://fsharpforfunandprofit.com/posts/property-based-testing-3/)
    列表函数的属性
-5. 在实践中选择属性，第2部分
+5. [在实践中选择属性，第2部分](https://fsharpforfunandprofit.com/posts/property-based-testing-4/)
    罗马数字转换的性质
-6. 在实践中选择属性，第3部分
+6. [在实践中选择属性，第3部分](https://fsharpforfunandprofit.com/posts/property-based-testing-5/)
    美元对象的属性
+
+
+
+## [跳转系列独立 Markdown](./FSharpForFunAndProfit翻译-“基于属性的测试”系列.md)
 
 
 
@@ -7500,6 +7504,10 @@ https://fsharpforfunandprofit.com/series/return-of-the-edfh/
 
 
 
+## [跳转系列独立 Markdown](./FSharpForFunAndProfit翻译-“EDFH的回归”系列.md)
+
+
+
 # 对“罗马数字 Kata 及其评论”的评论
 
 我对罗马数字 Kata 的理解
@@ -7507,13 +7515,545 @@ https://fsharpforfunandprofit.com/series/return-of-the-edfh/
 
 https://fsharpforfunandprofit.com/posts/roman-numeral-kata/
 
-我最近看了一个名为“罗马数字卡塔与评论”的视频。在这篇文章中，Corey Haines 演示了如何使用 TDD 方法在 Ruby 中实现阿拉伯语到罗马数字 Kata。
+我最近看了一个名为[“罗马数字卡塔与评论”](http://blog.coreyhaines.com/2012/12/roman-numerals-kata-with-commentary.html)的视频。在这篇文章中，Corey Haines 演示了如何使用 TDD 方法在 Ruby 中实现[阿拉伯数字到罗马数字 Kata](http://codingdojo.org/kata/RomanNumerals/)。
 
-这段视频让我非常恼火。
+*这段视频让我非常恼火。*
 
 我无意冒犯科里·海恩斯的编程技能，许多人似乎觉得这段视频很有用，但我只是觉得它很烦人。
 
 我想在这篇文章中，我会试着解释一下我为什么生气，并提出我解决这类问题的替代方法。
+
+## 要求在哪里？
+
+> “很少有程序员在开始编码之前写下他们的程序将要做什么的粗略草图。大多数程序员认为任何不生成代码的事情都是浪费时间。”
+>
+> Leslie Lamport，[“为什么我们应该像建造房屋一样建造软件”](http://www.wired.com/opinion/2013/01/code-bugs-programming-why-we-need-specs/)
+
+在标准 TDD 方式中，视频从实现一个初始失败案例（处理零）开始，然后使其工作，然后添加一个处理“1”的测试案例，然后使该案例工作，依此类推。
+
+这是让我恼火的第一件事——在没有真正理解需求的情况下投入代码。
+
+之所以称之为[编程 kata](http://en.wikipedia.org/wiki/Kata_%28programming%29)，是因为其目标是练习作为开发人员的技能。但对我来说，编码技能只是软件开发人员的一个方面，并不总是最重要的。
+
+如果有什么需要大多数开发人员练习的话，那就是倾听和理解客户的需求（即需求）。我们永远不应该忘记，我们的目标是提供价值，而不仅仅是编写代码。
+
+在这种情况下，尽管有一个关于 kata 的[页面](http://codingdojo.org/kata/RomanNumerals/)，但要求仍然有些模糊，所以我认为这是一个深入了解它们的绝佳机会，也许还能学到一些新东西。
+
+## 成为领域专家
+
+事实上，我认为尽可能深入地了解需求有一些重要的好处。
+
+**这很有趣**。真正了解一个新领域很有趣。我喜欢学习新事物——这是成为一名开发人员的好处之一。
+
+不仅仅是我。Dan North 告诉他在[“加速敏捷”](http://vimeo.com/68215534)演示中与领域专家密切合作是多么有趣。该团队成功的一部分是，开发人员与交易员自己一起研究了领域（交易），这样沟通就很容易，混淆也最小化了。
+
+**好设计**。我确实相信，为了生产出好的软件，你必须成为你试图建模的领域的专家。当然，这是领域驱动设计背后的论点，也是敏捷过程的关键组成部分：在各个阶段与开发人员密切合作的“现场客户”。
+
+几乎总是，正确理解需求将引导您以正确* 的方式实施解决方案。再浅的迭代也无法弥补深度洞察的不足。
+
+*当然，没有真正的“正确”的方法，但有很多错误的方法。所以在这里，我的意思是不要非常复杂和难以维护。
+
+**很好的测试**。如果不了解需求，就无法创建好的测试。像 BDD 这样的过程明确了这一点；需求的编写方式使得它们实际上成为了测试。
+
+## 理解罗马数字
+
+> “在项目开始阶段，当我们对项目的大多数方面都最不了解时，我们能利用的时间的最佳方式就是尝试在我们能想到的所有轴上识别和减少我们的无知。”——Dan North，[“刻意发现”](http://dannorth.net/2010/08/30/introducing-deliberate-discovery/)
+
+那么，这如何适用于罗马数字 Kata 呢？在编写一行代码之前，我们是否应该认真成为领域专家？
+
+我会说是的！
+
+我知道这是一个微不足道的问题，似乎有些矫枉过正，但话说回来，这是一门卡塔，所以你应该仔细地练习所有的步骤。
+
+那么，我们能从罗马数字中了解到什么呢？
+
+首先，[从可靠来源的一点背景阅读](http://en.wikipedia.org/wiki/Roman_numerals)表明，它们可能起源于类似于[理货标记](http://en.wikipedia.org/wiki/Tally_marks)的东西。
+
+![Tally marks](https://fsharpforfunandprofit.com/posts/roman-numeral-kata/200px-Tally_marks.svg.png)
+
+这解释了“I”到“IIII”的简单笔划，以及“V”的不同符号。
+
+随着它的发展，增加了十和五十、一百和五百等符号。这种用一和五计数的系统可以在[算盘](http://en.wikipedia.org/wiki/Roman_abacus)的设计中看到，无论是旧的还是新的。
+
+![Roman Abacus](https://fsharpforfunandprofit.com/posts/roman-numeral-kata/RomanAbacusRecon.jpg) ![Modern abacus](https://fsharpforfunandprofit.com/posts/roman-numeral-kata/320px-Sharp-abacus-japan.jpg)
+
+事实上，这个系统甚至有一个我从未听说过的名字——[“双五进制编码十进制”](http://en.wikipedia.org/wiki/Bi-quinary_coded_decimal)。这难道不有趣吗？现在，我将尽可能地把这句话放在随意的谈话中。（顺便说一句，用作计数器的小石头被称为“结石”，这是各地高中生的祸根。）
+
+很久以后，在13世纪，增加了某些缩写——用“IV”代替“IIII”，用“IX”代替“VIIII”。这种[减法表示法](http://en.wikipedia.org/wiki/Subtractive_notation)意味着符号的顺序变得重要，这对于纯粹的基于计数的系统来说是不需要的。
+
+这些新要求告诉我们，开发业务没有任何变化…
+
+```
+波普：“我们需要尽快添加减法符号——阿拉伯人在特征上打败了我们。”
+你：“但是它不向后兼容，先生。这是一个突破性的变化！”
+波普：“很难。我下周需要它。”
+```
+
+那么，既然我们已经了解了罗马数字，我们是否有足够的信息来创建要求？
+
+唉，不。随着我们进一步调查，很明显存在很多不一致之处。罗马数字没有 ISO 或 ANSI 标准！
+
+当然，这并不罕见。围绕需求的模糊性会影响大多数软件项目。事实上，作为一名开发人员，我们的部分工作是帮助澄清事情并消除歧义。那么，让我们根据目前所知创建一些需求。
+
+## 此 kata 的要求
+
+> “衡量程序员的不是他们的聪明才智和逻辑，而是他们案例分析的完整性。”——Alan Perlis，[Epigrams](http://cpsc.yale.edu/epigrams-programming)
+
+我想我们都同意，明确和可测试的需求是成功项目的关键一步。
+
+现在，当我谈论“需求”时，我不是在谈论一份需要六个月才能完成的 200 页的文档。我只是在谈论一些需要 5 到 10 分钟才能写下来的要点。
+
+但是…拥有它们很重要。在编码之前仔细思考是一项需要练习的基本技能，因此我建议将这一步作为任何代码 kata 训练的一部分。
+
+以下是我所看到的要求：
+
+- 输出将通过分别使用符号“I”、“V”、“X”、“L”、“C”、“D”和“M”对1、5、10、50、100、500和1000进行计数来生成。
+- 符号必须按降序书写：“M”在“D”之前，“C”在“L”之前，以此类推。
+- 使用计数逻辑，很明显，我们最多只能重复四次“I”、“X”、“C”和“M”。只有一个“V”、“L”或“D”。超过此值，多个计数标记将缩写为下一个“更高”的计数标记。
+- 最后，我们有六个（可选）替换规则：“IIII”=>“IV”，“VIIII”=>”IX“，”XXXX“=>”XL“，”LXXXX“=>“XC”，”CCCC“=>‘CD’，”DCCCC“=>’CM”。这些是降序规则的例外。
+
+还有一个非常重要的要求不在这个清单上。
+
+- 有效输入的范围是多少？
+
+如果我们不明确地记录这一点，我们很容易假设所有整数都是有效的，包括零和负数。
+
+那么，数百万或数十亿的大数字呢？他们被允许吗？可能不会。
+
+所以，让我们明确地说，有效输入的范围从 0 到 4000。那么，如果输入无效，应该怎么办？返回空字符串？抛出例外？
+
+在 F# 等函数式编程语言中，最常见的方法是返回 `Option` 类型，或返回 Success/Failure `Choice` 类型。让我们只使用一个 `Option`，为了完成这些要求，我们有：
+
+- 阿拉伯数字 0 被映射到空字符串。
+- 如果输入小于 0 或大于 4000，则返回 `None`，否则返回 `Some(roman)`，其中 `roman` 是如上所述转换为罗马数字的阿拉伯数字。
+
+因此，为了总结这一步，我们阅读了罗马数字，学习了一些有趣的东西，并为下一阶段提出了一些明确的要求。整个过程只花了 5 到 10 分钟。在我看来，这段时间花得很好。
+
+## 编写测试
+
+> “单元测试被比作用手电筒照射黑暗的房间寻找怪物。把光照进房间，然后照到所有可怕的角落。这并不意味着房间里没有怪物——只是怪物没有站在你用手电筒照射的地方。”
+
+现在我们有了需求，我们可以开始编写测试了。
+
+在原始视频中，测试是逐步开发的，从 0 开始，然后是 1，以此类推。
+
+就我个人而言，我认为这种方法存在许多问题。
+
+首先，我们应该知道，TDD 的主要目标不是测试，而是*设计*。
+
+但在我看来，这种微观的、渐进的设计方法并没有带来特别好的最终结果。
+
+例如，在视频中，从测试“I”案例到测试“II”案例的实现复杂性有了很大的飞跃。但其基本原理有点难以理解，对我来说，这有点狡猾，是一个已经知道答案的人，而不是从之前的案例中自然演变而来的。
+
+不幸的是，在严格的 TDD 方法中，我经常看到这种情况发生。你可能会顺利行驶，然后遇到一个巨大的路障，迫使你进行巨大的反思和重构。
+
+使用 Bob 叔叔的[“转换优先级前提”](http://blog.8thlight.com/uncle-bob/2013/05/27/TheTransformationPriorityPremise.html)方法的严格 TDD'er 会说这很好，也是过程的一部分。
+
+就我个人而言，我宁愿先从最棘手的需求开始，预先承担风险，而不是等到最后。
+
+其次，我不喜欢测试单个案例。我更希望我的测试涵盖所有输入。这并不总是可行的，但当你能做到的时候，就像在这种情况下，我认为你应该这样做。
+
+### 比较两个测试
+
+为了演示我的意思，让我们将视频中开发的测试套件与更通用的基于需求的测试进行比较。
+
+视频中开发的测试套件只检查明显的输入，加上 3497 “用于良好测量”的情况。以下是移植到 F# 的 Ruby 代码：
+
+```F#
+[<Test>]
+let ``For certain inputs, expect certain outputs``() =
+    let testpairs = [
+      (1,"I")
+      (2,"II")
+      (4,"IV")
+      (5,"V")
+      (9,"IX")
+      (10,"X")
+      // etc
+      (900,"CM")
+      (1000,"M")
+      (3497,"MMMCDXCVII")
+      ]
+    for (arabic,expectedRoman) in testpairs do
+       let roman = arabicToRoman arabic
+       Assert.AreEqual(expectedRoman, roman)
+```
+
+有了这组输入，我们对代码满足要求的信心有多大？
+
+在这样一个简单的情况下，我可能会相当有信心，但这种测试方法让我担心，因为使用了没有文档记录的“魔法”测试输入。
+
+例如，为什么 3497 是突然冒出来的？因为（a）它大于一千，并且（b）它有一些 4 和 9。但测试代码中没有记录选择它的原因。
+
+此外，如果我们将此测试套件与需求进行比较，我们可以看到第二和第三个需求根本没有明确测试。确实，3497 的测试隐式地检查了排序要求（“M”在“C”之前，“X”之前），但从未明确说明。
+
+现在将该测试与此测试进行比较：
+
+```F#
+[<Test>]
+let ``For all valid inputs, there must be a max of four "I"s in a row``() =
+    for i in [1..4000] do
+       let roman = arabicToRoman i
+       roman |> assertMaxRepetition "I" 4
+```
+
+此测试检查您只能重复四次“I”的要求。
+
+与 TDD 视频中的测试用例不同，这个测试用例涵盖了所有可能的输入，而不仅仅是一个。如果它通过了，我将完全相信代码符合这一特定要求。
+
+### 基于属性的测试
+
+如果你不熟悉这种测试方法，它被称为“*基于属性的测试*”。您定义一个通常必须为真的“属性”，然后生成尽可能多的输入，以找到属性不为真的情况。
+
+在这种情况下，我们可以测试所有4000个输入。不过，一般来说，我们的问题有更大范围的可能输入，所以我们通常只对输入的一些代表性样本进行测试。
+
+大多数基于属性的测试工具都是按照 [Haskell 的 QuickCheck](http://en.wikipedia.org/wiki/QuickCheck) 建模的，QuickCheck 是一种自动为您生成“有趣”输入的工具，以便尽快找到边缘情况。这些输入包括 null、负数、空列表、包含非 ascii 字符的字符串等。
+
+现在，大多数语言都有类似于 QuickCheck 的功能，包括 F# 的 [FsCheck](https://fscheck.github.io/FsCheck/)。
+
+基于属性的测试的优点是，它迫使您从一般角度考虑需求，而不是将其视为许多特殊情况。
+
+也就是说，我们没有一个测试说`输入“4”映射到“IV”`，而是有一个更通用的测试，说`任何单位中有4的输入都有“IV”作为最后两个字符`。
+
+### 实现基于属性的测试
+
+为了切换到基于属性的测试来满足上述需求，我将重构代码，以便（a）创建一个定义属性的函数，然后（b）根据一系列输入检查该属性。
+
+以下是重构后的代码：
+
+```F#
+// Define a property that should be true for all inputs
+let ``has max rep of four Is`` arabic =
+   let roman = arabicToRoman arabic
+   roman |> assertMaxRepetition "I" 4
+
+// Explicitly enumerate all inputs...
+[<Test>]
+let ``For all valid inputs, there must be a max of four "I"s``() =
+    for i in [1..4000] do
+       //check that the property holds
+       ``has max rep of four Is`` i
+
+// ...Or use FsCheck to generate inputs for you
+let isInRange i = (i >= 1) && (i <= 4000)
+// input is in range implies has max of four Is
+let prop i = isInRange i ==> ``has max rep of four Is`` i
+// check all inputs for this property
+Check.Quick prop
+```
+
+或者，假设我想测试 40 => “XL”的替换规则。
+
+```F#
+// Define a property that should be true for all inputs
+let ``if arabic has 4 tens then roman has one XL otherwise none`` arabic =
+   let roman = arabicToRoman arabic
+   let has4Tens = (arabic % 100 / 10) = 4
+   if has4Tens then
+       assertMaxOccurs "XL" 1 roman
+   else
+       assertMaxOccurs "XL" 0 roman
+
+// Explicitly enumerate all inputs...
+[<Test>]
+let ``For all valid inputs, check the XL substitution``() =
+    for i in [1..4000] do
+       ``if arabic has 4 tens then roman has one XL otherwise none`` i
+
+// ...Or again use FsCheck to generate inputs for you
+let isInRange i = (i >= 1) && (i <= 4000)
+let prop i = isInRange i ==> ``if arabic has 4 tens then roman has one XL otherwise none`` i
+Check.Quick prop
+```
+
+我在这里不再讨论基于属性的测试，但我认为你可以看到使用魔术输入手工制作的案例的好处。
+
+[这篇文章的代码](https://gist.github.com/swlaschin/8409306)有一个完整的基于属性的测试套件。
+
+## 需求驱动设计™
+
+此时，我们可以开始实现。
+
+与 TDD 视频不同，我宁愿通过迭代需求而不是测试用例来构建实现。我需要一个朗朗上口的短语来表达这一点，所以我称之为需求驱动设计™。请注意即将发布的需求驱动设计宣言。
+
+与其实现逐一处理单个输入的代码，我更喜欢我的实现覆盖尽可能多的输入情况——最好是所有输入情况。随着每个新需求的增加，实现都会被修改或改进，使用测试来确保它仍然满足需求。
+
+但这不正是视频中展示的 TDD 吗？
+
+不，我不这么认为。TDD 演示是*测试驱动*的，但不是*需求驱动*的。将 1 映射到“I”和将 2 映射到“II”是测试，但在我看来不是真正的要求。一个好的需求是基于对领域的深入了解。仅仅测试 2 映射到“II”并不能提供这种见解。
+
+### 一个非常简单的实现
+
+在批评了别人的执行之后，是时候让我闭嘴了。
+
+那么，我能想到的最简单的实现方式是什么？
+
+把我们的阿拉伯数字转换成理货标记怎么样？1变为“I”，2变为“II”，以此类推。
+
+```F#
+let arabicToRoman arabic =
+   String.replicate arabic "I"
+```
+
+在这里，它正在发挥作用：
+
+```F#
+arabicToRoman 1    // "I"
+arabicToRoman 5    // "IIIII"
+arabicToRoman 10   // "IIIIIIIIII"
+```
+
+这段代码实际上已经满足了第一和第二个要求，并且适用于所有输入！
+
+当然，拥有 4000 个计数标记并不是很有帮助，这无疑是罗马人开始缩写它们的原因。
+
+这就是洞察领域的地方。如果我们理解计数标记被缩写，我们可以在代码中模拟它。
+
+因此，让我们将所有五个计数标记的运行转换为“V”。
+
+```F#
+let arabicToRoman arabic =
+   (String.replicate arabic "I")
+    .Replace("IIIII","V")
+
+// test
+arabicToRoman 1    // "I"
+arabicToRoman 5    // "V"
+arabicToRoman 6    // "VI"
+arabicToRoman 10   // "VV"
+```
+
+但现在我们可以有连续的“V”。两个“V”需要折叠成一个“X”。
+
+```F#
+let arabicToRoman arabic =
+   (String.replicate arabic "I")
+    .Replace("IIIII","V")
+    .Replace("VV","X")
+
+// test
+arabicToRoman 1    // "I"
+arabicToRoman 5    // "V"
+arabicToRoman 6    // "VI"
+arabicToRoman 10   // "X"
+arabicToRoman 12   // "XII"
+arabicToRoman 16   // "XVI"
+```
+
+我想你明白了。我们可以继续添加缩写…
+
+```F#
+let arabicToRoman arabic =
+   (String.replicate arabic "I")
+    .Replace("IIIII","V")
+    .Replace("VV","X")
+    .Replace("XXXXX","L")
+    .Replace("LL","C")
+    .Replace("CCCCC","D")
+    .Replace("DD","M")
+
+// test
+arabicToRoman 1    // "I"
+arabicToRoman 5    // "V"
+arabicToRoman 6    // "VI"
+arabicToRoman 10   // "X"
+arabicToRoman 12   // "XII"
+arabicToRoman 16   // "XVI"
+arabicToRoman 3497 // "MMMCCCCLXXXXVII"
+```
+
+现在我们结束了。我们已经满足了前三个要求。
+
+如果我们想添加四和九的可选缩写，我们可以在所有计数标记累积后在最后添加。
+
+```F#
+let arabicToRoman arabic =
+   (String.replicate arabic "I")
+    .Replace("IIIII","V")
+    .Replace("VV","X")
+    .Replace("XXXXX","L")
+    .Replace("LL","C")
+    .Replace("CCCCC","D")
+    .Replace("DD","M")
+    // optional substitutions
+    .Replace("IIII","IV")
+    .Replace("VIV","IX")
+    .Replace("XXXX","XL")
+    .Replace("LXL","XC")
+    .Replace("CCCC","CD")
+    .Replace("DCD","CM")
+
+
+// test
+arabicToRoman 1    // "I"
+arabicToRoman 4    // "IV"
+arabicToRoman 5    // "V"
+arabicToRoman 6    // "VI"
+arabicToRoman 10   // "X"
+arabicToRoman 12   // "XII"
+arabicToRoman 16   // "XVI"
+arabicToRoman 40   // "XL"
+arabicToRoman 946  // "CMXLVI"
+arabicToRoman 3497 // "MMMCDXCVII"
+```
+
+以下是我喜欢这种方法的地方：
+
+- 它源于对领域模型（计数标记）的理解，而不是直接进入递归设计。
+- 因此，实施非常严格地遵循了要求。事实上，它基本上是自己写的。
+- 通过遵循这种循序渐进的方法，其他人只要检查代码，就会对代码的正确性充满信心。没有递归或特殊技巧会让任何人感到困惑。
+- 该实现始终为所有输入生成输出。在中间阶段，当它不能满足所有需求时，它至少会生成输出（例如 10 映射到“VV”），“告诉”我们下一步需要做什么。
+
+是的，这可能不是最有效的代码，创建包含 4000 个“I”的字符串！当然，更有效的方法是直接从输入中减去大计数（“M”，然后是 “D”，再然后是 “C”），从而得到 TDD 视频中演示的递归解决方案。
+
+但另一方面，这种实现可能足够高效。这些要求没有提到性能限制——YAGNI 有人吗？——所以我很想就此打住。
+
+### 一种双五进制编码的十进制实现
+
+我无法抗拒另一种实现方式，这样我就可以再次使用“bi-quinary”这个词了。
+
+实现将再次基于我们对领域的理解，在这种情况下，是罗马算盘。
+
+在算盘中，每一行或每一条线代表一个小数位，就像我们常见的阿拉伯记数法一样。但是，根据数字的不同，该位置的数字可以用两个不同的符号进行编码。
+
+一些例子：
+
+- 10位中的1用“X”编码
+- 10位中的2用“XX”编码
+- 10位中的5用“L”编码
+- 10位中的6由“LX”编码
+
+等等。
+
+这直接导致了一种基于将算盘上的珠子转换为字符串表示的算法。
+
+- 将输入的数字拆分为单位，十、百和千。这些代表算盘上的每一行或每一根线。
+- 使用“双五进制”表示法和该位置的适当符号将每个位置的数字编码为字符串。
+- 将每个位置的表示形式连接在一起，形成单个输出字符串。
+
+以下是该算法的直接翻译实现：
+
+```F#
+let biQuinaryDigits place (unit,five) arabic =
+    let digit =  arabic % (10*place) / place
+    match digit with
+    | 0 -> ""
+    | 1 -> unit
+    | 2 -> unit + unit
+    | 3 -> unit + unit + unit
+    | 4 -> unit + unit + unit + unit
+    | 5 -> five
+    | 6 -> five + unit
+    | 7 -> five + unit + unit
+    | 8 -> five + unit + unit + unit
+    | 9 -> five + unit + unit + unit + unit
+    | _ -> failwith "Expected 0-9 only"
+
+let arabicToRoman arabic =
+    let units = biQuinaryDigits 1 ("I","V") arabic
+    let tens = biQuinaryDigits 10 ("X","L") arabic
+    let hundreds = biQuinaryDigits 100 ("C","D") arabic
+    let thousands = biQuinaryDigits 1000 ("M","?") arabic
+    thousands + hundreds + tens + units
+```
+
+请注意，上述代码不会产生四种和九种情况的缩写。不过，我们可以很容易地修改它来做到这一点。我们只需要传入 10 的符号，并调整 4 和 9 的映射，如下所示：
+
+```F#
+let biQuinaryDigits place (unit,five,ten) arabic =
+  let digit =  arabic % (10*place) / place
+  match digit with
+  | 0 -> ""
+  | 1 -> unit
+  | 2 -> unit + unit
+  | 3 -> unit + unit + unit
+  | 4 -> unit + five // changed to be one less than five
+  | 5 -> five
+  | 6 -> five + unit
+  | 7 -> five + unit + unit
+  | 8 -> five + unit + unit + unit
+  | 9 -> unit + ten  // changed to be one less than ten
+  | _ -> failwith "Expected 0-9 only"
+
+let arabicToRoman arabic =
+  let units = biQuinaryDigits 1 ("I","V","X") arabic
+  let tens = biQuinaryDigits 10 ("X","L","C") arabic
+  let hundreds = biQuinaryDigits 100 ("C","D","M") arabic
+  let thousands = biQuinaryDigits 1000 ("M","?","?") arabic
+  thousands + hundreds + tens + units
+```
+
+同样，这两种实现都非常简单，易于验证。代码中没有隐藏的微妙的边缘情况。
+
+## 回顾
+
+我开始写这篇文章时，对 TDD 演示感到恼火。让我回顾一下我生气的原因，以及我的方法有何不同。
+
+### 要求
+
+TDD 演示视频根本没有试图记录这些要求。我会说这是一件危险的事情，尤其是如果你正在学习的话。
+
+我更希望在开始编码之前，你总是努力明确你想做什么。
+
+只需稍加努力，我就提出了一些明确的要求，可以在以后用于验证。
+
+我还明确记录了有效输入的范围——不幸的是，TDD 演示中缺少这一点。
+
+### 了解领域
+
+即使已经为你明确了要求，我认为花时间真正了解你所从事的领域总是值得的。
+
+在这种情况下，理解罗马数字是一种基于计数的系统有助于后来的设计。（另外，我了解了“bi-quinary”的含义，并在这篇文章中使用了它！）
+
+### 单元测试
+
+TDD 演示中的单元测试是逐一构建的。先是 0，然后是 1，以此类推。
+
+正如我上面提到的，我对这种方法感到非常不舒服，因为（a）我认为它不会带来一个好的设计，（b）单个案例并没有涵盖所有可能的输入。
+
+我强烈建议您编写直接映射到需求的测试。如果需求很好，这意味着测试一次涵盖了许多输入，因此您可以测试尽可能多的输入。
+
+理想情况下，您会使用基于属性的测试工具，如 QuickCheck。它不仅使这种方法更容易实现，而且迫使你确定设计的属性应该是什么，这反过来又有助于你澄清任何模糊的要求。
+
+### 实现
+
+最后，我描述了两种实现，它们都与 TDD 视频中演示的递归实现完全不同。
+
+这两种设计都直接源于对该领域的理解。第一种是使用计数标记，第二种是使用算盘。
+
+在我看来，这两种设计也更容易理解——没有递归！——因此更容易有信心。
+
+## 摘要
+
+*（根据我在下面的评论添加。）*
+
+让我明确一点，我对 TDD 绝对没有问题。而且我对卡塔也没有问题。
+
+但我对这类“深入”演示感到担忧，即新手和学习者可能会无意中学到以下（隐含的）教训：
+
+- 接受给定的要求而不问问题是可以的。
+- 在没有明确目标的情况下工作是可以的。
+- 立即开始编码是可以的。
+- 创建非常具体的测试（例如使用幻数）是可以的。
+- 只考虑快乐的道路是可以的。
+- 不着眼于大局而进行微观重构是可以的。
+
+就我个人而言，我认为如果你正在练习成为一名*专业*开发人员，你应该：
+
+- 在开始编码之前，练习尽可能多地询问信息。
+- 以一种可以测试的方式练习编写要求（来自不清楚的输入）。
+- 练习思考（分析和设计），而不是立即编码。
+- 练习创建通用测试而不是特定测试。
+- 练习思考和处理糟糕的输入、极端情况和错误。
+- 练习主要的重构（而不是微观重构），以便对[剪切层](http://jonjagger.blogspot.co.uk/2009/10/how-buildings-learn-chapter-2-shearing.html)应该在哪里形成直觉。
+
+这些原则都与 TDD（或至少是 [TDD 的“伦敦”学派](http://codemanship.co.uk/parlezuml/blog/?postid=987)）和编程准则完全兼容。没有冲突，我不明白为什么它们会引起争议。
+
+## 你怎么认为？
+
+我相信你们中的许多人会不同意这篇文章。我准备进行一场（文明的）辩论。请在下面或 Reddit 上留言。
+
+如果你想看到这篇文章的完整代码，可以在[这里 gist](https://gist.github.com/swlaschin/8409306) 找到。要点还包括这两种实现的基于属性的完整测试。
 
 
 
@@ -7807,7 +8347,7 @@ https://fsharpforfunandprofit.com/posts/why-i-wont-be-writing-a-monad-tutorial/
 
 
 
-# 你的编程语言不合理吗？
+# 你的编程语言不可推理吗？
 
 或者，为什么可预测性很重要
 2015年1月26日 这篇文章已经超过3年了
@@ -7835,22 +8375,557 @@ https://fsharpforfunandprofit.com/posts/is-your-language-unreasonable/
 
 在这篇文章中，我将向您展示这些设计决策导致的一些问题，并建议一些改进语言的方法来避免这些问题。
 
-（我现在要穿上我的防火服。我想我可能需要它！）
+*（我现在要穿上我的防火服。我想我可能需要它！）*
+
+---
+
+更新：似乎很多人[严重误读](http://www.washingtonpost.com/local/serious-reading-takes-a-hit-from-online-scanning-and-skimming-researchers-say/2014/04/06/088028d2-b5d2-11e3-b899-20667de76985_story.html)了这篇文章。所以让我明确一点：
+
+- 我并不是说静态类型语言比动态语言“更好”。
+- 我并不是说 FP 语言比 OO 语言“更好”。
+- 我并不是说能够对代码进行推理是语言最重要的方面。
+
+我想说的是：
+
+- 无法对代码进行推理会带来许多开发人员可能没有意识到的成本。
+- 因此，在选择编程语言时，“可推理（reasonable）”应该是考虑的（许多）因素之一，而不仅仅是由于缺乏意识而被忽视。
+- 如果你想对代码进行推理，那么如果你的语言支持我提到的功能，那就容易多了。
+- OO（对象标识，基于行为）的基本范式与“合理性”不兼容，因此很难改造现有的OO语言来增加这种质量。
+
+好了，谢谢！
+
+## 无论如何，什么是“可推理的”编程语言？
+
+如果你在函数式程序员身边闲逛，你经常会听到“reason about”这个短语，比如“我们想对我们的程序进行推理”。
+
+这是什么意思？为什么要用“推理（reason）”这个词，而不仅仅是“理解（understand）”？
+
+“推理（reasoning）”的使用可以追溯到数学和逻辑，但我将使用一个简单实用的定义：
+
+- “代码推理”意味着你可以*只使用你面前的*信息得出结论，而不必深入研究代码库的其他部分。
+
+换句话说，你可以通过观察来预测一些代码的行为。你可能需要了解其他组件的接口，但你不需要查看它们的内部来了解它们的功能。
+
+作为开发人员，我们大部分时间都在看代码，这是编程中一个非常重要的方面！
+
+当然，关于如何做到这一点，有很多建议：命名准则、格式规则、设计模式等。
+
+但是，你的编程语言*本身*能帮助你的代码更可推理、更可预测吗？我认为答案是肯定的，但我会让你自己判断。
+
+下面，我将介绍一系列代码片段。在每个代码片段之后，我会问你你认为代码的作用是什么。我故意不发表自己的评论，这样你就可以思考并自己推理了。仔细考虑后，向下滚动阅读我的意见。
+
+## 示例 1
+
+让我们从以下代码开始。
+
+- 我们从一个被赋予整数 `2` 的变量 `x` 开始。
+- 然后以 `x` 为参数调用 `DoSomething`。
+- 然后将 `y` 赋值给 `x - 1`。
+
+我想问你的问题很简单：`y` 的值是多少？
+
+```javascript
+var x = 2;
+DoSomething(x);
+
+// What value is y?
+var y = x - 1;
+```
+
+（向下滚动以获取答案）
 
 
 
-# 我们不需要糟糕的UML图
+
+
+
+
+答案是 `-1`。你得到那个答案了吗？没有？如果你想不出来，请再次向下滚动。
+
+
+
+
+
+
+
+狡猾的问题！这段代码实际上是 JavaScript！
+
+事情是这样的：
+
+```javascript
+function DoSomething (foo) { x = false}
+
+var x = 2;
+DoSomething(x);
+var y = x - 1;
+```
+
+是的，太可怕了！`DoSomething` 直接访问 `x`，而不是通过参数，然后将其转换为所有事物的布尔值！然后，从 `x` 中减去 1 会将其从 `false` 转换为 `0`，因此 `y` 为 `-1`。
+
+你难道不讨厌这样吗？很抱歉在语言方面误导了你，但我只是想证明当语言以不可预测的方式表现时是多么令人讨厌。
+
+JavaScript 是一种非常有用和重要的语言。但没有人会声称[可推理性](http://stackoverflow.com/a/1995298/1136133)是它的[优势](https://fsharpforfunandprofit.com/posts/is-your-language-unreasonable/javascript-the-good-parts.jpg)之一。事实上，大多数动态类型语言都有[一些怪癖，使得它们很难以这种方式进行推理](https://www.destroyallsoftware.com/talks/wat)。
+
+由于静态类型和合理的作用域规则，这种事情在 C# 中永远不会发生（除非你非常努力！）在 C# 中，如果你没有正确匹配类型，你会得到编译时错误，而不是运行时错误。
+
+换句话说，C# 比 JavaScript 更可预测。静态类型得一分！
+
+所以现在我们有了使语言可预测的第一个要求：
+
+**如何让你的语言变得可预测：**
+
+1. 不应允许变量更改其类型。
+
+与 JavaScript 相比，C# 看起来不错。但我们还没结束…
+
+*更新：这是一个公认的愚蠢的例子。回想起来，我本可以选一个更好的。是的，我知道没有一个明智的人会这样做。这一点仍然成立：JavaScript 语言并不能阻止你用隐式类型转换做愚蠢的事情。*
+
+## 示例 2
+
+在下一个示例中，我们将创建同一 `Customer` 类的两个实例，其中包含完全相同的数据。
+
+问题是：他们平等吗？
+
+```c#
+// create two customers
+var cust1 = new Customer(99, "J Smith");
+var cust2 = new Customer(99, "J Smith");
+
+// true or false?
+cust1.Equals(cust2);
+```
+
+（向下滚动以获取答案）
+
+
+
+
+
+
+
+```c#
+// true or false?
+cust1.Equals(cust2);
+```
+
+谁知道呢？这取决于 `Customer` 类是如何实现的。这段代码是不可预测的。
+
+你必须看看这个类是否至少实现了 `IEquatable`，你可能还必须看看类的内部，才能确切地看到发生了什么。
+
+*但为什么这甚至是一个问题？*
+
+让我问你：
+
+- 你多久不希望实例相等一次？
+- 您多久需要重写一次 `Equals` 方法？
+- 您多久会因为*忘记*覆盖 `Equals` 方法而出现错误？
+- 您多久会遇到一次由于错误实现 `GetHashCode` 而导致的错误（例如当您比较的字段发生变化时忘记更改它）？
+
+为什么不在默认情况下使对象相等，并在特殊情况下进行引用相等性测试呢？
+
+那么，让我们在列表中添加另一项。
+
+**如何让你的语言变得可预测**：
+
+1. 不应允许变量更改其类型。
+2. **默认情况下，包含相同值的对象应相等。**
+
+## 示例 3
+
+在下一个例子中，我有两个对象包含完全相同的数据，但它们是不同类的实例。
+
+问题是：他们相等吗？
+
+```c#
+// create a customer and an order
+var cust = new Customer(99, "J Smith");
+var order = new Order(99, "J Smith");
+
+// true or false?
+cust.Equals(order);
+```
+
+（向下滚动以获取答案）
+
+
+
+
+
+
+
+```c#
+// true or false?
+cust.Equals(order);
+```
+
+谁在乎！这几乎可以肯定是一个 bug！你为什么一开始就这样比较两个不同的类？
+
+当然，比较它们的名称或 id，但不要比较对象本身。这应该是编译器错误。
+
+如果不是，为什么不呢？你可能只是错误地使用了错误的变量名，但现在你的代码中有一个微妙的错误。为什么你的语言允许你这样做？
+
+那么，让我们在列表中添加另一项。
+
+**如何让你的语言变得可预测：**
+
+1. 不应允许变量更改其类型。
+2. 默认情况下，包含相同值的对象应相等。
+3. **比较不同类型的对象是编译时错误。**
+
+*更新：许多人指出，在比较通过继承相关的类时需要这样做。当然，这是真的。但是这个功能的成本是多少？您可以比较子类，但无法检测意外错误。*
+
+*在实践中，哪个更重要？这要由你们来决定，我只是想明确一点，维持现状是有代价的，而不仅仅是好处。*
+
+## 示例 4
+
+在这段代码中，我们将创建一个 `Customer` 实例。仅此而已。没有比这更基本的了。
+
+```c#
+// create a customer
+var cust = new Customer();
+
+// what is the expected output?
+Console.WriteLine(cust.Address.Country);
+```
+
+现在的问题是：`WriteLine` 的预期输出是什么？
+
+（向下滚动以获取答案）
+
+
+
+
+
+
+
+```c#
+// what is the expected output?
+Console.WriteLine(cust.Address.Country);
+```
+
+谁知道呢？
+
+这取决于 `Address` 属性是否为 null。如果不再次查看 `Customer` 类的内部，就无法判断这一点。
+
+是的，我们知道构造函数应该在构造时初始化所有字段是一种最佳实践，但为什么语言不强制执行呢？
+
+如果地址是必需的，那么在构造函数中使其成为必需的。如果地址并不总是必需的，那么请明确 `Address` 属性是可选的，可能会丢失。
+
+因此，让我们在改进列表中添加另一项。
+
+**如何让你的语言变得可预测：**
+
+1. 不应允许变量更改其类型。
+2. 默认情况下，包含相同值的对象应相等。
+3. 比较不同类型的对象是编译时错误。
+4. **对象必须*始终*初始化为有效状态。不这样做是编译时错误。**
+
+## 示例 5
+
+在下一个示例中，我们将：
+
+- 创建客户。
+- 将其添加到使用哈希的集合中。
+- 对客户对象做点什么。
+- 查看客户是否仍在该组中。
+
+什么可能出错？
+
+```c#
+// create a customer
+var cust = new Customer(99, "J Smith");
+
+// add it to a set
+var processedCustomers = new HashSet<Customer>();
+processedCustomers.Add(cust);
+
+// process it
+ProcessCustomer(cust);
+
+// Does the set contain the customer? true or false?
+processedCustomers.Contains(cust);
+```
+
+那么，该集合在代码末尾是否仍包含客户？
+
+（向下滚动以获取答案）
+
+
+
+
+
+
+
+```c#
+// Does the set contain the customer?
+processedCustomers.Contains(cust);
+```
+
+也许 吧。也许不是。
+
+这取决于两件事：
+
+1. 首先，客户的哈希码是否依赖于*可变*字段，如 id。
+2. 第二，`ProcessCustomer` 是否更改此字段？
+
+如果两者都为真，那么哈希值将被更改，客户将不再存在于集合中（即使它仍然在某个地方！）。
+
+这很可能会导致微妙的性能和内存问题（例如，如果该集合是缓存）。
+
+语言怎么能阻止这种情况呢？
+
+一种方法是说 `GetHashCode` 中使用的任何字段或属性都必须是不可变的，同时允许其他属性是可变的。但这确实不切实际。
+
+最好让整个 `Customer` 类不可变！
+
+现在，如果 `Customer` 类是不可变的，并且 `ProcessCustomer` 想要进行更改，则必须返回*新版本*的 customer，代码如下：
+
+```c#
+// create a customer
+var cust = new ImmutableCustomer(99, "J Smith");
+
+// add it to a set
+var processedCustomers = new HashSet<ImmutableCustomer>();
+processedCustomers.Add(cust);
+
+// process it and return the changes
+var changedCustomer = ProcessCustomer(cust);
+
+// true or false?
+processedCustomers.Contains(cust);
+```
+
+请注意，`ProcessCustomer` 行已更改为：
+
+```c#
+var changedCustomer = ProcessCustomer(cust);
+```
+
+很明显，`ProcessCustomer` 仅通过查看此代码就改变了一些东西。如果 `ProcessCustomer` 没有更改任何内容，它根本不需要返回对象。
+
+回到这个问题，很明显，在这个实现中，无论 `ProcessCustomer` 做什么，客户的原始版本都保证仍然在集合中。
+
+当然，这并不能解决新的还是旧的（或两者）应该在集合中的问题。但与使用可变客户的实现不同，这个问题现在正摆在你面前，不会被意外忽视。
+
+所以[不可变 FTW](http://stackoverflow.com/a/4763485/1136133)！
+
+这是我们名单上的另一项。
+
+**如何让你的语言变得可预测：**
+
+1. 不应允许变量更改其类型。
+2. 默认情况下，包含相同值的对象应相等。
+3. 比较不同类型的对象是编译时错误。
+4. 对象必须*始终*初始化为有效状态。不这样做是编译时错误。
+5. **一旦创建，对象和集合*必须*是不可变的。**
+
+是时候开个关于不变性的玩笑了：
+
+> “换一个灯泡需要多少Haskell程序员？”
+>
+> Haskell程序员不会“改变”灯泡，他们会“替换”灯泡。你还必须同时更换整个房子。”
+
+现在就快完成了——再多一个！
+
+## 示例 6
+
+在最后一个示例中，我们将尝试从 `CustomerRepository` 中获取客户。
+
+```c#
+// create a repository
+var repo = new CustomerRepository();
+
+// find a customer by id
+var customer = repo.GetById(42);
+
+// what is the expected output?
+Console.WriteLine(customer.Id);
+```
+
+问题是：在我们 `do customer = repo.GetById(42)` 之后， `customer.Id` 的价值是什么？
+
+（向下滚动以获取答案）
+
+
+
+
+
+
+
+```c#
+var customer = repo.GetById(42);
+
+// what is the expected output?
+Console.WriteLine(customer.Id);
+```
+
+当然，这一切都取决于。
+
+如果我查看 `GetById` 的方法签名，它告诉我它总是返回一个 `Customer`。但*真的*吗？
+
+如果客户失踪了怎么办？`repo.GetById` 会返回 `null` 吗？它会抛出一个异常吗？你不能只看我们的代码就知道。
+
+特别是，返回 `null` 是一件可怕的事情。这是一个伪装成 `Customer` 的叛徒，可以被分配给 `Customer` 变量，而编译器不会抱怨，但当你真正要求它做某事时，它会在你面前发出邪恶的咯咯声。不幸的是，我无法通过查看这段代码来判断是否返回了 null。
+
+异常情况要好一点，因为至少它们是有类型的，并且包含有关上下文的信息。但从方法签名中看不出可能抛出哪些异常。唯一能确定的方法是查看内部源代码（如果你幸运的话，可能还有最新的文档）。
+
+但现在想象一下，你的语言不允许 `null`，也不允许异常。你能做什么呢？
+
+答案是，您将被迫返回一个可能包含客户或错误的特殊类，如下所示：
+
+```c#
+// create a repository
+var repo = new CustomerRepository();
+
+// find a customer by id and
+// return a CustomerOrError result
+var customerOrError = repo.GetById(42);
+```
+
+处理此“customerOrError”结果的代码必须测试它是什么类型的结果，并分别处理每种情况，如下所示：
+
+```c#
+// handle both cases
+if (customerOrError.IsCustomer)
+    Console.WriteLine(customerOrError.Customer.Id);
+
+if (customerOrError.IsError)
+    Console.WriteLine(customerOrError.ErrorMessage);
+```
+
+这正是大多数函数式语言所采用的方法。如果语言提供便利使这种技术更容易，比如求和类型，这确实会有所帮助，但即使没有这种便利，如果你想让代码的功能变得明显，这种方法仍然是唯一的选择。（您可以在[此处](https://fsharpforfunandprofit.com/rop/)阅读有关此技术的更多信息。）
+
+这是最后两个要添加到我们列表中的项目，至少目前是这样。
+
+**如何让你的语言变得可预测：**
+
+1. 不应允许变量更改其类型。
+2. 默认情况下，包含相同值的对象应相等。
+3. 比较不同类型的对象是编译时错误。
+4. 对象必须*始终*初始化为有效状态。不这样做是编译时错误。
+5. 一旦创建，对象和集合*必须*是不可变的。
+6. **不允许为空**。
+7. **必须在函数签名中明确指出缺失的数据或错误**。
+
+我可以继续讲下去，用片段演示全局变量的误用、副作用、选角等等。但我想我就说到这里了——你现在可能已经明白了！
+
+## 你的编程语言能做到*这*吗？
+
+我希望很明显，在编程语言中添加这些内容将有助于使其更加合理。
+
+不幸的是，像 C# 这样的主流 OO 语言不太可能添加这些功能。
+
+首先，这将是对所有现有代码的重大突破性更改。
+
+其次，这些变化中的许多都与面向对象编程模型本身的本质背道而驰。
+
+例如，在 OO 模型中，对象标识是最重要的，因此当然引用相等是默认的。
+
+此外，从 OO 的角度来看，如何比较两个对象完全取决于对象本身——OO 是关于多态行为的，编译器需要远离它！同样，如何构造和初始化对象也完全取决于对象本身。没有规则说什么应该或不应该被允许。
+
+最后，在不实现第 4 点中的初始化约束的情况下，很难向静态类型 OO 语言添加不可为 null 的引用类型。正如埃里克·利珀特本人所说：[“非零性是你从一开始就希望在类型系统中嵌入的东西，而不是你想在12年后进行改装的东西”](http://blog.coverity.com/2013/11/20/c-non-nullable-reference-types/)。
+
+相比之下，大多数函数式编程语言都将这些“高可预测性”特性作为语言的核心部分。
+
+例如，在 F# 中，该列表中的所有项目都内置在语言中，只有一个除外：
+
+1. 不允许值更改其类型。（这甚至包括从int到float的隐式转换）。
+2. 默认情况下，具有相同内部数据的记录是相等的。
+3. 比较不同类型的值是编译时错误。
+4. 值必须初始化为有效状态。不这样做是编译时错误。
+5. 一旦创建，默认情况下值是不可变的。
+6. 一般来说，不允许为空。
+
+第 7 项不是由编译器强制执行的，但可区分联合（求和类型）通常用于返回错误，而不是使用异常，这样函数签名就可以准确地指示可能的错误是什么。
+
+确实，在使用 F# 时仍有许多注意事项。你可以有可变值，你可以创建和抛出异常，你可能确实必须处理来自非 F# 代码的 null。
+
+但这些东西被认为是代码气味，是不寻常的，而不是一般的默认值。
+
+Haskell 等其他语言甚至比 F# 更纯粹（因此也更合理），但即使是 Haskell 程序也不会完美。
+
+事实上，没有一种语言可以被完美地推理，同时仍然具有实用性。但是，有些语言肯定比其他语言更合理。
+
+我认为，许多人对函数式代码（尽管它充满了[奇怪的符号](https://gist.github.com/folone/6089236)，但称之为“简单”！）如此热情的原因之一正是：不变性、无副作用以及所有其他函数原则共同作用，以增强这种合理性和可预测性，这反过来有助于减轻你的认知负担，这样你就只需要专注于你面前的代码。
+
+## Lambdas 不是解决办法
+
+因此，现在应该清楚的是，这一系列拟议的改进与语言增强无关，如 lambdas 或聪明的函数式库。
+
+换句话说，当我专注于可推理性时，**我不在乎我的语言会让我做什么，我更关心我的语言不会让我做些什么。**我想要一种能阻止我犯错的语言。
+
+也就是说，如果我必须在不允许 null 的语言 A 和具有更高类型但仍然允许对象容易为 null 的语言 B 之间做出选择，我会毫不犹豫地选择语言 A。
+
+## 问题
+
+让我看看我能不能提出一些问题…
+
+**问：这些例子太做作了！如果你仔细编码并遵循良好实践，你可以在没有这些功能的情况下编写安全的代码！**
+
+是的，你可以。我不是说你不能。但这篇文章不是关于编写安全的代码，而是关于对代码的推理。这是有区别的。
+
+这不是关于如果你小心，你能做什么。这是关于如果你不小心会发生什么！也就是说，你的编程语言（不是你的编码指南、测试、IDE 或开发实践）是否为你的代码推理提供了支持？
+
+**问：你是说一门语言应该具有这些特征。你不是很傲慢吗？**
+
+请仔细阅读。我根本不是这么说的。我想说的是：
+
+- 如果你想对代码进行推理，那么如果你的语言支持我提到的功能，那就容易多了。
+
+如果对代码的推理对你来说没有那么重要，那么请随时忽略我所说的一切！
+
+**问题：只关注编程语言的一个方面太有限了。其他品质也同样重要吗？**
+
+是的，或者他们当然是。在这个问题上，我不是绝对主义者。我认为综合库、良好的工具、热情的社区和生态系统的强度等因素也非常重要。
+
+但这篇文章的目的是解决我在开始时提到的具体评论，例如：“C# 已经具有 F# 的大部分功能，那么我为什么要费心切换呢？”。
+
+**问：你为什么这么快就抛弃了动态语言？**
+
+首先，我为向 JavaScript 早前挖掘的开发人员道歉！
+
+我非常喜欢动态语言，而我最喜欢的语言之一 Smalltalk，按照我所说的标准是完全不合理的。幸运的是，这篇文章并不是试图说服你哪种语言总体上“最好”，而只是讨论了这种选择的一个方面。
+
+**问题：不可变的数据结构很慢，而且会有很多额外的分配。这不会影响性能吗**
+
+本文并不试图解决这些功能的性能影响（或任何其他方面）。
+
+但这确实是一个合理的问题：代码质量还是性能？这由你决定，这取决于具体情况。
+
+就我个人而言，我会把安全和质量放在首位，除非有令人信服的理由不这样做。以下是我喜欢的一个标志：
+
+![Safety, Quality, Quantity, in that order](https://fsharpforfunandprofit.com/posts/is-your-language-unreasonable/safety_first.jpg)
+
+## 摘要
+
+我刚才说过，这篇文章并不是想说服你仅仅根据“可推理性”来选择一种语言。但事实并非如此。
+
+如果你已经选择了静态类型的高级语言，如 C# 或 Java，那么很明显，可推理性或类似的东西是你语言决策的重要标准。
+
+在这种情况下，我希望这篇文章中的例子可能会让你更愿意考虑在你选择的平台（.NET 或 JVM）上使用一种更“可推理”的语言。
+
+保持现状的论点——你当前的语言最终会“赶上”——可能纯粹就功能而言是正确的，但未来的任何增强都无法真正改变面向对象语言的核心设计决策。你永远无法摆脱 null、可变性，或者必须始终覆盖相等性。
+
+F# 或 Scala/Clojure 的优点是，这些函数式替代方案不需要你改变你的生态系统，但它们确实会立即提高你的代码质量。
+
+在我看来，与照常营业的成本相比，这是一个相当低的风险。
+
+*（我将把寻找技术人员、培训、支持等问题留给另一个文章。但如果你担心招聘，请看[这个](http://www.paulgraham.com/pypar.html)、[这个](https://twitter.com/panesofglass/status/559431579328475136)、[这个](https://twitter.com/foxyjackfox/status/559415445594206208)和[这个](http://wesmorgan.svbtle.com/recruiting-software-developers-language-matters)）*
+
+
+
+# 我们不需要糟糕的 UML 图
 
 代码与 UML 的比较
 2015年6月30日 这篇文章已有3年多的历史了
 
 https://fsharpforfunandprofit.com/posts/no-uml-diagrams/
 
-在我关于函数式 DDD 的演讲中，我经常使用这张幻灯片（在上下文中）：
+在我关于[函数式 DDD](https://fsharpforfunandprofit.com/ddd/) 的演讲中，我经常使用这张幻灯片（[在上下文中](http://www.slideshare.net/ScottWlaschin/ddd-with-fsharptypesystemlondonndc2013/45)）：
 
-【我们不；不需要糟糕的UML图】
+![We don&rsquo;t need no stinking UML diagrams](https://fsharpforfunandprofit.com/posts/no-uml-diagrams/no-uml-diagrams.jpg)
 
-这当然是对这一著名场景的错误引用。哎呀，我是说这个。
+这当然是对这一[著名场景](https://www.youtube.com/watch?v=gx6TBrfCW54)的错误引用。哎呀，我是说[这个](https://www.youtube.com/watch?v=VqomZQMZQCQ)。
 
 好吧，我可能有点夸张了。一些 UML 图很有用（例如，我喜欢序列图），总的来说，我确实认为一张好的图片或图表可以值 1000 字。
 
@@ -7861,6 +8936,570 @@ https://fsharpforfunandprofit.com/posts/no-uml-diagrams/
 使用 UML 图，您需要将它们转换为代码，但在转换过程中可能会丢失一些东西。但是，如果设计是用编程语言本身记录的，则没有翻译阶段，因此设计必须始终与实现同步。
 
 为了在实践中证明这一点，我决定在互联网上搜索一些好的（和不太好的）UML 类图，并将其转换为 F# 代码。你可以自己比较一下。
+
+## 正则表达式
+
+让我们从一个经典的开始：正则表达式（[来源](http://zenit.senecac.on.ca/wiki/index.php/Interpreter)）
+
+这是 UML 图：
+
+![img](https://fsharpforfunandprofit.com/posts/no-uml-diagrams/uml-regex.png)
+
+这是 F# 的等价物：
+
+```F#
+type RegularExpression =
+    | Literal of string
+    | Sequence of RegularExpression list
+    | Alternation of RegularExpression * RegularExpression
+    | Repetition of RegularExpression
+
+// An interpreter takes a string input and a RegularExpression
+// and returns a value of some kind
+type Interpret<'a> =  string -> RegularExpression -> 'a
+```
+
+这很简单。
+
+## 学生注册
+
+这是另一个经典的例子：注册（[来源](http://www.agilemodeling.com/artifacts/classDiagram.htm)）。
+
+这是 UML 图：
+
+![img](https://fsharpforfunandprofit.com/posts/no-uml-diagrams/uml-enrollment.png)
+
+这是 F# 的等价物：
+
+```F#
+type Student = {
+    Name: string
+    Address: string
+    PhoneNumber: string
+    EmailAddress: string
+    AverageMark: float
+    }
+
+type Professor= {
+    Name: string
+    Address: string
+    PhoneNumber: string
+    EmailAddress: string
+    Salary: int
+    }
+
+type Seminar = {
+    Name: string
+    Number: string
+    Fees: float
+    TaughtBy: Professor option
+    WaitingList: Student list
+    }
+
+type Enrollment = {
+    Student : Student
+    Seminar : Seminar
+    Marks: float list
+    }
+
+type EnrollmentRepository = Enrollment list
+
+// ==================================
+// activities / use-cases / scenarios
+// ==================================
+
+type IsElegibleToEnroll = Student -> Seminar -> bool
+type GetSeminarsTaken = Student -> EnrollmentRepository -> Seminar list
+type AddStudentToWaitingList = Student -> Seminar -> Seminar
+```
+
+F# 反映了 UML 图，但我发现，通过为所有活动编写函数而不是绘制图片，暴露了原始需求中的漏洞。
+
+例如，在 UML 图中的 `GetSeminarsDaken` 方法中，研讨会列表存储在哪里？如果它在 `Student` 类中（如图所示），那么 `Student` 和 `Seminar` 之间就有一个相互递归，每个学生和研讨会的整个树都是相互关联的，除非[使用 hack](https://stackoverflow.com/questions/19371214/entity-framework-code-first-circular-dependices)，否则必须同时加载。
+
+相反，对于功能版本，我创建了一个 `EnrollmentRepository` 来解耦这两个类。
+
+同样，目前还不清楚注册实际上是如何运作的，所以我创建了一个 `EnrollStudent` 函数来明确需要哪些输入。
+
+```F#
+type EnrollStudent = Student -> Seminar -> Enrollment option
+```
+
+因为该函数返回一个 `option`，所以很明显注册可能会失败（例如，学生没有资格注册，或者错误地注册了两次）。
+
+> 如果你觉得这篇文章很有趣，看看[我的《领域建模使函数化》一书](https://fsharpforfunandprofit.com/books)！这是对领域驱动设计、类型建模和函数式编程的一个很好的介绍。
+
+## 订单和客户
+
+这是另一个（[来源](http://www.tutorialspoint.com/uml/uml_class_diagram.htm)）。
+
+![img](https://fsharpforfunandprofit.com/posts/no-uml-diagrams/uml-order.png)
+
+这是 F# 的等价物：
+
+```F#
+type Customer = {name:string; location:string}
+
+type NormalOrder = {date: DateTime; number: string; customer: Customer}
+type SpecialOrder = {date: DateTime; number: string; customer: Customer}
+type Order =
+    | Normal of NormalOrder
+    | Special of SpecialOrder
+
+// these three operations work on all orders
+type Confirm =  Order -> Order
+type Close =  Order -> Order
+type Dispatch =  Order -> Order
+
+// this operation only works on Special orders
+type Receive =  SpecialOrder -> SpecialOrder
+```
+
+我只是在复制 UML 图，但我不得不说我讨厌这种设计。它迫切需要更多细粒度的状态。
+
+特别是，`Confirm` 和 `Dispatch` 函数很可怕——它们不知道还需要什么作为输入，也不知道会有什么效果。这就是编写真实代码可以迫使你更深入地思考需求的地方。
+
+## 订单和客户，版本2
+
+这是订单和客户的更好版本（[来源](http://edn.embarcadero.com/article/31863)）。
+
+![img](https://fsharpforfunandprofit.com/posts/no-uml-diagrams/uml-order2.png)
+
+这是 F# 的等价物：
+
+```F#
+type Date = System.DateTime
+
+// == Customer related ==
+
+type Customer = {
+    name:string
+    address:string
+    }
+
+// == Item related ==
+
+type [<Measure>] grams
+
+type Item = {
+    shippingWeight: int<grams>
+    description: string
+    }
+
+type Qty = int
+type Price = decimal
+
+
+// == Payment related ==
+
+type PaymentMethod =
+    | Cash
+    | Credit of number:string * cardType:string * expDate:Date
+    | Check of name:string * bankID: string
+
+type Payment = {
+    amount: decimal
+    paymentMethod : PaymentMethod
+    }
+
+// == Order related ==
+
+type TaxStatus = Taxable | NonTaxable
+type Tax = decimal
+
+type OrderDetail = {
+    item: Item
+    qty: int
+    taxStatus : TaxStatus
+    }
+
+type OrderStatus = Open | Completed
+
+type Order = {
+    date: DateTime;
+    customer: Customer
+    status: OrderStatus
+    lines: OrderDetail list
+    payments: Payment list
+    }
+
+// ==================================
+// activities / use-cases / scenarios
+// ==================================
+type GetPriceForQuantity = Item -> Qty -> Price
+
+type CalcTax = Order -> Tax
+type CalcTotal = Order -> Price
+type CalcTotalWeight = Order -> int<grams>
+```
+
+我做了一些小调整，添加了重量的度量单位，创建了表示 `Qty` 和 `Price` 的类型。
+
+同样，这种设计可能会通过更细粒度的状态来改进，例如创建一个单独的 `AuthorizedPayment` 类型（以确保订单只能用授权付款支付）和一个独立的 `PaidOrder` 类型（例如，阻止您为同一订单支付两次）。
+
+我的意思是：
+
+```F#
+// Try to authorize a payment. Note that it might fail
+type Authorize =  UnauthorizedPayment -> AuthorizedPayment option
+
+// Pay an unpaid order with an authorized payment.
+type PayOrder = UnpaidOrder -> AuthorizedPayment -> PaidOrder
+```
+
+## 酒店预订
+
+这是 JetBrains IntelliJ 文档中的一个（[来源](https://www.jetbrains.com/idea/help/viewing-diagram.html)）。
+
+![img](https://fsharpforfunandprofit.com/posts/no-uml-diagrams/uml-hotel.png)
+
+这是 F# 的等价物：
+
+```F#
+type Date = System.DateTime
+
+type User = {
+    username: string
+    password: string
+    name: string
+    }
+
+type Hotel = {
+    id: int
+    name: string
+    address: string
+    city: string
+    state: string
+    zip: string
+    country: string
+    price: decimal
+    }
+
+type CreditCardInfo = {
+    card: string
+    name: string
+    expiryMonth: int
+    expiryYear: int
+    }
+
+type Booking = {
+    id: int
+    user: User
+    hotel: Hotel
+    checkinDate: Date
+    checkoutDate: Date
+    creditCardInfo: CreditCardInfo
+    smoking: bool
+    beds: int
+    }
+
+// What are these?!? And why are they in the domain?
+type EntityManager = unit
+type FacesMessages = unit
+type Events = unit
+type Log = unit
+
+type BookingAction = {
+    em: EntityManager
+    user: User
+    hotel: Booking
+    booking: Booking
+    facesMessages : FacesMessages
+    events: Events
+    log: Log
+    bookingValid: bool
+    }
+
+type ChangePasswordAction = {
+    user: User
+    em: EntityManager
+    verify: string
+    booking: Booking
+    changed: bool
+    facesMessages : FacesMessages
+    }
+
+type RegisterAction = {
+    user: User
+    em: EntityManager
+    facesMessages : FacesMessages
+    verify: string
+    registered: bool
+    }
+```
+
+我必须停在那里，抱歉。这个设计快把我逼疯了。我简直无语了。
+
+这些 `EntityManager` 和 `FacesMessages` 字段是什么？当然，日志记录很重要，但为什么 `Log` 是域对象中的一个字段呢？
+
+顺便说一句，如果你认为我故意挑选了 UML 设计的坏例子，所有这些图都来自“[UML 类图](https://www.google.com/search?q=uml+class+diagram&tbm=isch)”图像搜索的顶部结果。
+
+## 图书馆
+
+这个更好，一个图书馆域（[源](http://www.uml-diagrams.org/library-domain-uml-class-diagram-example.html)）。
+
+![img](https://fsharpforfunandprofit.com/posts/no-uml-diagrams/uml-library.png)
+
+这是 F# 的等价物。请注意，由于它是代码，我可以向特定类型和字段添加注释，这是可行的，但在 UML 中很尴尬。
+
+还要注意，我可以说 `ISBN: string option` 来表示可选的 ISBN，而不是笨拙的 `[0..1]` 语法。
+
+```F#
+type Author = {
+    name: string
+    biography: string
+    }
+
+type Book = {
+    ISBN: string option
+    title: string
+    author: Author
+    summary: string
+    publisher: string
+    publicationDate: Date
+    numberOfPages: int
+    language: string
+    }
+
+type Library = {
+    name: string
+    address: string
+    }
+
+// Each physical library item - book, tape cassette, CD, DVD, etc. could have its own item number.
+// To support it, the items may be barcoded. The purpose of barcoding is
+// to provide a unique and scannable identifier that links the barcoded physical item
+// to the electronic record in the catalog.
+// Barcode must be physically attached to the item, and barcode number is entered into
+// the corresponding field in the electronic item record.
+// Barcodes on library items could be replaced by RFID tags.
+// The RFID tag can contain item's identifier, title, material type, etc.
+// It is read by an RFID reader, without the need to open a book cover or CD/DVD case
+// to scan it with barcode reader.
+type BookItem = {
+    barcode: string option
+    RFID: string option
+    book: Book
+    /// Library has some rules on what could be borrowed and what is for reference only.
+    isReferenceOnly: bool
+    belongsTo: Library
+    }
+
+type Catalogue = {
+    belongsTo: Library
+    records : BookItem list
+    }
+
+type Patron = {
+    name: string
+    address: string
+    }
+
+type AccountState = Active | Frozen | Closed
+
+type Account = {
+    patron: Patron
+    library: Library
+    number: int
+    opened: Date
+
+    /// Rules are also defined on how many books could be borrowed
+    /// by patrons and how many could be reserved.
+    history: History list
+
+    state: AccountState
+    }
+
+and History = {
+    book : BookItem
+    account: Account
+    borrowedOn: Date
+    returnedOn: Date option
+    }
+```
+
+由于搜索和管理接口未定义，我们只能使用占位符（`unit`）作为输入和输出。
+
+```F#
+type Librarian = {
+    name: string
+    address: string
+    position: string
+    }
+
+/// Either a patron or a librarian can do a search
+type SearchInterfaceOperator =
+    | Patron of Patron
+    | Librarian of Librarian
+
+type SearchRequest = unit // to do
+type SearchResult = unit // to do
+type SearchInterface = SearchInterfaceOperator -> Catalogue -> SearchRequest -> SearchResult
+
+type ManageRequest = unit // to do
+type ManageResult = unit // to do
+
+/// Only librarians can do management
+type ManageInterface = Librarian -> Catalogue -> ManageRequest -> ManageResult
+```
+
+同样，这可能不是完美的设计。例如，目前尚不清楚只有 `Active` 账户才能借阅一本书，我可能会用 F# 表示为：
+
+```F#
+type Account =
+    | Active of ActiveAccount
+    | Closed of ClosedAccount
+
+/// Only ActiveAccounts can borrow
+type Borrow = ActiveAccount -> BookItem -> History
+```
+
+如果你想看到一种使用 CQRS 和事件源对这个领域进行建模的更现代的方法，请参阅[这篇文章](http://thinkbeforecoding.com/post/2009/11/02/Event-Sourcing-and-CQRS-Lets-use-it)。
+
+## 软件许可
+
+最后一个示例来自软件许可域（[来源](http://www.uml-diagrams.org/software-licensing-domain-diagram-example.html?context=cls-examples)）。
+
+![img](https://fsharpforfunandprofit.com/posts/no-uml-diagrams/uml-hasp.png)
+
+这是 F# 的等价物：
+
+```F#
+open System
+type Date = System.DateTime
+type String50 = string
+type String5 = string
+
+// ==========================
+// Customer-related
+// ==========================
+
+type AddressDetails = {
+    street : string option
+    city : string option
+    postalCode : string option
+    state : string option
+    country : string option
+    }
+
+type CustomerIdDescription = {
+    CRM_ID : string
+    description : string
+    }
+
+type IndividualCustomer = {
+    idAndDescription : CustomerIdDescription
+    firstName : string
+    lastName : string
+    middleName : string option
+    email : string
+    phone : string option
+    locale : string option // default :  "English"
+    billing : AddressDetails
+    shipping : AddressDetails
+    }
+
+type Contact = {
+    firstName : string
+    lastName : string
+    middleName : string option
+    email : string
+    locale : string option // default :  "English"
+    }
+
+type Company = {
+    idAndDescription : CustomerIdDescription
+    name : string
+    phone : string option
+    fax : string option
+    contact: Contact
+    billing : AddressDetails
+    shipping : AddressDetails
+    }
+
+type Customer =
+    | Individual of IndividualCustomer
+    | Company of Company
+
+// ==========================
+// Product-related
+// ==========================
+
+/// Flags can be ORed together
+[<Flags>]
+type LockingType =
+    | HL
+    | SL_AdminMode
+    | SL_UserMode
+
+type Rehost =
+    | Enable
+    | Disable
+    | LeaveAsIs
+    | SpecifyAtEntitlementTime
+
+type BatchCode = {
+    id : String5
+    }
+
+type Feature = {
+    id : int
+    name : String50
+    description : string option
+    }
+
+type ProductInfo = {
+    id : int
+    name : String50
+    lockingType : LockingType
+    rehost : Rehost
+    description : string option
+    features: Feature list
+    bactchCode: BatchCode
+    }
+
+type Product =
+    | BaseProduct of ProductInfo
+    | ProvisionalProduct of ProductInfo * baseProduct:Product
+
+// ==========================
+// Entitlement-related
+// ==========================
+
+type EntitlementType =
+    | HardwareKey
+    | ProductKey
+    | ProtectionKeyUpdate
+
+type Entitlement = {
+    EID : string
+    entitlementType : EntitlementType
+    startDate : Date
+    endDate : Date option
+    neverExpires: bool
+    comments: string option
+    customer: Customer
+    products: Product list
+    }
+```
+
+此图只是纯数据，没有方法，因此没有函数类型。我有一种感觉，有些重要的业务规则还没有被捕捉到。
+
+例如，如果你阅读源代码中的注释，你会发现围绕 `EntitmentType` 和 `LockingType` 有一些有趣的约束。只有某些锁定类型可以与某些权限类型一起使用。
+
+这可能是我们可以考虑在类型系统中建模的事情，但我没有费心。我刚刚尝试按原样重新编译 UML。
+
+## 摘要
+
+我认为这足以理解这个想法。
+
+我对 UML 类图的总体感觉是，如果与几行代码相比有点重，它们可以用于草图。
+
+然而，对于详细的设计，它们还不够详细。上下文和依赖关系等关键问题根本不明显。在我看来，我展示的 UML 图都不够好，无法编写代码，即使是作为基本设计。
+
+更严重的是，UML 图可能会对非开发人员产生很大的误导。它看起来“正式”，可以给人一种设计经过深思熟虑的印象，而事实上，设计实际上很肤浅，在实践中无法使用。
+
+不同意？请在评论中告诉我！
 
 
 
