@@ -1,5 +1,7 @@
 namespace BackEnd4IdleStrategyFS.Game
 
+open FSharpPlus.Data
+
 module EventT =
     open DomainT
 
@@ -13,6 +15,7 @@ module EventT =
 
     /// 地块被占领
     type TileConquered<'s> = TileConqueredEvent -> 's -> 's
+    type TileConqueredM = TileConqueredEvent -> unit
 
     /// 地块人口变化事件
     type TilePopulationChangedEvent =
@@ -22,12 +25,14 @@ module EventT =
 
     /// 地块人口变化
     type TilePopulationChanged<'s> = TilePopulationChangedEvent -> 's -> 's
+    type TilePopulationChangedM = TilePopulationChangedEvent -> unit
 
     /// 地块添加事件
     type TileAddedEvent = { TileId: TileId; Coord: Coord }
 
     /// 地块添加
     type TileAdded<'s> = TileAddedEvent -> 's -> 's
+    type TileAddedM = TileAddedEvent -> unit
 
     /// 部队新建事件
     type MarchingArmyAddedEvent =
@@ -39,6 +44,7 @@ module EventT =
 
     /// 部队新建
     type MarchingArmyAdded<'s> = MarchingArmyAddedEvent -> 's -> 's
+    type MarchingArmyAddedM = MarchingArmyAddedEvent -> unit
 
     /// 部队抵达事件
     type MarchingArmyArrivedEvent =
@@ -49,3 +55,4 @@ module EventT =
 
     /// 部队抵达
     type MarchingArmyArrived<'s> = MarchingArmyArrivedEvent -> 's -> 's
+    type MarchingArmyArrivedM = MarchingArmyArrivedEvent -> unit

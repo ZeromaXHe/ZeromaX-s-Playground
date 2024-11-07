@@ -9,14 +9,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Tests.fs"/>
-        <Compile Include="Program.fs"/>
         <Compile Include="Docs\Grokking\Traversable.fs" />
         <Compile Include="Docs\Grokking\ReaderMonad.fs" />
         <Compile Include="Docs\Grokking\MonadTransformer.fs" />
         <Compile Include="Docs\FSharpPlus\StateExample.fs" />
         <Compile Include="Docs\FSharpPlus\ReaderExample.fs" />
         <Compile Include="Docs\FSharpPlus\WriterExample.fs" />
+        <Compile Include="Tests.fs"/>
+        <Compile Include="Program.fs"/>
     </ItemGroup>
 
     <ItemGroup>

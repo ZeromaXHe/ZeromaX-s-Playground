@@ -6,6 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Compile Include="Common\MonadHelper.fs" />
         <Compile Include="Godot\IAdapter.fs" />
         <Compile Include="Game\DomainT.fs" />
         <Compile Include="Game\EventT.fs" />
