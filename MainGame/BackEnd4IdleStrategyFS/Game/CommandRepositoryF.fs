@@ -28,7 +28,7 @@ module private CommandRepositoryF =
         let index' =
             match oldPlayerId with
             | Some playerId when index.ContainsKey playerId ->
-                let list = index[playerId] |> List.filter (fun x -> x <> tileId)
+                let list = index[playerId] |> List.filter ((<>) tileId)
 
                 if list.Length = 0 then
                     index.Remove playerId

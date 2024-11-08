@@ -32,7 +32,7 @@ let createCheckout basket =
     |> Option.map (fun items ->
         { Id = CheckoutId "some-checkout-id"
           BasketId = basket.Id
-          Price = items |> List.sumBy (fun x -> x.Price) })
+          Price = items |> List.sumBy (_.Price) })
 
 // 反转器
 let consOptions (head: 'a option) (tail: option<list<'a>>) : option<list<'a>> =
@@ -82,7 +82,7 @@ let createCheckout' basket =
     |> Option.map (fun items ->
         { Id = CheckoutId "some-checkout-id"
           BasketId = basket.Id
-          Price = items |> Seq.sumBy (fun x -> x.Price) })
+          Price = items |> Seq.sumBy (_.Price) })
 
 let rec sequence' f list =
     let cons head tail = head :: tail
@@ -102,7 +102,7 @@ let createCheckout'' basket =
     |> Option.map (fun items ->
         { Id = CheckoutId "some-checkout-id"
           BasketId = basket.Id
-          Price = items |> Seq.sumBy (fun x -> x.Price) })
+          Price = items |> Seq.sumBy _.Price })
 
 // 在 `traverse` 中测试自己
 let traverse' f opt =

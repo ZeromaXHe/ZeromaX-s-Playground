@@ -19,7 +19,7 @@ module private QueryRepositoryF =
         coords
         |> Seq.map (fun c -> getTileByCoord c gameState)
         |> Seq.filter Option.isSome
-        |> Seq.map (fun x -> x.Value)
+        |> Seq.map _.Value
 
     let getTilesByPlayer playerId gameState =
         match gameState.TilePlayerIndex.TryFind playerId with
@@ -27,7 +27,7 @@ module private QueryRepositoryF =
             tileIds
             |> Seq.map (fun t -> getTile t gameState)
             |> Seq.filter Option.isSome
-            |> Seq.map (fun x -> x.Value) // TODO: 这样实现是不是不太好？
+            |> Seq.map _.Value // TODO: 这样实现是不是不太好？
         | None -> []
 
     let getAllTiles gameState = gameState.TileRepo.Values |> seq
@@ -81,7 +81,7 @@ module private QueryRepositoryFM =
             |> Seq.map getTileByCoord
             |> Seq.map (fun r -> State.eval r gameState)
             |> Seq.filter Option.isSome
-            |> Seq.map (fun x -> x.Value)
+            |> Seq.map _.Value
         }
 
     let getTilesByPlayer playerId =
@@ -94,7 +94,7 @@ module private QueryRepositoryFM =
                 |> Seq.map getTile
                 |> Seq.map (fun r -> State.eval r gameState)
                 |> Seq.filter Option.isSome
-                |> Seq.map (fun x -> x.Value)
+                |> Seq.map _.Value
             | None -> []
         }
 
