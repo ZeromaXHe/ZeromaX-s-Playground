@@ -155,14 +155,10 @@ module Entry =
                 let arrive =
                     monad {
                         // 处理抵达部队
-                        let! marchingArmy = QueryRepositoryFM.getMarchingArmy e.MarchingArmyId |> OptionT
+                        let! marchingArmy = QueryRepositoryFM.getMarchingArmy e.MarchingArmyId |> StateT.hoist |> OptionT
 
-                        return!
-                            DomainFM.arriveArmy marchingArmy |> stateTReaderToStateReader |> Reader.run
-                            <| injector
-                            |> OptionT.lift
+                        return! DomainFM.arriveArmy marchingArmy
                     }
-                    |> OptionT.run
 
                 let send =
                     monad {
@@ -175,7 +171,7 @@ module Entry =
                     }
                     |> OptionT.run
 
-                let boolOpt, gameState' = arrive |> State.run <| gameState
+                let boolOpt, gameState' = arrive |> OptionT.run |> StateT.run <| gameState |> Reader.run <| injector
 
                 if boolOpt.IsSome && boolOpt.Value then
                     gameState <- gameState'
@@ -332,9 +328,11 @@ module Entry =
 
             let gameState' =
                 DomainFM.initTilesConnectionsMM |> Reader.run <| injector
-                |> Seq.fold (fun s t ->
-                    let _, s' = t |> State.run <| s
-                    s') gameState
+                |> Seq.fold
+                    (fun s t ->
+                        let _, s' = t |> State.run <| s
+                        s')
+                    gameState
 
             gameState <- gameState'
 

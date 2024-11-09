@@ -512,6 +512,7 @@ module private DomainFM =
     let randomPopulationFromTile (tile: Tile) =
         monad {
             let! di = Reader.ask
+            // BUG: 非常奇葩的情况下，敌方部队可能刚好把地块人口打到 0，这个时候要出兵的地块是当前地块会报错
             di.Random.Next(1, tile.Population / 1<Pop>) * 1<Pop>
         }
 
@@ -685,13 +686,9 @@ module private DomainFM =
     /// 行军到达目的地（Monad Transformer 实现）
     let arriveArmy (marchingArmy: MarchingArmy) =
         monad {
-            let! di = Reader.ask |> StateT.lift
-            let! (tileOpt: Tile option) = di.TileQueryById marchingArmy.ToTileId |> StateT.hoist
-            let! (playerOpt: Player option) = di.PlayerQueryById marchingArmy.PlayerId |> StateT.hoist
-            // BUG: 临时实现，实在不知道怎么解这种三层 Monad 了……
-            let tile = tileOpt.Value
-            let player = playerOpt.Value
-            let! s = State.get |> StateT.hoist
+            let! di = Reader.ask |> StateT.lift |> OptionT.lift
+            let! (tile: Tile) = di.TileQueryById marchingArmy.ToTileId |> StateT.hoist |> OptionT
+            let! (player: Player) = di.PlayerQueryById marchingArmy.PlayerId |> StateT.hoist |> OptionT
 
             let! _ =
                 match tile.PlayerId with
@@ -700,39 +697,27 @@ module private DomainFM =
                         { tile with
                             Population = tile.Population + marchingArmy.Population }
 
-                    monad {
-                        let r = conquerTile tile' player |> StateT.run <| s
-                        let t, s' = Reader.run r di
-                        do! State.put s'
-                        t
-                    }
-                    |> StateT.hoist
+                    conquerTile tile' player |> OptionT.lift
                 | Some playerId when playerId = marchingArmy.PlayerId ->
                     let tile' =
                         { tile with
                             Population = tile.Population + marchingArmy.Population }
 
-                    di.TileUpdater tile' |> StateT.hoist
+                    di.TileUpdater tile' |> StateT.hoist |> OptionT.lift
                 | Some _ when tile.Population > marchingArmy.Population ->
                     let tile' =
                         { tile with
                             Population = tile.Population - marchingArmy.Population }
 
-                    di.TileUpdater tile' |> StateT.hoist
+                    di.TileUpdater tile' |> StateT.hoist |> OptionT.lift
                 | Some _ ->
                     let tile' =
                         { tile with
                             Population = marchingArmy.Population - tile.Population }
 
-                    monad {
-                        let r = conquerTile tile' player |> StateT.run <| s
-                        let t, s' = Reader.run r di
-                        do! State.put s'
-                        t
-                    }
-                    |> StateT.hoist
+                    conquerTile tile' player |> OptionT.lift
 
-            let! resultBool = di.MarchingArmyDeleter marchingArmy.Id |> StateT.hoist
+            let! resultBool = di.MarchingArmyDeleter marchingArmy.Id |> StateT.hoist |> OptionT.lift
             return resultBool
         }
 
