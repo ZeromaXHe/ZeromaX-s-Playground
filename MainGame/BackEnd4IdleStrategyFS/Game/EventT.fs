@@ -1,9 +1,8 @@
 namespace BackEnd4IdleStrategyFS.Game
 
-open FSharpPlus.Data
+open DomainT
 
 module EventT =
-    open DomainT
 
     /// 地块被占领事件
     type TileConqueredEvent =
@@ -14,8 +13,7 @@ module EventT =
           LoserId: PlayerId option }
 
     /// 地块被占领
-    type TileConquered<'s> = TileConqueredEvent -> 's -> 's
-    type TileConqueredM = TileConqueredEvent -> unit
+    type TileConquered = TileConqueredEvent -> unit
 
     /// 地块人口变化事件
     type TilePopulationChangedEvent =
@@ -24,15 +22,13 @@ module EventT =
           AfterPopulation: int<Pop> }
 
     /// 地块人口变化
-    type TilePopulationChanged<'s> = TilePopulationChangedEvent -> 's -> 's
-    type TilePopulationChangedM = TilePopulationChangedEvent -> unit
+    type TilePopulationChanged = TilePopulationChangedEvent -> unit
 
     /// 地块添加事件
     type TileAddedEvent = { TileId: TileId; Coord: Coord }
 
     /// 地块添加
-    type TileAdded<'s> = TileAddedEvent -> 's -> 's
-    type TileAddedM = TileAddedEvent -> unit
+    type TileAdded = TileAddedEvent -> unit
 
     /// 部队新建事件
     type MarchingArmyAddedEvent =
@@ -43,8 +39,7 @@ module EventT =
           PlayerId: PlayerId }
 
     /// 部队新建
-    type MarchingArmyAdded<'s> = MarchingArmyAddedEvent -> 's -> 's
-    type MarchingArmyAddedM = MarchingArmyAddedEvent -> unit
+    type MarchingArmyAdded = MarchingArmyAddedEvent -> unit
 
     /// 部队抵达事件
     type MarchingArmyArrivedEvent =
@@ -54,5 +49,4 @@ module EventT =
           PlayerId: PlayerId }
 
     /// 部队抵达
-    type MarchingArmyArrived<'s> = MarchingArmyArrivedEvent -> 's -> 's
-    type MarchingArmyArrivedM = MarchingArmyArrivedEvent -> unit
+    type MarchingArmyArrived = MarchingArmyArrivedEvent -> unit

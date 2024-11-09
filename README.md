@@ -79,16 +79,12 @@
 ## C# 基础
 
 - [ ] **【2024-10-21 10:04】**：为啥 Rider psvm 生成 Main(string[] args) 就运行不了，Main() 就可以？
-- [ ] **【2024-10-21 10:04】**：为啥 Main 函数里面 nullable foreach 会提示处理空，但自己 F# 互操作函数里就不提示？F# 生成的返回用元组匹配为啥第一个都会变成 nullable？越来越看不懂了属于是
+- [x] **【2024-10-21 10:04】**：为啥 Main 函数里面 nullable foreach 会提示处理空，但自己 F# 互操作函数里就不提示？F# 生成的返回用元组匹配为啥第一个都会变成 nullable？越来越看不懂了属于是（现在已经没有这种互操作了）
 
-## F#
+## FSharpPlus
 
-- [ ] GameState 放哪里？全局节点？Reactive 管道里？
-
-## 响应式编程
-
-- [ ] **【2024-10-27 10:08】**比如先占领地块扔出的事件，如何同步在写入游戏状态后再被订阅者收到？（类似事务，得同步控制，看书上感觉可以用 `ConnectableObservable` 做？但这样频繁开关会不会有问题）
-- [ ] **【2024-10-27 15:37】**`Delay` 实现发兵以后抵达的通知
+- [ ] **【2024-11-09 17:43】**：突然想到之前两层 Monad 的实现一直调不通，连接地块只会斜着连一格。估计原因是得用 `monad.plus` 计算表达式才能把过程积累返回出来？或者 `monad'` 才能严格执行而不是惰性？不然 `monad` 直接惰性，中间过程是不是就实际没执行
+  （不过现在直接干掉两层 monad 的相关实现代码了，以后类似情况得注意一下四个 `monad` 相关计算表达式的区别）
 
 
 
@@ -119,6 +115,28 @@ git update-index --assume-unchanged localization/language.en.translation
 ```
 
 删除了 Git 中的 Godot 本地化二进制文件（省的每次都得全量更新），拉取项目不确定是否会自动编译出来，可以修改 csv 触发
+
+
+
+## F#
+
+### FSharpPlus
+
+#### Monad 计算表达式
+
+- `monad.fx` 或简称 `monad`：懒惰的单子构建器。当你想使用副作用而不是 monadplus 的加法行为时使用。
+- `monad.fx.strict`（或 `monad.fx'`，或简称 `monad.strict` 或 `monad'`）是 `monad` 的严格版本。
+- `monad.plus`：懒惰的加法单子构建器。当你期待一个或多个结果时使用。
+- `monad.plus'` 是 `monad.plus` 的严格版本
+
+#### traverse 和 sequence
+
+```F#
+traverse f = map f |> sequence
+sequence = fold monadFolder (monadReturn Seq.empty) // monadFolder 和 monadReturn 是我自己的实现。有的时候 sequence 类型推断不出来，必须得用明确的实现
+```
+
+
 
 ## C#
 

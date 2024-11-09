@@ -12,11 +12,11 @@ module DomainT =
     type Player = { Id: PlayerId }
 
     /// 玩家工厂
-    type PlayerFactory<'s> = 's -> 's * Player
-    type PlayerFactoryM<'s> = State<'s, Player>
+    type PlayerFactory<'s> = State<'s, Player>
     /// 按 Id 查询玩家
-    type PlayerQueryById<'r> = PlayerId -> 'r -> Player option
-    type PlayerQueryByIdM<'r> = PlayerId -> State<'r, Player option>
+    type PlayerQueryById<'r> = PlayerId -> State<'r, Player option>
+    /// 查询所有玩家
+    type PlayersQueryAll<'r> = State<'r, Player seq>
 
     /// 地块 ID
     type TileId = TileId of int
@@ -36,23 +36,17 @@ module DomainT =
           PlayerId: PlayerId option }
 
     /// 地块工厂
-    type TileFactory<'s> = Coord -> int<Pop> -> PlayerId option -> 's -> 's * Tile
-    type TileFactoryM<'s> = Coord -> int<Pop> -> PlayerId option -> State<'s, Tile>
+    type TileFactory<'s> = Coord -> int<Pop> -> PlayerId option -> State<'s, Tile>
     /// 保存地块更新
-    type TileUpdater<'s> = Tile -> 's -> 's
-    type TileUpdaterM<'s> = Tile -> State<'s, Tile>
+    type TileUpdater<'s> = Tile -> State<'s, Tile>
     /// 按 Id 查询地块
-    type TileQueryById<'r> = TileId -> 'r -> Tile option
-    type TileQueryByIdM<'r> = TileId -> State<'r, Tile option>
+    type TileQueryById<'r> = TileId -> State<'r, Tile option>
     /// 按坐标查询地块
-    type TileQueryByCoord<'r> = Coord -> 'r -> Tile option
-    type TileQueryByCoordM<'r> = Coord -> State<'r, Tile option>
+    type TileQueryByCoord<'r> = Coord -> State<'r, Tile option>
     /// 按玩家查询地块
-    type TilesQueryByPlayer<'r> = PlayerId -> 'r -> Tile seq
-    type TilesQueryByPlayerM<'r> = PlayerId -> State<'r, Tile seq>
+    type TilesQueryByPlayer<'r> = PlayerId -> State<'r, Tile seq>
     /// 查询所有地块
-    type TilesQueryAll<'r> = 'r -> Tile seq
-    type TilesQueryAllM<'r> = State<'r, Tile seq>
+    type TilesQueryAll<'r> = State<'r, Tile seq>
 
     /// 行军部队 ID
     type MarchingArmyId = MarchingArmyId of int
@@ -66,8 +60,8 @@ module DomainT =
           ToTileId: TileId }
 
     /// 行军部队工厂
-    type MarchingArmyFactory<'s> = int<Pop> -> PlayerId -> TileId -> TileId -> 's -> 's * MarchingArmy
-    type MarchingArmyFactoryM<'s> = int<Pop> -> PlayerId -> TileId -> TileId -> State<'s, MarchingArmy>
+    type MarchingArmyFactory<'s> = int<Pop> -> PlayerId -> TileId -> TileId -> State<'s, MarchingArmy>
     /// 删除行军部队
-    type MarchingArmyDeleter<'s> = MarchingArmyId -> 's -> 's
-    type MarchingArmyDeleterM<'s> = MarchingArmyId -> State<'s, bool>
+    type MarchingArmyDeleter<'s> = MarchingArmyId -> State<'s, bool>
+    // 按 Id 查询部队
+    type MarchingArmyQueryById<'r> = MarchingArmyId -> State<'r, MarchingArmy option>

@@ -1,132 +1,180 @@
 namespace BackEnd4IdleStrategyFS.Game
 
-open System
 open FSharpPlus
-open BackEnd4IdleStrategyFS.Game.DomainT
-open BackEnd4IdleStrategyFS.Game.EventT
-open BackEnd4IdleStrategyFS.Godot.IAdapter
+open FSharpPlus.Data
+open DomainT
+open Dependency
 
 /// 领域层逻辑
 module private DomainF =
 
     /// 创建单个地块
-    let createTile (tileFactory: TileFactory<'s>) (tileAdded: TileAdded<'s>) env coord =
-        let env', tile = tileFactory coord 0<Pop> None env
-        tileAdded { TileId = tile.Id; Coord = tile.Coord } env'
+    let createTile coord =
+        monad {
+            let! di = Reader.ask |> StateT.lift
+            let! (tile: Tile) = di.TileFactory coord 0<Pop> None |> StateT.hoist
+            di.TileAdded { TileId = tile.Id; Coord = tile.Coord }
+            tile
+        }
 
     /// 创建多个地块
-    let createTiles (tileFactory: TileFactory<'s>) (tileAdded: TileAdded<'s>) coords (env: 's) =
-        coords |> Seq.fold (createTile tileFactory tileAdded) env
+    let createTiles coords = coords |> Seq.traverse createTile
 
     /// 地块 AStar2D 连接初始化
-    let initTileConnections
-        (tileQueryByCoord: TileQueryByCoord<'s>)
-        (terrainLayer: ITileMapLayer)
-        (aStar2D: IAStar2D)
-        (env: 's)
-        cell
-        =
+    let initTileConnections cell =
+        monad {
+            let! di = Reader.ask |> StateT.lift
+            let! s = State.get |> StateT.hoist
 
-        terrainLayer.GetSurroundingCells cell
-        |> Seq.fold
-            (fun s surrounding ->
-                let surTileOpt = tileQueryByCoord surrounding s
-                let cellTileOpt = tileQueryByCoord cell s
+            di.TerrainLayer.GetSurroundingCells cell
+            |> Seq.fold
+                (fun _ surrounding ->
+                    let surTileOpt, _ = di.TileQueryByCoord surrounding |> State.run <| s
+                    let cellTileOpt, _ = di.TileQueryByCoord cell |> State.run <| s
 
-                match surTileOpt, cellTileOpt with
-                | Some surTile, Some cellTile ->
-                    let (TileId cellTileId) = cellTile.Id
-                    let (TileId surTileId) = surTile.Id
-                    aStar2D.ConnectPoints cellTileId surTileId
-                    s
-                | _, _ -> s)
-            env
+                    match surTileOpt, cellTileOpt with
+                    | Some surTile, Some cellTile ->
+                        let (TileId cellTileId) = cellTile.Id
+                        let (TileId surTileId) = surTile.Id
+                        di.AStar.ConnectPoints cellTileId surTileId
+                    | _, _ -> ())
+                ()
+        }
 
     /// 所有地块 AStar2D 连接初始化
-    let initTilesConnections
-        (tileQueryByCoord: TileQueryByCoord<'s>)
-        (terrainLayer: ITileMapLayer)
-        (aStar2D: IAStar2D)
-        (env: 's)
-        =
+    let initTilesConnections<'s> =
+        monad {
+            let! (di: Injector<'s>) = Reader.ask |> StateT.lift
 
-        terrainLayer.GetUsedCells()
-        |> Seq.fold (initTileConnections tileQueryByCoord terrainLayer aStar2D) env
+            return!
+                di.TerrainLayer.GetUsedCells()
+                |> Seq.traverse initTileConnections // traverse f = map f |> sequence
+        }
 
     /// 玩家占领地块
-    let conquerTile
-        (tileUpdater: TileUpdater<'s>)
-        (tileConquered: TileConquered<'s>)
-        (tile: Tile)
-        (conqueror: Player)
-        (env: 's)
-        =
+    let conquerTile (tile: Tile) (conqueror: Player) =
+        monad {
+            let! di = Reader.ask |> StateT.lift
 
-        let env' =
-            tileUpdater
-                { tile with
-                    PlayerId = Some conqueror.Id }
-                env
+            let! (tile': Tile) =
+                di.TileUpdater
+                    { tile with
+                        PlayerId = Some conqueror.Id }
+                |> StateT.hoist
 
-        tileConquered
-            { TileId = tile.Id
-              Coord = tile.Coord
-              Population = tile.Population
-              ConquerorId = conqueror.Id
-              LoserId = tile.PlayerId }
-            env'
+            di.TileConquered
+                { TileId = tile.Id
+                  Coord = tile.Coord
+                  Population = tile.Population
+                  ConquerorId = conqueror.Id
+                  LoserId = tile.PlayerId }
+
+            tile'
+        }
 
     /// 玩家初始化出生地块
-    let rec spawnPlayer
-        (tileUpdater: TileUpdater<'s>)
-        (playerFactory: PlayerFactory<'s>)
-        (tileConquered: TileConquered<'s>)
-        (random: Random)
-        (tiles: Tile list)
-        (env: 's)
-        =
-
-        let env', player = playerFactory env
-        let tile = tiles[random.Next tiles.Length]
-
-        match tile.PlayerId with
-        | None -> conquerTile tileUpdater tileConquered tile player env'
-        | Some _ -> spawnPlayer tileUpdater playerFactory tileConquered random tiles env'
-
-    /// 初始化 n 个玩家出生地块
-    let spawnPlayers
-        (tilesQueryAll: TilesQueryAll<'s>)
-        (tileUpdater: TileUpdater<'s>)
-        (playerFactory: PlayerFactory<'s>)
-        (tileConquered: TileConquered<'s>)
-        (random: Random)
-        playerCount
-        (env: 's)
-        =
-
-        let tiles = tilesQueryAll env |> List.ofSeq
-
-        [ 1..playerCount ]
-        |> List.fold (fun s _ -> spawnPlayer tileUpdater playerFactory tileConquered random tiles s) env
-
+    let rec spawnPlayer (tiles: Tile list) =
+        monad {
+            let! di = Reader.ask |> StateT.lift
+            let! player = di.PlayerFactory |> StateT.hoist
+            let tile = tiles[di.Random.Next tiles.Length]
+            // BUG: 当前实现在 tiles 接近全部有玩家时容易导致死循环
+            return!
+                match tile.PlayerId with
+                | None -> conquerTile tile player
+                | Some _ -> spawnPlayer tiles
+        }
 
     /// 随机一块玩家领土
-    let randomPlayerTile (tilesQueryByPlayer: TilesQueryByPlayer<'s>) (random: Random) (player: Player) (env: 's) =
-
-        let tiles = tilesQueryByPlayer player.Id env |> List.ofSeq
-        tiles[random.Next tiles.Length]
+    let randomPlayerTile (player: Player) =
+        monad {
+            let! di = Reader.ask |> StateT.lift
+            let! (tileSeq: Tile seq) = di.TilesQueryByPlayer player.Id |> StateT.hoist
+            let tiles = tileSeq |> List.ofSeq
+            tiles[di.Random.Next tiles.Length]
+        }
 
     /// 随机一部分地块人口
-    let randomPopulationFromTile (random: Random) (tile: Tile) =
+    /// （一层 monad，其实没用 Monad Transformer）
+    let randomPopulationFromTile (tile: Tile) =
+        monad {
+            let! di = Reader.ask
+            // BUG: 非常奇葩的情况下，敌方部队可能刚好把地块人口打到 0，这个时候要出兵的地块是当前地块会报错
+            di.Random.Next(1, tile.Population / 1<Pop>) * 1<Pop>
+        }
 
-        random.Next(1, tile.Population / 1<Pop>) * 1<Pop>
+    /// 随机一个相邻地块 id
+    /// （一层 monad，其实没用 Monad Transformer）
+    let randomConnectedTileId (tile: Tile) =
+        monad {
+            let! di = Reader.ask
+            let (TileId tileId) = tile.Id
+            let connectedTileIds = di.AStar.GetPointConnections tileId |> Seq.toList
+            TileId connectedTileIds[di.Random.Next connectedTileIds.Length]
+        }
 
-    /// 随机连接地块
-    let randomConnectedTileId (aStar2D: IAStar2D) (random: Random) (tile: Tile) =
+    /// 玩家向随机行军目标发出部队
+    let marchArmy (player: Player) =
+        monad {
+            let! di = Reader.ask |> StateT.lift
+            let! fromTile = randomPlayerTile player
+            let! population = randomPopulationFromTile fromTile |> StateT.lift
+            let! toTileId = randomConnectedTileId fromTile |> StateT.lift
+            let! (army: MarchingArmy) = di.MarchingArmyFactory population player.Id fromTile.Id toTileId |> StateT.hoist
 
-        let (TileId tileId) = tile.Id
-        let connectedTileIds = aStar2D.GetPointConnections tileId |> Seq.toList
-        TileId connectedTileIds[random.Next connectedTileIds.Length]
+            let! _ =
+                di.TileUpdater
+                    { fromTile with
+                        Population = fromTile.Population - army.Population }
+                |> StateT.hoist
+
+            di.MarchingArmyAdded
+                { MarchingArmyId = army.Id
+                  Population = army.Population
+                  FromTileId = fromTile.Id
+                  ToTileId = toTileId
+                  PlayerId = player.Id }
+
+            army
+        }
+
+    /// 行军部队到达目的地
+    let arriveArmy (marchingArmy: MarchingArmy) =
+        monad {
+            let! di = Reader.ask |> StateT.lift |> OptionT.lift
+            let! (tile: Tile) = di.TileQueryById marchingArmy.ToTileId |> StateT.hoist |> OptionT
+            let! (player: Player) = di.PlayerQueryById marchingArmy.PlayerId |> StateT.hoist |> OptionT
+
+            let! _ =
+                match tile.PlayerId with
+                | None ->
+                    let tile' =
+                        { tile with
+                            Population = tile.Population + marchingArmy.Population }
+
+                    conquerTile tile' player |> OptionT.lift
+                | Some playerId when playerId = marchingArmy.PlayerId ->
+                    let tile' =
+                        { tile with
+                            Population = tile.Population + marchingArmy.Population }
+
+                    di.TileUpdater tile' |> StateT.hoist |> OptionT.lift
+                | Some _ when tile.Population > marchingArmy.Population ->
+                    let tile' =
+                        { tile with
+                            Population = tile.Population - marchingArmy.Population }
+
+                    di.TileUpdater tile' |> StateT.hoist |> OptionT.lift
+                | Some _ ->
+                    let tile' =
+                        { tile with
+                            Population = marchingArmy.Population - tile.Population }
+
+                    conquerTile tile' player |> OptionT.lift
+
+            let! resultBool = di.MarchingArmyDeleter marchingArmy.Id |> StateT.hoist |> OptionT.lift
+            return resultBool
+        }
 
     /// 行军速度（单位：%/s）
     let marchSpeed =
@@ -137,122 +185,21 @@ module private DomainF =
         | p when p < 1000<Pop> -> 10 // 小于 1000 人，10 秒后
         | _ -> 5 // 大于 1000 人，20 秒后
 
-
-    /// 玩家随机行军目标
-    let marchArmy
-        (marchingArmyFactory: MarchingArmyFactory<'s>)
-        (marchingArmyAdded: MarchingArmyAdded<'s>)
-        (tilesQueryByPlayer: TilesQueryByPlayer<'s>)
-        (tileUpdater: TileUpdater<'s>)
-        (aStar2D: IAStar2D)
-        (random: Random)
-        (player: Player)
-        (env: 's)
-        =
-
-        let fromTile = randomPlayerTile tilesQueryByPlayer random player env
-        let population = randomPopulationFromTile random fromTile
-        let toTileId = randomConnectedTileId aStar2D random fromTile
-        let env', army = marchingArmyFactory population player.Id fromTile.Id toTileId env
-
-        let env'' =
-            tileUpdater
-                { fromTile with
-                    Population = fromTile.Population - army.Population }
-                env'
-
-        let env''' =
-            marchingArmyAdded
-                { MarchingArmyId = army.Id
-                  Population = army.Population
-                  FromTileId = fromTile.Id
-                  ToTileId = toTileId
-                  PlayerId = player.Id }
-                env''
-
-        env''', army
-
-    /// 行军到达目的地
-    let arriveArmy
-        (tileQueryById: TileQueryById<'s>)
-        (playerQueryById: PlayerQueryById<'s>)
-        (marchingArmyDeleter: MarchingArmyDeleter<'s>)
-        (tileUpdater: TileUpdater<'s>)
-        (tileConquered: TileConquered<'s>)
-        (marchingArmy: MarchingArmy)
-        (env: 's)
-        =
-
-        let resultOpt =
-            monad {
-                let! tile = tileQueryById marchingArmy.ToTileId env
-                let! player = playerQueryById marchingArmy.PlayerId env
-
-                let env' =
-                    match tile.PlayerId with
-                    | None ->
-                        let tile' =
-                            { tile with
-                                Population = tile.Population + marchingArmy.Population }
-
-                        conquerTile tileUpdater tileConquered tile' player env
-                    | Some playerId when playerId = marchingArmy.PlayerId ->
-                        let tile' =
-                            { tile with
-                                Population = tile.Population + marchingArmy.Population }
-
-                        tileUpdater tile' env
-                    | Some _ when tile.Population > marchingArmy.Population ->
-                        let tile' =
-                            { tile with
-                                Population = tile.Population - marchingArmy.Population }
-
-                        tileUpdater tile' env
-                    | Some _ ->
-                        let tile' =
-                            { tile with
-                                Population = marchingArmy.Population - tile.Population }
-
-                        conquerTile tileUpdater tileConquered tile' player env
-
-                let env'' = marchingArmyDeleter marchingArmy.Id env'
-                return env''
-            }
-
-        match resultOpt with
-        | None -> failwith $"Invalid marching army id, id:{marchingArmy.Id}"
-        | Some e -> e
-
     /// 增加地块人口
-    let increaseTilePopulation
-        (tileUpdater: TileUpdater<'s>)
-        (tilePopulationChanged: TilePopulationChanged<'s>)
-        increment
-        (env: 's)
-        (tile: Tile)
-        =
+    let increaseTilePopulation increment (tile: Tile) =
+        monad {
+            let! di = Reader.ask |> StateT.lift
 
-        let env' =
-            tileUpdater
-                { tile with
-                    Population = tile.Population + increment }
-                env
+            let! (tile': Tile) =
+                di.TileUpdater
+                    { tile with
+                        Population = tile.Population + increment }
+                |> StateT.hoist
 
-        tilePopulationChanged
-            { TileId = tile.Id
-              BeforePopulation = tile.Population
-              AfterPopulation = tile.Population + increment }
-            env'
+            di.TilePopulationChanged
+                { TileId = tile.Id
+                  BeforePopulation = tile.Population
+                  AfterPopulation = tile.Population + increment }
 
-    // 增加所有玩家地块人口
-    let increaseAllPlayerTilesPopulation
-        (tilesQueryAll: TilesQueryAll<'s>)
-        (tileUpdater: TileUpdater<'s>)
-        (tilePopulationChanged: TilePopulationChanged<'s>)
-        increment
-        (env: 's)
-        =
-
-        tilesQueryAll env
-        |> Seq.filter (fun tile -> tile.PlayerId.IsSome && tile.Population < 1000<Pop>)
-        |> Seq.fold (increaseTilePopulation tileUpdater tilePopulationChanged increment) env
+            tile'
+        }

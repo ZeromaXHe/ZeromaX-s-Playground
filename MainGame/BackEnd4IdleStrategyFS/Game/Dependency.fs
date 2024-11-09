@@ -5,7 +5,7 @@ open BackEnd4IdleStrategyFS.Godot.IAdapter
 open DomainT
 open EventT
 
-module private Dependency =
+module Dependency =
     type Injector<'s> =
         {
           // Godot
@@ -14,19 +14,21 @@ module private Dependency =
           // 随机
           Random: Random
           // 仓储
-          PlayerFactory: PlayerFactoryM<'s>
-          PlayerQueryById: PlayerQueryByIdM<'s>
-          TileFactory: TileFactoryM<'s>
-          TileUpdater: TileUpdaterM<'s>
-          TileQueryById: TileQueryByIdM<'s>
-          TileQueryByCoord: TileQueryByCoordM<'s>
-          TilesQueryByPlayer: TilesQueryByPlayerM<'s>
-          TilesQueryAll: TilesQueryAllM<'s>
-          MarchingArmyFactory: MarchingArmyFactoryM<'s>
-          MarchingArmyDeleter: MarchingArmyDeleterM<'s>
+          PlayerFactory: PlayerFactory<'s>
+          PlayerQueryById: PlayerQueryById<'s>
+          PlayersQueryAll: PlayersQueryAll<'s>
+          TileFactory: TileFactory<'s>
+          TileUpdater: TileUpdater<'s>
+          TileQueryById: TileQueryById<'s>
+          TileQueryByCoord: TileQueryByCoord<'s>
+          TilesQueryByPlayer: TilesQueryByPlayer<'s>
+          TilesQueryAll: TilesQueryAll<'s>
+          MarchingArmyFactory: MarchingArmyFactory<'s>
+          MarchingArmyDeleter: MarchingArmyDeleter<'s>
+          MarchingArmyQueryById: MarchingArmyQueryById<'s>
           // 事件
-          TileConquered: TileConqueredM
-          TilePopulationChanged: TilePopulationChangedM
-          TileAdded: TileAddedM
-          MarchingArmyAdded: MarchingArmyAddedM
-          MarchingArmyArrived: MarchingArmyArrivedM }
+          TileConquered: TileConquered
+          TilePopulationChanged: TilePopulationChanged
+          TileAdded: TileAdded
+          MarchingArmyAdded: MarchingArmyAdded
+          MarchingArmyArrived: MarchingArmyArrived }

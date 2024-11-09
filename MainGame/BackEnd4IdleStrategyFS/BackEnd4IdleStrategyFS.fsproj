@@ -10,10 +10,8 @@
         <Compile Include="Godot\IAdapter.fs" />
         <Compile Include="Game\DomainT.fs" />
         <Compile Include="Game\EventT.fs" />
-        <Compile Include="Game\DomainF.fs" />
         <Compile Include="Game\Dependency.fs" />
-        <Compile Include="Game\DomainFMM.fs" />
-        <Compile Include="Game\DomainFM.fs" />
+        <Compile Include="Game\DomainF.fs" />
         <Compile Include="Game\RepositoryT.fs" />
         <Compile Include="Game\QueryRepositoryF.fs" />
         <Compile Include="Game\CommandRepositoryF.fs" />
