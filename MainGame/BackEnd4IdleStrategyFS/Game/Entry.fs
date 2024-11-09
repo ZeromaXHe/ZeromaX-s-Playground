@@ -128,25 +128,23 @@ module Entry =
                         // 处理抵达部队
                         let! marchingArmy = QueryRepositoryFM.getMarchingArmy e.MarchingArmyId |> OptionT
 
-                        return! DomainFM.arriveArmyMM marchingArmy |> Reader.run <| injector |> OptionT
+                        return! DomainFMM.arriveArmy marchingArmy |> Reader.run <| injector |> OptionT
                     }
-                    |> OptionT.run
 
                 let send =
                     monad {
                         // 派出新的部队
                         let! player = QueryRepositoryFM.getPlayer e.PlayerId |> OptionT
 
-                        return! DomainFM.marchArmyMM player |> Reader.run <| injector |> OptionT.lift
+                        return! DomainFMM.marchArmy player |> Reader.run <| injector |> OptionT.lift
                     }
-                    |> OptionT.run
 
-                let boolOpt, gameState' = arrive |> State.run <| gameState
+                let boolOpt, gameState' = arrive |> OptionT.run |> State.run <| gameState
 
                 if boolOpt.IsSome && boolOpt.Value then
                     gameState <- gameState'
 
-                let armyOpt, gameState' = send |> State.run <| gameState
+                let armyOpt, gameState' = send |> OptionT.run |> State.run <| gameState
 
                 if armyOpt.IsSome then
                     gameState <- gameState'
@@ -155,7 +153,8 @@ module Entry =
                 let arrive =
                     monad {
                         // 处理抵达部队
-                        let! marchingArmy = QueryRepositoryFM.getMarchingArmy e.MarchingArmyId |> StateT.hoist |> OptionT
+                        let! marchingArmy =
+                            QueryRepositoryFM.getMarchingArmy e.MarchingArmyId |> StateT.hoist |> OptionT
 
                         return! DomainFM.arriveArmy marchingArmy
                     }
@@ -163,20 +162,19 @@ module Entry =
                 let send =
                     monad {
                         // 派出新的部队
-                        let! player = QueryRepositoryFM.getPlayer e.PlayerId |> OptionT
+                        let! player = QueryRepositoryFM.getPlayer e.PlayerId |> StateT.hoist |> OptionT
 
-                        return!
-                            DomainFM.marchArmy player |> stateTReaderToStateReader |> Reader.run <| injector
-                            |> OptionT.lift
+                        return! DomainFM.marchArmy player |> OptionT.lift
                     }
-                    |> OptionT.run
 
-                let boolOpt, gameState' = arrive |> OptionT.run |> StateT.run <| gameState |> Reader.run <| injector
+                let boolOpt, gameState' =
+                    arrive |> OptionT.run |> StateT.run <| gameState |> Reader.run <| injector
 
                 if boolOpt.IsSome && boolOpt.Value then
                     gameState <- gameState'
 
-                let armyOpt, gameState' = send |> State.run <| gameState
+                let armyOpt, gameState' =
+                    send |> OptionT.run |> StateT.run <| gameState |> Reader.run <| injector
 
                 if armyOpt.IsSome then
                     gameState <- gameState'
@@ -201,7 +199,7 @@ module Entry =
 
             let gameTickedOnNext_2Monad _ =
                 let _, gameState' =
-                    DomainFM.increaseAllPlayerTilesPopulationMM 1<Pop> |> Reader.run <| injector
+                    DomainFMM.increaseAllPlayerTilesPopulation 1<Pop> |> Reader.run <| injector
                     |> State.run
                     <| gameState
 
@@ -248,8 +246,7 @@ module Entry =
 
                 playerSeq
                 |> Seq.iter (fun p ->
-                    let _, s =
-                        DomainFM.marchArmyMM p |> Reader.run <| injector |> State.run <| gameState
+                    let _, s = DomainFMM.marchArmy p |> Reader.run <| injector |> State.run <| gameState
 
                     gameState <- s)
 
@@ -321,13 +318,13 @@ module Entry =
             let usedCells = terrainLayer.GetUsedCells()
 
             let _, gameState' =
-                DomainFM.createTilesMM usedCells |> Reader.run <| injector |> State.run
+                DomainFMM.createTiles usedCells |> Reader.run <| injector |> State.run
                 <| gameState
 
             gameState <- gameState'
 
             let gameState' =
-                DomainFM.initTilesConnectionsMM |> Reader.run <| injector
+                DomainFMM.initTilesConnections |> Reader.run <| injector
                 |> Seq.fold
                     (fun s t ->
                         let _, s' = t |> State.run <| s
@@ -337,7 +334,7 @@ module Entry =
             gameState <- gameState'
 
             let _, gameState' =
-                DomainFM.spawnPlayersMM playerCount |> Reader.run <| injector |> State.run
+                DomainFMM.spawnPlayers playerCount |> Reader.run <| injector |> State.run
                 <| gameState
 
             gameState <- gameState'
