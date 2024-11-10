@@ -1,0 +1,155 @@
+namespace FrontEnd4IdleStrategyFS.Display
+
+open System.Threading
+open BackEnd4IdleStrategyFS.Game.DomainT
+open BackEnd4IdleStrategyFS.Game.EventT
+open FrontEnd4IdleStrategyFS.Global.Common
+open Godot
+open FSharp.Control.Reactive
+open FrontEnd4IdleStrategyFS.Global
+
+type MapBoardFS() as this =
+    inherit Node2D()
+
+    let _globalNode = lazy this.GetNode<GlobalNodeFS> "/root/GlobalNode"
+
+    let _baseTerrain = lazy this.GetNode<TileMapLayer> "BaseTerrain"
+    let _feature = lazy this.GetNode<TileMapLayer> "Feature"
+    let _territory = lazy this.GetNode<TileMapLayer> "Territory"
+    let _marchingLines = lazy this.GetNode<Node2D> "MarchingLines"
+    let _tileGuis = lazy this.GetNode<Control> "TileGUIs"
+
+    let _tileGuiScene =
+        GD.Load("res://game/inGame/map/scenes/TileGUI.tscn") :?> PackedScene
+
+    let _marchingLineScene =
+        GD.Load("res://game/inGame/map/scenes/MarchingLine.tscn") :?> PackedScene
+
+    [<DefaultValue>]
+    val mutable _playerCount: int
+
+    let territorySrcId = 0
+
+    let territoryAtlasCoords =
+        [| Vector2I(0, 2)
+           Vector2I(1, 2)
+           Vector2I(2, 2)
+           Vector2I(3, 2)
+           Vector2I(0, 3)
+           Vector2I(1, 3)
+           Vector2I(2, 3)
+           Vector2I(3, 3) |]
+
+    let getTileCoordGlobalPosition coord =
+        coord |> _territory.Value.MapToLocal |> _territory.Value.ToGlobal
+
+    let showMarchingArmy (e: MarchingArmyAddedEvent) =
+        let (MarchingArmyId armyId) = e.MarchingArmyId
+        let (TileId fromTileId) = e.FromTileId
+        let (TileId toTileId) = e.ToTileId
+        let (PlayerId playerId) = e.PlayerId
+        let population = e.Population / 1<Pop>
+        GD.Print $"AI 玩家 {playerId} 发出部队 {armyId} 人数为 {population}"
+        // 初始化一次行军部队
+        let marchingLine = _marchingLineScene.Instantiate<MarchingLineFS>()
+        _marchingLines.Value.AddChild marchingLine
+
+        let fromCoord =
+            _globalNode.Value.IdleStrategyEntry.Value.QueryTileById fromTileId |> _.Coord
+
+        let toCoord =
+            _globalNode.Value.IdleStrategyEntry.Value.QueryTileById toTileId |> _.Coord
+
+        marchingLine.Init
+            armyId
+            population
+            (fromCoord |> BackEndUtil.fromI |> getTileCoordGlobalPosition)
+            (toCoord |> BackEndUtil.fromI |> getTileCoordGlobalPosition)
+            Constants.playerColors[playerId - 1] // Player 的 Id 从 1 开始，所以要减一
+
+    let newTileGui id coord population =
+        let tileGui = _tileGuiScene.Instantiate<TileGuiFS>()
+        _tileGuis.Value.AddChild tileGui
+        tileGui.Init id coord population (coord |> BackEndUtil.fromI |> getTileCoordGlobalPosition)
+
+    override this._Ready() =
+        // 清除用于编辑器中预览的单元格
+        // _feature.Clear();
+        _territory.Value.Clear()
+
+        let globalNode = _globalNode.Value
+        globalNode.InitIdleStrategyGame _baseTerrain.Value this._playerCount
+
+        let godotSyncContext = SynchronizationContext.Current
+        let entry = globalNode.IdleStrategyEntry.Value
+
+        entry.GameTicked
+        |> Observable.subscribeOnContext godotSyncContext
+        |> Observable.subscribe (fun e -> GD.Print $"tick {e}")
+        |> ignore
+
+        entry.GameFirstArmyGenerated
+        |> Observable.subscribeOnContext godotSyncContext
+        |> Observable.subscribe (fun _ -> GD.Print "第一次出兵！！！")
+        |> ignore
+
+        entry.TileAdded
+        |> Observable.subscribeOnContext godotSyncContext
+        |> Observable.subscribe (fun e -> GD.Print $"Tile {e.TileId} added at {e.Coord}")
+        |> ignore
+
+        entry.TileConquered
+        |> Observable.subscribeOnContext godotSyncContext
+        |> Observable.subscribe (fun e ->
+            godotSyncContext.Post(
+                (fun _ ->
+                    // 涉及到 Godot 节点展示层绘制的内容必须在同步上下文中执行
+                    // Player 的 Id 从 1 开始，所以要减一
+                    let (PlayerId conquerorIdInt) = e.ConquerorId
+
+                    _territory.Value.SetCell(
+                        BackEndUtil.fromI e.Coord,
+                        territorySrcId,
+                        territoryAtlasCoords[conquerorIdInt - 1]
+                    )),
+                null
+            ))
+        |> ignore
+
+        entry.TileConquered
+        |> Observable.filter _.LoserId.IsNone
+        |> Observable.subscribeOnContext godotSyncContext
+        |> Observable.subscribe (fun e ->
+            godotSyncContext.Post(
+                (fun _ ->
+                    GD.Print $"Player {e.ConquerorId} conquer tile at {e.Coord}"
+                    newTileGui e.TileId e.Coord (e.Population / 1<Pop>)),
+                null
+            ))
+        |> ignore
+
+        entry.TilePopulationChanged
+        |> Observable.subscribeOnContext godotSyncContext
+        |> Observable.subscribe (fun e ->
+            godotSyncContext.Post(
+                (fun _ -> TileGuiFS.ChangePopulationById e.TileId (e.AfterPopulation / 1<Pop>)),
+                null
+            ))
+        |> ignore
+
+        entry.MarchingArmyAdded
+        |> Observable.subscribeOnContext godotSyncContext
+        |> Observable.subscribe (fun e ->
+            godotSyncContext.Post(
+                (fun _ ->
+                    // 涉及到 Godot 节点展示层绘制的内容必须在同步上下文中执行
+                    // 如果使用 CallDeferred / 信号等，还是会一样报错（信号是因为 EmitSignal 也必须在主线程里）
+                    // 目前貌似只有同步上下文这种方式可以解决
+                    showMarchingArmy e),
+                null
+            ))
+        |> ignore
+
+        // 必须在同步上下文中执行，否则 Init 内容不会被响应式编程 Subscribe 监听到（会比上面监听逻辑更早执行）
+        godotSyncContext.Post((fun _ -> _globalNode.Value.IdleStrategyEntry.Value.Init()), null)
+        GD.Print $"MapBoard 初始化完成! playerCount:{this._playerCount}"

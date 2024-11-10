@@ -5,133 +5,131 @@ open FSharp.Control.Reactive
 open System
 open System.Reactive.Subjects
 open BackEnd4IdleStrategyFS.Godot.IAdapter
-open BackEnd4IdleStrategyFS.Game.EventT
-open BackEnd4IdleStrategyFS.Game.DomainT
-open BackEnd4IdleStrategyFS.Game.Dependency
-open BackEnd4IdleStrategyFS.Game.RepositoryT
+open EventT
+open DomainT
+open Dependency
+open RepositoryT
 
-module Entry =
+type Entry(aStar: IAStar2D, terrainLayer: ITileMapLayer, playerCount: int) =
+    let mutable gameState = emptyGameState
 
-    type Container(aStar: IAStar2D, terrainLayer: ITileMapLayer, playerCount: int) =
-        let mutable gameState = emptyGameState
+    let random = Random()
+    let tileAdded = new Subject<TileAddedEvent>()
+    let tileConquered = new Subject<TileConqueredEvent>()
+    let tilePopulationChanged = new Subject<TilePopulationChangedEvent>()
+    let gameTicked = TimeSpan.FromSeconds 0.5 |> Observable.interval
+    let gameFirstArmyGenerated = TimeSpan.FromSeconds 3 |> Observable.timerSpan
+    let marchingArmyAdded = new Subject<MarchingArmyAddedEvent>()
+    let marchingArmyArrived = new Subject<MarchingArmyArrivedEvent>()
 
-        let random = Random()
-        let tileAdded = new Subject<TileAddedEvent>()
-        let tileConquered = new Subject<TileConqueredEvent>()
-        let tilePopulationChanged = new Subject<TilePopulationChangedEvent>()
-        let gameTicked = TimeSpan.FromSeconds 0.5 |> Observable.interval
-        let gameFirstArmyGenerated = TimeSpan.FromSeconds 3 |> Observable.timerSpan
-        let marchingArmyAdded = new Subject<MarchingArmyAddedEvent>()
-        let marchingArmyArrived = new Subject<MarchingArmyArrivedEvent>()
+    let injector =
+        {
+          // Godot
+          AStar = aStar
+          TerrainLayer = terrainLayer
+          // 随机
+          Random = random
+          // 仓储
+          PlayerFactory = CommandRepositoryF.insertPlayer
+          PlayerQueryById = QueryRepositoryF.getPlayer
+          PlayersQueryAll = QueryRepositoryF.getAllPlayers
+          TileFactory = CommandRepositoryF.insertTile
+          TileUpdater = CommandRepositoryF.updateTile
+          TileQueryById = QueryRepositoryF.getTile
+          TileQueryByCoord = QueryRepositoryF.getTileByCoord
+          TilesQueryByPlayer = QueryRepositoryF.getTilesByPlayer
+          TilesQueryAll = QueryRepositoryF.getAllTiles
+          MarchingArmyFactory = CommandRepositoryF.insertMarchingArmy
+          MarchingArmyDeleter = CommandRepositoryF.deleteMarchingArmy
+          MarchingArmyQueryById = QueryRepositoryF.getMarchingArmy
+          // 事件
+          TileConquered = tileConquered.OnNext
+          TilePopulationChanged = tilePopulationChanged.OnNext
+          TileAdded = tileAdded.OnNext
+          MarchingArmyAdded = marchingArmyAdded.OnNext
+          MarchingArmyArrived = marchingArmyArrived.OnNext }
 
-        let injector =
-            {
-              // Godot
-              AStar = aStar
-              TerrainLayer = terrainLayer
-              // 随机
-              Random = random
-              // 仓储
-              PlayerFactory = CommandRepositoryF.insertPlayer
-              PlayerQueryById = QueryRepositoryF.getPlayer
-              PlayersQueryAll = QueryRepositoryF.getAllPlayers
-              TileFactory = CommandRepositoryF.insertTile
-              TileUpdater = CommandRepositoryF.updateTile
-              TileQueryById = QueryRepositoryF.getTile
-              TileQueryByCoord = QueryRepositoryF.getTileByCoord
-              TilesQueryByPlayer = QueryRepositoryF.getTilesByPlayer
-              TilesQueryAll = QueryRepositoryF.getAllTiles
-              MarchingArmyFactory = CommandRepositoryF.insertMarchingArmy
-              MarchingArmyDeleter = CommandRepositoryF.deleteMarchingArmy
-              MarchingArmyQueryById = QueryRepositoryF.getMarchingArmy
-              // 事件
-              TileConquered = tileConquered.OnNext
-              TilePopulationChanged = tilePopulationChanged.OnNext
-              TileAdded = tileAdded.OnNext
-              MarchingArmyAdded = marchingArmyAdded.OnNext
-              MarchingArmyArrived = marchingArmyArrived.OnNext }
+    let tileAddedSubscription =
+        tileAdded
+        |> Observable.subscribe (fun e ->
+            let (TileId tileId) = e.TileId
+            aStar.AddPoint tileId e.Coord)
 
-        let tileAddedSubscription =
-            tileAdded
-            |> Observable.subscribe (fun e ->
-                let (TileId tileId) = e.TileId
-                aStar.AddPoint tileId e.Coord)
+    let marchingArmyAddedSubscription =
+        marchingArmyAdded
+        |> Observable.delayMap (fun e ->
+            // 计算延迟到达时间
+            let speed = DomainF.marchSpeed e.Population
+            let delay = 100.0 / float speed
+            TimeSpan.FromSeconds delay |> Observable.timerSpan)
+        |> Observable.subscribe (fun e ->
+            // 转发抵达事件
+            marchingArmyArrived.OnNext
+                { MarchingArmyId = e.MarchingArmyId
+                  Population = e.Population
+                  DestinationTileId = e.ToTileId
+                  PlayerId = e.PlayerId })
 
-        let marchingArmyAddedSubscription =
-            marchingArmyAdded
-            |> Observable.delayMap (fun e ->
-                // 计算延迟到达时间
-                let speed = DomainF.marchSpeed e.Population
-                let delay = 100.0 / float speed
-                TimeSpan.FromSeconds delay |> Observable.timerSpan)
-            |> Observable.subscribe (fun e ->
-                // 转发抵达事件
-                marchingArmyArrived.OnNext
-                    { MarchingArmyId = e.MarchingArmyId
-                      Population = e.Population
-                      DestinationTileId = e.ToTileId
-                      PlayerId = e.PlayerId })
+    let marchingArmyArrivedSubscription =
+        let marchingArmyArrivedOnNext e =
+            let armyOpt, gameState' =
+                AppService.armyArriveAndGenerateNew e.MarchingArmyId e.PlayerId
+                |> OptionT.run
+                |> StateT.run
+                <| gameState
+                |> Reader.run
+                <| injector
 
-        let marchingArmyArrivedSubscription =
-            let marchingArmyArrivedOnNext e =
-                let armyOpt, gameState' =
-                    AppService.armyArriveAndGenerateNew e.MarchingArmyId e.PlayerId
-                    |> OptionT.run
-                    |> StateT.run
-                    <| gameState
-                    |> Reader.run
-                    <| injector
-
-                if armyOpt.IsSome then
-                    gameState <- gameState'
-
-            marchingArmyArrived |> Observable.subscribe marchingArmyArrivedOnNext
-
-        let gameTickedSubscription =
-            let gameTickedOnNext _ =
-                let _, gameState' =
-                    AppService.increaseAllPlayerTilesPopulation 1<Pop> |> StateT.run <| gameState
-                    |> Reader.run
-                    <| injector
-
+            if armyOpt.IsSome then
                 gameState <- gameState'
 
-            gameTicked |> Observable.subscribe gameTickedOnNext
+        marchingArmyArrived |> Observable.subscribe marchingArmyArrivedOnNext
 
-        let gameFirstArmyGeneratedSubscription =
-            let gameFirstArmyGeneratedOnNext _ =
-                let _, s =
-                    AppService.generateFirstGroupArmy |> StateT.run <| gameState |> Reader.run
-                    <| injector
-
-                gameState <- s
-
-            gameFirstArmyGenerated |> Observable.subscribe gameFirstArmyGeneratedOnNext
-
-        member this.GameTicked = gameTicked |> Observable.asObservable
-
-        member this.GameFirstArmyGenerated = gameFirstArmyGenerated |> Observable.asObservable
-
-        member this.TileAdded = tileAdded |> Observable.asObservable
-
-        member this.TileConquered = tileConquered |> Observable.asObservable
-
-        member this.TilePopulationChanged = tilePopulationChanged |> Observable.asObservable
-
-        member this.MarchingArmyAdded = marchingArmyAdded |> Observable.asObservable
-
-        member this.MarchingArmyArrived = marchingArmyArrived |> Observable.asObservable
-
-        member this.QueryAllPlayers() = AppService.queryAllPlayers gameState
-
-        member this.QueryTileById tileIdInt =
-            AppService.queryTileById gameState tileIdInt
-
-        member this.QueryTilesByPlayerId playerIdInt =
-            AppService.queryTilesByPlayerId gameState playerIdInt
-
-        member this.Init() =
+    let gameTickedSubscription =
+        let gameTickedOnNext _ =
             let _, gameState' =
-                AppService.init playerCount |> StateT.run <| gameState |> Reader.run <| injector
+                AppService.increaseAllPlayerTilesPopulation 1<Pop> |> StateT.run <| gameState
+                |> Reader.run
+                <| injector
 
             gameState <- gameState'
+
+        gameTicked |> Observable.subscribe gameTickedOnNext
+
+    let gameFirstArmyGeneratedSubscription =
+        let gameFirstArmyGeneratedOnNext _ =
+            let _, s =
+                AppService.generateFirstGroupArmy |> StateT.run <| gameState |> Reader.run
+                <| injector
+
+            gameState <- s
+
+        gameFirstArmyGenerated |> Observable.subscribe gameFirstArmyGeneratedOnNext
+
+    member this.GameTicked = gameTicked |> Observable.asObservable
+
+    member this.GameFirstArmyGenerated = gameFirstArmyGenerated |> Observable.asObservable
+
+    member this.TileAdded = tileAdded |> Observable.asObservable
+
+    member this.TileConquered = tileConquered |> Observable.asObservable
+
+    member this.TilePopulationChanged = tilePopulationChanged |> Observable.asObservable
+
+    member this.MarchingArmyAdded = marchingArmyAdded |> Observable.asObservable
+
+    member this.MarchingArmyArrived = marchingArmyArrived |> Observable.asObservable
+
+    member this.QueryAllPlayers() = AppService.queryAllPlayers gameState
+
+    member this.QueryTileById tileIdInt =
+        AppService.queryTileById gameState tileIdInt
+
+    member this.QueryTilesByPlayerId playerIdInt =
+        AppService.queryTilesByPlayerId gameState playerIdInt
+
+    member this.Init() =
+        let _, gameState' =
+            AppService.init playerCount |> StateT.run <| gameState |> Reader.run <| injector
+
+        gameState <- gameState'

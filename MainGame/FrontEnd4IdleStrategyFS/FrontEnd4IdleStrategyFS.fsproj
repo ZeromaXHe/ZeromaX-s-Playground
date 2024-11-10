@@ -1,0 +1,25 @@
+﻿<Project Sdk="Godot.NET.Sdk/4.3.0">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="Global\Common\BackEndUtil.fs" />
+        <Compile Include="Global\Common\Constants.fs" />
+        <Compile Include="Global\Adaptor\AStar2DAdapter.fs" />
+        <Compile Include="Global\Adaptor\TileMapLayerAdapter.fs" />
+        <Compile Include="Global\GlobalNodeFS.fs" />
+        <Compile Include="Display\MainMenuFS.fs" />
+        <Compile Include="Display\MarchingLineFS.fs" />
+        <Compile Include="Display\TileGuiFS.fs" />
+        <Compile Include="Display\MapBoardFS.fs" />
+        <Compile Include="Display\InGameMenuFS.fs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\BackEnd4IdleStrategyFS\BackEnd4IdleStrategyFS.fsproj" />
+    </ItemGroup>
+
+</Project>
