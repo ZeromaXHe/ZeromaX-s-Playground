@@ -7,8 +7,8 @@ open FrontEnd4IdleStrategyFS.Global.Common
 type TileMapLayerAdapter(tileMapLayer: TileMapLayer) =
     interface ITileMapLayer with
         member this.GetSurroundingCells cell =
-            let x, y = cell
-            GD.Print $"TileMapLayer.GetSurroundingCells ({x}, {y}"
+            // let x, y = cell
+            // GD.Print $"TileMapLayer.GetSurroundingCells ({x}, {y}"
 
             BackEndUtil.fromI cell
             |> tileMapLayer.GetSurroundingCells

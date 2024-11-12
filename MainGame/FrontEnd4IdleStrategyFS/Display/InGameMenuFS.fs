@@ -47,16 +47,16 @@ type InGameMenuFS() as this =
         |> Seq.iter (fun playerInfo ->
             let playerLabel = new Label()
             let (PlayerId playerIdInt) = playerInfo.PlayerId.Value
-            Constants.playerNames[playerIdInt - 1] |> this.Tr |> playerLabel.SetText
+            playerLabel.SetText <| this.Tr Constants.playerNames[playerIdInt - 1]
             playerLabel.AddThemeColorOverride("font_color", Constants.playerColors[playerIdInt - 1])
             _playerInfosGrid.Value.AddChild playerLabel
 
             let territoryLabel = new Label()
-            playerInfo.Territory |> string |> territoryLabel.SetText
+            territoryLabel.SetText <| string playerInfo.Territory
             _playerInfosGrid.Value.AddChild territoryLabel
 
             let populationLabel = new Label()
-            playerInfo.Population |> string |> populationLabel.SetText
+            populationLabel.SetText <| string playerInfo.Population 
             _playerInfosGrid.Value.AddChild populationLabel)
 
     override this._Ready() =

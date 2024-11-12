@@ -17,4 +17,5 @@ type GlobalNodeFS() =
         this.IdleStrategyEntry <- Entry(
             AStar2DAdapter(new AStar2D()),
             TileMapLayerAdapter(baseTerrain),
-            playerCount) |> Some
+            playerCount,
+            GD.Print) |> Some

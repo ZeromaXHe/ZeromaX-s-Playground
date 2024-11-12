@@ -10,10 +10,10 @@ type AStar2DAdapter(aStar2D: AStar2D) =
             aStar2D.AddPoint(id, BackEndUtil.from coord)
 
         member this.ConnectPoints fromId toId =
-            GD.Print $"AStar2D.ConnectPoints ({fromId}, {toId})"
+            // GD.Print $"AStar2D.ConnectPoints ({fromId}, {toId})"
             aStar2D.ConnectPoints(fromId, toId)
 
         member this.GetPointConnections id =
-            GD.Print $"AStar2D.GetPointConnections {id}"
+            // GD.Print $"AStar2D.GetPointConnections {id}"
             let connectNavIdArr = aStar2D.GetPointConnections id
             connectNavIdArr |> Seq.ofArray |> Seq.map int

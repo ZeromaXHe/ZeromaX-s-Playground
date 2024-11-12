@@ -17,6 +17,9 @@ type TileGuiFS() as this =
 
     static member val idMap = Map.empty<TileId, TileGuiFS> with get, set
 
+    static member ContainsId id =
+        TileGuiFS.idMap.ContainsKey id
+
     static member ChangePopulationById id population =
         match TileGuiFS.idMap.TryFind id with
         | Some tileGui -> tileGui.ChangePopulation population

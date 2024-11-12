@@ -1,5 +1,6 @@
 namespace BackEnd4IdleStrategyFS.Game
 
+open FSharpPlus.Control
 open FSharpPlus.Data
 open FSharp.Control.Reactive
 open System
@@ -10,10 +11,12 @@ open DomainT
 open Dependency
 open RepositoryT
 
-type Entry(aStar: IAStar2D, terrainLayer: ITileMapLayer, playerCount: int) =
+type Entry(aStar: IAStar2D, terrainLayer: ITileMapLayer, playerCount: int, logPrinter: string -> unit) =
     let mutable gameState = emptyGameState
 
-    let random = Random()
+    // TODO: 好像确定开局种子也不能保证后续现象一致。是 Random.Next 触发的顺序不一致导致的吗？
+    let seed = 1662646297 // Random().Next Int32.MaxValue
+    let random = Random(seed)
     let tileAdded = new Subject<TileAddedEvent>()
     let tileConquered = new Subject<TileConqueredEvent>()
     let tilePopulationChanged = new Subject<TilePopulationChangedEvent>()
@@ -29,6 +32,8 @@ type Entry(aStar: IAStar2D, terrainLayer: ITileMapLayer, playerCount: int) =
           TerrainLayer = terrainLayer
           // 随机
           Random = random
+          // 日志
+          LogPrint = logPrinter
           // 仓储
           PlayerFactory = CommandRepositoryF.insertPlayer
           PlayerQueryById = QueryRepositoryF.getPlayer
@@ -110,8 +115,6 @@ type Entry(aStar: IAStar2D, terrainLayer: ITileMapLayer, playerCount: int) =
 
     member this.GameFirstArmyGenerated = gameFirstArmyGenerated |> Observable.asObservable
 
-    member this.TileAdded = tileAdded |> Observable.asObservable
-
     member this.TileConquered = tileConquered |> Observable.asObservable
 
     member this.TilePopulationChanged = tilePopulationChanged |> Observable.asObservable
@@ -129,6 +132,8 @@ type Entry(aStar: IAStar2D, terrainLayer: ITileMapLayer, playerCount: int) =
         AppService.queryTilesByPlayerId gameState playerIdInt
 
     member this.Init() =
+        logPrinter $"随机种子：{seed}"
+
         let _, gameState' =
             AppService.init playerCount |> StateT.run <| gameState |> Reader.run <| injector
 

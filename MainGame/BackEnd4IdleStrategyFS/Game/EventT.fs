@@ -9,7 +9,7 @@ module EventT =
         { TileId: TileId
           Coord: Coord
           Population: int<Pop>
-          ConquerorId: PlayerId
+          ConquerorId: PlayerId option
           LoserId: PlayerId option }
 
     /// 地块被占领

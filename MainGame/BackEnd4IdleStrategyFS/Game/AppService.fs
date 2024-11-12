@@ -51,8 +51,12 @@ module AppService =
             let! marchingArmy = di.MarchingArmyQueryById marchingArmyId |> StateT.hoist |> OptionT
             let! _ = DomainF.arriveArmy marchingArmy
             // 派出新的部队
-            let! player = di.PlayerQueryById playerId |> StateT.hoist |> OptionT
-            return! DomainF.marchArmy player |> OptionT.lift
+            let! (player: Player) = di.PlayerQueryById playerId |> StateT.hoist |> OptionT
+            let! isNoLandPlayer = DomainF.isNoLandPlayer player |> OptionT.lift
+            if isNoLandPlayer then
+                return! None |> OptionT.hoist
+            else
+                return! DomainF.marchArmy player |> OptionT.lift
         }
 
     /// 增加所有玩家地块人口

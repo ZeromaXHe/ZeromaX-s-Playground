@@ -46,27 +46,29 @@ module private DomainF =
         monad {
             let! (di: Injector<'s>) = Reader.ask |> StateT.lift
 
-            return!
-                di.TerrainLayer.GetUsedCells()
-                |> Seq.traverse initTileConnections // traverse f = map f |> sequence
+            return! di.TerrainLayer.GetUsedCells() |> Seq.traverse initTileConnections // traverse f = map f |> sequence
         }
 
+    /// 玩家是否已经没有任何地块
+    let isNoLandPlayer (player: Player) =
+        monad {
+            let! di = Reader.ask |> StateT.lift 
+            let! (tileSeq: Tile seq) = di.TilesQueryByPlayer player.Id |> StateT.hoist
+            return tileSeq |> Seq.length = 0
+        }
+    
     /// 玩家占领地块
-    let conquerTile (tile: Tile) (conqueror: Player) =
+    let conquerTile (tile: Tile) (conqueror: Player option) =
         monad {
             let! di = Reader.ask |> StateT.lift
-
-            let! (tile': Tile) =
-                di.TileUpdater
-                    { tile with
-                        PlayerId = Some conqueror.Id }
-                |> StateT.hoist
+            let conquerorId = if conqueror.IsSome then Some conqueror.Value.Id else None
+            let! (tile': Tile) = di.TileUpdater { tile with PlayerId = conquerorId } |> StateT.hoist
 
             di.TileConquered
                 { TileId = tile.Id
                   Coord = tile.Coord
                   Population = tile.Population
-                  ConquerorId = conqueror.Id
+                  ConquerorId = conquerorId
                   LoserId = tile.PlayerId }
 
             tile'
@@ -81,7 +83,7 @@ module private DomainF =
             // BUG: 当前实现在 tiles 接近全部有玩家时容易导致死循环
             return!
                 match tile.PlayerId with
-                | None -> conquerTile tile player
+                | None -> Some player |> conquerTile tile
                 | Some _ -> spawnPlayer tiles
         }
 
@@ -95,11 +97,11 @@ module private DomainF =
         }
 
     /// 随机一部分地块人口
+    /// 需要保证玩家控制地块人口均 > 0
     /// （一层 monad，其实没用 Monad Transformer）
     let randomPopulationFromTile (tile: Tile) =
         monad {
             let! di = Reader.ask
-            // BUG: 非常奇葩的情况下，敌方部队可能刚好把地块人口打到 0，这个时候要出兵的地块是当前地块会报错
             di.Random.Next(1, tile.Population / 1<Pop>) * 1<Pop>
         }
 
@@ -152,7 +154,7 @@ module private DomainF =
                         { tile with
                             Population = tile.Population + marchingArmy.Population }
 
-                    conquerTile tile' player |> OptionT.lift
+                    Some player |> conquerTile tile' |> OptionT.lift
                 | Some playerId when playerId = marchingArmy.PlayerId ->
                     let tile' =
                         { tile with
@@ -165,12 +167,16 @@ module private DomainF =
                             Population = tile.Population - marchingArmy.Population }
 
                     di.TileUpdater tile' |> StateT.hoist |> OptionT.lift
+                | Some _ when tile.Population = marchingArmy.Population ->
+                    let tile' = { tile with Population = 0<Pop> }
+
+                    None |> conquerTile tile' |> OptionT.lift
                 | Some _ ->
                     let tile' =
                         { tile with
                             Population = marchingArmy.Population - tile.Population }
 
-                    conquerTile tile' player |> OptionT.lift
+                    Some player |> conquerTile tile' |> OptionT.lift
 
             let! resultBool = di.MarchingArmyDeleter marchingArmy.Id |> StateT.hoist |> OptionT.lift
             return resultBool

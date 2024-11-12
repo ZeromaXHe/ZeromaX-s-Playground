@@ -40,6 +40,9 @@ type MapBoardFS() as this =
            Vector2I(2, 3)
            Vector2I(3, 3) |]
 
+    /// 不能简写成下面形式，不然会提前触发 _territory 的 GetNode，拿不到节点
+    /// let getTileCoordGlobalPosition =
+    ///     _territory.Value.MapToLocal >> _territory.Value.ToGlobal
     let getTileCoordGlobalPosition coord =
         coord |> _territory.Value.MapToLocal |> _territory.Value.ToGlobal
 
@@ -93,24 +96,22 @@ type MapBoardFS() as this =
         |> Observable.subscribe (fun _ -> GD.Print "第一次出兵！！！")
         |> ignore
 
-        entry.TileAdded
-        |> Observable.subscribeOnContext godotSyncContext
-        |> Observable.subscribe (fun e -> GD.Print $"Tile {e.TileId} added at {e.Coord}")
-        |> ignore
-
         entry.TileConquered
         |> Observable.subscribeOnContext godotSyncContext
         |> Observable.subscribe (fun e ->
             godotSyncContext.Post(
+                // 涉及到 Godot 节点展示层绘制的内容必须在同步上下文中执行
                 (fun _ ->
-                    // 涉及到 Godot 节点展示层绘制的内容必须在同步上下文中执行
-                    // Player 的 Id 从 1 开始，所以要减一
-                    let (PlayerId conquerorIdInt) = e.ConquerorId
-
-                    _territory.Value.SetCell(
-                        BackEndUtil.fromI e.Coord,
-                        territorySrcId,
-                        territoryAtlasCoords[conquerorIdInt - 1]
+                    match e.ConquerorId with
+                    | None ->
+                        _territory.Value.EraseCell <| BackEndUtil.fromI e.Coord
+                        TileGuiFS.ChangePopulationById e.TileId 0
+                    | Some (PlayerId conquerorIdInt) ->
+                        // Player 的 Id 从 1 开始，所以要减一
+                        _territory.Value.SetCell(
+                            BackEndUtil.fromI e.Coord,
+                            territorySrcId,
+                            territoryAtlasCoords[conquerorIdInt - 1]
                     )),
                 null
             ))
@@ -122,8 +123,9 @@ type MapBoardFS() as this =
         |> Observable.subscribe (fun e ->
             godotSyncContext.Post(
                 (fun _ ->
-                    GD.Print $"Player {e.ConquerorId} conquer tile at {e.Coord}"
-                    newTileGui e.TileId e.Coord (e.Population / 1<Pop>)),
+                    GD.Print $"玩家 {e.ConquerorId} 占领无主地块 {e.Coord}"
+                    if not <| TileGuiFS.ContainsId e.TileId then
+                        newTileGui e.TileId e.Coord (e.Population / 1<Pop>)),
                 null
             ))
         |> ignore

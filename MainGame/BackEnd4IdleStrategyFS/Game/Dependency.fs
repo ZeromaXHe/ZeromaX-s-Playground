@@ -13,6 +13,8 @@ module Dependency =
           TerrainLayer: ITileMapLayer
           // 随机
           Random: Random
+          // 日志
+          LogPrint: string -> unit
           // 仓储
           PlayerFactory: PlayerFactory<'s>
           PlayerQueryById: PlayerQueryById<'s>
