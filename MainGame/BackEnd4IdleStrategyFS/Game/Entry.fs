@@ -154,6 +154,8 @@ type Entry(aStar: IAStar2D, terrainLayer: ITileMapLayer, playerCount: int, logPr
     member this.QueryTileById tileId =
         AppService.queryTileById gameState tileId
 
+    member this.MarchingSpeed population = DomainF.marchSpeed population
+
     member this.Init() =
         logPrinter $"随机种子：{seed}"
         AppService.init playerCount |> gameStateUpdater

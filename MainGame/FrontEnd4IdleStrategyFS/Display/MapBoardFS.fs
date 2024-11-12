@@ -53,17 +53,20 @@ type MapBoardFS() as this =
         let marchingLine = _marchingLineScene.Instantiate<MarchingLineFS>()
         _marchingLines.Value.AddChild marchingLine
 
-        let fromCoord =
-            _globalNode.Value.IdleStrategyEntry.Value.QueryTileById e.FromTileId |> _.Coord
-
-        let toCoord =
-            _globalNode.Value.IdleStrategyEntry.Value.QueryTileById e.ToTileId |> _.Coord
+        let entry = _globalNode.Value.IdleStrategyEntry.Value
 
         marchingLine.Init
             e.MarchingArmyId
             e.Population
-            (fromCoord |> BackEndUtil.fromI |> getTileCoordGlobalPosition)
-            (toCoord |> BackEndUtil.fromI |> getTileCoordGlobalPosition)
+            (entry.MarchingSpeed e.Population)
+            (entry.QueryTileById e.FromTileId
+             |> _.Coord
+             |> BackEndUtil.fromI
+             |> getTileCoordGlobalPosition)
+            (entry.QueryTileById e.ToTileId
+             |> _.Coord
+             |> BackEndUtil.fromI
+             |> getTileCoordGlobalPosition)
             Constants.playerColors[playerId - 1] // Player 的 Id 从 1 开始，所以要减一
 
     let showTileGui id coord population =

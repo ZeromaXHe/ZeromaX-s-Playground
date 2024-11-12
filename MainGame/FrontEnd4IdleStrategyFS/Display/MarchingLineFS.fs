@@ -29,18 +29,10 @@ type MarchingLineFS() as this =
             line.QueueFree()
         | None -> ()
 
-    member this.Init id population fromV toV color =
+    member this.Init id population speed fromV toV color =
         MarchingLineFS.idMap <- MarchingLineFS.idMap.Add(id, this)
-
         this._marchingArmyId <- id
-
-        this._speed <-
-            match population / 1<Pop> with
-            | p when p < 10 -> 50 // 人数小于 10 人，2 秒后到达目的地
-            | p when p < 50 -> 25 // 小于 50 人，4 秒后
-            | p when p < 200 -> 15 // 小于 200 人，7 秒左右后
-            | p when p < 1000 -> 10 // 小于 1000 人，10 秒后
-            | _ -> 5 // 大于 1000 人，20 秒后
+        this._speed <- speed
         // 线条
         this.Position <- fromV
         this.Points <- [| Vector2.Zero; toV - fromV |]
