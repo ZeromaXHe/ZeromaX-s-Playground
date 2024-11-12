@@ -1,5 +1,6 @@
 namespace FrontEnd4IdleStrategyFS.Display
 
+open BackEnd4IdleStrategyFS.Game.DomainT
 open Godot
 
 type MarchingLineFS() as this =
@@ -17,13 +18,24 @@ type MarchingLineFS() as this =
     val mutable _speed: int
 
     [<DefaultValue>]
-    val mutable _marchingArmyId: int
+    val mutable _marchingArmyId: MarchingArmyId
+
+    static member val idMap = Map.empty<MarchingArmyId, MarchingLineFS> with get, set
+
+    static member ClearById id =
+        match MarchingLineFS.idMap.TryFind id with
+        | Some line ->
+            MarchingLineFS.idMap.Remove id |> ignore
+            line.QueueFree()
+        | None -> ()
 
     member this.Init id population fromV toV color =
+        MarchingLineFS.idMap <- MarchingLineFS.idMap.Add(id, this)
+
         this._marchingArmyId <- id
 
         this._speed <-
-            match population with
+            match population / 1<Pop> with
             | p when p < 10 -> 50 // 人数小于 10 人，2 秒后到达目的地
             | p when p < 50 -> 25 // 小于 50 人，4 秒后
             | p when p < 200 -> 15 // 小于 200 人，7 秒左右后
@@ -48,7 +60,5 @@ type MarchingLineFS() as this =
         _progressBar.Value.Set("theme_override_styles/fill", Variant.CreateFrom(styleBoxFlat))
 
     override this._Process(delta) =
-        if _progressBar.Value.Value >= 100 then
-            this.QueueFree()
-        else
-            _progressBar.Value.Value <- _progressBar.Value.Value + float this._speed * delta
+        if _progressBar.Value.Value < 100 then
+            _progressBar.Value.Value <- _progressBar.Value.Value + float this._speed * delta |> min <| 100.0

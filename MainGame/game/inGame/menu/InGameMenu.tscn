@@ -29,7 +29,7 @@ render_target_update_mode = 4
 
 [node name="TopLeftPanel" type="PanelContainer" parent="."]
 layout_mode = 1
-offset_right = 397.0
+offset_right = 642.0
 offset_bottom = 58.0
 
 [node name="TopLeftVBox" type="VBoxContainer" parent="TopLeftPanel"]
@@ -45,7 +45,7 @@ tab_0/tooltip = "PLAYER_INFOS_TOOLTIP"
 
 [node name="PlayerInfosGrid" type="GridContainer" parent="TopLeftPanel/TopLeftVBox"]
 layout_mode = 2
-columns = 3
+columns = 4
 
 [node name="PlayerTitle" type="Label" parent="TopLeftPanel/TopLeftVBox/PlayerInfosGrid"]
 layout_mode = 2
@@ -55,9 +55,10 @@ text = "PLAYER_TITLE"
 layout_mode = 2
 text = "TERRITORY_TITLE"
 
-[node name="PopulationTitle" type="Label" parent="TopLeftPanel/TopLeftVBox/PlayerInfosGrid"]
+[node name="TilePopulationTitle" type="Label" parent="TopLeftPanel/TopLeftVBox/PlayerInfosGrid"]
 layout_mode = 2
-text = "POPULATION_TITLE"
+text = "TILE_POPULATION_TITLE"
 
-[node name="RefreshTimer" type="Timer" parent="."]
-autostart = true
+[node name="ArmyPopulationTitle" type="Label" parent="TopLeftPanel/TopLeftVBox/PlayerInfosGrid"]
+layout_mode = 2
+text = "ARMY_POPULATION_TITLE"

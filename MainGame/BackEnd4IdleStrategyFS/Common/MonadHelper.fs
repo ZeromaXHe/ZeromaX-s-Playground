@@ -21,18 +21,18 @@ module MonadHelper =
     let readerReturn t = Reader(fun _ -> t)
 
     /// Reader seq 折叠器
-    let readerFolder (acc: Reader<'r, seq<'a>>) (next: Reader<'r, 'a>) =
+    let readerFolder (acc: Reader<'r, 'a seq>) (next: Reader<'r, 'a>) =
         monad {
             let! results = acc
             let! result = next
             return Seq.append results [ result ]
         }
-    
+
     /// 返回一个 Reader<State>
     let readerStateReturn t = Reader(fun _ -> State(fun s -> t, s))
 
     /// Reader<State> seq 折叠器
-    let readerStateFolder (acc: Reader<'a, State<'s, seq<'b>>>) (next: Reader<'a, State<'s, 'b>>) =
+    let readerStateFolder (acc: Reader<'a, State<'s, 'b seq>>) (next: Reader<'a, State<'s, 'b>>) =
         Reader(fun r ->
             let sAcc = acc |> Reader.run <| r
             let sNext = next |> Reader.run <| r
@@ -48,7 +48,7 @@ module MonadHelper =
     /// StateT<Reader> seq 折叠器
     /// 有的情况直接 Seq.sequence 即可
     /// 类型推断不出来的时候还是得用 Seq.fold stateTReaderFolder (stateTReaderReturn Seq.empty)
-    let stateTReaderFolder (acc: StateT<'s, Reader<'a, seq<'b> * 's>>) (next: StateT<'s, Reader<'a, 'b * 's>>) =
+    let stateTReaderFolder (acc: StateT<'s, Reader<'a, 'b seq * 's>>) (next: StateT<'s, Reader<'a, 'b * 's>>) =
         monad {
             let! results = acc
             let! result = next

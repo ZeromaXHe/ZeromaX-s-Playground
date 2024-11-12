@@ -6,7 +6,8 @@ PLAYER_INFOS,玩家信息,Player Infos
 PLAYER_INFOS_TOOLTIP,显示玩家领土和人口数量信息,Show territory and population infos of players
 PLAYER_TITLE,玩家,Player
 TERRITORY_TITLE,领土,Territory
-POPULATION_TITLE,人口,Population
+TILE_POPULATION_TITLE,地块人口,Tile Population
+ARMY_POPULATION_TITLE,部队人口,Army Population
 Player_Name_1,红色,Red
 Player_Name_2,黄色,Yellow
 Player_Name_3,绿色,Green

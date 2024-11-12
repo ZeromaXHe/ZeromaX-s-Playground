@@ -15,6 +15,7 @@
         <Compile Include="Game\RepositoryT.fs" />
         <Compile Include="Game\QueryRepositoryF.fs" />
         <Compile Include="Game\CommandRepositoryF.fs" />
+        <Compile Include="Game\StatRepositoryF.fs" />
         <Compile Include="Game\AppService.fs" />
         <Compile Include="Game\Entry.fs" />
     </ItemGroup>

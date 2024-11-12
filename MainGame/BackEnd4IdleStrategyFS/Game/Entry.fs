@@ -1,6 +1,6 @@
 namespace BackEnd4IdleStrategyFS.Game
 
-open FSharpPlus.Control
+open BackEnd4IdleStrategyFS.Game.RepositoryT
 open FSharpPlus.Data
 open FSharp.Control.Reactive
 open System
@@ -12,11 +12,15 @@ open Dependency
 open RepositoryT
 
 type Entry(aStar: IAStar2D, terrainLayer: ITileMapLayer, playerCount: int, logPrinter: string -> unit) =
+    /// 游戏状态
     let mutable gameState = emptyGameState
+    /// 游戏统计
+    let mutable gameStat = emptyGameStat
 
     // TODO: 好像确定开局种子也不能保证后续现象一致。是 Random.Next 触发的顺序不一致导致的吗？
     let seed = 1662646297 // Random().Next Int32.MaxValue
     let random = Random(seed)
+    let playerAdded = new Subject<PlayerAddedEvent>()
     let tileAdded = new Subject<TileAddedEvent>()
     let tileConquered = new Subject<TileConqueredEvent>()
     let tilePopulationChanged = new Subject<TilePopulationChangedEvent>()
@@ -24,6 +28,7 @@ type Entry(aStar: IAStar2D, terrainLayer: ITileMapLayer, playerCount: int, logPr
     let gameFirstArmyGenerated = TimeSpan.FromSeconds 3 |> Observable.timerSpan
     let marchingArmyAdded = new Subject<MarchingArmyAddedEvent>()
     let marchingArmyArrived = new Subject<MarchingArmyArrivedEvent>()
+    let playerStatUpdated = new Subject<Map<PlayerId, PlayerStat>>()
 
     let injector =
         {
@@ -48,19 +53,35 @@ type Entry(aStar: IAStar2D, terrainLayer: ITileMapLayer, playerCount: int, logPr
           MarchingArmyDeleter = CommandRepositoryF.deleteMarchingArmy
           MarchingArmyQueryById = QueryRepositoryF.getMarchingArmy
           // 事件
+          PlayerAdded = playerAdded.OnNext
           TileConquered = tileConquered.OnNext
           TilePopulationChanged = tilePopulationChanged.OnNext
           TileAdded = tileAdded.OnNext
           MarchingArmyAdded = marchingArmyAdded.OnNext
           MarchingArmyArrived = marchingArmyArrived.OnNext }
 
-    let tileAddedSubscription =
+    /// 领域事件触发的 StateT Reader 游戏状态更新器
+    let gameStateUpdater updater =
+        let _, gameState' = updater |> StateT.run <| gameState |> Reader.run <| injector
+        gameState <- gameState'
+
+    /// 领域事件触发的 OptionT StateT Reader 游戏状态更新器
+    let gameStateOptionUpdater
+        (updater: OptionT<StateT<GameState, Reader<Injector<GameState>, 'a option * GameState>>>)
+        =
+        let opt, gameState' =
+            updater |> OptionT.run |> StateT.run <| gameState |> Reader.run <| injector
+
+        if opt.IsSome then
+            gameState <- gameState'
+
+    let tileAddedSub =
         tileAdded
         |> Observable.subscribe (fun e ->
             let (TileId tileId) = e.TileId
             aStar.AddPoint tileId e.Coord)
 
-    let marchingArmyAddedSubscription =
+    let marchingArmyAddedSub =
         marchingArmyAdded
         |> Observable.delayMap (fun e ->
             // 计算延迟到达时间
@@ -75,41 +96,46 @@ type Entry(aStar: IAStar2D, terrainLayer: ITileMapLayer, playerCount: int, logPr
                   DestinationTileId = e.ToTileId
                   PlayerId = e.PlayerId })
 
-    let marchingArmyArrivedSubscription =
-        let marchingArmyArrivedOnNext e =
-            let armyOpt, gameState' =
-                AppService.armyArriveAndGenerateNew e.MarchingArmyId e.PlayerId
-                |> OptionT.run
-                |> StateT.run
-                <| gameState
-                |> Reader.run
-                <| injector
+    let marchingArmyArrivedSub =
+        marchingArmyArrived
+        |> Observable.subscribe (fun e ->
+            AppService.armyArriveAndGenerateNew e.MarchingArmyId e.PlayerId
+            |> gameStateOptionUpdater)
 
-            if armyOpt.IsSome then
-                gameState <- gameState'
+    let gameTickedSub =
+        gameTicked
+        |> Observable.subscribe (fun _ -> AppService.increaseAllPlayerTilesPopulation 1<Pop> |> gameStateUpdater)
 
-        marchingArmyArrived |> Observable.subscribe marchingArmyArrivedOnNext
+    let gameFirstArmyGeneratedSub =
+        gameFirstArmyGenerated
+        |> Observable.subscribe (fun _ -> AppService.generateFirstGroupArmy |> gameStateUpdater)
 
-    let gameTickedSubscription =
-        let gameTickedOnNext _ =
-            let _, gameState' =
-                AppService.increaseAllPlayerTilesPopulation 1<Pop> |> StateT.run <| gameState
-                |> Reader.run
-                <| injector
+    /// 领域事件触发的 State 游戏统计更新器
+    let gameStatUpdater updater e =
+        let _, gameStat' = updater e |> State.run <| gameStat
+        gameStat <- gameStat'
+        // TODO：暂时所有的游戏统计都会修改玩家统计（因为只有玩家统计……）
+        playerStatUpdated.OnNext gameStat.PlayerStat
 
-            gameState <- gameState'
+    let playerAddedUpdatePlayerStatSub =
+        playerAdded
+        |> Observable.subscribe (StatRepositoryF.updatePlayerStatByPlayerAddedEvent |> gameStatUpdater)
 
-        gameTicked |> Observable.subscribe gameTickedOnNext
+    let tileConqueredUpdatePlayerStatSub =
+        tileConquered
+        |> Observable.subscribe (StatRepositoryF.updatePlayerStatByTileConqueredEvent |> gameStatUpdater)
 
-    let gameFirstArmyGeneratedSubscription =
-        let gameFirstArmyGeneratedOnNext _ =
-            let _, s =
-                AppService.generateFirstGroupArmy |> StateT.run <| gameState |> Reader.run
-                <| injector
+    let tilePopulationChangedUpdatePlayerStatSub =
+        tilePopulationChanged
+        |> Observable.subscribe (StatRepositoryF.updatePlayerStatByTilePopulationChangedEvent |> gameStatUpdater)
 
-            gameState <- s
+    let marchingArmyAddedUpdatePlayerStatSub =
+        marchingArmyAdded
+        |> Observable.subscribe (StatRepositoryF.updatePlayerStatByMarchingArmyAddedEvent |> gameStatUpdater)
 
-        gameFirstArmyGenerated |> Observable.subscribe gameFirstArmyGeneratedOnNext
+    let marchingArmyArrivedUpdatePlayerStatSub =
+        marchingArmyArrived
+        |> Observable.subscribe (StatRepositoryF.updatePlayerStatByMarchingArmyArrivedEvent |> gameStatUpdater)
 
     member this.GameTicked = gameTicked |> Observable.asObservable
 
@@ -123,18 +149,11 @@ type Entry(aStar: IAStar2D, terrainLayer: ITileMapLayer, playerCount: int, logPr
 
     member this.MarchingArmyArrived = marchingArmyArrived |> Observable.asObservable
 
-    member this.QueryAllPlayers() = AppService.queryAllPlayers gameState
+    member this.PlayerStatUpdated = playerStatUpdated |> Observable.asObservable
 
-    member this.QueryTileById tileIdInt =
-        AppService.queryTileById gameState tileIdInt
-
-    member this.QueryTilesByPlayerId playerIdInt =
-        AppService.queryTilesByPlayerId gameState playerIdInt
+    member this.QueryTileById tileId =
+        AppService.queryTileById gameState tileId
 
     member this.Init() =
         logPrinter $"随机种子：{seed}"
-
-        let _, gameState' =
-            AppService.init playerCount |> StateT.run <| gameState |> Reader.run <| injector
-
-        gameState <- gameState'
+        AppService.init playerCount |> gameStateUpdater

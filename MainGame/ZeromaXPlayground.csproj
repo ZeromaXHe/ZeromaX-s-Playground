@@ -6,7 +6,6 @@
         <EnableDynamicLoading>true</EnableDynamicLoading>
     </PropertyGroup>
     <ItemGroup>
-        <ProjectReference Include="BackEnd4IdleStrategyFS\BackEnd4IdleStrategyFS.fsproj"/>
         <ProjectReference Include="FrontEnd4IdleStrategyFS\FrontEnd4IdleStrategyFS.fsproj" />
     </ItemGroup>
     <ItemGroup>

@@ -17,8 +17,7 @@ type TileGuiFS() as this =
 
     static member val idMap = Map.empty<TileId, TileGuiFS> with get, set
 
-    static member ContainsId id =
-        TileGuiFS.idMap.ContainsKey id
+    static member ContainsId id = TileGuiFS.idMap.ContainsKey id
 
     static member ChangePopulationById id population =
         match TileGuiFS.idMap.TryFind id with
@@ -26,11 +25,11 @@ type TileGuiFS() as this =
         | None -> ()
 
     member this.ChangePopulation population =
-        _population.Value.Text <- population.ToString()
+        _population.Value.Text <- population / 1<Pop> |> string
 
     member this.Init id coord population globalPosition =
         this._id <- id
         this._coord <- BackEndUtil.fromI coord
         this.Position <- globalPosition
-        _population.Value.Text <- population.ToString()
+        _population.Value.Text <- population / 1<Pop> |> string
         TileGuiFS.idMap <- TileGuiFS.idMap.Add(id, this)

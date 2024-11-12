@@ -24,3 +24,15 @@ module RepositoryT =
           TileNextId = 1
           MarchingArmyRepo = Map.empty
           MarchingArmyNextId = 1 }
+
+    /// 玩家 id、所有地块数、人口总数统计
+    type PlayerStat =
+        { Territory: int
+          TilePopulation: int<Pop>
+          ArmyPopulation: int<Pop> }
+
+    /// 游戏统计
+    type GameStat =
+        { PlayerStat: Map<PlayerId, PlayerStat> }
+
+    let emptyGameStat = { PlayerStat = Map.empty }

@@ -47,30 +47,26 @@ type MapBoardFS() as this =
         coord |> _territory.Value.MapToLocal |> _territory.Value.ToGlobal
 
     let showMarchingArmy (e: MarchingArmyAddedEvent) =
-        let (MarchingArmyId armyId) = e.MarchingArmyId
-        let (TileId fromTileId) = e.FromTileId
-        let (TileId toTileId) = e.ToTileId
         let (PlayerId playerId) = e.PlayerId
-        let population = e.Population / 1<Pop>
-        GD.Print $"AI 玩家 {playerId} 发出部队 {armyId} 人数为 {population}"
+        GD.Print $"AI 玩家 {playerId} 发出部队 {e.MarchingArmyId} 人数为 {e.Population}"
         // 初始化一次行军部队
         let marchingLine = _marchingLineScene.Instantiate<MarchingLineFS>()
         _marchingLines.Value.AddChild marchingLine
 
         let fromCoord =
-            _globalNode.Value.IdleStrategyEntry.Value.QueryTileById fromTileId |> _.Coord
+            _globalNode.Value.IdleStrategyEntry.Value.QueryTileById e.FromTileId |> _.Coord
 
         let toCoord =
-            _globalNode.Value.IdleStrategyEntry.Value.QueryTileById toTileId |> _.Coord
+            _globalNode.Value.IdleStrategyEntry.Value.QueryTileById e.ToTileId |> _.Coord
 
         marchingLine.Init
-            armyId
-            population
+            e.MarchingArmyId
+            e.Population
             (fromCoord |> BackEndUtil.fromI |> getTileCoordGlobalPosition)
             (toCoord |> BackEndUtil.fromI |> getTileCoordGlobalPosition)
             Constants.playerColors[playerId - 1] // Player 的 Id 从 1 开始，所以要减一
 
-    let newTileGui id coord population =
+    let showTileGui id coord population =
         let tileGui = _tileGuiScene.Instantiate<TileGuiFS>()
         _tileGuis.Value.AddChild tileGui
         tileGui.Init id coord population (coord |> BackEndUtil.fromI |> getTileCoordGlobalPosition)
@@ -102,17 +98,19 @@ type MapBoardFS() as this =
             godotSyncContext.Post(
                 // 涉及到 Godot 节点展示层绘制的内容必须在同步上下文中执行
                 (fun _ ->
+                    TileGuiFS.ChangePopulationById e.TileId e.AfterPopulation
+
                     match e.ConquerorId with
                     | None ->
                         _territory.Value.EraseCell <| BackEndUtil.fromI e.Coord
-                        TileGuiFS.ChangePopulationById e.TileId 0
-                    | Some (PlayerId conquerorIdInt) ->
+                        TileGuiFS.ChangePopulationById e.TileId 0<Pop>
+                    | Some(PlayerId conquerorIdInt) ->
                         // Player 的 Id 从 1 开始，所以要减一
                         _territory.Value.SetCell(
                             BackEndUtil.fromI e.Coord,
                             territorySrcId,
                             territoryAtlasCoords[conquerorIdInt - 1]
-                    )),
+                        )),
                 null
             ))
         |> ignore
@@ -124,8 +122,9 @@ type MapBoardFS() as this =
             godotSyncContext.Post(
                 (fun _ ->
                     GD.Print $"玩家 {e.ConquerorId} 占领无主地块 {e.Coord}"
+
                     if not <| TileGuiFS.ContainsId e.TileId then
-                        newTileGui e.TileId e.Coord (e.Population / 1<Pop>)),
+                        showTileGui e.TileId e.Coord e.AfterPopulation),
                 null
             ))
         |> ignore
@@ -133,10 +132,7 @@ type MapBoardFS() as this =
         entry.TilePopulationChanged
         |> Observable.subscribeOnContext godotSyncContext
         |> Observable.subscribe (fun e ->
-            godotSyncContext.Post(
-                (fun _ -> TileGuiFS.ChangePopulationById e.TileId (e.AfterPopulation / 1<Pop>)),
-                null
-            ))
+            godotSyncContext.Post((fun _ -> TileGuiFS.ChangePopulationById e.TileId e.AfterPopulation), null))
         |> ignore
 
         entry.MarchingArmyAdded
@@ -150,6 +146,12 @@ type MapBoardFS() as this =
                     showMarchingArmy e),
                 null
             ))
+        |> ignore
+
+        entry.MarchingArmyArrived
+        |> Observable.subscribeOnContext godotSyncContext
+        |> Observable.subscribe (fun e ->
+            godotSyncContext.Post((fun _ -> MarchingLineFS.ClearById e.MarchingArmyId), null))
         |> ignore
 
         // 必须在同步上下文中执行，否则 Init 内容不会被响应式编程 Subscribe 监听到（会比上面监听逻辑更早执行）

@@ -53,6 +53,7 @@ module AppService =
             // 派出新的部队
             let! (player: Player) = di.PlayerQueryById playerId |> StateT.hoist |> OptionT
             let! isNoLandPlayer = DomainF.isNoLandPlayer player |> OptionT.lift
+
             if isNoLandPlayer then
                 return! None |> OptionT.hoist
             else
@@ -70,18 +71,16 @@ module AppService =
                 |> Seq.filter (fun tile -> tile.PlayerId.IsSome && tile.Population < 1000<Pop>)
                 |> Seq.map (DomainF.increaseTilePopulation increment)
                 // |> Seq.sequence //（类型完全推断不出来，这样会报红。必须使用自己写的辅助类）
-                |> Seq.fold stateTReaderFolder (stateTReaderReturn Seq.empty)       
+                |> Seq.fold stateTReaderFolder (stateTReaderReturn Seq.empty)
                 // |> Seq.traverse (DomainF.increaseTilePopulation increment) 一样推断不出来，报红
         }
 
-    let queryTileById gameState tileIdInt =
-        let tileId = TileId tileIdInt
-
+    let queryTileById gameState tileId =
         let tileOpt, _ = QueryRepositoryF.getTile tileId |> State.run <| gameState
 
         match tileOpt with
         | Some tile -> tile
-        | None -> failwith $"Invalid tile id, id:{tileIdInt}"
+        | None -> failwith $"Invalid tile id, id:{tileId}"
 
     let queryTilesByPlayerId gameState playerIdInt =
         let playerId = PlayerId playerIdInt

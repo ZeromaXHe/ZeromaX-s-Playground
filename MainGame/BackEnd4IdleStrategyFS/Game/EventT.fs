@@ -3,12 +3,18 @@ namespace BackEnd4IdleStrategyFS.Game
 open DomainT
 
 module EventT =
+    /// 玩家新建事件
+    type PlayerAddedEvent = { PlayerId: PlayerId }
+
+    /// 玩家新建
+    type PlayerAdded = PlayerAddedEvent -> unit
 
     /// 地块被占领事件
     type TileConqueredEvent =
         { TileId: TileId
           Coord: Coord
-          Population: int<Pop>
+          BeforePopulation: int<Pop>
+          AfterPopulation: int<Pop>
           ConquerorId: PlayerId option
           LoserId: PlayerId option }
 
@@ -18,6 +24,7 @@ module EventT =
     /// 地块人口变化事件
     type TilePopulationChangedEvent =
         { TileId: TileId
+          PlayerId: PlayerId option
           BeforePopulation: int<Pop>
           AfterPopulation: int<Pop> }
 

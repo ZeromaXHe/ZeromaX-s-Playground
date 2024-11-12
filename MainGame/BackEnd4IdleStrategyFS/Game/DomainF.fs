@@ -52,22 +52,29 @@ module private DomainF =
     /// 玩家是否已经没有任何地块
     let isNoLandPlayer (player: Player) =
         monad {
-            let! di = Reader.ask |> StateT.lift 
+            let! di = Reader.ask |> StateT.lift
             let! (tileSeq: Tile seq) = di.TilesQueryByPlayer player.Id |> StateT.hoist
             return tileSeq |> Seq.length = 0
         }
-    
+
     /// 玩家占领地块
-    let conquerTile (tile: Tile) (conqueror: Player option) =
+    let conquerTile (tile: Tile) afterPopulation (conqueror: Player option) =
         monad {
             let! di = Reader.ask |> StateT.lift
             let conquerorId = if conqueror.IsSome then Some conqueror.Value.Id else None
-            let! (tile': Tile) = di.TileUpdater { tile with PlayerId = conquerorId } |> StateT.hoist
+
+            let! (tile': Tile) =
+                di.TileUpdater
+                    { tile with
+                        PlayerId = conquerorId
+                        Population = afterPopulation }
+                |> StateT.hoist
 
             di.TileConquered
                 { TileId = tile.Id
                   Coord = tile.Coord
-                  Population = tile.Population
+                  BeforePopulation = tile.Population
+                  AfterPopulation = afterPopulation
                   ConquerorId = conquerorId
                   LoserId = tile.PlayerId }
 
@@ -78,12 +85,14 @@ module private DomainF =
     let rec spawnPlayer (tiles: Tile list) =
         monad {
             let! di = Reader.ask |> StateT.lift
-            let! player = di.PlayerFactory |> StateT.hoist
+            let! (player: Player) = di.PlayerFactory |> StateT.hoist
+            di.PlayerAdded { PlayerId = player.Id }
+
             let tile = tiles[di.Random.Next tiles.Length]
             // BUG: 当前实现在 tiles 接近全部有玩家时容易导致死循环
             return!
                 match tile.PlayerId with
-                | None -> Some player |> conquerTile tile
+                | None -> Some player |> conquerTile tile 1<Pop>
                 | Some _ -> spawnPlayer tiles
         }
 
@@ -140,57 +149,6 @@ module private DomainF =
             army
         }
 
-    /// 行军部队到达目的地
-    let arriveArmy (marchingArmy: MarchingArmy) =
-        monad {
-            let! di = Reader.ask |> StateT.lift |> OptionT.lift
-            let! (tile: Tile) = di.TileQueryById marchingArmy.ToTileId |> StateT.hoist |> OptionT
-            let! (player: Player) = di.PlayerQueryById marchingArmy.PlayerId |> StateT.hoist |> OptionT
-
-            let! _ =
-                match tile.PlayerId with
-                | None ->
-                    let tile' =
-                        { tile with
-                            Population = tile.Population + marchingArmy.Population }
-
-                    Some player |> conquerTile tile' |> OptionT.lift
-                | Some playerId when playerId = marchingArmy.PlayerId ->
-                    let tile' =
-                        { tile with
-                            Population = tile.Population + marchingArmy.Population }
-
-                    di.TileUpdater tile' |> StateT.hoist |> OptionT.lift
-                | Some _ when tile.Population > marchingArmy.Population ->
-                    let tile' =
-                        { tile with
-                            Population = tile.Population - marchingArmy.Population }
-
-                    di.TileUpdater tile' |> StateT.hoist |> OptionT.lift
-                | Some _ when tile.Population = marchingArmy.Population ->
-                    let tile' = { tile with Population = 0<Pop> }
-
-                    None |> conquerTile tile' |> OptionT.lift
-                | Some _ ->
-                    let tile' =
-                        { tile with
-                            Population = marchingArmy.Population - tile.Population }
-
-                    Some player |> conquerTile tile' |> OptionT.lift
-
-            let! resultBool = di.MarchingArmyDeleter marchingArmy.Id |> StateT.hoist |> OptionT.lift
-            return resultBool
-        }
-
-    /// 行军速度（单位：%/s）
-    let marchSpeed =
-        function
-        | p when p < 10<Pop> -> 50 // 人数小于 10 人，2 秒后到达目的地
-        | p when p < 50<Pop> -> 25 // 小于 50 人，4 秒后
-        | p when p < 200<Pop> -> 15 // 小于 200 人，7 秒左右后
-        | p when p < 1000<Pop> -> 10 // 小于 1000 人，10 秒后
-        | _ -> 5 // 大于 1000 人，20 秒后
-
     /// 增加地块人口
     let increaseTilePopulation increment (tile: Tile) =
         monad {
@@ -204,8 +162,46 @@ module private DomainF =
 
             di.TilePopulationChanged
                 { TileId = tile.Id
+                  PlayerId = tile.PlayerId
                   BeforePopulation = tile.Population
                   AfterPopulation = tile.Population + increment }
 
             tile'
         }
+
+    /// 行军部队到达目的地
+    let arriveArmy (marchingArmy: MarchingArmy) =
+        monad {
+            let! di = Reader.ask |> StateT.lift |> OptionT.lift
+            let! (tile: Tile) = di.TileQueryById marchingArmy.ToTileId |> StateT.hoist |> OptionT
+            let! (player: Player) = di.PlayerQueryById marchingArmy.PlayerId |> StateT.hoist |> OptionT
+
+            let! _ =
+                match tile.PlayerId with
+                | None ->
+                    Some player
+                    |> conquerTile tile (tile.Population + marchingArmy.Population)
+                    |> OptionT.lift
+                | Some playerId when playerId = marchingArmy.PlayerId ->
+                    increaseTilePopulation marchingArmy.Population tile |> OptionT.lift
+                | Some _ when tile.Population > marchingArmy.Population ->
+                    increaseTilePopulation -marchingArmy.Population tile |> OptionT.lift
+                | Some _ when tile.Population = marchingArmy.Population ->
+                    None |> conquerTile tile 0<Pop> |> OptionT.lift
+                | Some _ ->
+                    Some player
+                    |> conquerTile tile (marchingArmy.Population - tile.Population)
+                    |> OptionT.lift
+
+            let! resultBool = di.MarchingArmyDeleter marchingArmy.Id |> StateT.hoist |> OptionT.lift
+            return resultBool
+        }
+
+    /// 行军速度（单位：%/s）
+    let marchSpeed =
+        function
+        | p when p < 10<Pop> -> 50 // 人数小于 10 人，2 秒后到达目的地
+        | p when p < 50<Pop> -> 25 // 小于 50 人，4 秒后
+        | p when p < 200<Pop> -> 15 // 小于 200 人，7 秒左右后
+        | p when p < 1000<Pop> -> 10 // 小于 1000 人，10 秒后
+        | _ -> 5 // 大于 1000 人，20 秒后

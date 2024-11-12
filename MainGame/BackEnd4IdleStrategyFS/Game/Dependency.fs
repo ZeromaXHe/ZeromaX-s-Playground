@@ -29,6 +29,7 @@ module Dependency =
           MarchingArmyDeleter: MarchingArmyDeleter<'s>
           MarchingArmyQueryById: MarchingArmyQueryById<'s>
           // 事件
+          PlayerAdded: PlayerAdded
           TileConquered: TileConquered
           TilePopulationChanged: TilePopulationChanged
           TileAdded: TileAdded
