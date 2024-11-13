@@ -8,6 +8,7 @@
     <ItemGroup>
         <Compile Include="Global\Common\BackEndUtil.fs" />
         <Compile Include="Global\Common\Constants.fs" />
+        <Compile Include="Global\Common\ObservableSyncContextUtil.fs" />
         <Compile Include="Global\Adaptor\AStar2DAdapter.fs" />
         <Compile Include="Global\Adaptor\TileMapLayerAdapter.fs" />
         <Compile Include="Global\GlobalNodeFS.fs" />

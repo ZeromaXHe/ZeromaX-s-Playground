@@ -81,82 +81,48 @@ type MapBoardFS() as this =
 
         let globalNode = _globalNode.Value
         globalNode.InitIdleStrategyGame _baseTerrain.Value this._playerCount
-
-        let godotSyncContext = SynchronizationContext.Current
         let entry = globalNode.IdleStrategyEntry.Value
 
         entry.GameTicked
-        |> Observable.subscribeOnContext godotSyncContext
-        |> Observable.subscribe (fun e -> GD.Print $"tick {e}")
-        |> ignore
+        |> ObservableSyncContextUtil.subscribe (fun e -> GD.Print $"tick {e}")
 
         entry.GameFirstArmyGenerated
-        |> Observable.subscribeOnContext godotSyncContext
-        |> Observable.subscribe (fun _ -> GD.Print "第一次出兵！！！")
-        |> ignore
+        |> ObservableSyncContextUtil.subscribe (fun _ -> GD.Print "第一次出兵！！！")
 
         entry.TileConquered
-        |> Observable.subscribeOnContext godotSyncContext
-        |> Observable.subscribe (fun e ->
-            godotSyncContext.Post(
-                // 涉及到 Godot 节点展示层绘制的内容必须在同步上下文中执行
-                (fun _ ->
-                    TileGuiFS.ChangePopulationById e.TileId e.AfterPopulation
+        |> ObservableSyncContextUtil.subscribePost (fun e _ ->
+            TileGuiFS.ChangePopulationById e.TileId e.AfterPopulation
 
-                    match e.ConquerorId with
-                    | None ->
-                        _territory.Value.EraseCell <| BackEndUtil.fromI e.Coord
-                        TileGuiFS.ChangePopulationById e.TileId 0<Pop>
-                    | Some(PlayerId conquerorIdInt) ->
-                        // Player 的 Id 从 1 开始，所以要减一
-                        _territory.Value.SetCell(
-                            BackEndUtil.fromI e.Coord,
-                            territorySrcId,
-                            territoryAtlasCoords[conquerorIdInt - 1]
-                        )),
-                null
-            ))
-        |> ignore
+            match e.ConquerorId with
+            | None ->
+                _territory.Value.EraseCell <| BackEndUtil.fromI e.Coord
+                TileGuiFS.ChangePopulationById e.TileId 0<Pop>
+            | Some(PlayerId conquerorIdInt) ->
+                // Player 的 Id 从 1 开始，所以要减一
+                _territory.Value.SetCell(
+                    BackEndUtil.fromI e.Coord,
+                    territorySrcId,
+                    territoryAtlasCoords[conquerorIdInt - 1]
+                ))
 
         entry.TileConquered
         |> Observable.filter _.LoserId.IsNone
-        |> Observable.subscribeOnContext godotSyncContext
-        |> Observable.subscribe (fun e ->
-            godotSyncContext.Post(
-                (fun _ ->
-                    GD.Print $"玩家 {e.ConquerorId} 占领无主地块 {e.Coord}"
+        |> ObservableSyncContextUtil.subscribePost (fun e _ ->
+            GD.Print $"玩家 {e.ConquerorId} 占领无主地块 {e.Coord}"
 
-                    if not <| TileGuiFS.ContainsId e.TileId then
-                        showTileGui e.TileId e.Coord e.AfterPopulation),
-                null
-            ))
-        |> ignore
+            if not <| TileGuiFS.ContainsId e.TileId then
+                showTileGui e.TileId e.Coord e.AfterPopulation)
 
         entry.TilePopulationChanged
-        |> Observable.subscribeOnContext godotSyncContext
-        |> Observable.subscribe (fun e ->
-            godotSyncContext.Post((fun _ -> TileGuiFS.ChangePopulationById e.TileId e.AfterPopulation), null))
-        |> ignore
+        |> ObservableSyncContextUtil.subscribePost (fun e _ ->
+            TileGuiFS.ChangePopulationById e.TileId e.AfterPopulation)
 
         entry.MarchingArmyAdded
-        |> Observable.subscribeOnContext godotSyncContext
-        |> Observable.subscribe (fun e ->
-            godotSyncContext.Post(
-                (fun _ ->
-                    // 涉及到 Godot 节点展示层绘制的内容必须在同步上下文中执行
-                    // 如果使用 CallDeferred / 信号等，还是会一样报错（信号是因为 EmitSignal 也必须在主线程里）
-                    // 目前貌似只有同步上下文这种方式可以解决
-                    showMarchingArmy e),
-                null
-            ))
-        |> ignore
+        |> ObservableSyncContextUtil.subscribePost (fun e _ -> showMarchingArmy e)
 
         entry.MarchingArmyArrived
-        |> Observable.subscribeOnContext godotSyncContext
-        |> Observable.subscribe (fun e ->
-            godotSyncContext.Post((fun _ -> MarchingLineFS.ClearById e.MarchingArmyId), null))
-        |> ignore
+        |> ObservableSyncContextUtil.subscribePost (fun e _ -> MarchingLineFS.ClearById e.MarchingArmyId)
 
         // 必须在同步上下文中执行，否则 Init 内容不会被响应式编程 Subscribe 监听到（会比上面监听逻辑更早执行）
-        godotSyncContext.Post((fun _ -> _globalNode.Value.IdleStrategyEntry.Value.Init()), null)
+        SynchronizationContext.Current.Post((fun _ -> _globalNode.Value.IdleStrategyEntry.Value.Init()), null)
         GD.Print $"MapBoard 初始化完成! playerCount:{this._playerCount}"

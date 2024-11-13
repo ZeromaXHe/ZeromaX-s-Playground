@@ -69,9 +69,5 @@ type InGameMenuFS() as this =
 
         clearPlayStat ()
 
-        let godotSyncContext = SynchronizationContext.Current
-
         _globalNode.Value.IdleStrategyEntry.Value.PlayerStatUpdated
-        |> Observable.subscribeOnContext godotSyncContext
-        |> Observable.subscribe (fun e -> godotSyncContext.Post((fun _ -> onPlayerStatUpdated e), null))
-        |> ignore
+        |> ObservableSyncContextUtil.subscribePost (fun e _ -> onPlayerStatUpdated e)
