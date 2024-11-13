@@ -15,6 +15,6 @@ module ObservableSyncContextUtil =
     /// 涉及到 Godot 节点展示层绘制的内容必须在同步上下文中 Post 执行。
     /// 如果使用 CallDeferred / 信号等，还是会一样报错（信号是因为 EmitSignal 也必须在主线程里）。
     /// 目前貌似只有同步上下文 Post 这种方式可以解决。
-    let subscribePost (sub: 'a -> obj -> unit) observable =
-        let syncContext = SynchronizationContext.Current
-        observable |> subscribe (fun e -> syncContext.Post(sub e, null))
+    let subscribePost (sub: 'a -> unit) observable =
+        observable
+        |> subscribe (fun e -> SynchronizationContext.Current.Post((fun _ -> sub e), null))

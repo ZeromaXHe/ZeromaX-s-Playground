@@ -1,8 +1,6 @@
 namespace FrontEnd4IdleStrategyFS.Display
 
-open System.Threading
 open BackEnd4IdleStrategyFS.Game.RepositoryT
-open FSharp.Control.Reactive
 open BackEnd4IdleStrategyFS.Game.DomainT
 open FrontEnd4IdleStrategyFS.Global.Common
 open Godot
@@ -70,4 +68,4 @@ type InGameMenuFS() as this =
         clearPlayStat ()
 
         _globalNode.Value.IdleStrategyEntry.Value.PlayerStatUpdated
-        |> ObservableSyncContextUtil.subscribePost (fun e _ -> onPlayerStatUpdated e)
+        |> ObservableSyncContextUtil.subscribePost onPlayerStatUpdated

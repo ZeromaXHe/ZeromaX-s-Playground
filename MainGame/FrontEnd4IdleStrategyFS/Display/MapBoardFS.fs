@@ -90,7 +90,7 @@ type MapBoardFS() as this =
         |> ObservableSyncContextUtil.subscribe (fun _ -> GD.Print "第一次出兵！！！")
 
         entry.TileConquered
-        |> ObservableSyncContextUtil.subscribePost (fun e _ ->
+        |> ObservableSyncContextUtil.subscribePost (fun e ->
             TileGuiFS.ChangePopulationById e.TileId e.AfterPopulation
 
             match e.ConquerorId with
@@ -107,21 +107,20 @@ type MapBoardFS() as this =
 
         entry.TileConquered
         |> Observable.filter _.LoserId.IsNone
-        |> ObservableSyncContextUtil.subscribePost (fun e _ ->
+        |> ObservableSyncContextUtil.subscribePost (fun e ->
             GD.Print $"玩家 {e.ConquerorId} 占领无主地块 {e.Coord}"
 
             if not <| TileGuiFS.ContainsId e.TileId then
                 showTileGui e.TileId e.Coord e.AfterPopulation)
 
         entry.TilePopulationChanged
-        |> ObservableSyncContextUtil.subscribePost (fun e _ ->
-            TileGuiFS.ChangePopulationById e.TileId e.AfterPopulation)
+        |> ObservableSyncContextUtil.subscribePost (fun e -> TileGuiFS.ChangePopulationById e.TileId e.AfterPopulation)
 
         entry.MarchingArmyAdded
-        |> ObservableSyncContextUtil.subscribePost (fun e _ -> showMarchingArmy e)
+        |> ObservableSyncContextUtil.subscribePost showMarchingArmy
 
         entry.MarchingArmyArrived
-        |> ObservableSyncContextUtil.subscribePost (fun e _ -> MarchingLineFS.ClearById e.MarchingArmyId)
+        |> ObservableSyncContextUtil.subscribePost (fun e -> MarchingLineFS.ClearById e.MarchingArmyId)
 
         // 必须在同步上下文中执行，否则 Init 内容不会被响应式编程 Subscribe 监听到（会比上面监听逻辑更早执行）
         SynchronizationContext.Current.Post((fun _ -> _globalNode.Value.IdleStrategyEntry.Value.Init()), null)
