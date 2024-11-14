@@ -83,12 +83,6 @@ type MapBoardFS() as this =
         globalNode.InitIdleStrategyGame _baseTerrain.Value this._playerCount
         let entry = globalNode.IdleStrategyEntry.Value
 
-        entry.GameTicked
-        |> ObservableSyncContextUtil.subscribe (fun e -> GD.Print $"tick {e}")
-
-        entry.GameFirstArmyGenerated
-        |> ObservableSyncContextUtil.subscribe (fun _ -> GD.Print "第一次出兵！！！")
-
         entry.TileConquered
         |> ObservableSyncContextUtil.subscribePost (fun e ->
             TileGuiFS.ChangePopulationById e.TileId e.AfterPopulation

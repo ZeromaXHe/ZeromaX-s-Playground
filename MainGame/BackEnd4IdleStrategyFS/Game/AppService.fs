@@ -63,13 +63,19 @@ module AppService =
     /// 给所有 MarchingArmy 增加 delta 时间的行军进度
     let marchArmies<'s> delta =
         monad {
-            let! (di: Injector<'s>) = Reader.ask |> StateT.lift
-            let! marchingArmies = di.MarchingArmiesQueryAll |> StateT.hoist
-            return!
+            let! (di: Injector<'s>) = Reader.ask |> StateT.lift |> OptionT.lift
+            let! marchingArmies = di.MarchingArmiesQueryAll |> StateT.hoist |> OptionT.lift
+            let! armies =
                 marchingArmies
                 |> Seq.filter (fun army -> army.Progress < 100.0)
                 |> Seq.map (DomainF.marchArmy delta)
                 |> Seq.sequence
+                |> OptionT.lift
+
+            return!
+                armies
+                |> Seq.filter (fun army -> army.Progress >= 100.0)
+                |> Seq.traverse (fun army -> armyArriveAndGenerateNew army.Id army.PlayerId)
         }
 
     /// 增加所有玩家地块人口

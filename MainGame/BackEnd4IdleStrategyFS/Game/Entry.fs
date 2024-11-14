@@ -12,9 +12,9 @@ open Dependency
 
 type Entry(aStar: IAStar2D, terrainLayer: ITileMapLayer, playerCount: int, logPrinter: string -> unit) =
     /// 游戏状态
-    let mutable gameState = emptyGameState
+    let gameStateSubject = Subject.behavior emptyGameState
     /// 游戏统计
-    let mutable gameStat = emptyGameStat
+    let gameStatSubject = Subject.behavior emptyGameStat
 
     // TODO: 好像确定开局种子也不能保证后续现象一致。是 Random.Next 触发的顺序不一致导致的吗？
     let seed = 1662646297 // Random().Next Int32.MaxValue
@@ -25,8 +25,6 @@ type Entry(aStar: IAStar2D, terrainLayer: ITileMapLayer, playerCount: int, logPr
     let tileAdded = new Subject<TileAddedEvent>()
     let tileConquered = new Subject<TileConqueredEvent>()
     let tilePopulationChanged = new Subject<TilePopulationChangedEvent>()
-    let gameTicked = new Subject<int64>()
-    let gameFirstArmyGenerated = new Subject<int64>()
     let marchingArmyAdded = new Subject<MarchingArmyAddedEvent>()
     let marchingArmyArrived = new Subject<MarchingArmyArrivedEvent>()
     let playerStatUpdated = new Subject<Map<PlayerId, PlayerStat>>()
@@ -66,8 +64,10 @@ type Entry(aStar: IAStar2D, terrainLayer: ITileMapLayer, playerCount: int, logPr
 
     /// 领域事件触发的 StateT Reader 游戏状态更新器
     let gameStateUpdater resultHandler updater =
-        let res, gameState' = updater |> StateT.run <| gameState |> Reader.run <| injector
-        gameState <- gameState'
+        let res, gameState' =
+            updater |> StateT.run <| gameStateSubject.Value |> Reader.run <| injector
+
+        gameStateSubject.OnNext gameState'
         resultHandler res
 
     /// 领域事件触发的 OptionT StateT Reader 游戏状态更新器
@@ -76,44 +76,20 @@ type Entry(aStar: IAStar2D, terrainLayer: ITileMapLayer, playerCount: int, logPr
         (updater: OptionT<StateT<GameState, Reader<Injector<GameState>, 'a option * GameState>>>)
         =
         let opt, gameState' =
-            updater |> OptionT.run |> StateT.run <| gameState |> Reader.run <| injector
+            updater |> OptionT.run |> StateT.run <| gameStateSubject.Value |> Reader.run
+            <| injector
 
         if opt.IsSome then
-            gameState <- gameState'
+            gameStateSubject.OnNext gameState'
             resultHandler opt.Value
 
-    let gameProcessToTickSub =
-        gameProcess
-        |> Observable.scanInit (0.0, false) (fun (acc, _) delta ->
-            let newAcc = acc + delta * gameState.SpeedMultiplier
-            // 标准速度下，每满 0.5s 发送一个 Tick 事件
-            if newAcc >= 0.5 then
-                (newAcc - 0.5, true)
-            else
-                (newAcc, false))
-        |> Observable.filter snd
-        |> Observable.subscribe (fun _ -> gameTicked.OnNext DateTime.UtcNow.Ticks)
-
-    let gameProcessToFirstArmyGeneratedSub =
-        gameProcess
-        |> Observable.scan (fun acc delta -> acc + delta * gameState.SpeedMultiplier)
-        |> Observable.filter (fun t -> t > 3) // 标准速度下 3 秒后触发
-        |> Observable.take 1
-        |> Observable.subscribe (fun _ -> gameFirstArmyGenerated.OnNext DateTime.UtcNow.Ticks)
-
-    // TODO: 仅仅满足现在游戏速度的功能需要，实现的非常丑……（后续考虑这种 Godot 调进来的是不是都得直接用成员方法，而不是响应式编程？）
-    let gameProcessMarchArmiesSub =
+    let marchArmiesSub =
         gameProcess
         // 确保游戏速度不为 0 且有行军部队存在
-        |> Observable.filter (fun _ -> gameState.SpeedMultiplier <> 0 && gameState.MarchingArmyRepo.Count <> 0)
-        |> Observable.subscribe (fun delta ->
-            AppService.marchArmies delta
-            |> gameStateUpdater (fun armies ->
-                armies
-                |> Seq.filter (fun army -> army.Progress >= 100.0)
-                |> Seq.iter (fun army ->
-                    AppService.armyArriveAndGenerateNew army.Id army.PlayerId
-                    |> gameStateOptionUpdater ignore)))
+        |> Observable.filter (fun _ ->
+            gameStateSubject.Value.SpeedMultiplier <> 0
+            && gameStateSubject.Value.MarchingArmyRepo.Count <> 0)
+        |> Observable.subscribe (fun delta -> AppService.marchArmies delta |> gameStateOptionUpdater ignore)
 
     let tileAddedSub =
         tileAdded
@@ -121,20 +97,38 @@ type Entry(aStar: IAStar2D, terrainLayer: ITileMapLayer, playerCount: int, logPr
             let (TileId tileId) = e.TileId
             aStar.AddPoint tileId e.Coord)
 
+    /// 游戏 tick：增加所有玩家地块人口
     let gameTickedSub =
-        gameTicked
-        |> Observable.subscribe (fun _ -> AppService.increaseAllPlayerTilesPopulation 1<Pop> |> gameStateUpdater ignore)
+        gameProcess
+        |> Observable.scanInit (0.0, false) (fun (acc, _) delta ->
+            let newAcc = acc + delta * gameStateSubject.Value.SpeedMultiplier
+            // 标准速度下，每满 0.5s 发送一个 Tick 事件
+            if newAcc >= 0.5 then
+                (newAcc - 0.5, true)
+            else
+                (newAcc, false))
+        |> Observable.filter snd
+        |> Observable.map (fun _ -> DateTime.UtcNow.Ticks)
+        |> Observable.subscribe (fun t ->
+            AppService.increaseAllPlayerTilesPopulation 1<Pop> |> gameStateUpdater ignore
+            logPrinter $"tick ${t}")
 
+    /// 第一次出兵
     let gameFirstArmyGeneratedSub =
-        gameFirstArmyGenerated
-        |> Observable.subscribe (fun _ -> AppService.generateFirstGroupArmy |> gameStateUpdater ignore)
+        gameProcess
+        |> Observable.scan (fun acc delta -> acc + delta * gameStateSubject.Value.SpeedMultiplier)
+        |> Observable.filter (fun t -> t > 3) // 标准速度下 3 秒后触发
+        |> Observable.take 1
+        |> Observable.subscribe (fun _ ->
+            AppService.generateFirstGroupArmy |> gameStateUpdater ignore
+            logPrinter "第一次出兵！！！")
 
     /// 领域事件触发的 State 游戏统计更新器
     let gameStatUpdater updater e =
-        let _, gameStat' = updater e |> State.run <| gameStat
-        gameStat <- gameStat'
+        let _, gameStat' = updater e |> State.run <| gameStatSubject.Value
+        gameStatSubject.OnNext gameStat'
         // TODO：暂时所有的游戏统计都会修改玩家统计（因为只有玩家统计……）
-        playerStatUpdated.OnNext gameStat.PlayerStat
+        playerStatUpdated.OnNext gameStatSubject.Value.PlayerStat
 
     let playerAddedUpdatePlayerStatSub =
         playerAdded
@@ -157,8 +151,6 @@ type Entry(aStar: IAStar2D, terrainLayer: ITileMapLayer, playerCount: int, logPr
         |> Observable.subscribe (StatRepositoryF.updatePlayerStatByMarchingArmyArrivedEvent |> gameStatUpdater)
 
     member this.GameProcess = gameProcess
-    member this.GameTicked = gameTicked |> Observable.asObservable
-    member this.GameFirstArmyGenerated = gameFirstArmyGenerated |> Observable.asObservable
     member this.TileConquered = tileConquered |> Observable.asObservable
     member this.TilePopulationChanged = tilePopulationChanged |> Observable.asObservable
     member this.MarchingArmyAdded = marchingArmyAdded |> Observable.asObservable
@@ -166,19 +158,19 @@ type Entry(aStar: IAStar2D, terrainLayer: ITileMapLayer, playerCount: int, logPr
     member this.PlayerStatUpdated = playerStatUpdated |> Observable.asObservable
 
     member this.QueryTileById tileId =
-        AppService.queryTileById gameState tileId
+        AppService.queryTileById gameStateSubject.Value tileId
 
     member this.MarchingSpeed population = DomainF.marchSpeed population
 
     member this.ChangeGameSpeed speed =
-        if gameState.SpeedMultiplier <> speed then
+        if gameStateSubject.Value.SpeedMultiplier <> speed then
             logPrinter $"游戏速度修改为：{speed}"
 
-            gameState <-
-                { gameState with
+            gameStateSubject.OnNext
+                { gameStateSubject.Value with
                     SpeedMultiplier = speed }
 
-    member this.GetSpeedMultiplier() = gameState.SpeedMultiplier
+    member this.GetSpeedMultiplier() = gameStateSubject.Value.SpeedMultiplier
 
     member this.Init() =
         logPrinter $"随机种子：{seed}"
