@@ -16,12 +16,42 @@ type InGameMenuFS() as this =
     let _playerInfosGrid =
         lazy this.GetNode<GridContainer> "TopLeftPanel/TopLeftVBox/PlayerInfosGrid"
 
+    let _gameSpeedHBox =
+        lazy this.GetNode<HBoxContainer> "TopLeftPanel/TopLeftVBox/SpeedMultiplierHBox"
+
+    let _pauseButton =
+        lazy this.GetNode<Button> "TopLeftPanel/TopLeftVBox/SpeedMultiplierHBox/Pause"
+
+    let _speed025xButton =
+        lazy this.GetNode<Button> "TopLeftPanel/TopLeftVBox/SpeedMultiplierHBox/Speed0_25x"
+
+    let _speed05xButton =
+        lazy this.GetNode<Button> "TopLeftPanel/TopLeftVBox/SpeedMultiplierHBox/Speed0_5x"
+
+    let _speed1xButton =
+        lazy this.GetNode<Button> "TopLeftPanel/TopLeftVBox/SpeedMultiplierHBox/Speed1x"
+
+    let _speed2xButton =
+        lazy this.GetNode<Button> "TopLeftPanel/TopLeftVBox/SpeedMultiplierHBox/Speed2x"
+
+    let _speed3xButton =
+        lazy this.GetNode<Button> "TopLeftPanel/TopLeftVBox/SpeedMultiplierHBox/Speed3x"
+
+    let _speed4xButton =
+        lazy this.GetNode<Button> "TopLeftPanel/TopLeftVBox/SpeedMultiplierHBox/Speed4x"
+
     let onTabBarTabClicked (tab: int64) =
-        if tab = 0 then
-            if _tabBar.Value.CurrentTab = int tab then
-                _playerInfosGrid.Value.Show()
-            else
-                _playerInfosGrid.Value.Hide()
+        _playerInfosGrid.Value.Hide()
+        _gameSpeedHBox.Value.Hide()
+
+        if _tabBar.Value.CurrentTab = int tab then
+            match int tab with
+            | 0 -> _playerInfosGrid.Value.Show()
+            | 1 -> _gameSpeedHBox.Value.Show()
+            | _ -> ()
+
+        // 通过设置 Size 使得 PanelContainer 大小重新刷新
+        _topLeftPanel.Value.Size <- Vector2(10f, 10f)
 
     let mutable playerStatLabelsList: Label list list = []
 
@@ -55,17 +85,31 @@ type InGameMenuFS() as this =
                 | 2 -> label.SetText <| string playerStat.TilePopulation
                 | _ -> label.SetText <| string playerStat.ArmyPopulation))
 
-    /// 清空其他标签
+    /// 清空玩家统计中第一行以外的其他标签（暂时用不到了）
     let clearPlayStat () =
         _playerInfosGrid.Value.GetChildren() |> Seq.skip 4 |> Seq.iter _.QueueFree()
+
+    let onGameSpeedButtonPressed speed () =
+        _globalNode.Value.IdleStrategyEntry.Value.ChangeGameSpeed speed
 
     override this._Ready() =
         _tabBar.Value.add_TabClicked onTabBarTabClicked
 
+        _pauseButton.Value.add_Pressed <| onGameSpeedButtonPressed 0
+        _speed025xButton.Value.add_Pressed <| onGameSpeedButtonPressed 0.25
+        _speed05xButton.Value.add_Pressed <| onGameSpeedButtonPressed 0.5
+        _speed1xButton.Value.add_Pressed <| onGameSpeedButtonPressed 1.0
+        _speed2xButton.Value.add_Pressed <| onGameSpeedButtonPressed 2.0
+        _speed3xButton.Value.add_Pressed <| onGameSpeedButtonPressed 3.0
+        _speed4xButton.Value.add_Pressed <| onGameSpeedButtonPressed 4.0
+
+        // 默认显示玩家统计界面
+        _playerInfosGrid.Value.Show()
+        _gameSpeedHBox.Value.Hide()
+        // 默认速度 1x
+        _speed1xButton.Value.ButtonPressed <- true
         // 通过设置 Size 使得 PanelContainer 刷新大小为本地化后字符长度，否则会因为默认待替换的本地化字符串长度太长导致它宽度太大
         _topLeftPanel.Value.Size <- Vector2(10f, 10f)
-
-        clearPlayStat ()
 
         _globalNode.Value.IdleStrategyEntry.Value.PlayerStatUpdated
         |> ObservableSyncContextUtil.subscribePost onPlayerStatUpdated

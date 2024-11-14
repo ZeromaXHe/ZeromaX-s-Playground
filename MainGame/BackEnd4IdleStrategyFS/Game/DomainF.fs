@@ -49,6 +49,26 @@ module private DomainF =
             return! di.TerrainLayer.GetUsedCells() |> Seq.traverse initTileConnections // traverse f = map f |> sequence
         }
 
+    /// 增加地块人口
+    let increaseTilePopulation increment (tile: Tile) =
+        monad {
+            let! di = Reader.ask |> StateT.lift
+
+            let! (tile': Tile) =
+                di.TileUpdater
+                    { tile with
+                        Population = tile.Population + increment }
+                |> StateT.hoist
+
+            di.TilePopulationChanged
+                { TileId = tile.Id
+                  PlayerId = tile.PlayerId
+                  BeforePopulation = tile.Population
+                  AfterPopulation = tile.Population + increment }
+
+            tile'
+        }
+
     /// 玩家是否已经没有任何地块
     let isNoLandPlayer (player: Player) =
         monad {
@@ -125,7 +145,7 @@ module private DomainF =
         }
 
     /// 玩家向随机行军目标发出部队
-    let marchArmy (player: Player) =
+    let sendMarchArmy (player: Player) =
         monad {
             let! di = Reader.ask |> StateT.lift
             let! fromTile = randomPlayerTile player
@@ -149,24 +169,28 @@ module private DomainF =
             army
         }
 
-    /// 增加地块人口
-    let increaseTilePopulation increment (tile: Tile) =
+    /// 行军速度（单位：%/s）
+    let marchSpeed =
+        function
+        | p when p < 10<Pop> -> 50 // 人数小于 10 人，2 秒后到达目的地
+        | p when p < 50<Pop> -> 25 // 小于 50 人，4 秒后
+        | p when p < 200<Pop> -> 15 // 小于 200 人，7 秒左右后
+        | p when p < 1000<Pop> -> 10 // 小于 1000 人，10 秒后
+        | _ -> 5 // 大于 1000 人，20 秒后
+
+    /// 行军部队增加进度
+    let marchArmy delta (marchingArmy: MarchingArmy) =
         monad {
             let! di = Reader.ask |> StateT.lift
+            let speed = marchSpeed marchingArmy.Population
+            let! speedMultiplier = di.SpeedMultiplierQuery() |> StateT.hoist
+            let progress = delta * float speed * speedMultiplier
 
-            let! (tile': Tile) =
-                di.TileUpdater
-                    { tile with
-                        Population = tile.Population + increment }
+            return!
+                di.MarchingArmyUpdater
+                    { marchingArmy with
+                        Progress = marchingArmy.Progress + progress }
                 |> StateT.hoist
-
-            di.TilePopulationChanged
-                { TileId = tile.Id
-                  PlayerId = tile.PlayerId
-                  BeforePopulation = tile.Population
-                  AfterPopulation = tile.Population + increment }
-
-            tile'
         }
 
     /// 行军部队到达目的地
@@ -194,14 +218,12 @@ module private DomainF =
                     |> OptionT.lift
 
             let! resultBool = di.MarchingArmyDeleter marchingArmy.Id |> StateT.hoist |> OptionT.lift
+
+            di.MarchingArmyArrived
+                { MarchingArmyId = marchingArmy.Id
+                  Population = marchingArmy.Population
+                  DestinationTileId = marchingArmy.ToTileId
+                  PlayerId = marchingArmy.PlayerId }
+
             return resultBool
         }
-
-    /// 行军速度（单位：%/s）
-    let marchSpeed =
-        function
-        | p when p < 10<Pop> -> 50 // 人数小于 10 人，2 秒后到达目的地
-        | p when p < 50<Pop> -> 25 // 小于 50 人，4 秒后
-        | p when p < 200<Pop> -> 15 // 小于 200 人，7 秒左右后
-        | p when p < 1000<Pop> -> 10 // 小于 1000 人，10 秒后
-        | _ -> 5 // 大于 1000 人，20 秒后

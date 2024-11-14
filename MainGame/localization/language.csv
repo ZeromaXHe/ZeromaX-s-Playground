@@ -16,3 +16,6 @@ Player_Name_5,蓝色,Blue
 Player_Name_6,紫色,Purple
 Player_Name_7,粉色,DeepPink
 Player_Name_8,橘色,Orange
+GAME_SPEED_MULTIPLIER,游戏速度,Game Speed
+GAME_SPEED_MULTIPLIER_TOOLTIP,修改游戏速度乘数,Change game speed multiplier
+PAUSE,暂停,Pause

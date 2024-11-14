@@ -1,11 +1,13 @@
 namespace FrontEnd4IdleStrategyFS.Display
 
+open FrontEnd4IdleStrategyFS.Global
 open BackEnd4IdleStrategyFS.Game.DomainT
 open Godot
 
 type MarchingLineFS() as this =
     inherit Line2D()
 
+    let _globalNode = lazy this.GetNode<GlobalNodeFS> "/root/GlobalNode"
     let _panelContainer = lazy this.GetNode<PanelContainer> "PanelContainer"
 
     let _populationLabel =
@@ -52,5 +54,9 @@ type MarchingLineFS() as this =
         _progressBar.Value.Set("theme_override_styles/fill", Variant.CreateFrom(styleBoxFlat))
 
     override this._Process(delta) =
-        if _progressBar.Value.Value < 100 then
-            _progressBar.Value.Value <- _progressBar.Value.Value + float this._speed * delta |> min <| 100.0
+        let speedMultiplier = _globalNode.Value.IdleStrategyEntry.Value.GetSpeedMultiplier()
+
+        if speedMultiplier > 0 && _progressBar.Value.Value < 100 then
+            _progressBar.Value.Value <-
+                _progressBar.Value.Value + float this._speed * speedMultiplier * delta |> min
+                <| 100.0

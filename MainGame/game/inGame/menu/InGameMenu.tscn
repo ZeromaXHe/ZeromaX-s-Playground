@@ -1,7 +1,15 @@
-[gd_scene load_steps=3 format=3 uid="uid://c2e3r03l4pndl"]
+[gd_scene load_steps=6 format=3 uid="uid://c2e3r03l4pndl"]
 
 [ext_resource type="Script" path="res://game/inGame/menu/InGameMenu.cs" id="1_3topt"]
 [ext_resource type="PackedScene" uid="uid://bqe7j1n5pwf0k" path="res://game/inGame/map/MapBoard.tscn" id="1_6jjyr"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_g25im"]
+bg_color = Color(1, 0.475, 0.475, 1)
+
+[sub_resource type="ButtonGroup" id="ButtonGroup_jkksl"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dxtxy"]
+bg_color = Color(0.458753, 0.771875, 0.448652, 1)
 
 [node name="InGameMenu" type="Control"]
 layout_mode = 3
@@ -36,12 +44,15 @@ offset_bottom = 58.0
 layout_mode = 2
 
 [node name="TabBar" type="TabBar" parent="TopLeftPanel/TopLeftVBox"]
+custom_minimum_size = Vector2(100, 20)
 layout_mode = 2
 current_tab = 0
 deselect_enabled = true
-tab_count = 1
+tab_count = 2
 tab_0/title = "PLAYER_INFOS"
 tab_0/tooltip = "PLAYER_INFOS_TOOLTIP"
+tab_1/title = "GAME_SPEED_MULTIPLIER"
+tab_1/tooltip = "GAME_SPEED_MULTIPLIER_TOOLTIP"
 
 [node name="PlayerInfosGrid" type="GridContainer" parent="TopLeftPanel/TopLeftVBox"]
 layout_mode = 2
@@ -62,3 +73,69 @@ text = "TILE_POPULATION_TITLE"
 [node name="ArmyPopulationTitle" type="Label" parent="TopLeftPanel/TopLeftVBox/PlayerInfosGrid"]
 layout_mode = 2
 text = "ARMY_POPULATION_TITLE"
+
+[node name="SpeedMultiplierHBox" type="HBoxContainer" parent="TopLeftPanel/TopLeftVBox"]
+layout_mode = 2
+
+[node name="Pause" type="Button" parent="TopLeftPanel/TopLeftVBox/SpeedMultiplierHBox"]
+layout_mode = 2
+theme_override_colors/font_pressed_color = Color(0.428125, 0, 0, 1)
+theme_override_styles/pressed = SubResource("StyleBoxFlat_g25im")
+toggle_mode = true
+button_pressed = true
+button_group = SubResource("ButtonGroup_jkksl")
+text = "PAUSE"
+
+[node name="Speed0_25x" type="Button" parent="TopLeftPanel/TopLeftVBox/SpeedMultiplierHBox"]
+custom_minimum_size = Vector2(100, 20)
+layout_mode = 2
+theme_override_colors/font_pressed_color = Color(0, 0.3125, 0.0253907, 1)
+theme_override_styles/pressed = SubResource("StyleBoxFlat_dxtxy")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_jkksl")
+text = "0.25x"
+
+[node name="Speed0_5x" type="Button" parent="TopLeftPanel/TopLeftVBox/SpeedMultiplierHBox"]
+custom_minimum_size = Vector2(100, 20)
+layout_mode = 2
+theme_override_colors/font_pressed_color = Color(0, 0.3125, 0.0253907, 1)
+theme_override_styles/pressed = SubResource("StyleBoxFlat_dxtxy")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_jkksl")
+text = "0.5x"
+
+[node name="Speed1x" type="Button" parent="TopLeftPanel/TopLeftVBox/SpeedMultiplierHBox"]
+custom_minimum_size = Vector2(100, 20)
+layout_mode = 2
+theme_override_colors/font_pressed_color = Color(0, 0.3125, 0.0253907, 1)
+theme_override_styles/pressed = SubResource("StyleBoxFlat_dxtxy")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_jkksl")
+text = "1x"
+
+[node name="Speed2x" type="Button" parent="TopLeftPanel/TopLeftVBox/SpeedMultiplierHBox"]
+custom_minimum_size = Vector2(100, 20)
+layout_mode = 2
+theme_override_colors/font_pressed_color = Color(0, 0.3125, 0.0253907, 1)
+theme_override_styles/pressed = SubResource("StyleBoxFlat_dxtxy")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_jkksl")
+text = "2x"
+
+[node name="Speed3x" type="Button" parent="TopLeftPanel/TopLeftVBox/SpeedMultiplierHBox"]
+custom_minimum_size = Vector2(100, 20)
+layout_mode = 2
+theme_override_colors/font_pressed_color = Color(0, 0.3125, 0.0253907, 1)
+theme_override_styles/pressed = SubResource("StyleBoxFlat_dxtxy")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_jkksl")
+text = "3x"
+
+[node name="Speed4x" type="Button" parent="TopLeftPanel/TopLeftVBox/SpeedMultiplierHBox"]
+custom_minimum_size = Vector2(100, 20)
+layout_mode = 2
+theme_override_colors/font_pressed_color = Color(0, 0.3125, 0.0253907, 1)
+theme_override_styles/pressed = SubResource("StyleBoxFlat_dxtxy")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_jkksl")
+text = "4x"

@@ -6,6 +6,11 @@ open RepositoryT
 
 /// 查询数据存储库逻辑
 module private QueryRepositoryF =
+    let getSpeedMultiplier () =
+        monad {
+            let! gameState = State.get
+            gameState.SpeedMultiplier
+        }
 
     let getPlayer playerId =
         monad {
@@ -29,7 +34,7 @@ module private QueryRepositoryF =
         monad {
             let! gameState = State.get
 
-            gameState.TileCoordIndex.TryFind coord 
+            gameState.TileCoordIndex.TryFind coord
             |> Option.bind (fun r -> getTile r |> State.eval <| gameState)
         }
 

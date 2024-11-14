@@ -21,7 +21,7 @@ module AppService =
                 |> Seq.map (fun _ -> DomainF.spawnPlayer tiles)
                 // |> Seq.sequence // 这样结果里的 Tile 就推断不出来了……
                 |> Seq.fold stateTReaderFolder (stateTReaderReturn Seq.empty)
-                // |> Seq.traverse (fun _ -> DomainF.spawnPlayer tiles) // 把 map f |> sequence 简化，一样推断不出 Tile
+        // |> Seq.traverse (fun _ -> DomainF.spawnPlayer tiles) // 把 map f |> sequence 简化，一样推断不出 Tile
         }
 
     /// 初始化游戏
@@ -40,7 +40,7 @@ module AppService =
         monad {
             let! (di: Injector<'s>) = Reader.ask |> StateT.lift
             let! playerSeq = di.PlayersQueryAll |> StateT.hoist
-            return! playerSeq |> Seq.map DomainF.marchArmy |> Seq.sequence
+            return! playerSeq |> Seq.map DomainF.sendMarchArmy |> Seq.sequence
         }
 
     /// 部队抵达，生成新的部队
@@ -57,7 +57,19 @@ module AppService =
             if isNoLandPlayer then
                 return! None |> OptionT.hoist
             else
-                return! DomainF.marchArmy player |> OptionT.lift
+                return! DomainF.sendMarchArmy player |> OptionT.lift
+        }
+
+    /// 给所有 MarchingArmy 增加 delta 时间的行军进度
+    let marchArmies<'s> delta =
+        monad {
+            let! (di: Injector<'s>) = Reader.ask |> StateT.lift
+            let! marchingArmies = di.MarchingArmiesQueryAll |> StateT.hoist
+            return!
+                marchingArmies
+                |> Seq.filter (fun army -> army.Progress < 100.0)
+                |> Seq.map (DomainF.marchArmy delta)
+                |> Seq.sequence
         }
 
     /// 增加所有玩家地块人口
@@ -72,7 +84,7 @@ module AppService =
                 |> Seq.map (DomainF.increaseTilePopulation increment)
                 // |> Seq.sequence //（类型完全推断不出来，这样会报红。必须使用自己写的辅助类）
                 |> Seq.fold stateTReaderFolder (stateTReaderReturn Seq.empty)
-                // |> Seq.traverse (DomainF.increaseTilePopulation increment) 一样推断不出来，报红
+        // |> Seq.traverse (DomainF.increaseTilePopulation increment) 一样推断不出来，报红
         }
 
     let queryTileById gameState tileId =
@@ -81,15 +93,6 @@ module AppService =
         match tileOpt with
         | Some tile -> tile
         | None -> failwith $"Invalid tile id, id:{tileId}"
-
-    let queryTilesByPlayerId gameState playerIdInt =
-        let playerId = PlayerId playerIdInt
-        let tiles, _ = QueryRepositoryF.getTilesByPlayer playerId |> State.run <| gameState
-        tiles
-
-    let queryAllPlayers gameState =
-        let players, _ = QueryRepositoryF.getAllPlayers |> State.run <| gameState
-        players
 
 // TODO：为啥这里 [<EntryPoint>] let main argv = 0 就跑不了？main() = () 就可以？但运行后报错
 // （感觉和 Rider 识别出来的运行类型有关：单测那边 EntryPoint 识别出来是 .NET Project，而这里 main() 识别出来是 .NET Static Method

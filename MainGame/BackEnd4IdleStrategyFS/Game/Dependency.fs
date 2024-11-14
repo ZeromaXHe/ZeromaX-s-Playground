@@ -16,6 +16,7 @@ module Dependency =
           // 日志
           LogPrint: string -> unit
           // 仓储
+          SpeedMultiplierQuery: SpeedMultiplierQuery<'s>
           PlayerFactory: PlayerFactory<'s>
           PlayerQueryById: PlayerQueryById<'s>
           PlayersQueryAll: PlayersQueryAll<'s>
@@ -26,8 +27,10 @@ module Dependency =
           TilesQueryByPlayer: TilesQueryByPlayer<'s>
           TilesQueryAll: TilesQueryAll<'s>
           MarchingArmyFactory: MarchingArmyFactory<'s>
+          MarchingArmyUpdater: MarchingArmyUpdater<'s>
           MarchingArmyDeleter: MarchingArmyDeleter<'s>
           MarchingArmyQueryById: MarchingArmyQueryById<'s>
+          MarchingArmiesQueryAll: MarchingArmiesQueryAll<'s>
           // 事件
           PlayerAdded: PlayerAdded
           TileConquered: TileConquered

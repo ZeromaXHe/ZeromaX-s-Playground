@@ -4,6 +4,8 @@ open FSharpPlus.Data
 
 /// 领域层类型
 module DomainT =
+    /// 查询游戏速度
+    type SpeedMultiplierQuery<'r> = unit -> State<'r, float>
 
     /// 玩家 ID
     type PlayerId = PlayerId of int
@@ -57,11 +59,16 @@ module DomainT =
           Population: int<Pop>
           PlayerId: PlayerId
           FromTileId: TileId
-          ToTileId: TileId }
+          ToTileId: TileId
+          Progress: float }
 
     /// 行军部队工厂
     type MarchingArmyFactory<'s> = int<Pop> -> PlayerId -> TileId -> TileId -> State<'s, MarchingArmy>
+    /// 保存行军部队更新
+    type MarchingArmyUpdater<'s> = MarchingArmy -> State<'s, MarchingArmy>
     /// 删除行军部队
     type MarchingArmyDeleter<'s> = MarchingArmyId -> State<'s, bool>
-    // 按 Id 查询部队
+    /// 按 Id 查询部队
     type MarchingArmyQueryById<'r> = MarchingArmyId -> State<'r, MarchingArmy option>
+    /// 查询所有部队
+    type MarchingArmiesQueryAll<'r> = State<'r, MarchingArmy seq>

@@ -16,5 +16,6 @@ module ObservableSyncContextUtil =
     /// 如果使用 CallDeferred / 信号等，还是会一样报错（信号是因为 EmitSignal 也必须在主线程里）。
     /// 目前貌似只有同步上下文 Post 这种方式可以解决。
     let subscribePost (sub: 'a -> unit) observable =
-        observable
-        |> subscribe (fun e -> SynchronizationContext.Current.Post((fun _ -> sub e), null))
+        // 必须在外面获取，不能简化到 subscribe 里面。里面就不是 Godot 的上下文了
+        let syncContext = SynchronizationContext.Current
+        observable |> subscribe (fun e -> syncContext.Post((fun _ -> sub e), null))

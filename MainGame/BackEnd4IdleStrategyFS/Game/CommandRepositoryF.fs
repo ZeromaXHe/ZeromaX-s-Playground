@@ -47,7 +47,7 @@ module private CommandRepositoryF =
     let updateTile (tile: Tile) =
         monad {
             let! gameState = State.get
-            let tileModelOption = getTile tile.Id |> State.eval <| gameState
+            let! tileModelOption = getTile tile.Id
 
             let gameState' =
                 match tileModelOption with
@@ -98,11 +98,24 @@ module private CommandRepositoryF =
                   Population = population
                   PlayerId = playerId
                   FromTileId = fromTileId
-                  ToTileId = toTileId }
+                  ToTileId = toTileId
+                  Progress = 0.0 }
 
             let gameState' =
                 { gameState with
                     MarchingArmyNextId = gameState.MarchingArmyNextId + 1
+                    MarchingArmyRepo = gameState.MarchingArmyRepo.Add(marchingArmy.Id, marchingArmy) }
+
+            do! State.put gameState'
+            marchingArmy
+        }
+
+    let updateMarchingArmy marchingArmy =
+        monad {
+            let! gameState = State.get
+
+            let gameState' =
+                { gameState with
                     MarchingArmyRepo = gameState.MarchingArmyRepo.Add(marchingArmy.Id, marchingArmy) }
 
             do! State.put gameState'

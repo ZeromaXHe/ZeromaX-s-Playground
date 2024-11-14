@@ -6,7 +6,8 @@ module RepositoryT =
 
     /// 游戏状态
     type GameState =
-        { PlayerRepo: Map<PlayerId, Player>
+        { SpeedMultiplier: float
+          PlayerRepo: Map<PlayerId, Player>
           PlayerNextId: int
           TileRepo: Map<TileId, Tile>
           TileCoordIndex: Map<int * int, TileId>
@@ -16,7 +17,8 @@ module RepositoryT =
           MarchingArmyNextId: int }
 
     let emptyGameState =
-        { PlayerRepo = Map.empty
+        { SpeedMultiplier = 1
+          PlayerRepo = Map.empty
           PlayerNextId = 1
           TileRepo = Map.empty
           TileCoordIndex = Map.empty
