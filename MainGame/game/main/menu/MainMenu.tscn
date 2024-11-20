@@ -67,6 +67,10 @@ text = "START_GAME_BUTTON"
 layout_mode = 2
 text = "QUIT_GAME_BUTTON"
 
+[node name="HexGlobalButton" type="Button" parent="CenterContainer/VBox/ButtonVBox"]
+layout_mode = 2
+text = "Hex Global Test"
+
 [node name="LbMarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
 anchors_preset = 2

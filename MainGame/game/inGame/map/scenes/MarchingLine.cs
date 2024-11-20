@@ -1,4 +1,4 @@
-using FrontEnd4IdleStrategyFS.Display;
+using FrontEnd4IdleStrategyFS.Display.InGame;
 
 public partial class MarchingLine : MarchingLineFS
 {

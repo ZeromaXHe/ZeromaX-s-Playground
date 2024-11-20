@@ -1,0 +1,31 @@
+[gd_scene load_steps=5 format=3 uid="uid://brc8iljuyugri"]
+
+[ext_resource type="Script" path="res://game/HexGlobal/Map/HexPlanetManager.cs" id="1_ed4rs"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sxnqm"]
+sky_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
+ground_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
+
+[sub_resource type="Sky" id="Sky_a4egl"]
+sky_material = SubResource("ProceduralSkyMaterial_sxnqm")
+
+[sub_resource type="Environment" id="Environment_vkwl7"]
+background_mode = 2
+sky = SubResource("Sky_a4egl")
+tonemap_mode = 2
+glow_enabled = true
+
+[node name="HexPlanetManager" type="Node3D"]
+script = ExtResource("1_ed4rs")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_vkwl7")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.866023, -0.433016, 0.250001, 0, 0.499998, 0.866027, -0.500003, 0.749999, -0.43301, 0, 0, 0)
+shadow_enabled = true
+
+[node name="HexChunkRenders" type="Node3D" parent="."]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 300)

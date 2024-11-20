@@ -6,17 +6,27 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Compile Include="PreBack\Common\Octree.fs" />
+        <Compile Include="PreBack\Common\GeodesicPoints.fs" />
+        <Compile Include="PreBack\Common\PerlinTerrain.fs" />
+        <Compile Include="PreBack\HexGlobal\Domain.fs" />
+        <Compile Include="PreBack\HexGlobal\HexDependency.fs" />
+        <Compile Include="PreBack\HexGlobal\Repository.fs" />
+        <Compile Include="PreBack\HexGlobal\Generator.fs" />
+        <Compile Include="PreBack\HexGlobal\HexEntry.fs" />
         <Compile Include="Global\Common\BackEndUtil.fs" />
         <Compile Include="Global\Common\Constants.fs" />
         <Compile Include="Global\Common\ObservableSyncContextUtil.fs" />
         <Compile Include="Global\Adaptor\AStar2DAdapter.fs" />
         <Compile Include="Global\Adaptor\TileMapLayerAdapter.fs" />
         <Compile Include="Global\GlobalNodeFS.fs" />
-        <Compile Include="Display\MainMenuFS.fs" />
-        <Compile Include="Display\MarchingLineFS.fs" />
-        <Compile Include="Display\TileGuiFS.fs" />
-        <Compile Include="Display\MapBoardFS.fs" />
-        <Compile Include="Display\InGameMenuFS.fs" />
+        <Compile Include="Display\HexGlobal\HexChunkRendererFS.fs" />
+        <Compile Include="Display\HexGlobal\HexPlanetManagerFS.fs" />
+        <Compile Include="Display\InGame\MainMenuFS.fs" />
+        <Compile Include="Display\InGame\MarchingLineFS.fs" />
+        <Compile Include="Display\InGame\TileGuiFS.fs" />
+        <Compile Include="Display\InGame\MapBoardFS.fs" />
+        <Compile Include="Display\InGame\InGameMenuFS.fs" />
     </ItemGroup>
 
     <ItemGroup>

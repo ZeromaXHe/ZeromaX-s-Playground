@@ -1,4 +1,4 @@
-namespace FrontEnd4IdleStrategyFS.Display
+namespace FrontEnd4IdleStrategyFS.Display.InGame
 
 open Godot
 open FrontEnd4IdleStrategyFS.Global
@@ -16,6 +16,9 @@ type MainMenuFS() as this =
     let _quitButton =
         lazy this.GetNode<Button> "CenterContainer/VBox/ButtonVBox/QuitButton"
 
+    let _hexGlobalButton =
+        lazy this.GetNode<Button> "CenterContainer/VBox/ButtonVBox/HexGlobalButton"
+
     let _bilibiliButton =
         lazy this.GetNode<Button> "LbMarginContainer/VBox/BilibiliButton"
 
@@ -28,7 +31,7 @@ type MainMenuFS() as this =
         |> TranslationServer.SetLocale
 
     let onQuitButtonPressed () = this.GetTree().Quit()
-
+    
     let onBilibiliButtonPressed () =
         OS.ShellOpen "https://space.bilibili.com/27867310" |> ignore
 
@@ -44,6 +47,7 @@ type MainMenuFS() as this =
         _languageOptionButton.Value.add_ItemSelected onLanguageOptionButtonItemSelected
         _startButton.Value.add_Pressed (fun _ -> _globalNode.Value.ChangeToIdleStrategyScene())
         _quitButton.Value.add_Pressed onQuitButtonPressed
+        _hexGlobalButton.Value.add_Pressed (fun _ -> _globalNode.Value.ChangeToHexGlobalScene())
         _bilibiliButton.Value.add_Pressed onBilibiliButtonPressed
         _gitHubButton.Value.add_Pressed onGitHubButtonPressed
         setDefaultLocale ()

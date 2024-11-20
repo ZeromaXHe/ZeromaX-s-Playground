@@ -1,4 +1,4 @@
-using FrontEnd4IdleStrategyFS.Display;
+using FrontEnd4IdleStrategyFS.Display.InGame;
 using Godot;
 
 namespace ZeromaXPlayground.game.inGame.map;

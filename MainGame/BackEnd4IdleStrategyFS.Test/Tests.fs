@@ -17,8 +17,17 @@ let ``random seed test`` () =
     Assert.True(Seq.forall2 (=) seq1 seq2)
 
 [<Fact>]
-let ``initPlayerAndSpawnOnTile test`` () =
+let ``List append test`` () =
     // 安排 Arrange
+    let list1 = [ 1; 2; 3 ]
+    let list2 = [ 4; 5; 6 ]
     // 行动 Act
+    let append1 = list1 @ list2
+    let append2 = List.append list1 list2
+    let append3 = list1 |> List.append list2
+    let append4 = list1 |> List.append <| list2
     // 断言 Assert
-    Assert.True(true)
+    Assert.Equal<int list>(append1, [ 1; 2; 3; 4; 5; 6 ])
+    Assert.Equal<int list>(append2, [ 1; 2; 3; 4; 5; 6 ])
+    Assert.Equal<int list>(append3, [ 4; 5; 6; 1; 2; 3 ]) // 特别注意这里的顺序！
+    Assert.Equal<int list>(append4, [ 1; 2; 3; 4; 5; 6 ])

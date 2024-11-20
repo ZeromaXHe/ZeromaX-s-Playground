@@ -1,4 +1,4 @@
-namespace FrontEnd4IdleStrategyFS.Display
+namespace FrontEnd4IdleStrategyFS.Display.InGame
 
 open BackEnd4IdleStrategyFS.Game.RepositoryT
 open BackEnd4IdleStrategyFS.Game.DomainT
