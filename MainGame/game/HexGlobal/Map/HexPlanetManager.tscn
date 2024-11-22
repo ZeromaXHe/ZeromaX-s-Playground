@@ -17,12 +17,20 @@ glow_enabled = true
 
 [node name="HexPlanetManager" type="Node3D"]
 script = ExtResource("1_ed4rs")
+PlanetRadius = 100.0
+Subdivisions = 3
+ChunkSubdivisions = 3
+Octaves = 1
+Persistence = 0.5
+Lacunarity = 2.0
+MaxHeight = 30.0
+NoiseScaling = 100.0
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_vkwl7")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-transform = Transform3D(-0.866023, -0.433016, 0.250001, 0, 0.499998, 0.866027, -0.500003, 0.749999, -0.43301, 0, 0, 0)
+transform = Transform3D(-0.866025, -0.433013, -0.25, 0, -0.5, 0.866025, -0.5, 0.75, 0.433013, 0, 0, 0)
 shadow_enabled = true
 
 [node name="HexChunkRenders" type="Node3D" parent="."]

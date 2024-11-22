@@ -1,90 +1,101 @@
 namespace FrontEnd4IdleStrategyFS.Display.HexGlobal
 
+open System
+open System.Reflection
+open System.Runtime.InteropServices
+open System.Runtime.Loader
 open System.Threading
-open FrontEnd4IdleStrategyFS.Global
 open FrontEnd4IdleStrategyFS.Global.Common
 open Godot
 
 type HexPlanetManagerFS() as this =
     inherit Node3D()
 
-    let _globalNode = lazy this.GetNode<GlobalNodeFS> "/root/GlobalNode"
     let _hexChunkRenders = lazy this.GetNode<Node3D> "HexChunkRenders"
 
-    [<DefaultValue>]
-    val mutable _regenerate: bool
+    let mutable _hexGlobalEntry: HexEntry option = None
 
-    // Perlin 噪声相关 Export
-    [<DefaultValue>]
-    val mutable _octaves: int
+    let mutable _chunkAddedSub: IDisposable option = None
 
-    [<DefaultValue>]
-    val mutable _persistence: float32
-
-    [<DefaultValue>]
-    val mutable _lacunarity: float32
-
-    [<DefaultValue>]
-    val mutable _minHeight: float32
-
-    [<DefaultValue>]
-    val mutable _maxHeight: float32
-
-    [<DefaultValue>]
-    val mutable _noiseScaling: float32
-    // 星球属性 Export
-    [<DefaultValue>]
-    val mutable _planetRadius: float32
-
-    [<DefaultValue>]
-    val mutable _subdivisions: int
-
-    [<DefaultValue>]
-    val mutable _chunkSubdivisions: int
-
-    let updateRenderObjects () =
+    let clearRenderObjects () =
         if _hexChunkRenders.Value = null then
             GD.Print "HexChunkRenders is null"
         else
             _hexChunkRenders.Value.GetChildren() |> Seq.iter _.QueueFree()
 
-        _globalNode.Value.HexGlobalEntry.Value.GeneratePlanetTilesAndChunks()
+    let init () =
+        _hexGlobalEntry <-
+            HexEntry(
+                this._subdivisions,
+                this._chunkSubdivisions,
+                this._planetRadius,
+                this._maxHeight,
+                this._minHeight,
+                this._octaves,
+                this._noiseScaling,
+                this._lacunarity,
+                this._persistence
+            )
+            |> Some
 
-    override this._Ready() =
-        // TODO: 临时测试用，后续要根据 Export 同步
-        this._octaves <- 1
-        this._persistence <- 0.5f
-        this._lacunarity <- 2.0f
-        this._minHeight <- 0.0f
-        this._maxHeight <- 30.0f
-        this._noiseScaling <- 100.0f
-        this._planetRadius <- 100.0f
-        this._subdivisions <- 3
-        this._chunkSubdivisions <- 3
-
-        _globalNode.Value.InitHexGlobal
-            this._subdivisions
-            this._chunkSubdivisions
-            this._planetRadius
-            this._maxHeight
-            this._minHeight
-            this._octaves
-            this._noiseScaling
-            this._lacunarity
-            this._persistence
-
-        _globalNode.Value.HexGlobalEntry.Value.ChunksAdded
-        |> ObservableSyncContextUtil.subscribePost (fun chunks ->
-            chunks
-            |> List.iteri (fun i c ->
-                let chunkRender = new HexChunkRendererFS()
-                chunkRender.Name <- $"Chunk {i}"
-                chunkRender.Position <- Vector3.Zero
-                chunkRender._renderedChunkId <- c.Id
-                // GD.Print $"Chunk {i} added"
-                _hexChunkRenders.Value.AddChild chunkRender
-                chunkRender.UpdateMesh() // 进入场景树时不会自动调用 _Ready？手动调用下
-            ))
+        _chunkAddedSub <-
+            _hexGlobalEntry.Value.ChunksAdded
+            |> ObservableSyncContextUtil.subscribePost (fun chunks ->
+                chunks
+                |> List.iteri (fun i c ->
+                    let chunkRender = new HexChunkRendererFS(_hexGlobalEntry.Value)
+                    chunkRender.Name <- $"Chunk {i}"
+                    chunkRender.Position <- Vector3.Zero
+                    chunkRender._renderedChunkId <- c.Id
+                    // GD.Print $"Chunk {i} added"
+                    _hexChunkRenders.Value.AddChild chunkRender
+                    chunkRender.UpdateMesh() // 进入场景树时不会自动调用 _Ready？手动调用下
+                ))
+            |> Some
 
         // 必须在同步上下文中执行，否则 Init 内容不会被响应式编程 Subscribe 监听到（会比上面监听逻辑更早执行）
-        SynchronizationContext.Current.Post((fun _ -> updateRenderObjects ()), null)
+        SynchronizationContext.Current.Post(
+            (fun _ ->
+                clearRenderObjects ()
+                _hexGlobalEntry.Value.GeneratePlanetTilesAndChunks()),
+            null
+        )
+
+    let mutable _regenerate = false
+
+    member this._Regenerate
+        with get () = _regenerate
+        and set value =
+            if value then
+                init ()
+                _regenerate <- false
+
+    // Perlin 噪声相关 Export
+    member val _octaves: int = 1 with get, set
+    member val _persistence: float32 = 0.5f with get, set
+    member val _lacunarity: float32 = 2.0f with get, set
+    member val _minHeight: float32 = 0.0f with get, set
+    member val _maxHeight: float32 = 30.0f with get, set
+    member val _noiseScaling: float32 = 100.0f with get, set
+    // 星球属性 Export
+    member val _planetRadius: float32 = 100.0f with get, set
+    member val _subdivisions: int = 3 with get, set
+    member val _chunkSubdivisions: int = 3 with get, set
+
+    override this._Ready() =
+        // TODO：这些都没用，感觉 C# 继承 F# 的方式写 Tool 完全无法避免报错：.NET: Failed to unload assemblies
+        let handle = GCHandle.Alloc(this)
+        // 不确定这里会不会调用
+        let alc = AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly())
+        GD.Print $"FS ALC: {alc} ALC is null? {alc = null}"
+        alc.add_Unloading (fun assemblyLoadContext ->
+            GD.Print "Start Unloading HexPlanetManagerFS"
+            _chunkAddedSub |> Option.iter _.Dispose()
+            _chunkAddedSub <- None
+            _hexGlobalEntry <- None
+            clearRenderObjects ()
+            GD.Print "End Unloading HexPlanetManagerFS"
+            // handle.Free()
+        )
+
+        init ()

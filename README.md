@@ -284,6 +284,88 @@ GD.Print($"l0: {l0}, l1: {l1}, l: {l}");
 
 ## Godot
 
+### issue
+
+#### Assertion failed: Script path can't be empty
+
+**我的报错**
+
+```
+  Assertion failed: Script path can't be empty.
+    Details: 
+     at Godot.GodotTraceListener.Fail(String message, String detailMessage) in /root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/GodotTraceListener.cs:line 24
+     at System.Diagnostics.TraceInternal.Fail(String message, String detailMessage)
+     at System.Diagnostics.Debug.Fail(String message, String detailMessage)
+     at Godot.Bridge.ScriptManagerBridge.GetGlobalClassName(godot_string* scriptPath, godot_string* outBaseType, godot_string* outIconPath, godot_string* outClassName) in /root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/ScriptManagerBridge.cs:line 232
+```
+
+对应 [GitHub Issue #97405](https://github.com/godotengine/godot/issues/97405)：**[.Net] Assertion failed when inheriting an external `Node` type**
+
+预计会在 4.4 合并 [Pull Request #97443](https://github.com/godotengine/godot/pull/97443)：**[.Net] Add Reminder for External Node Types**
+
+
+
+#### .NET: Failed to unload assemblies
+
+对应 [GitHub Issue #78513](https://github.com/godotengine/godot/issues/78513)：**.NET: Failed to unload assemblies. Please check `<this issue>` for more information.**
+
+
+
+**Issue 描述**
+
+程序集重新加载可能会因各种原因失败，通常是因为工具代码中使用的库与程序集卸载不兼容。
+
+卸载失败后，C# 脚本将不可用，直到编辑器重新启动（在极少数情况下，可以在一段时间后通过重新构建程序集来完成卸载）。
+
+如果项目的程序集卸载失败，请查看 [Microsoft 的故障排除说明](https://learn.microsoft.com/en-us/dotnet/standard/assembly/unloadability#troubleshoot-unloadability-issues)，并确保您没有使用已知不兼容的库之一：
+
+- [Json.Net 目前不支持卸载。JamesNK/Newtonsoft.Json#2414](https://github.com/JamesNK/Newtonsoft.Json/issues/2414)
+- [System.Text.Json 应该正确支持可卸载的程序集 dotnet/runtime#65323](https://github.com/dotnet/runtime/issues/65323)
+
+如果您知道其他库会导致问题，请发表评论。
+
+如果你的代码没有使用任何库，没有违反任何[准则](https://learn.microsoft.com/en-us/dotnet/standard/assembly/unloadability#troubleshoot-unloadability-issues)，并且你认为卸载被 godot 阻止，请打开一个新问题。已报告的原因有：
+
+- [使用泛型的 C# 脚本注册可能会在 ScriptManagerBridge 中出错 #79519](https://github.com/godotengine/godot/issues/79519)
+- [C# 为导出的自定义资源属性分配默认值将导致错误 #80175](https://github.com/godotengine/godot/issues/80175)  [【1】](https://github.com/godotengine/godot/issues/78513#user-content-fn-1-73e9bce364b57c434fbd4d58be6342a3)
+- [在 Callable 中捕获变量会阻止程序集卸载 #81903](https://github.com/godotengine/godot/issues/81903)
+- [更改 C# 类型重新加载的操作顺序 #90837](https://github.com/godotengine/godot/pull/90837)  [【1】](https://github.com/godotengine/godot/issues/78513#user-content-fn-1-73e9bce364b57c434fbd4d58be6342a3)
+
+
+
+**最小复制项目和清理示例**
+
+```c#
+using Godot;
+using System;
+
+[Tool]
+public partial class UnloadingIssuesSample : Node
+{
+    public override void _Ready()
+    {
+        // block unloading with a strong handle
+        var handle = System.Runtime.InteropServices.GCHandle.Alloc(this);
+
+        // register cleanup code to prevent unloading issues
+        System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(System.Reflection.Assembly.GetExecutingAssembly()).Unloading += alc =>
+        {
+            // handle.Free();
+        };
+    }
+}
+```
+
+
+
+**我的问题**
+
+试了很久，但 C# 继承 F# 的实现方式貌似无法正常被卸载，好像需要尝试用组合而非继承方式实现 Tool
+
+> 参考：https://github.com/godotengine/godot/issues/78513#issuecomment-1937403398
+
+
+
 ### 小知识
 
 1. Engine.has_singleton() / register_singleton() 单例模式相关功能

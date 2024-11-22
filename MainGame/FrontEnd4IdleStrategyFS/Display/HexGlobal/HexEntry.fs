@@ -1,7 +1,7 @@
-namespace FrontEnd4IdleStrategyFS.PreBack.HexGlobal
+namespace FrontEnd4IdleStrategyFS.Display.HexGlobal
 
-open FrontEnd4IdleStrategyFS.PreBack.HexGlobal.Domain
-open FrontEnd4IdleStrategyFS.PreBack.HexGlobal.HexDependency
+open Domain
+open HexDependency
 open FSharp.Control.Reactive
 open FSharpPlus.Data
 open System.Reactive.Subjects

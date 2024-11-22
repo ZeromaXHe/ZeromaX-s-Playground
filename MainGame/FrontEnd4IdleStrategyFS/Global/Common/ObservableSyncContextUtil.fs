@@ -10,7 +10,6 @@ module ObservableSyncContextUtil =
         observable
         |> Observable.subscribeOnContext SynchronizationContext.Current
         |> Observable.subscribe sub
-        |> ignore
 
     /// 涉及到 Godot 节点展示层绘制的内容必须在同步上下文中 Post 执行。
     /// 如果使用 CallDeferred / 信号等，还是会一样报错（信号是因为 EmitSignal 也必须在主线程里）。

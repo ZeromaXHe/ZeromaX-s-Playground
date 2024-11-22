@@ -113,3 +113,4 @@ type InGameMenuFS() as this =
 
         _globalNode.Value.IdleStrategyEntry.Value.PlayerStatUpdated
         |> ObservableSyncContextUtil.subscribePost onPlayerStatUpdated
+        |> ignore

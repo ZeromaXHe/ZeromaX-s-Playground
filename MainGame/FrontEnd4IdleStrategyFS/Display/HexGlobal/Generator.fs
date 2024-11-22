@@ -1,16 +1,14 @@
-namespace FrontEnd4IdleStrategyFS.PreBack.HexGlobal
+namespace FrontEnd4IdleStrategyFS.Display.HexGlobal
 
-open FrontEnd4IdleStrategyFS.PreBack.Common
-open FrontEnd4IdleStrategyFS.PreBack.HexGlobal.Domain
-open FrontEnd4IdleStrategyFS.PreBack.HexGlobal.HexDependency
+open FrontEnd4IdleStrategyFS.Global.Common
+open Domain
+open HexDependency
 open Godot
 open FSharpPlus
 open FSharpPlus.Data
 
 module Generator =
     let mutable generating = false
-
-    let to3 (vec: Vector3) = vec.X, vec.Y, vec.Z
 
     let getClosestPoints center (toVec3: 'a -> Vector3) (points: 'a seq) =
         let closest7 =
@@ -76,8 +74,6 @@ module Generator =
                 |> StateT.hoist
         }
 
-
-
     let generateHexTiles verts =
         monad {
             let! di = Reader.ask |> StateT.lift
@@ -87,7 +83,7 @@ module Generator =
             // 使用所有将成为六边形的中心的点，构建八叉树
             let vertOctree =
                 verts
-                |> List.fold (fun octree v -> Octree.insertPoint (to3 v) v octree) defaultOctree
+                |> List.fold (fun octree v -> Octree.insertPoint (BackEndUtil.to3 v) v octree) defaultOctree
             // 两个相邻地块的最大距离
             let maxDistBetweenNeighbors =
                 verts
@@ -104,7 +100,9 @@ module Generator =
 
             let hexOctree =
                 hexTiles
-                |> List.fold (fun octree tile -> Octree.insertPoint (to3 tile.Center) tile octree) defaultOctree
+                |> List.fold
+                    (fun octree tile -> Octree.insertPoint (BackEndUtil.to3 tile.Center) tile octree)
+                    defaultOctree
             // 找到相邻地块
             let! hexTiles' = hexTiles |> List.traverse (fillTileNeighbors hexOctree maxDistBetweenNeighbors)
 

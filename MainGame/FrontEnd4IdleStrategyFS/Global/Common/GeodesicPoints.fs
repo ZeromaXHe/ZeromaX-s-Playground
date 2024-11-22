@@ -1,4 +1,4 @@
-namespace FrontEnd4IdleStrategyFS.PreBack.Common
+namespace FrontEnd4IdleStrategyFS.Global.Common
 
 open System.Collections.Generic
 open Godot

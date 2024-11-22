@@ -3,15 +3,12 @@ namespace FrontEnd4IdleStrategyFS.Global
 open System.Threading
 open BackEnd4IdleStrategyFS.Game
 open FrontEnd4IdleStrategyFS.Global.Adaptor
-open FrontEnd4IdleStrategyFS.PreBack.HexGlobal
 open Godot
 
 type GlobalNodeFS() =
     inherit Node()
 
     member val IdleStrategyEntry: Entry option = None with get, set
-
-    member val HexGlobalEntry: HexEntry option = None with get, set
 
     member this.ChangeToIdleStrategyScene() =
         this.GetTree().ChangeSceneToFile "res://game/inGame/menu/InGameMenu.tscn"
@@ -28,31 +25,6 @@ type GlobalNodeFS() =
                 TileMapLayerAdapter(baseTerrain),
                 playerCount,
                 (fun str -> SynchronizationContext.Current.Post((fun _ -> GD.Print str), null))
-            )
-            |> Some
-
-    member this.InitHexGlobal
-        subdivisions
-        chunkSubdivision
-        radius
-        maxHeight
-        minHeight
-        octaves
-        noiseScaling
-        lacunarity
-        persistence
-        =
-        this.HexGlobalEntry <-
-            HexEntry(
-                subdivisions,
-                chunkSubdivision,
-                radius,
-                maxHeight,
-                minHeight,
-                octaves,
-                noiseScaling,
-                lacunarity,
-                persistence
             )
             |> Some
 

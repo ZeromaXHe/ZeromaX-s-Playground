@@ -98,6 +98,7 @@ type MapBoardFS() as this =
                     territorySrcId,
                     territoryAtlasCoords[conquerorIdInt - 1]
                 ))
+        |> ignore
 
         entry.TileConquered
         |> Observable.filter _.LoserId.IsNone
@@ -106,15 +107,19 @@ type MapBoardFS() as this =
 
             if not <| TileGuiFS.ContainsId e.TileId then
                 showTileGui e.TileId e.Coord e.AfterPopulation)
+        |> ignore
 
         entry.TilePopulationChanged
         |> ObservableSyncContextUtil.subscribePost (fun e -> TileGuiFS.ChangePopulationById e.TileId e.AfterPopulation)
+        |> ignore
 
         entry.MarchingArmyAdded
         |> ObservableSyncContextUtil.subscribePost showMarchingArmy
+        |> ignore
 
         entry.MarchingArmyArrived
         |> ObservableSyncContextUtil.subscribePost (fun e -> MarchingLineFS.ClearById e.MarchingArmyId)
+        |> ignore
 
         // 必须在同步上下文中执行，否则 Init 内容不会被响应式编程 Subscribe 监听到（会比上面监听逻辑更早执行）
         SynchronizationContext.Current.Post((fun _ -> _globalNode.Value.IdleStrategyEntry.Value.Init()), null)

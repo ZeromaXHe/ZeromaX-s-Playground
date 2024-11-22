@@ -1,6 +1,6 @@
-namespace FrontEnd4IdleStrategyFS.PreBack.HexGlobal
+namespace FrontEnd4IdleStrategyFS.Display.HexGlobal
 
-open FrontEnd4IdleStrategyFS.PreBack.HexGlobal.Domain
+open Domain
 open Godot
 open FSharpPlus
 open FSharpPlus.Data
