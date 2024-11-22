@@ -1,10 +1,21 @@
 using Godot;
-using System;
 
 [Tool]
 public partial class HexPlanetManager : Node3D
 {
-    [Export] private bool _regenerate;
+    [Export]
+    private bool Regenerate
+    {
+        get => _regenerate;
+        set
+        {
+            if (!value) return;
+            UpdateRenderObjects();
+            _regenerate = false;
+        }
+    }
+
+    private bool _regenerate = false;
 
     public HexPlanet HexPlanet;
     private HexPlanet _prevHexPlanet;
@@ -18,15 +29,6 @@ public partial class HexPlanetManager : Node3D
         UpdateRenderObjects();
     }
 
-    public override void _Process(double delta)
-    {
-        if (_regenerate)
-        {
-            UpdateRenderObjects();
-            _regenerate = false;
-        }
-    }
-
     // Called when the whole sphere must be regenerated
     public void UpdateRenderObjects()
     {
@@ -34,14 +36,13 @@ public partial class HexPlanetManager : Node3D
         if (_hexChunkRenders == null)
         {
             GD.Print("_hexChunkRenders is null");
+            return;
         }
         else
-        {
-            foreach (Node child in _hexChunkRenders.GetChildren())
+            foreach (var child in _hexChunkRenders.GetChildren())
             {
                 child.QueueFree();
             }
-        }
 
         if (HexPlanet == null)
         {
@@ -50,14 +51,14 @@ public partial class HexPlanetManager : Node3D
 
         HexPlanetHexGenerator.GeneratePlanetTilesAndChunks(HexPlanet);
 
-        for (int i = 0; i < HexPlanet.Chunks.Count; i++)
+        for (var i = 0; i < HexPlanet.Chunks.Count; i++)
         {
-            HexChunkRenderer chunkGO = new HexChunkRenderer();
-            chunkGO.Name = "Chunk " + i;
-            chunkGO.Position = Vector3.Zero;
-            chunkGO.SetHexChunk(HexPlanet, i);
-            chunkGO.UpdateMesh();
-            _hexChunkRenders.AddChild(chunkGO);
+            var chunkRenderer = new HexChunkRenderer();
+            chunkRenderer.Name = "Chunk " + i;
+            chunkRenderer.Position = Vector3.Zero;
+            chunkRenderer.SetHexChunk(HexPlanet, i);
+            chunkRenderer.UpdateMesh();
+            _hexChunkRenders.AddChild(chunkRenderer);
         }
     }
 }

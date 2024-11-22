@@ -30,7 +30,7 @@ public partial class HexChunkRenderer : MeshInstance3D
 
     public override void _Ready()
     {
-        _planet = (GetTree().GetFirstNodeInGroup("HexPlanetManager") as HexPlanetManager).HexPlanet;
+        _planet = (GetTree().GetFirstNodeInGroup("HexPlanetManager") as HexPlanetManager)!.HexPlanet;
         _planet.GetChunk(RenderedChunkId).OnChunkChange += OnChunkChange;
         UpdateMesh();
     }
@@ -39,7 +39,7 @@ public partial class HexChunkRenderer : MeshInstance3D
     {
         // if (Application.isPlaying)
         // {
-        if (_planet.IsReady && GetHexChunk().IsDirty)
+        if (_planet.IsReady && (GetHexChunk()?.IsDirty ?? false))
         {
             UpdateMesh();
             GetHexChunk().IsDirty = false;

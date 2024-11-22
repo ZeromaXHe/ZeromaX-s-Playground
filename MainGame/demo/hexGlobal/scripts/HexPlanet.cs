@@ -20,7 +20,7 @@ public partial class HexPlanet : Node3D
 
     public List<HexTile> Tiles;
     public List<HexChunk> Chunks;
-    
+
     public bool IsReady = false;
 
     public override void _Ready()
@@ -36,7 +36,7 @@ public partial class HexPlanet : Node3D
 
     public HexChunk GetChunk(int id)
     {
-        return Chunks[id];
+        return Chunks?[id];
     }
 
     public void ClearSpheresAndLines()

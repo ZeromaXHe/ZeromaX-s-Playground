@@ -1,11 +1,5 @@
 namespace FrontEnd4IdleStrategyFS.Display.HexGlobal
 
-open System
-open System.Reflection
-open System.Runtime.InteropServices
-open System.Runtime.Loader
-open System.Threading
-open FrontEnd4IdleStrategyFS.Global.Common
 open Godot
 
 type HexPlanetManagerFS() as this =
@@ -14,8 +8,6 @@ type HexPlanetManagerFS() as this =
     let _hexChunkRenders = lazy this.GetNode<Node3D> "HexChunkRenders"
 
     let mutable _hexGlobalEntry: HexEntry option = None
-
-    let mutable _chunkAddedSub: IDisposable option = None
 
     let clearRenderObjects () =
         if _hexChunkRenders.Value = null then
@@ -29,37 +21,26 @@ type HexPlanetManagerFS() as this =
                 this._subdivisions,
                 this._chunkSubdivisions,
                 this._planetRadius,
-                this._maxHeight,
                 this._minHeight,
-                this._octaves,
+                this._maxHeight,
                 this._noiseScaling,
+                this._octaves,
                 this._lacunarity,
                 this._persistence
             )
             |> Some
 
-        _chunkAddedSub <-
-            _hexGlobalEntry.Value.ChunksAdded
-            |> ObservableSyncContextUtil.subscribePost (fun chunks ->
-                chunks
-                |> List.iteri (fun i c ->
-                    let chunkRender = new HexChunkRendererFS(_hexGlobalEntry.Value)
-                    chunkRender.Name <- $"Chunk {i}"
-                    chunkRender.Position <- Vector3.Zero
-                    chunkRender._renderedChunkId <- c.Id
-                    // GD.Print $"Chunk {i} added"
-                    _hexChunkRenders.Value.AddChild chunkRender
-                    chunkRender.UpdateMesh() // 进入场景树时不会自动调用 _Ready？手动调用下
-                ))
-            |> Some
+        clearRenderObjects ()
 
-        // 必须在同步上下文中执行，否则 Init 内容不会被响应式编程 Subscribe 监听到（会比上面监听逻辑更早执行）
-        SynchronizationContext.Current.Post(
-            (fun _ ->
-                clearRenderObjects ()
-                _hexGlobalEntry.Value.GeneratePlanetTilesAndChunks()),
-            null
-        )
+        _hexGlobalEntry.Value.GeneratePlanetTilesAndChunks()
+        |> List.iteri (fun i c ->
+            let chunkRender = new HexChunkRendererFS()
+            chunkRender.Name <- $"Chunk {i}"
+            chunkRender.Position <- Vector3.Zero
+            chunkRender._renderedChunkId <- c.Id
+            // GD.Print $"Chunk {i} added"
+            chunkRender.Mesh <- _hexGlobalEntry.Value.GetHexChunkMesh c.Id // 进入场景树时不会自动调用 _Ready？手动调用下
+            _hexChunkRenders.Value.AddChild chunkRender)
 
     let mutable _regenerate = false
 
@@ -83,19 +64,5 @@ type HexPlanetManagerFS() as this =
     member val _chunkSubdivisions: int = 3 with get, set
 
     override this._Ready() =
-        // TODO：这些都没用，感觉 C# 继承 F# 的方式写 Tool 完全无法避免报错：.NET: Failed to unload assemblies
-        let handle = GCHandle.Alloc(this)
-        // 不确定这里会不会调用
-        let alc = AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly())
-        GD.Print $"FS ALC: {alc} ALC is null? {alc = null}"
-        alc.add_Unloading (fun assemblyLoadContext ->
-            GD.Print "Start Unloading HexPlanetManagerFS"
-            _chunkAddedSub |> Option.iter _.Dispose()
-            _chunkAddedSub <- None
-            _hexGlobalEntry <- None
-            clearRenderObjects ()
-            GD.Print "End Unloading HexPlanetManagerFS"
-            // handle.Free()
-        )
-
+        // GD.Print "HexPlanetManagerFS _Ready" // 不能理解为什么这个在 [Tool] 中总是打印两次
         init ()

@@ -15,16 +15,10 @@ sky = SubResource("Sky_a4egl")
 tonemap_mode = 2
 glow_enabled = true
 
-[node name="HexPlanetManager" type="Node3D"]
+[node name="HexPlanetManager" type="Node3D" node_paths=PackedStringArray("_hexChunkRenders")]
 script = ExtResource("1_ed4rs")
-PlanetRadius = 100.0
-Subdivisions = 3
-ChunkSubdivisions = 3
-Octaves = 1
-Persistence = 0.5
-Lacunarity = 2.0
-MaxHeight = 30.0
-NoiseScaling = 100.0
+_regenerate = false
+_hexChunkRenders = NodePath("HexChunkRenders")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_vkwl7")

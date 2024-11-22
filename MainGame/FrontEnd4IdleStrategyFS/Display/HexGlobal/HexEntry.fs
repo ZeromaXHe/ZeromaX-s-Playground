@@ -11,17 +11,15 @@ type HexEntry
         subdivisions: int,
         chunkSubdivision: int,
         radius: float32,
-        maxHeight: float32,
         minHeight: float32,
-        octaves: int,
+        maxHeight: float32,
         noiseScaling: float32,
+        octaves: int,
         lacunarity: float32,
         persistence: float32
     ) =
     /// 星球状态
     let planetSubject = Subject.behavior Repository.emptyPlanet
-
-    let chunksAdded = new Subject<HexChunk list>()
 
     let injectorSubject =
         Subject.behavior
@@ -68,14 +66,10 @@ type HexEntry
             resultHandler opt.Value
         else
             defaultVal
-    
-    member this.ChunksAdded = chunksAdded |> Observable.asObservable
 
     member this.GeneratePlanetTilesAndChunks() =
         Generator.generatePlanetTilesAndChunks
-        |> planetUpdater (fun (_, chunks) -> chunksAdded.OnNext chunks)
+        |> planetUpdater snd
 
     member this.GetHexChunkMesh chunkId =
-        Generator.getChunkMesh chunkId
-        |> planetOptionUpdater id null
-        
+        Generator.getChunkMesh chunkId |> planetOptionUpdater id null
