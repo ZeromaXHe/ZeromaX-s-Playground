@@ -1,6 +1,7 @@
-namespace FrontEnd4IdleStrategyFS.Display.HexGlobal
+namespace FrontEndToolFS.HexGlobal
 
-open FrontEnd4IdleStrategyFS.Global.Common
+open FrontEndCommonFS.DataStructure
+open FrontEndCommonFS.Util
 open Domain
 open HexDependency
 open Godot

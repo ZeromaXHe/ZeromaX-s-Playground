@@ -1,0 +1,22 @@
+﻿<Project Sdk="Godot.NET.Sdk/4.3.0">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="Util\BackEndUtil.fs" />
+        <Compile Include="Util\ObservableSyncContextUtil.fs" />
+        <Compile Include="Constant\Constants.fs" />
+        <Compile Include="DataStructure\Octree.fs" />
+        <Compile Include="DataStructure\GeodesicPoints.fs" />
+        <Compile Include="DataStructure\PerlinTerrain.fs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="FSharp.Control.Reactive" Version="5.0.5" />
+      <PackageReference Include="FSharpPlus" Version="1.6.1" />
+    </ItemGroup>
+
+</Project>

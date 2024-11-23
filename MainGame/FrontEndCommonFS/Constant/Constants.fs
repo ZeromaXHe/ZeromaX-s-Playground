@@ -1,4 +1,4 @@
-namespace FrontEnd4IdleStrategyFS.Global.Common
+namespace FrontEndCommonFS.Constant
 
 open Godot
 

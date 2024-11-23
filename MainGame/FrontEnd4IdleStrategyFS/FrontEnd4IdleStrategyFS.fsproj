@@ -6,22 +6,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Global\Common\BackEndUtil.fs" />
-        <Compile Include="Global\Common\Constants.fs" />
-        <Compile Include="Global\Common\ObservableSyncContextUtil.fs" />
-        <Compile Include="Global\Common\Octree.fs" />
-        <Compile Include="Global\Common\GeodesicPoints.fs" />
-        <Compile Include="Global\Common\PerlinTerrain.fs" />
         <Compile Include="Global\Adaptor\AStar2DAdapter.fs" />
         <Compile Include="Global\Adaptor\TileMapLayerAdapter.fs" />
         <Compile Include="Global\GlobalNodeFS.fs" />
-        <Compile Include="Display\HexGlobal\Domain.fs" />
-        <Compile Include="Display\HexGlobal\HexDependency.fs" />
-        <Compile Include="Display\HexGlobal\Repository.fs" />
-        <Compile Include="Display\HexGlobal\Generator.fs" />
-        <Compile Include="Display\HexGlobal\HexEntry.fs" />
-        <Compile Include="Display\HexGlobal\HexChunkRendererFS.fs" />
-        <Compile Include="Display\HexGlobal\HexPlanetManagerFS.fs" />
         <Compile Include="Display\InGame\MainMenuFS.fs" />
         <Compile Include="Display\InGame\MarchingLineFS.fs" />
         <Compile Include="Display\InGame\TileGuiFS.fs" />
@@ -31,6 +18,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\BackEnd4IdleStrategyFS\BackEnd4IdleStrategyFS.fsproj" />
+      <ProjectReference Include="..\FrontEndCommonFS\FrontEndCommonFS.fsproj" />
     </ItemGroup>
 
 </Project>

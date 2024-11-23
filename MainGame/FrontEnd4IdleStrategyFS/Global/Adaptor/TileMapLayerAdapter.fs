@@ -2,7 +2,7 @@ namespace FrontEnd4IdleStrategyFS.Global.Adaptor
 
 open Godot
 open BackEnd4IdleStrategyFS.Godot.IAdapter
-open FrontEnd4IdleStrategyFS.Global.Common
+open FrontEndCommonFS.Util
 
 type TileMapLayerAdapter(tileMapLayer: TileMapLayer) =
     interface ITileMapLayer with

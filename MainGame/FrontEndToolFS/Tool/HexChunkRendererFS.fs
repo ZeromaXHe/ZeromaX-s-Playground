@@ -1,4 +1,4 @@
-namespace FrontEnd4IdleStrategyFS.Display.HexGlobal
+namespace FrontEndToolFS.Tool
 
 open Godot
 

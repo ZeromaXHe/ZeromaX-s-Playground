@@ -1,5 +1,6 @@
-namespace FrontEnd4IdleStrategyFS.Display.HexGlobal
+namespace FrontEndToolFS.Tool
 
+open FrontEndToolFS.HexGlobal
 open Godot
 
 type HexPlanetManagerFS() as this =

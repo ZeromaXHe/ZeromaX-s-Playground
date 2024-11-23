@@ -2,9 +2,10 @@ namespace FrontEnd4IdleStrategyFS.Display.InGame
 
 open BackEnd4IdleStrategyFS.Game.RepositoryT
 open BackEnd4IdleStrategyFS.Game.DomainT
-open FrontEnd4IdleStrategyFS.Global.Common
-open Godot
+open FrontEndCommonFS.Util
+open FrontEndCommonFS.Constant
 open FrontEnd4IdleStrategyFS.Global
+open Godot
 
 type InGameMenuFS() as this =
     inherit Control()

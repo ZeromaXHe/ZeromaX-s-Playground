@@ -1,4 +1,4 @@
-namespace FrontEnd4IdleStrategyFS.Global.Common
+namespace FrontEndCommonFS.DataStructure
 
 open System.Collections.Generic
 open Godot

@@ -3,10 +3,11 @@ namespace FrontEnd4IdleStrategyFS.Display.InGame
 open System.Threading
 open BackEnd4IdleStrategyFS.Game.DomainT
 open BackEnd4IdleStrategyFS.Game.EventT
-open FrontEnd4IdleStrategyFS.Global.Common
+open FrontEndCommonFS.Util
+open FrontEndCommonFS.Constant
+open FrontEnd4IdleStrategyFS.Global
 open Godot
 open FSharp.Control.Reactive
-open FrontEnd4IdleStrategyFS.Global
 
 type MapBoardFS() as this =
     inherit Node2D()

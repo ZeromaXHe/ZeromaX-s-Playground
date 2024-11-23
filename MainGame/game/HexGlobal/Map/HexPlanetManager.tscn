@@ -15,10 +15,8 @@ sky = SubResource("Sky_a4egl")
 tonemap_mode = 2
 glow_enabled = true
 
-[node name="HexPlanetManager" type="Node3D" node_paths=PackedStringArray("_hexChunkRenders")]
+[node name="HexPlanetManager" type="Node3D"]
 script = ExtResource("1_ed4rs")
-_regenerate = false
-_hexChunkRenders = NodePath("HexChunkRenders")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_vkwl7")

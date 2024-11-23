@@ -1,4 +1,4 @@
-namespace FrontEnd4IdleStrategyFS.Display.HexGlobal
+namespace FrontEndToolFS.HexGlobal
 
 open Domain
 
@@ -9,10 +9,10 @@ module HexDependency =
           Subdivisions: int
           ChunkSubdivision: int
           Radius: float32
-          MaxHeight: float32
           MinHeight: float32
-          Octaves: int
+          MaxHeight: float32
           NoiseScaling: float32
+          Octaves: int
           Lacunarity: float32
           Persistence: float32
           // 仓储

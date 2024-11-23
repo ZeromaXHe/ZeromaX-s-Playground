@@ -89,7 +89,8 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Threading;
-using FrontEnd4IdleStrategyFS.Display.HexGlobal;
+using FrontEndToolFS.HexGlobal;
+using FrontEndToolFS.Tool;
 using Godot;
 
 namespace ZeromaXPlayground.game.HexGlobal.Map;

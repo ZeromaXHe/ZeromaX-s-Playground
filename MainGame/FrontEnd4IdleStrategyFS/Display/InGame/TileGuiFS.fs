@@ -1,7 +1,7 @@
 namespace FrontEnd4IdleStrategyFS.Display.InGame
 
 open BackEnd4IdleStrategyFS.Game.DomainT
-open FrontEnd4IdleStrategyFS.Global.Common
+open FrontEndCommonFS.Util
 open Godot
 
 type TileGuiFS() as this =

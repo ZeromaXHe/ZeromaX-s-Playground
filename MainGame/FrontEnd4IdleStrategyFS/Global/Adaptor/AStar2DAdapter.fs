@@ -2,7 +2,7 @@ namespace FrontEnd4IdleStrategyFS.Global.Adaptor
 
 open Godot
 open BackEnd4IdleStrategyFS.Godot.IAdapter
-open FrontEnd4IdleStrategyFS.Global.Common
+open FrontEndCommonFS.Util
 
 type AStar2DAdapter(aStar2D: AStar2D) =
     interface IAStar2D with

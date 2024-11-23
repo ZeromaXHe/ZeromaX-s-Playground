@@ -1,10 +1,8 @@
-namespace FrontEnd4IdleStrategyFS.Display.HexGlobal
+namespace FrontEndToolFS.HexGlobal
 
-open Domain
 open HexDependency
 open FSharp.Control.Reactive
 open FSharpPlus.Data
-open System.Reactive.Subjects
 
 type HexEntry
     (
@@ -28,10 +26,10 @@ type HexEntry
               Subdivisions = subdivisions
               ChunkSubdivision = chunkSubdivision
               Radius = radius
-              MaxHeight = maxHeight
               MinHeight = minHeight
-              Octaves = octaves
+              MaxHeight = maxHeight
               NoiseScaling = noiseScaling
+              Octaves = octaves
               Lacunarity = lacunarity
               Persistence = persistence
               // 仓储

@@ -1,4 +1,4 @@
-namespace FrontEnd4IdleStrategyFS.Global.Common
+namespace FrontEndCommonFS.Util
 
 open System.Threading
 open FSharp.Control.Reactive
