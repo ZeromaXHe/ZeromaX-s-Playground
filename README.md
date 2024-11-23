@@ -373,6 +373,8 @@ public partial class UnloadingIssuesSample : Node
 
 具体原因很难查，总之尽量避免这些提到的问题，现在应该没问题了。
 
+**【2024-11-23 13:34】**最终还是实现了 **C# 继承 F# 方式**的实现，需要做的就是把程序集（也就是 F# 项目）拆细一点。单独把 F# 编辑器 Tool 相关代码拆分出来，就不会报这个错了。（当然，这次也控制变量法全面测试并证实了：响应式编程订阅逻辑、`MeshInstance3D` 子类 `HexChunkRenderFS` 在构造函数持有外界编辑器工具的变量 `HexEntry` 等做法也必须避免。只不过不太确定如果用 `AssemblyLoadContext` 的 `Unloading` 事件处理逻辑来取消订阅行不行……）
+
 
 
 ### 小知识

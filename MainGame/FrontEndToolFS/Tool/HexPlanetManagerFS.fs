@@ -35,16 +35,14 @@ type HexPlanetManagerFS() as this =
 
         _hexGlobalEntry.Value.GeneratePlanetTilesAndChunks()
         |> List.iteri (fun i c ->
-            let chunkRender = new HexChunkRendererFS()
+            let chunkRender = new MeshInstance3D()
             chunkRender.Name <- $"Chunk {i}"
             chunkRender.Position <- Vector3.Zero
-            chunkRender._renderedChunkId <- c.Id
+            chunkRender.Mesh <- _hexGlobalEntry.Value.GetHexChunkMesh c.Id
             // GD.Print $"Chunk {i} added"
-            chunkRender.Mesh <- _hexGlobalEntry.Value.GetHexChunkMesh c.Id // 进入场景树时不会自动调用 _Ready？手动调用下
             _hexChunkRenders.Value.AddChild chunkRender)
 
     let mutable _regenerate = false
-
     member this._Regenerate
         with get () = _regenerate
         and set value =
@@ -54,8 +52,8 @@ type HexPlanetManagerFS() as this =
 
     // Perlin 噪声相关 Export
     member val _octaves: int = 1 with get, set
-    member val _persistence: float32 = 0.5f with get, set
     member val _lacunarity: float32 = 2.0f with get, set
+    member val _persistence: float32 = 0.5f with get, set
     member val _minHeight: float32 = 0.0f with get, set
     member val _maxHeight: float32 = 30.0f with get, set
     member val _noiseScaling: float32 = 100.0f with get, set
@@ -65,5 +63,5 @@ type HexPlanetManagerFS() as this =
     member val _chunkSubdivisions: int = 3 with get, set
 
     override this._Ready() =
-        // GD.Print "HexPlanetManagerFS _Ready" // 不能理解为什么这个在 [Tool] 中总是打印两次
+        GD.Print "HexPlanetManagerFS _Ready" // 不能理解为什么这个在 [Tool] 中第一次总是打印两次
         init ()

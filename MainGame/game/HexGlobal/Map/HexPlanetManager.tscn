@@ -17,6 +17,14 @@ glow_enabled = true
 
 [node name="HexPlanetManager" type="Node3D"]
 script = ExtResource("1_ed4rs")
+PlanetRadius = 100.0
+Subdivisions = 3
+ChunkSubdivisions = 3
+MaxHeight = 30.0
+NoiseScaling = 100.0
+Octaves = 1
+Lacunarity = 2.0
+Persistence = 0.5
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_vkwl7")

@@ -12,7 +12,6 @@
         <Compile Include="HexGlobal\Repository.fs" />
         <Compile Include="HexGlobal\Generator.fs" />
         <Compile Include="HexGlobal\HexEntry.fs" />
-        <Compile Include="Tool\HexChunkRendererFS.fs" />
         <Compile Include="Tool\HexPlanetManagerFS.fs" />
     </ItemGroup>
 

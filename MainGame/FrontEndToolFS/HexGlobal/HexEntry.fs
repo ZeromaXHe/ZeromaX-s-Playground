@@ -64,7 +64,7 @@ type HexEntry
             resultHandler opt.Value
         else
             defaultVal
-
+    
     member this.GeneratePlanetTilesAndChunks() =
         Generator.generatePlanetTilesAndChunks
         |> planetUpdater snd
