@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://ctsv3hyrh2w4j"]
+
+[ext_resource type="Script" path="res://game/HexPlane/Map/HexGrid.cs" id="1_ncacf"]
+
+[node name="HexGrid" type="Node3D"]
+script = ExtResource("1_ncacf")
+Width = 6
+Height = 6

@@ -1,0 +1,26 @@
+[gd_scene load_steps=3 format=4 uid="uid://b2320yq2a2g7m"]
+
+[ext_resource type="Script" path="res://game/HexPlane/Map/HexCell.cs" id="1_ko25f"]
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_jeckn"]
+_surfaces = [{
+"aabb": AABB(1.33975, 0, -10, 17.3205, 1e-05, 20),
+"attribute_data": PackedByteArray("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="),
+"format": 34359742487,
+"index_count": 18,
+"index_data": PackedByteArray("AAABAAIAAAADAAEAAAAEAAMAAAAFAAQAAAAGAAUAAAACAAYA"),
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 7,
+"vertex_data": PackedByteArray("AAAgQQAAAAAAAAAAM0iVQQAAAAAAAKBAAAAgQQAAAAAAACBBM0iVQQAAAAAAAKDAAAAgQQAAAAAAACDB0HyrPwAAAAAAAKDA0HyrPwAAAAAAAKBA/3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/78=")
+}]
+
+[node name="HexCell" type="MeshInstance3D"]
+mesh = SubResource("ArrayMesh_jeckn")
+script = ExtResource("1_ko25f")
+
+[node name="Label" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0.01, 0)
+pixel_size = 0.05
+text = "Label.X
+Label.Y"

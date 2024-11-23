@@ -54,8 +54,9 @@ module GeodesicPoints =
             Vector3(z, x, 0.0f); Vector3(-z, x, 0.0f); Vector3(z, -x, 0.0f); Vector3(-z, -x, 0.0f);
         ]
 
+        // 这里的索引并不参与渲染，只是用于细分的计算，所以顺序是按 Unity 的顺序写的
         let indices = [
-            1; 4; 0;
+            1; 4; 0; // UnityHexPlanet C# 版的顺序，在 Godot 里按道理用来渲染得写成 1, 0, 4
             4; 9; 0;
             4; 5; 9;
             8; 5; 4;
