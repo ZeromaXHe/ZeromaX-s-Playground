@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://dgi5lqferr3en"]
+
+[ext_resource type="Script" path="res://game/HexPlane/Map/HexMesh.cs" id="1_oa61u"]
+
+[node name="HexMesh" type="MeshInstance3D"]
+script = ExtResource("1_oa61u")

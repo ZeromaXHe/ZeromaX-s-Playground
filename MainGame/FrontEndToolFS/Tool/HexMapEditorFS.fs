@@ -27,7 +27,7 @@ type HexMapEditorFS() as this =
     override this._Input e =
         match e with
         | :? InputEventMouseButton as b when b.Pressed && b.ButtonIndex = MouseButton.Left ->
-            GD.Print "Mouse left button pressed"
+            // GD.Print "Mouse left button pressed"
             let result = _hexGrid.Value.CameraRayCastToMouse()
 
             if result = null then

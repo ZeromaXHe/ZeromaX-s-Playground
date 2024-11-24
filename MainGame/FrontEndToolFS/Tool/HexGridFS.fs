@@ -3,10 +3,12 @@ namespace FrontEndToolFS.Tool
 open FrontEndToolFS.HexPlane
 open Godot
 
-type HexGridFS() =
+type HexGridFS() as this =
     inherit Node3D()
 
-    let _hexCellScene = GD.Load("res://game/HexPlane/Map/HexCell.tscn") :?> PackedScene
+    let _hexCellScene = lazy (GD.Load("res://game/HexPlane/Map/HexCell.tscn") :?> PackedScene)
+
+    let _hexMesh = lazy this.GetNode<HexMeshFS>("HexMesh")
 
     let mutable _cells: HexCellFS array = Array.empty
 
@@ -15,7 +17,7 @@ type HexGridFS() =
     member val _defaultColor: Color = Colors.White with get, set
     member val _touchedColor: Color = Colors.Magenta with get, set
 
-    member this.CameraRayCastToMouse () =
+    member this.CameraRayCastToMouse() =
         let spaceState = this.GetWorld3D().DirectSpaceState
         let camera = this.GetViewport().GetCamera3D()
         let mousePos = this.GetViewport().GetMousePosition()
@@ -32,20 +34,34 @@ type HexGridFS() =
         let index = coordinates.X + coordinates.Z * this._width + coordinates.Z / 2
         let cell = _cells[index]
         cell.Color <- color
-        cell.GenerateMesh()
+        _hexMesh.Value.Triangulate _cells
         GD.Print $"rayCast position: {pos.ToString()}, coordinates: {coordinates.ToString()}"
 
     override this._Ready() =
         GD.Print "HexGridFS _Ready"
-        _cells <- Array.init (this._width * this._height) (fun _ -> _hexCellScene.Instantiate<HexCellFS>())
+        _cells <- Array.init (this._width * this._height) (fun _ -> _hexCellScene.Value.Instantiate<HexCellFS>())
 
         for i in 0 .. _cells.Length - 1 do
             let z = i / this._width
             let x = i % this._width
-
             let cell = _cells[i]
             cell.Coordinates <- HexCoordinates.FromOffsetCoordinates x z
             cell.Color <- this._defaultColor
+
+            if x > 0 then
+                cell.SetNeighbor HexDirection.W (Some _cells[i - 1])
+
+            if z > 0 then
+                if z &&& 1 = 0 then
+                    cell.SetNeighbor HexDirection.SE (Some _cells[i - this._width])
+
+                    if x > 0 then
+                        cell.SetNeighbor HexDirection.SW (Some _cells[i - this._width - 1])
+                else
+                    cell.SetNeighbor HexDirection.SW (Some _cells[i - this._width])
+
+                    if x < this._width - 1 then
+                        cell.SetNeighbor HexDirection.SE (Some _cells[i - this._width + 1])
 
             cell.Position <-
                 Vector3(
@@ -58,22 +74,4 @@ type HexGridFS() =
             label.Text <- cell.Coordinates.ToStringOnSeparateLines()
             this.AddChild cell
 
-    // override this._Input e =
-    //     match e with
-    //     | :? InputEventMouseButton as b when b.Pressed && b.ButtonIndex = MouseButton.Left ->
-    //         GD.Print "Mouse left button pressed"
-    //         let result = this.CameraRayCastToMouse()
-    //
-    //         if result = null then
-    //             GD.Print "rayCast null result"
-    //         elif result.Count = 0 then
-    //             GD.Print "rayCast empty result"
-    //         else
-    //             let bool, res = result.TryGetValue "position"
-    //
-    //             if bool then
-    //                 let pos = res.As<Vector3>()
-    //                 this.ColorCell pos this._touchedColor
-    //             else
-    //                 GD.Print "rayCast no position"
-    //     | _ -> ()
+        _hexMesh.Value.Triangulate _cells

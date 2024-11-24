@@ -1,10 +1,11 @@
 namespace FrontEndToolFS.Tool
 
 open FrontEndToolFS.HexPlane
+open FrontEndToolFS.HexPlane.HexDirection
 open Godot
 
 type HexCellFS() =
-    inherit MeshInstance3D()
+    inherit Node3D()
 
     [<DefaultValue>]
     val mutable Coordinates: HexCoordinates
@@ -21,22 +22,10 @@ type HexCellFS() =
         surfaceTool.AddIndex <| vIndex + 2
         vIndex + 3
 
-    member this.GenerateMesh() =
-        let surfaceTool = new SurfaceTool()
-        surfaceTool.Begin(Mesh.PrimitiveType.Triangles)
-        surfaceTool.SetUV Vector2.Zero
-        surfaceTool.SetColor this.Color
+    member val neighbors: HexCellFS option array = Array.create 6 None
 
-        // Godot 渲染面方向和 Unity 相反
-        for i in 0..5 do
-            addTriangle Vector3.Zero HexMetrics.conners[i + 1] HexMetrics.conners[i] surfaceTool (i * 3)
-            |> ignore
+    member this.GetNeighbor(direction: HexDirection) = this.neighbors[int direction]
 
-        surfaceTool.GenerateNormals()
-        let material = new StandardMaterial3D()
-        material.VertexColorUseAsAlbedo <- true
-        surfaceTool.SetMaterial(material)
-        this.Mesh <- surfaceTool.Commit()
-        this.CreateTrimeshCollision()
-
-    override this._Ready() = this.GenerateMesh()
+    member this.SetNeighbor (direction: HexDirection) cell =
+        this.neighbors[int direction] <- cell
+        cell |> Option.iter (fun c -> c.neighbors[int <| direction.Opposite()] <- Some this)
