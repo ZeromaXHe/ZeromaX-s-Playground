@@ -9,7 +9,7 @@ type HexDirection =
     | NW = 5
 
 module HexDirection =
-    let all () = [ 0..5 ] |> List.map enum<HexDirection>
+    let allHexDirs () = [ 0..5 ] |> List.map enum<HexDirection>
 
     // 扩展方法（其他文件中需要 open HexDirection 模块后可用）
     type HexDirection with
