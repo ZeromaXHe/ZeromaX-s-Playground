@@ -1,0 +1,61 @@
+[gd_scene load_steps=4 format=3 uid="uid://bv4ennj4u5ap7"]
+
+[ext_resource type="Script" path="res://game/HexPlane/Menu/HexMapEditor.cs" id="1_pjtj7"]
+[ext_resource type="PackedScene" uid="uid://ctsv3hyrh2w4j" path="res://game/HexPlane/Map/HexGrid.tscn" id="2_g6vaw"]
+
+[sub_resource type="ButtonGroup" id="ButtonGroup_1v4oh"]
+
+[node name="HexMapEditor" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_pjtj7")
+Colors = PackedColorArray(1, 0.862745, 0, 1, 0, 0.682353, 0, 1, 0.0745098, 0.219608, 0.839216, 1, 1, 1, 1, 1)
+
+[node name="SubViewportContainer" type="SubViewportContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+stretch = true
+
+[node name="SubViewport" type="SubViewport" parent="SubViewportContainer"]
+handle_input_locally = false
+size = Vector2i(1152, 648)
+render_target_update_mode = 4
+
+[node name="HexGrid" parent="SubViewportContainer/SubViewport" instance=ExtResource("2_g6vaw")]
+
+[node name="PanelContainer" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="ColorVBox" type="VBoxContainer" parent="PanelContainer"]
+layout_mode = 2
+
+[node name="Yellow" type="CheckBox" parent="PanelContainer/ColorVBox"]
+layout_mode = 2
+button_group = SubResource("ButtonGroup_1v4oh")
+text = "Yellow"
+
+[node name="Green" type="CheckBox" parent="PanelContainer/ColorVBox"]
+layout_mode = 2
+button_group = SubResource("ButtonGroup_1v4oh")
+text = "Green"
+
+[node name="Blue" type="CheckBox" parent="PanelContainer/ColorVBox"]
+layout_mode = 2
+button_group = SubResource("ButtonGroup_1v4oh")
+text = "Blue"
+
+[node name="White" type="CheckBox" parent="PanelContainer/ColorVBox"]
+layout_mode = 2
+button_pressed = true
+button_group = SubResource("ButtonGroup_1v4oh")
+text = "White"

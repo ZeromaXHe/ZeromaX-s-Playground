@@ -16,6 +16,7 @@
         <Compile Include="Tool\HexPlanetManagerFS.fs" />
         <Compile Include="Tool\HexCellFS.fs" />
         <Compile Include="Tool\HexGridFS.fs" />
+        <Compile Include="Tool\HexMapEditorFS.fs" />
     </ItemGroup>
 
     <ItemGroup>

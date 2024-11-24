@@ -37,8 +37,8 @@ public partial class HexGrid : HexGridFS
         base._Ready();
     }
 
-    public override void _Input(InputEvent e)
-    {
-        base._Input(e);
-    }
+    // public override void _Input(InputEvent e)
+    // {
+    //     base._Input(e);
+    // }
 }
