@@ -3,15 +3,37 @@ namespace FrontEndToolFS.Tool
 open FrontEndToolFS.HexPlane
 open Godot
 
-type HexGridFS() =
+type HexGridFS() as this =
     inherit Node3D()
 
     let _hexCellScene = GD.Load("res://game/HexPlane/Map/HexCell.tscn") :?> PackedScene
 
-    let mutable _cells = Array.empty
+    let mutable _cells: HexCellFS array = Array.empty
+
+    let cameraRayCastToMouse () =
+        let spaceState = this.GetWorld3D().DirectSpaceState
+        let camera = this.GetViewport().GetCamera3D()
+        let mousePos = this.GetViewport().GetMousePosition()
+
+        let origin = camera.ProjectRayOrigin mousePos
+        let endPoint = origin + camera.ProjectRayNormal mousePos * 1000.0f
+        let query = PhysicsRayQueryParameters3D.Create(origin, endPoint)
+        query.CollideWithAreas <- true
+
+        spaceState.IntersectRay query
+
+    let touchCell (pos: Vector3) =
+        let coordinates = HexCoordinates.FromPosition pos
+        let index = coordinates.X + coordinates.Z * this._width + coordinates.Z / 2
+        let cell = _cells[index]
+        cell.Color <- this._touchedColor
+        cell.GenerateMesh()
+        GD.Print $"rayCast position: {pos.ToString()}, coordinates: {coordinates.ToString()}"
 
     member val _width: int = 6 with get, set
     member val _height: int = 6 with get, set
+    member val _defaultColor: Color = Colors.White with get, set
+    member val _touchedColor: Color = Colors.Magenta with get, set
 
     override this._Ready() =
         GD.Print "HexGridFS _Ready"
@@ -23,6 +45,7 @@ type HexGridFS() =
 
             let cell = _cells[i]
             cell.Coordinates <- HexCoordinates.FromOffsetCoordinates x z
+            cell.Color <- this._defaultColor
 
             cell.Position <-
                 Vector3(
@@ -34,3 +57,23 @@ type HexGridFS() =
             let label = cell.GetNode<Label3D>("Label")
             label.Text <- cell.Coordinates.ToStringOnSeparateLines()
             this.AddChild cell
+
+    override this._Input e =
+        match e with
+        | :? InputEventMouseButton as b when b.Pressed && b.ButtonIndex = MouseButton.Left ->
+            GD.Print "Mouse left button pressed"
+            let result = cameraRayCastToMouse ()
+
+            if result = null then
+                GD.Print "rayCast null result"
+            elif result.Count = 0 then
+                GD.Print "rayCast empty result"
+            else
+                let bool, res = result.TryGetValue "position"
+
+                if bool then
+                    let pos = res.As<Vector3>()
+                    touchCell pos
+                else
+                    GD.Print "rayCast no position"
+        | _ -> ()

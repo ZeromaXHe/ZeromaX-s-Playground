@@ -18,8 +18,27 @@ public partial class HexGrid : HexGridFS
         set => _height = value;
     }
 
+    [Export]
+    public Color DefaultColor
+    {
+        get => _defaultColor;
+        set => _defaultColor = value;
+    }
+
+    [Export]
+    public Color TouchedColor
+    {
+        get => _touchedColor;
+        set => _touchedColor = value;
+    }
+
     public override void _Ready()
     {
         base._Ready();
+    }
+
+    public override void _Input(InputEvent e)
+    {
+        base._Input(e);
     }
 }
