@@ -38,35 +38,43 @@ type HexMeshFS() =
         surfaceTool.AddIndex <| vIndex + 3
         vIndex + 4
 
+    let triangulateConnection (surfaceTool: SurfaceTool) (cell: HexCellFS) dir v1 v2 =
+        match cell.GetNeighbor dir with
+        | None -> id
+        | Some neighbor ->
+            let bridge = HexMetrics.getBridge dir
+            let v3 = v1 + bridge
+            let v4 = v2 + bridge
+
+            let quadAdder =
+                addQuad [| v1; v2; v3; v4 |] [| cell.Color; cell.Color; neighbor.Color; neighbor.Color |] surfaceTool
+            // 避免重复绘制
+            if dir > HexDirection.E then
+                quadAdder
+            else
+                match cell.GetNeighbor <| dir.Next() with
+                | None -> quadAdder
+                | Some nextNeighbor ->
+                    let triAdder =
+                        addTriangle
+                            [| v2; v4; v2 + (HexMetrics.getBridge <| dir.Next()) |]
+                            [| cell.Color; neighbor.Color; nextNeighbor.Color |]
+                            surfaceTool
+
+                    quadAdder >> triAdder
+
     let triangulateDir (surfaceTool: SurfaceTool) (cell: HexCellFS) dir =
         let center = cell.Position
-        let bridge = HexMetrics.getBridge dir
         let v1 = center + HexMetrics.getFirstSolidCorner dir
         let v2 = center + HexMetrics.getSecondSolidCorner dir
-        let v3 = v1 + bridge
-        let v4 = v2 + bridge
-        let prevNeighbor = cell.GetNeighbor <| dir.Previous() |> Option.defaultValue cell
-        let neighbor = cell.GetNeighbor dir |> Option.defaultValue cell
-        let nextNeighbor = cell.GetNeighbor <| dir.Next() |> Option.defaultValue cell
-        let c1 = cell.Color
-        let c2 = neighbor.Color
-        let bridgeColor = (c1 + c2) * 0.5f
-        let c3 = (cell.Color + prevNeighbor.Color + neighbor.Color) / 3f
-        let c4 = (cell.Color + neighbor.Color + nextNeighbor.Color) / 3f
 
         let triangleAdder =
             addTriangle [| center; v1; v2 |] (Array.create 3 cell.Color) surfaceTool
 
-        let quadAdder =
-            addQuad [| v1; v2; v3; v4 |] [| c1; c1; bridgeColor; bridgeColor |] surfaceTool
-
-        let gap1TriAdder =
-            addTriangle [| v1; center + HexMetrics.getFirstCorner dir; v3 |] [| c1; c3; bridgeColor |] surfaceTool
-
-        let gap2TriAdder =
-            addTriangle [| v2; v4; center + HexMetrics.getSecondCorner dir |] [| c1; bridgeColor; c4 |] surfaceTool
-
-        triangleAdder >> quadAdder >> gap1TriAdder >> gap2TriAdder
+        if dir <= HexDirection.SE then
+            triangleAdder >> triangulateConnection surfaceTool cell dir v1 v2
+        else
+            triangleAdder
 
     let triangulate (surfaceTool: SurfaceTool) (cell: HexCellFS) vIndex =
         allHexDirs () |> List.map (triangulateDir surfaceTool cell) |> List.reduce (>>)

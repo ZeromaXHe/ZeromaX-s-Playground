@@ -27,4 +27,4 @@ module HexMetrics =
     let getSecondSolidCorner (direction: HexDirection) = getSecondCorner direction * solidFactor
 
     let getBridge (direction: HexDirection) =
-        (getFirstCorner direction + getSecondCorner direction) * 0.5f * blendFactor
+        (getFirstCorner direction + getSecondCorner direction) * blendFactor
