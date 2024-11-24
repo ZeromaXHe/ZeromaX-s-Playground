@@ -36,26 +36,39 @@ layout_mode = 0
 offset_right = 40.0
 offset_bottom = 40.0
 
-[node name="ColorVBox" type="VBoxContainer" parent="PanelContainer"]
+[node name="CellVBox" type="VBoxContainer" parent="PanelContainer"]
 layout_mode = 2
+alignment = 1
 
-[node name="Yellow" type="CheckBox" parent="PanelContainer/ColorVBox"]
+[node name="Yellow" type="CheckBox" parent="PanelContainer/CellVBox"]
 layout_mode = 2
 button_group = SubResource("ButtonGroup_1v4oh")
 text = "Yellow"
 
-[node name="Green" type="CheckBox" parent="PanelContainer/ColorVBox"]
+[node name="Green" type="CheckBox" parent="PanelContainer/CellVBox"]
 layout_mode = 2
 button_group = SubResource("ButtonGroup_1v4oh")
 text = "Green"
 
-[node name="Blue" type="CheckBox" parent="PanelContainer/ColorVBox"]
+[node name="Blue" type="CheckBox" parent="PanelContainer/CellVBox"]
 layout_mode = 2
 button_group = SubResource("ButtonGroup_1v4oh")
 text = "Blue"
 
-[node name="White" type="CheckBox" parent="PanelContainer/ColorVBox"]
+[node name="White" type="CheckBox" parent="PanelContainer/CellVBox"]
 layout_mode = 2
 button_pressed = true
 button_group = SubResource("ButtonGroup_1v4oh")
 text = "White"
+
+[node name="Elevation" type="VSlider" parent="PanelContainer/CellVBox"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+size_flags_horizontal = 4
+max_value = 6.0
+tick_count = 7
+ticks_on_borders = true
+
+[node name="Wireframe" type="CheckButton" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+text = "Wireframe"

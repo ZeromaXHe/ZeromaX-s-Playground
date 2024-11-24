@@ -6,7 +6,8 @@ open Godot
 type HexGridFS() as this =
     inherit Node3D()
 
-    let _hexCellScene = lazy (GD.Load("res://game/HexPlane/Map/HexCell.tscn") :?> PackedScene)
+    let _hexCellScene =
+        lazy (GD.Load("res://game/HexPlane/Map/HexCell.tscn") :?> PackedScene)
 
     let _hexMesh = lazy this.GetNode<HexMeshFS>("HexMesh")
 
@@ -29,13 +30,12 @@ type HexGridFS() as this =
 
         spaceState.IntersectRay query
 
-    member this.ColorCell (pos: Vector3) color =
+    member this.GetCell (pos: Vector3) =
         let coordinates = HexCoordinates.FromPosition pos
         let index = coordinates.X + coordinates.Z * this._width + coordinates.Z / 2
-        let cell = _cells[index]
-        cell.Color <- color
-        _hexMesh.Value.Triangulate _cells
-        GD.Print $"rayCast position: {pos.ToString()}, coordinates: {coordinates.ToString()}"
+        _cells[index]
+
+    member this.Refresh() = _hexMesh.Value.Triangulate _cells
 
     override this._Ready() =
         GD.Print "HexGridFS _Ready"

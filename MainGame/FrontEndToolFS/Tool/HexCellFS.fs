@@ -13,14 +13,14 @@ type HexCellFS() =
     [<DefaultValue>]
     val mutable Color: Color
 
-    let addTriangle v1 v2 v3 (surfaceTool: SurfaceTool) vIndex =
-        surfaceTool.AddVertex v1
-        surfaceTool.AddVertex v2
-        surfaceTool.AddVertex v3
-        surfaceTool.AddIndex <| vIndex
-        surfaceTool.AddIndex <| vIndex + 1
-        surfaceTool.AddIndex <| vIndex + 2
-        vIndex + 3
+    let mutable elevation: int = 0
+
+    member this.Elevation
+        with get () = elevation
+        and set value =
+            elevation <- value
+            let pos = this.Position
+            this.Position <- Vector3(pos.X, float32 value * HexMetrics.elevationStep, pos.Z)
 
     member val neighbors: HexCellFS option array = Array.create 6 None
 
@@ -28,4 +28,13 @@ type HexCellFS() =
 
     member this.SetNeighbor (direction: HexDirection) cell =
         this.neighbors[int direction] <- cell
-        cell |> Option.iter (fun c -> c.neighbors[int <| direction.Opposite()] <- Some this)
+
+        cell
+        |> Option.iter (fun c -> c.neighbors[int <| direction.Opposite()] <- Some this)
+
+    member this.GetEdgeType direction =
+        this.GetNeighbor direction
+        |> Option.map (fun n -> HexMetrics.getEdgeType elevation n.Elevation)
+
+    member this.GetEdgeType(otherCell: HexCellFS) =
+        HexMetrics.getEdgeType elevation otherCell.Elevation
