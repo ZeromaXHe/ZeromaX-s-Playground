@@ -56,7 +56,7 @@ type HexMapCameraFS() as this =
             * damping
             * (float32 delta)
         // GD.Print $"移动摄像头 x:{xDelta}, z:{zDelta} delta:{delta}, distance:{distance}, damping:{damping}, direction:{direction}"
-        this.Position <- this.Position + direction * distance
+        this.Position <- clampPosition this.Position + direction * distance
 
     // Unity 的 z 方向和 Godot 相反，所以这里都是正的
     member val _stickMinZoom = 250.0 with get, set
