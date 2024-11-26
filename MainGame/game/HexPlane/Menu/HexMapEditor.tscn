@@ -12,6 +12,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 1
 script = ExtResource("1_pjtj7")
 Colors = PackedColorArray(1, 0.862745, 0, 1, 0, 0.682353, 0, 1, 0.0745098, 0.219608, 0.839216, 1, 1, 1, 1, 1)
 

@@ -4050,6 +4050,22 @@ public class HexGridChunk : MonoBehaviour {
 实际上，只有当其标高设置为不同的值时，它才需要刷新。如果我们稍后为它指定相同的标高，它甚至不需要重新计算任何东西。因此，我们可以在设定器开始时退出。
 
 ```c#
+	public int Elevation {
+		get {
+			return elevation;
+		}
+		set {
+			if (elevation == value) {
+				return;
+			}
+			…
+		}
+	}
+```
+
+但是，第一次将标高设置为零时，这也将跳过计算，因为这是网格的默认标高。为了防止这种情况，请确保初始值永远不会被使用。
+
+```c#
 	int elevation = int.MinValue;
 ```
 
@@ -4187,9 +4203,9 @@ public class HexGridChunk : MonoBehaviour {
 
 *摄影机层次结构。*
 
-旋转的工作是控制相机看地图的角度。将其旋转设置为（45, 0, 0）。操纵杆控制相机的距离。将其位置设置为（0，0，-45）。
+旋转（swivel）的工作是控制相机看地图的角度。将其旋转（rotation）设置为（45, 0, 0）。操纵杆控制相机的距离。将其位置设置为（0，0，-45）。
 
-现在我们需要一个组件来控制这个钻机。将此组件指定给摄影机层次的根。给它一个旋转和摇杆的参考，在 `Awake` 中取回它们。
+现在我们需要一个组件来控制这个钻机（rig）。将此组件指定给摄影机层次的根。给它一个旋转（swivel）和摇杆（stick）的参考，在 `Awake` 中取回它们。
 
 ```c#
 using UnityEngine;

@@ -41,7 +41,7 @@ type HexMapEditorFS() as this =
             else
                 _hexGrid.Value.GetViewport().SetDebugDraw(Viewport.DebugDrawEnum.Disabled))
 
-    override this._Input e =
+    override this._UnhandledInput e =
         match e with
         | :? InputEventMouseButton as b when b.Pressed && b.ButtonIndex = MouseButton.Left ->
             // GD.Print "Mouse left button pressed"
@@ -59,7 +59,6 @@ type HexMapEditorFS() as this =
                     let cell = _hexGrid.Value.GetCell pos
                     cell.Color <- activeColor
                     cell.Elevation <- activeElevation
-                    _hexGrid.Value.Refresh()
                 else
                     GD.Print "rayCast no position"
         | _ -> ()

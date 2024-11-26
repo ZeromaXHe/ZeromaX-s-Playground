@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3 uid="uid://b13t7sj6f2ei6"]
+
+[ext_resource type="Script" path="res://game/HexPlane/Map/HexMapCamera.cs" id="1_vl5fw"]
+
+[node name="HexMapCamera" type="Node3D"]
+script = ExtResource("1_vl5fw")
+
+[node name="Swivel" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 0, 0)
+
+[node name="Stick" type="Node3D" parent="Swivel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 45)
+
+[node name="Camera3D" type="Camera3D" parent="Swivel/Stick"]

@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3 uid="uid://btjayimhgt0pk"]
+
+[ext_resource type="PackedScene" uid="uid://dgi5lqferr3en" path="res://game/HexPlane/Map/HexMesh.tscn" id="1_ohi0j"]
+[ext_resource type="Script" path="res://game/HexPlane/Map/HexGridChunk.cs" id="1_y4c6g"]
+
+[node name="HexGridChunk" type="Node3D"]
+script = ExtResource("1_y4c6g")
+
+[node name="HexMesh" parent="." instance=ExtResource("1_ohi0j")]

@@ -76,3 +76,6 @@ module HexMetrics =
     // 扰动强度
     let cellPerturbStrength = 4f
     let elevationPerturbStrength = 1.5f
+    // 分块
+    let chunkSizeX = 5
+    let chunkSizeZ = 5

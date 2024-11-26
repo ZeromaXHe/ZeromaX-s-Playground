@@ -5,17 +5,17 @@ using FrontEndToolFS.Tool;
 public partial class HexGrid : HexGridFS
 {
     [Export]
-    public int Width
+    public int ChunkCountX
     {
-        get => _width;
-        set => _width = value;
+        get => _chunkCountX;
+        set => _chunkCountX = value;
     }
 
     [Export]
-    public int Height
+    public int ChunkCountZ
     {
-        get => _height;
-        set => _height = value;
+        get => _chunkCountZ;
+        set => _chunkCountZ = value;
     }
 
     [Export]
@@ -39,13 +39,6 @@ public partial class HexGrid : HexGridFS
         set => _noiseSource = value;
     }
 
-    public override void _Ready()
-    {
-        base._Ready();
-    }
-
-    // public override void _Input(InputEvent e)
-    // {
-    //     base._Input(e);
-    // }
+    // 请忽略 IDE 冗余提示，需要保留此处和 partial
+    public override void _Ready() => base._Ready();
 }
