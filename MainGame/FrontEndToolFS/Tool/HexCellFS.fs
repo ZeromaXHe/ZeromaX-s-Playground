@@ -20,7 +20,12 @@ type HexCellFS() =
         and set value =
             elevation <- value
             let pos = this.Position
-            this.Position <- Vector3(pos.X, float32 value * HexMetrics.elevationStep, pos.Z)
+            let y = float32 value * HexMetrics.elevationStep
+
+            let perturbY =
+                ((HexMetrics.sampleNoise pos).Y * 2f - 1f) * HexMetrics.elevationPerturbStrength
+
+            this.Position <- Vector3(pos.X, y + perturbY, pos.Z)
 
     member val neighbors: HexCellFS option array = Array.create 6 None
 

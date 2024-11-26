@@ -1,14 +1,14 @@
 namespace FrontEndToolFS.HexPlane
 
-open System.Numerics
 open Godot
 
 module HexMetrics =
+    let mutable noiseSource: Image = null
     // 内外半径
     let outerRadius = 10f
     let innerRadius = outerRadius * 0.866025404f
     // 混合颜色
-    let solidFactor = 0.75f
+    let solidFactor = 0.8f
     let blendFactor = 1f - solidFactor
     // 六角坐标
     let corners =
@@ -58,3 +58,21 @@ module HexMetrics =
                 HexEdgeType.Slope
             else
                 HexEdgeType.Cliff
+    // 噪声采样
+    let noiseScale = 0.003f
+    // 模拟 Unity Texture2D.GetPixelBilinear API
+    // （入参是 0 ~ 1 的 float，超过范围则取小数部分，即“包裹模式进行重复”）
+    // 参考：https://docs.unity3d.com/cn/2021.3/ScriptReference/Texture2D.GetPixelBilinear.html
+    let mockUnityGetPixelBilinear (img: Image) (u: float32) (v: float32) =
+        // * 512f 是因为我们使用的噪音图片来自 Catlike Coding，图片大小是 512x512。
+        let x = int <| Mathf.PosMod(u * 512f, 512f)
+        let y = int <| Mathf.PosMod(v * 512f, 512f)
+        let color = img.GetPixel(x, y)
+        Vector4(color.R, color.G, color.B, color.A)
+
+    let sampleNoise (position: Vector3) =
+        mockUnityGetPixelBilinear noiseSource (position.X * noiseScale) (position.Z * noiseScale)
+
+    // 扰动强度
+    let cellPerturbStrength = 4f
+    let elevationPerturbStrength = 1.5f

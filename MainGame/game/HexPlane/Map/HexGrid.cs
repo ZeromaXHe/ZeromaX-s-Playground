@@ -32,6 +32,13 @@ public partial class HexGrid : HexGridFS
         set => _touchedColor = value;
     }
 
+    [Export]
+    public Texture2D NoiseSource
+    {
+        get => _noiseSource;
+        set => _noiseSource = value;
+    }
+
     public override void _Ready()
     {
         base._Ready();

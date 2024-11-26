@@ -3,4 +3,5 @@
 [ext_resource type="Script" path="res://game/HexPlane/Map/HexMesh.cs" id="1_oa61u"]
 
 [node name="HexMesh" type="MeshInstance3D"]
+lod_bias = 100.0
 script = ExtResource("1_oa61u")

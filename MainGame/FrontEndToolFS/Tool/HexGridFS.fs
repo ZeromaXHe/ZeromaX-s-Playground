@@ -17,6 +17,7 @@ type HexGridFS() as this =
     member val _height: int = 6 with get, set
     member val _defaultColor: Color = Colors.White with get, set
     member val _touchedColor: Color = Colors.Magenta with get, set
+    member val _noiseSource: Texture2D = null with get, set
 
     member this.CameraRayCastToMouse() =
         let spaceState = this.GetWorld3D().DirectSpaceState
@@ -30,7 +31,7 @@ type HexGridFS() as this =
 
         spaceState.IntersectRay query
 
-    member this.GetCell (pos: Vector3) =
+    member this.GetCell(pos: Vector3) =
         let coordinates = HexCoordinates.FromPosition pos
         let index = coordinates.X + coordinates.Z * this._width + coordinates.Z / 2
         _cells[index]
@@ -39,6 +40,7 @@ type HexGridFS() as this =
 
     override this._Ready() =
         GD.Print "HexGridFS _Ready"
+        HexMetrics.noiseSource <- this._noiseSource.GetImage()
         _cells <- Array.init (this._width * this._height) (fun _ -> _hexCellScene.Value.Instantiate<HexCellFS>())
 
         for i in 0 .. _cells.Length - 1 do
@@ -69,6 +71,8 @@ type HexGridFS() as this =
                     0.0f,
                     float32 z * HexMetrics.outerRadius * 1.5f
                 )
+            // 触发 setter 应用扰动 y
+            cell.Elevation <- 0
 
             let label = cell.GetNode<Label3D>("Label")
             label.Text <- cell.Coordinates.ToStringOnSeparateLines()
