@@ -13,6 +13,8 @@ type IChunk =
 type HexCellFS() as this =
     inherit Node3D()
 
+    let _label = lazy this.GetNode<Label3D>("Label")
+
     [<DefaultValue>]
     val mutable Coordinates: HexCoordinates
 
@@ -73,3 +75,5 @@ type HexCellFS() as this =
 
     member this.GetEdgeType(otherCell: HexCellFS) =
         HexMetrics.getEdgeType elevation otherCell.Elevation
+
+    member this.ShowUI visible = _label.Value.Visible <- visible

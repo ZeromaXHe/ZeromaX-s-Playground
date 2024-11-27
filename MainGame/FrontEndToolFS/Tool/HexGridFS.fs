@@ -96,11 +96,26 @@ type HexGridFS() as this =
 
         spaceState.IntersectRay query
 
+    member this.GetCell(coordinates: HexCoordinates) =
+        let z = coordinates.Z
+
+        if z < 0 || z >= cellCountZ then
+            None
+        else
+            let x = coordinates.X + z / 2
+
+            if x < 0 || x >= cellCountX then
+                None
+            else
+                Some _cells[x + z * cellCountX]
+
     member this.GetCell(pos: Vector3) =
         let coordinates = HexCoordinates.FromPosition pos
-        let index = coordinates.X + coordinates.Z * cellCountX + coordinates.Z / 2
-        _cells[index]
+        this.GetCell coordinates
 
+    member this.ShowUI visible =
+        _cells |> Array.iter (fun c -> c.ShowUI visible)
+    
     override this._Ready() =
         GD.Print "HexGridFS _Ready"
         HexMetrics.noiseSource <- this._noiseSource.GetImage()

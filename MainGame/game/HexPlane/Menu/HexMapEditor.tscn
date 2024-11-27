@@ -41,6 +41,11 @@ offset_bottom = 40.0
 layout_mode = 2
 alignment = 1
 
+[node name="ColorLabel" type="Label" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+text = "Color"
+horizontal_alignment = 1
+
 [node name="Yellow" type="CheckBox" parent="PanelContainer/CellVBox"]
 layout_mode = 2
 button_group = SubResource("ButtonGroup_1v4oh")
@@ -58,17 +63,50 @@ text = "Blue"
 
 [node name="White" type="CheckBox" parent="PanelContainer/CellVBox"]
 layout_mode = 2
-button_pressed = true
 button_group = SubResource("ButtonGroup_1v4oh")
 text = "White"
 
-[node name="Elevation" type="VSlider" parent="PanelContainer/CellVBox"]
-custom_minimum_size = Vector2(0, 100)
+[node name="NoChangeColor" type="CheckBox" parent="PanelContainer/CellVBox"]
 layout_mode = 2
-size_flags_horizontal = 4
+button_pressed = true
+button_group = SubResource("ButtonGroup_1v4oh")
+text = "No change"
+
+[node name="HSeparator" type="HSeparator" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+
+[node name="ElevationChange" type="CheckButton" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+button_pressed = true
+text = "Elevation"
+
+[node name="ElevationSlider" type="HSlider" parent="PanelContainer/CellVBox"]
+layout_mode = 2
 max_value = 6.0
 tick_count = 7
 ticks_on_borders = true
+
+[node name="HSeparator2" type="HSeparator" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+
+[node name="BrushLabel2" type="Label" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+text = "Brush Size"
+horizontal_alignment = 1
+
+[node name="BrushSlider" type="HSlider" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+max_value = 4.0
+tick_count = 5
+ticks_on_borders = true
+
+[node name="HSeparator3" type="HSeparator" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+
+[node name="ShowLabels" type="CheckButton" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+button_pressed = true
+text = "Labels"
 
 [node name="Wireframe" type="CheckButton" parent="PanelContainer/CellVBox"]
 layout_mode = 2
