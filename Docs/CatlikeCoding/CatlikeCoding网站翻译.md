@@ -289,8 +289,8 @@ https://catlikecoding.com/unity/tutorials/hex-map/
 7. [道路](https://catlikecoding.com/unity/tutorials/hex-map/part-7/)
 8. [水](https://catlikecoding.com/unity/tutorials/hex-map/part-8/)
 9. [地形特征](https://catlikecoding.com/unity/tutorials/hex-map/part-9/)
-10. [墙壁](https://catlikecoding.com/unity/tutorials/hex-map/part-10/)
-11. [更多功能](https://catlikecoding.com/unity/tutorials/hex-map/part-11/)
+10. [城墙](https://catlikecoding.com/unity/tutorials/hex-map/part-10/)
+11. [更多特征](https://catlikecoding.com/unity/tutorials/hex-map/part-11/)
 12. [保存和加载](https://catlikecoding.com/unity/tutorials/hex-map/part-12/)
 13. [管理地图](https://catlikecoding.com/unity/tutorials/hex-map/part-13/)
 14. [地形纹理](https://catlikecoding.com/unity/tutorials/hex-map/part-14/)
@@ -308,7 +308,9 @@ https://catlikecoding.com/unity/tutorials/hex-map/
 26. [生物群落与河流](https://catlikecoding.com/unity/tutorials/hex-map/part-26/)
 27. [包装](https://catlikecoding.com/unity/tutorials/hex-map/part-27/)
 
-## [跳转系列独立 Markdown](./CatlikeCoding网站翻译-六边形地图.md)
+## [跳转系列独立 Markdown 1 ~ 8](./CatlikeCoding网站翻译-六边形地图1~8.md)
+
+## [跳转系列独立 Markdown 9 ~ 15](./CatlikeCoding网站翻译-六边形地图9~15.md)
 
 
 
