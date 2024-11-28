@@ -19,7 +19,7 @@ type HexCellFS() as this =
     val mutable Coordinates: HexCoordinates
 
     [<DefaultValue>]
-    val mutable Chunk: IChunk option
+    val mutable Chunk: IChunk
 
     member val neighbors: HexCellFS option array = Array.create 6 None
 
@@ -32,16 +32,14 @@ type HexCellFS() as this =
         |> Option.iter (fun c -> c.neighbors[int <| direction.Opposite()] <- Some this)
 
     let refresh () =
-        this.Chunk
-        |> Option.iter (fun c ->
-            c.Refresh()
+        this.Chunk.Refresh()
 
-            this.neighbors
-            |> Array.iter (fun n ->
-                if n.IsSome && n.Value.Chunk <> this.Chunk then
-                    n.Value.Chunk.Value.Refresh()))
+        this.neighbors
+        |> Array.iter (fun n ->
+            if n.IsSome && n.Value.Chunk <> this.Chunk then
+                n.Value.Chunk.Refresh())
 
-    member this.RefreshSelfOnly() = this.Chunk |> Option.iter _.Refresh()
+    member this.RefreshSelfOnly() = this.Chunk.Refresh()
 
     let mutable color: Color = Colors.White
 
@@ -108,6 +106,10 @@ type HexCellFS() as this =
 
     member this.StreamBedY =
         (float32 elevation + HexMetrics.streamBedElevationOffset)
+        * HexMetrics.elevationStep
+
+    member this.RiverSurfaceY =
+        (float32 elevation + HexMetrics.riverSurfaceElevationOffset)
         * HexMetrics.elevationStep
 
     member this.HasRiverThroughEdge(direction: HexDirection) =

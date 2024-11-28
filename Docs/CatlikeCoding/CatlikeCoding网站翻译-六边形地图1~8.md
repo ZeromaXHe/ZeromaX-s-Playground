@@ -608,7 +608,7 @@ public class HexCoordinatesDrawer : PropertyDrawer {
 
 ## 5 触摸单元格
 
-如果我们不能与十六进制网格交互，那么它就不是很有趣。最基本的交互是触摸单元格，所以让我们添加对它的支持。现在，只需将此代码直接放入 `HexGrid` 中。一旦一切正常，我们就会将其移动到其他地方。
+如果我们不能与六边形网格交互，那么它就不是很有趣。最基本的交互是触摸单元格，所以让我们添加对它的支持。现在，只需将此代码直接放入 `HexGrid` 中。一旦一切正常，我们就会将其移动到其他地方。
 
 要触摸单元格，我们可以从鼠标位置向场景中发射光线。我们可以使用与“[网格变形](https://catlikecoding.com/unity/tutorials/mesh-deformation)”教程中相同的方法。
 
@@ -931,7 +931,7 @@ public class HexMapEditor : MonoBehaviour {
 
 ![img](https://catlikecoding.com/unity/tutorials/hex-map/part-1/map-editor/canvas.png)
 
-*带有四种颜色的六边形映射编辑器。*
+*带有四种颜色的六边形地图编辑器。*
 
 通过 *GameObject / UI / Panel* 在画布上添加一个面板来容纳颜色选择器。通过 *Components / UI/ Toggle Group* 给它一个切换组（toggle group）。把它做成一个小面板，放在屏幕的一个角落里。
 
@@ -944,7 +944,7 @@ public class HexMapEditor : MonoBehaviour {
 ![ui](https://catlikecoding.com/unity/tutorials/hex-map/part-1/map-editor/ui.png) ![hierarchy](https://catlikecoding.com/unity/tutorials/hex-map/part-1/map-editor/hierarchy.png)
 *每种颜色一个切换。*
 
-确保只打开第一个切换。还要将它们都作为切换组的一部分，这样在同一时间只会选择其中一个。最后，将它们连接到编辑器的 `SelectColor` 方法。您可以通过 *On Value Changed* 事件 UI 的加号按钮来执行此操作。选择六边形映射编辑器对象，然后从下拉列表中选择正确的方法。
+确保只打开第一个切换。还要将它们都作为切换组的一部分，这样在同一时间只会选择其中一个。最后，将它们连接到编辑器的 `SelectColor` 方法。您可以通过 *On Value Changed* 事件 UI 的加号按钮来执行此操作。选择六边形地图编辑器对象，然后从下拉列表中选择正确的方法。
 
 ![img](https://catlikecoding.com/unity/tutorials/hex-map/part-1/map-editor/toggle.png)
 
@@ -5160,7 +5160,7 @@ https://catlikecoding.com/unity/tutorials/hex-map/part-6/
 	HexCell previousCell;
 ```
 
-最初，不拖动时，没有前一个单元格。因此，无论何时没有输入，或者我们不与映射交互，我们都必须将其设置为 `null`。
+最初，不拖动时，没有前一个单元格。因此，无论何时没有输入，或者我们不与地图交互，我们都必须将其设置为 `null`。
 
 ```c#
 	void Update () {
@@ -6120,7 +6120,7 @@ https://catlikecoding.com/unity/tutorials/hex-map/part-6/
 
 ### 6.3 池列表
 
-尽管我们移动了相当多的代码，但我们的映射仍应像以前一样运行。为每个块添加另一个网格不应该改变这一点。但如果我们用当前的 `HexMesh` 这样做，就会出错。
+尽管我们移动了相当多的代码，但我们的地图仍应像以前一样运行。为每个块添加另一个网格不应该改变这一点。但如果我们用当前的 `HexMesh` 这样做，就会出错。
 
 问题是，我们假设一次只处理一个网格。这允许我们使用静态列表来存储临时网格数据。但是一旦我们加水，我们将同时处理两个网格。因此，我们不能再使用静态列表。
 
@@ -6393,7 +6393,7 @@ Shader "Custom/River" {
 
 *预制的有河流的块。*
 
-创建一个使用我们新着色器的 `River` 材质，并确保 `Rivers` 对象使用它。还配置对象的十六进制网格组件，使其使用 UV 坐标，但不使用顶点颜色，也不使用碰撞器。
+创建一个使用我们新着色器的 `River` 材质，并确保 `Rivers` 对象使用它。还配置对象的六边形网格组件，使其使用 UV 坐标，但不使用顶点颜色，也不使用碰撞器。
 
 ![img](https://catlikecoding.com/unity/tutorials/hex-map/part-6/flowing-rivers/rivers-object.png)
 

@@ -76,13 +76,23 @@ module HexMetrics =
         mockUnityGetPixelBilinear noiseSource (position.X * noiseScale) (position.Z * noiseScale)
 
     // 扰动强度
-    let cellPerturbStrength = 0f // 4f
+    let cellPerturbStrength = 4f
     let elevationPerturbStrength = 1.5f
+
+    /// 扰动
+    let perturb (position: Vector3) =
+        let sample = sampleNoise position
+        let x = position.X + (sample.X * 2f - 1f) * cellPerturbStrength
+        let z = position.Z + (sample.Z * 2f - 1f) * cellPerturbStrength
+        Vector3(x, position.Y, z)
     // 分块
     let chunkSizeX = 5
     let chunkSizeZ = 5
-    // 河床高度偏移
-    let streamBedElevationOffset = -1f
+    /// 河床高度偏移
+    let streamBedElevationOffset = -1.75f
 
     let getSolidEdgeMiddle (direction: HexDirection) =
         (corners[int direction] + corners[int direction + 1]) * (0.5f * solidFactor)
+
+    /// 河面高度偏移
+    let riverSurfaceElevationOffset = -0.5f

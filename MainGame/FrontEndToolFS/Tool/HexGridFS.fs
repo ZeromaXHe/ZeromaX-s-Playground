@@ -71,13 +71,13 @@ type HexGridFS() as this =
                     0.0f,
                     float32 z * HexMetrics.outerRadius * 1.5f
                 )
-            // 触发 setter 应用扰动 y
-            cell.Elevation <- 0
 
             let label = cell.GetNode<Label3D>("Label")
             label.Text <- cell.Coordinates.ToStringOnSeparateLines()
-
+            // 得在 Elevation 前面。不然单元格的块还没赋值的话，setter 里面会有 refresh，需要刷新块，这时空引用会报错
             addCellToChunk x z cell
+            // 触发 setter 应用扰动 y
+            cell.Elevation <- 0
 
     member val _chunkCountX: int = 6 with get, set
     member val _chunkCountZ: int = 6 with get, set
