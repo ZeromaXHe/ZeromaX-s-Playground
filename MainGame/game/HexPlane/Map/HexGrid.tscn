@@ -22,17 +22,19 @@ script = ExtResource("1_ncacf")
 ChunkCountX = 6
 ChunkCountZ = 6
 DefaultColor = Color(1, 1, 1, 1)
-TouchedColor = Color(1, 0, 1, 1)
 NoiseSource = ExtResource("2_w2l35")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_yrd3c")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-transform = Transform3D(-0.866023, -0.433016, 0.250001, 0, 0.499998, 0.866027, -0.500003, 0.749999, -0.43301, 0, 0, 0)
+transform = Transform3D(-0.866025, -0.383022, 0.321394, 0, 0.642787, 0.766045, -0.5, 0.663414, -0.556671, 0, 0, 0)
+light_energy = 0.7
 shadow_enabled = true
+shadow_bias = 0.03
+shadow_normal_bias = 0.0
 directional_shadow_blend_splits = true
-directional_shadow_max_distance = 1000.0
+directional_shadow_max_distance = 400.0
 
 [node name="HexMapCamera" parent="." node_paths=PackedStringArray("Grid") instance=ExtResource("3_r4khn")]
 StickMinZoom = 250.0

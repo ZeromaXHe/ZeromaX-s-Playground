@@ -27,6 +27,8 @@ stretch = true
 
 [node name="SubViewport" type="SubViewport" parent="SubViewportContainer"]
 handle_input_locally = false
+msaa_3d = 1
+screen_space_aa = 1
 size = Vector2i(1152, 648)
 render_target_update_mode = 4
 
@@ -102,6 +104,24 @@ ticks_on_borders = true
 
 [node name="HSeparator3" type="HSeparator" parent="PanelContainer/CellVBox"]
 layout_mode = 2
+
+[node name="RiverHBox" type="HBoxContainer" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+
+[node name="RiverLabel" type="Label" parent="PanelContainer/CellVBox/RiverHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "River"
+
+[node name="RiverMode" type="OptionButton" parent="PanelContainer/CellVBox/RiverHBox"]
+layout_mode = 2
+selected = 0
+item_count = 3
+popup/item_0/text = "Ignore"
+popup/item_1/text = "Yes"
+popup/item_1/id = 1
+popup/item_2/text = "No"
+popup/item_2/id = 2
 
 [node name="ShowLabels" type="CheckButton" parent="PanelContainer/CellVBox"]
 layout_mode = 2

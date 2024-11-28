@@ -1,5 +1,6 @@
 namespace FrontEndToolFS.Tool
 
+open System
 open FrontEndToolFS.HexPlane
 open Godot
 
@@ -81,7 +82,6 @@ type HexGridFS() as this =
     member val _chunkCountX: int = 6 with get, set
     member val _chunkCountZ: int = 6 with get, set
     member val _defaultColor: Color = Colors.White with get, set
-    member val _touchedColor: Color = Colors.Magenta with get, set
     member val _noiseSource: Texture2D = null with get, set
 
     member this.CameraRayCastToMouse() =
@@ -115,7 +115,7 @@ type HexGridFS() as this =
 
     member this.ShowUI visible =
         _cells |> Array.iter (fun c -> c.ShowUI visible)
-    
+
     override this._Ready() =
         GD.Print "HexGridFS _Ready"
         HexMetrics.noiseSource <- this._noiseSource.GetImage()
@@ -125,3 +125,13 @@ type HexGridFS() as this =
 
         createChunks ()
         createCells ()
+
+        // 编辑器里显示随机颜色和随机高度的单元格
+        if Engine.IsEditorHint() then
+            let rand = Random()
+
+            for cell in _cells do
+                cell.Color <-
+                    Color(float32 <| rand.NextDouble(), float32 <| rand.NextDouble(), float32 <| rand.NextDouble())
+
+                cell.Elevation <- rand.Next(0, 7)

@@ -26,13 +26,6 @@ public partial class HexGrid : HexGridFS
     }
 
     [Export]
-    public Color TouchedColor
-    {
-        get => _touchedColor;
-        set => _touchedColor = value;
-    }
-
-    [Export]
     public Texture2D NoiseSource
     {
         get => _noiseSource;

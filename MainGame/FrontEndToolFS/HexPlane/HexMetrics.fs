@@ -5,8 +5,10 @@ open Godot
 module HexMetrics =
     let mutable noiseSource: Image = null
     // 内外半径
+    let outerToInner = 0.866025404f
+    let innerToOuter = 1f / outerToInner
     let outerRadius = 10f
-    let innerRadius = outerRadius * 0.866025404f
+    let innerRadius = outerRadius * outerToInner
     // 混合颜色
     let solidFactor = 0.8f
     let blendFactor = 1f - solidFactor
@@ -74,8 +76,13 @@ module HexMetrics =
         mockUnityGetPixelBilinear noiseSource (position.X * noiseScale) (position.Z * noiseScale)
 
     // 扰动强度
-    let cellPerturbStrength = 4f
+    let cellPerturbStrength = 0f // 4f
     let elevationPerturbStrength = 1.5f
     // 分块
     let chunkSizeX = 5
     let chunkSizeZ = 5
+    // 河床高度偏移
+    let streamBedElevationOffset = -1f
+
+    let getSolidEdgeMiddle (direction: HexDirection) =
+        (corners[int direction] + corners[int direction + 1]) * (0.5f * solidFactor)

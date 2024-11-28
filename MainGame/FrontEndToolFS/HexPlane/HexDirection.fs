@@ -23,8 +23,24 @@ module HexDirection =
             else
                 enum<HexDirection> <| int dir - 1
 
+        member dir.Previous2() =
+            let i = int dir - 2
+
+            if i >= int HexDirection.NE then
+                enum<HexDirection> i
+            else
+                enum<HexDirection> <| i + 6
+
         member dir.Next() =
             if dir = HexDirection.NW then
                 HexDirection.NE
             else
                 enum<HexDirection> <| int dir + 1
+
+        member dir.Next2() =
+            let i = int dir + 2
+
+            if i <= int HexDirection.NW then
+                enum<HexDirection> i
+            else
+                enum<HexDirection> <| i - 6

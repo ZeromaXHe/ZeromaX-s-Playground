@@ -65,6 +65,8 @@ type HexMeshFS() =
 
     /// 三角形纯色数组
     let tri1Color c = Array.create 3 c
+    /// 四边形纯色数组
+    let quad1Color c = Array.create 4 c
     /// 四边形双纯色渐变数组
     let quad2Color c1 c2 = [| c1; c1; c2; c2 |]
 
@@ -75,6 +77,7 @@ type HexMeshFS() =
         addTriangle [| center; edge.v1; edge.v2 |] colors surfaceTool
         >> addTriangle [| center; edge.v2; edge.v3 |] colors surfaceTool
         >> addTriangle [| center; edge.v3; edge.v4 |] colors surfaceTool
+        >> addTriangle [| center; edge.v4; edge.v5 |] colors surfaceTool
 
     /// 四边形折条
     let triangulateEdgeStrip (e1: EdgeVertices) c1 (e2: EdgeVertices) c2 (surfaceTool: SurfaceTool) =
@@ -83,6 +86,7 @@ type HexMeshFS() =
         addQuad [| e1.v1; e1.v2; e2.v1; e2.v2 |] colors surfaceTool
         >> addQuad [| e1.v2; e1.v3; e2.v2; e2.v3 |] colors surfaceTool
         >> addQuad [| e1.v3; e1.v4; e2.v3; e2.v4 |] colors surfaceTool
+        >> addQuad [| e1.v4; e1.v5; e2.v4; e2.v5 |] colors surfaceTool
 
     /// SSF 和双斜坡变体 SFS、FSS
     let triangulateCornerTerraces
@@ -150,19 +154,13 @@ type HexMeshFS() =
 
                     let trisAdder' =
                         trisAdder
-                        >> addTriangleUnperturbed
-                            [| v1; v2'; boundary |]
-                            [| c1; c2'; boundaryColor |]
-                            surfaceTool
+                        >> addTriangleUnperturbed [| v1; v2'; boundary |] [| c1; c2'; boundaryColor |] surfaceTool
 
                     trisAdder', v2', c2')
                 (id, v2, c2)
 
         let triLast =
-            addTriangleUnperturbed
-                [| v2; perturb left; boundary |]
-                [| c2; leftCell.Color; boundaryColor |]
-                surfaceTool
+            addTriangleUnperturbed [| v2; perturb left; boundary |] [| c2; leftCell.Color; boundaryColor |] surfaceTool
 
         tri1 >> trisMid >> triLast
 
@@ -187,7 +185,10 @@ type HexMeshFS() =
             if leftCell.GetEdgeType rightCell = HexEdgeType.Slope then
                 triangulateBoundaryTriangle left leftCell right rightCell boundary boundaryColor surfaceTool
             else
-                addTriangleUnperturbed [| perturb left; perturb right; boundary |] [| leftCell.Color; rightCell.Color; boundaryColor |] surfaceTool
+                addTriangleUnperturbed
+                    [| perturb left; perturb right; boundary |]
+                    [| leftCell.Color; rightCell.Color; boundaryColor |]
+                    surfaceTool
 
         bottomAdder >> topAdder
 
@@ -212,7 +213,10 @@ type HexMeshFS() =
             if leftCell.GetEdgeType rightCell = HexEdgeType.Slope then
                 triangulateBoundaryTriangle left leftCell right rightCell boundary boundaryColor surfaceTool
             else
-                addTriangleUnperturbed [| perturb left; perturb right; boundary |] [| leftCell.Color; rightCell.Color; boundaryColor |] surfaceTool
+                addTriangleUnperturbed
+                    [| perturb left; perturb right; boundary |]
+                    [| leftCell.Color; rightCell.Color; boundaryColor |]
+                    surfaceTool
 
         bottomAdder >> topAdder
 
@@ -277,7 +281,10 @@ type HexMeshFS() =
             let bridge = HexMetrics.getBridge dir
             let y = float32 (neighbor.Position.Y - cell.Position.Y)
             let bridge = Vector3(bridge.X, y, bridge.Z)
-            let e2 = EdgeVertices(e1.v1 + bridge, e1.v4 + bridge)
+            let mutable e2 = EdgeVertices(e1.v1 + bridge, e1.v5 + bridge)
+
+            if cell.HasRiverThroughEdge dir then
+                e2 <- e2.ChangeV3 <| Vector3(e2.v3.X, neighbor.StreamBedY, e2.v3.Z)
 
             let quadAdder =
                 if cell.GetEdgeType dir = Some HexEdgeType.Slope then
@@ -291,30 +298,123 @@ type HexMeshFS() =
                 match cell.GetNeighbor <| dir.Next() with
                 | None -> quadAdder
                 | Some nextNeighbor ->
-                    let v5 = e1.v4 + (HexMetrics.getBridge <| dir.Next())
+                    let v5 = e1.v5 + (HexMetrics.getBridge <| dir.Next())
 
                     let v5 = Vector3(v5.X, float32 nextNeighbor.Position.Y, v5.Z)
 
                     let triAdder =
                         if cell.Elevation <= neighbor.Elevation then
                             if cell.Elevation <= nextNeighbor.Elevation then
-                                triangulateCorner e1.v4 cell e2.v4 neighbor v5 nextNeighbor surfaceTool
+                                triangulateCorner e1.v5 cell e2.v5 neighbor v5 nextNeighbor surfaceTool
                             else
-                                triangulateCorner v5 nextNeighbor e1.v4 cell e2.v4 neighbor surfaceTool
+                                triangulateCorner v5 nextNeighbor e1.v5 cell e2.v5 neighbor surfaceTool
                         elif neighbor.Elevation <= nextNeighbor.Elevation then
-                            triangulateCorner e2.v4 neighbor v5 nextNeighbor e1.v4 cell surfaceTool
+                            triangulateCorner e2.v5 neighbor v5 nextNeighbor e1.v5 cell surfaceTool
                         else
-                            triangulateCorner v5 nextNeighbor e1.v4 cell e2.v4 neighbor surfaceTool
+                            triangulateCorner v5 nextNeighbor e1.v5 cell e2.v5 neighbor surfaceTool
 
                     quadAdder >> triAdder
+
+    /// 处理河流
+    let triangulateWithRiver (dir: HexDirection) (cell: HexCellFS) (center: Vector3) (e: EdgeVertices) surfaceTool =
+        let centerL, centerR =
+            if cell.HasRiverThroughEdge <| dir.Opposite() then
+                center + 0.25f * HexMetrics.getFirstSolidCorner (dir.Previous()),
+                center + 0.25f * HexMetrics.getSecondSolidCorner (dir.Next())
+            elif cell.HasRiverThroughEdge <| dir.Next() then
+                center, center.Lerp(e.v5, 2f / 3f)
+            elif cell.HasRiverThroughEdge <| dir.Previous() then
+                center.Lerp(e.v1, 2f / 3f), center
+            elif cell.HasRiverThroughEdge <| dir.Next2() then
+                center,
+                center
+                + HexMetrics.getSolidEdgeMiddle (dir.Next()) * (0.5f * HexMetrics.innerToOuter)
+            else
+                center
+                + HexMetrics.getSolidEdgeMiddle (dir.Previous())
+                  * (0.5f * HexMetrics.innerToOuter),
+                center
+
+        let center = centerL.Lerp(centerR, 0.5f)
+
+        let mutable m =
+            EdgeVertices(centerL.Lerp(e.v1, 0.5f), centerR.Lerp(e.v5, 0.5f), 1f / 6f)
+
+        m <- m.ChangeV3 <| Vector3(m.v3.X, e.v3.Y, m.v3.Z)
+        // Unity 的 Vector3 可以修改 x、y、z，但是 Godot 不行
+        let center = Vector3(center.X, e.v3.Y, center.Z)
+        let edgeStrip = triangulateEdgeStrip m cell.Color e cell.Color surfaceTool
+
+        let side2TriAndMid2Quad =
+            addTriangle [| centerL; m.v1; m.v2 |] (tri1Color cell.Color) surfaceTool
+            >> addQuad [| centerL; center; m.v2; m.v3 |] (quad1Color cell.Color) surfaceTool
+            >> addQuad [| center; centerR; m.v3; m.v4 |] (quad1Color cell.Color) surfaceTool
+            >> addTriangle [| centerR; m.v4; m.v5 |] (tri1Color cell.Color) surfaceTool
+
+        edgeStrip >> side2TriAndMid2Quad
+
+    /// 处理河流开始和结束
+    let triangulateWithRiverBeginOrEnd
+        (dir: HexDirection)
+        (cell: HexCellFS)
+        (center: Vector3)
+        (e: EdgeVertices)
+        (surfaceTool: SurfaceTool)
+        =
+        let mutable m = EdgeVertices(center.Lerp(e.v1, 0.5f), center.Lerp(e.v5, 0.5f))
+        m <- m.ChangeV3 <| Vector3(m.v3.X, e.v3.Y, m.v3.Z)
+
+        triangulateEdgeStrip m cell.Color e cell.Color surfaceTool
+        >> triangulateEdgeFan center m cell.Color surfaceTool
+
+    /// 处理河流流域
+    let triangulateAdjacentToRiver
+        (dir: HexDirection)
+        (cell: HexCellFS)
+        (center: Vector3)
+        (e: EdgeVertices)
+        surfaceTool
+        =
+        let center =
+            if cell.HasRiverThroughEdge <| dir.Next() then
+                if cell.HasRiverThroughEdge <| dir.Previous() then
+                    center + HexMetrics.getSolidEdgeMiddle dir * (0.5f * HexMetrics.innerToOuter)
+                elif cell.HasRiverThroughEdge <| dir.Previous2() then
+                    center + HexMetrics.getFirstSolidCorner dir * 0.25f
+                else
+                    center
+            elif
+                cell.HasRiverThroughEdge <| dir.Previous()
+                && cell.HasRiverThroughEdge <| dir.Next2()
+            then
+                center + HexMetrics.getSecondSolidCorner dir * 0.25f
+            else
+                center
+
+        let m = EdgeVertices(center.Lerp(e.v1, 0.5f), center.Lerp(e.v5, 0.5f))
+
+        triangulateEdgeStrip m cell.Color e cell.Color surfaceTool
+        >> triangulateEdgeFan center m cell.Color surfaceTool
 
     let triangulateDir (surfaceTool: SurfaceTool) (cell: HexCellFS) dir =
         let center = cell.Position
 
-        let e =
+        let mutable e =
             EdgeVertices(center + HexMetrics.getFirstSolidCorner dir, center + HexMetrics.getSecondSolidCorner dir)
 
-        let fanAdder = triangulateEdgeFan center e cell.Color surfaceTool
+        let fanAdder =
+            if cell.HasRiver then
+                if cell.HasRiverThroughEdge dir then
+                    e <- e.ChangeV3 <| Vector3(e.v3.X, cell.StreamBedY, e.v3.Z)
+
+                    if cell.HasRiverBeginOrEnd then
+                        triangulateWithRiverBeginOrEnd dir cell center e surfaceTool
+                    else
+                        triangulateWithRiver dir cell center e surfaceTool
+                else
+                    triangulateAdjacentToRiver dir cell center e surfaceTool
+            else
+                triangulateEdgeFan center e cell.Color surfaceTool
 
         if dir <= HexDirection.SE then
             fanAdder >> triangulateConnection surfaceTool cell dir e
@@ -328,9 +428,11 @@ type HexMeshFS() =
     member this.Triangulate cells =
         let surfaceTool = new SurfaceTool()
         surfaceTool.Begin(Mesh.PrimitiveType.Triangles)
-        surfaceTool.SetUV Vector2.Zero
+        // surfaceTool.SetUV Vector2.Zero
         cells |> Array.map (triangulate surfaceTool) |> Array.reduce (>>) <| 0 |> ignore
+        surfaceTool.Deindex()
         surfaceTool.GenerateNormals()
+        // surfaceTool.GenerateTangents()
         let material = new StandardMaterial3D()
         material.VertexColorUseAsAlbedo <- true
         material.Roughness <- 0.5f

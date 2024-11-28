@@ -41,7 +41,19 @@ type HexCellFS() as this =
                 if n.IsSome && n.Value.Chunk <> this.Chunk then
                     n.Value.Chunk.Value.Refresh()))
 
+    member this.RefreshSelfOnly() = this.Chunk |> Option.iter _.Refresh()
+
     let mutable color: Color = Colors.White
+
+    member this.Color
+        with get () = color
+        and set value =
+            if color = value then
+                ()
+            else
+                color <- value
+                refresh ()
+
     let mutable elevation: int = Int32.MinValue
 
     member this.Elevation
@@ -58,15 +70,17 @@ type HexCellFS() as this =
                     ((HexMetrics.sampleNoise pos).Y * 2f - 1f) * HexMetrics.elevationPerturbStrength
 
                 this.Position <- Vector3(pos.X, y + perturbY, pos.Z)
-                refresh ()
 
-    member this.Color
-        with get () = color
-        and set value =
-            if color = value then
-                ()
-            else
-                color <- value
+                if outgoingRiver.IsSome then
+                    match this.GetNeighbor outgoingRiver.Value with
+                    | Some n when elevation < n.Elevation -> this.RemoveOutgoingRiver()
+                    | _ -> ()
+
+                if incomingRiver.IsSome then
+                    match this.GetNeighbor incomingRiver.Value with
+                    | Some n when elevation < n.Elevation -> this.RemoveIncomingRiver()
+                    | _ -> ()
+
                 refresh ()
 
     member this.GetEdgeType direction =
@@ -77,3 +91,76 @@ type HexCellFS() as this =
         HexMetrics.getEdgeType elevation otherCell.Elevation
 
     member this.ShowUI visible = _label.Value.Visible <- visible
+
+    let mutable incomingRiver: HexDirection option = None
+    let mutable outgoingRiver: HexDirection option = None
+
+    member this.IncomingRiver
+        with get () = incomingRiver
+        and private set value = incomingRiver <- value
+
+    member this.OutgoingRiver
+        with get () = outgoingRiver
+        and private set value = outgoingRiver <- value
+
+    member this.HasRiver = incomingRiver.IsSome || outgoingRiver.IsSome
+    member this.HasRiverBeginOrEnd = incomingRiver.IsSome <> outgoingRiver.IsSome
+
+    member this.StreamBedY =
+        (float32 elevation + HexMetrics.streamBedElevationOffset)
+        * HexMetrics.elevationStep
+
+    member this.HasRiverThroughEdge(direction: HexDirection) =
+        (incomingRiver.IsSome && incomingRiver.Value = direction)
+        || (outgoingRiver.IsSome && outgoingRiver.Value = direction)
+
+    /// 移除流出河流
+    member this.RemoveOutgoingRiver() =
+        if outgoingRiver.IsSome then
+            match this.GetNeighbor outgoingRiver.Value with
+            | Some neighbor ->
+                neighbor.IncomingRiver <- None
+                neighbor.RefreshSelfOnly()
+            | None -> ()
+
+            outgoingRiver <- None
+            this.RefreshSelfOnly()
+
+    /// 移除流入河流
+    member this.RemoveIncomingRiver() =
+        if incomingRiver.IsSome then
+            match this.GetNeighbor incomingRiver.Value with
+            | Some neighbor ->
+                neighbor.OutgoingRiver <- None
+                neighbor.RefreshSelfOnly()
+            | None -> ()
+
+            incomingRiver <- None
+            this.RefreshSelfOnly()
+
+    /// 移除河流
+    member this.RemoveRiver() =
+        this.RemoveIncomingRiver()
+        this.RemoveOutgoingRiver()
+
+    member this.SetOutgoingRiver(direction: HexDirection) =
+        if outgoingRiver.IsSome && outgoingRiver.Value = direction then
+            GD.Print $"SetOutgoingRiver already river {direction}"
+            ()
+        else
+            match this.GetNeighbor direction with
+            | Some neighbor when elevation >= neighbor.Elevation ->
+                GD.Print $"SetOutgoingRiver refresh {direction}"
+                this.RemoveOutgoingRiver()
+
+                if incomingRiver.IsSome && incomingRiver.Value = direction then
+                    this.RemoveIncomingRiver()
+
+                this.OutgoingRiver <- Some direction
+                this.RefreshSelfOnly()
+                neighbor.RemoveIncomingRiver()
+                neighbor.IncomingRiver <- Some <| direction.Opposite()
+                neighbor.RefreshSelfOnly()
+            | _ ->
+                GD.Print $"SetOutgoingRiver no neighbor or low {direction}"
+                ()
