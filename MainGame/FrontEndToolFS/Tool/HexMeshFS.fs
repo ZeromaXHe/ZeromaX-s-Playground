@@ -12,18 +12,27 @@ type HexMeshFS() =
     [<DefaultValue>]
     val mutable private surfaceTool: SurfaceTool
 
-    member val useCollider = true with get, set
-    member val useColor = true with get, set
+    member val useCollider = false with get, set
+    member val useColor = false with get, set
     member val useUvCoordinates = false with get, set
+    member val useUv2Coordinates = false with get, set
 
     /// 未扰动的三角形
-    member this.AddTriangleUnperturbed (vertices: Vector3 array) (colors: Color array) (uvs: Vector2 array) =
+    member this.AddTriangleUnperturbed
+        (vertices: Vector3 array)
+        (colors: Color array)
+        (uvs: Vector2 array)
+        (uv2s: Vector2 array)
+        =
 
         if this.useColor then
             this.surfaceTool.SetColor colors[0]
 
         if this.useUvCoordinates then
             this.surfaceTool.SetUV uvs[0]
+
+        if this.useUv2Coordinates then
+            this.surfaceTool.SetUV2 uv2s[0]
 
         this.surfaceTool.AddVertex vertices[0]
 
@@ -33,6 +42,9 @@ type HexMeshFS() =
         if this.useUvCoordinates then
             this.surfaceTool.SetUV uvs[1]
 
+        if this.useUv2Coordinates then
+            this.surfaceTool.SetUV2 uv2s[1]
+
         this.surfaceTool.AddVertex vertices[1]
 
         if this.useColor then
@@ -40,6 +52,9 @@ type HexMeshFS() =
 
         if this.useUvCoordinates then
             this.surfaceTool.SetUV uvs[2]
+
+        if this.useUv2Coordinates then
+            this.surfaceTool.SetUV2 uv2s[2]
 
         this.surfaceTool.AddVertex vertices[2]
         // Godot 渲染面方向和 Unity 相反
@@ -50,13 +65,26 @@ type HexMeshFS() =
 
     /// 三角形
     member this.AddTriangle (vertices: Vector3 array) (colors: Color array) (uvs: Vector2 array) =
+        let perturbVertices = vertices |> Array.map HexMetrics.perturb
+        this.AddTriangleUnperturbed perturbVertices colors uvs
+
+    /// 未扰动的四边形
+    member this.AddQuadUnperturbed
+        (vertices: Vector3 array)
+        (colors: Color array)
+        (uvs: Vector2 array)
+        (uv2s: Vector2 array)
+        =
         if this.useColor then
             this.surfaceTool.SetColor colors[0]
 
         if this.useUvCoordinates then
             this.surfaceTool.SetUV uvs[0]
 
-        this.surfaceTool.AddVertex <| HexMetrics.perturb vertices[0]
+        if this.useUv2Coordinates then
+            this.surfaceTool.SetUV2 uv2s[0]
+
+        this.surfaceTool.AddVertex vertices[0]
 
         if this.useColor then
             this.surfaceTool.SetColor colors[1]
@@ -64,7 +92,10 @@ type HexMeshFS() =
         if this.useUvCoordinates then
             this.surfaceTool.SetUV uvs[1]
 
-        this.surfaceTool.AddVertex <| HexMetrics.perturb vertices[1]
+        if this.useUv2Coordinates then
+            this.surfaceTool.SetUV2 uv2s[1]
+
+        this.surfaceTool.AddVertex vertices[1]
 
         if this.useColor then
             this.surfaceTool.SetColor colors[2]
@@ -72,38 +103,10 @@ type HexMeshFS() =
         if this.useUvCoordinates then
             this.surfaceTool.SetUV uvs[2]
 
-        this.surfaceTool.AddVertex <| HexMetrics.perturb vertices[2]
-        // Godot 渲染面方向和 Unity 相反
-        this.surfaceTool.AddIndex <| vIndex
-        this.surfaceTool.AddIndex <| vIndex + 2
-        this.surfaceTool.AddIndex <| vIndex + 1
-        vIndex <- vIndex + 3
+        if this.useUv2Coordinates then
+            this.surfaceTool.SetUV2 uv2s[2]
 
-    /// 四边形
-    member this.AddQuad (vertices: Vector3 array) (colors: Color array) (uvs: Vector2 array) =
-        if this.useColor then
-            this.surfaceTool.SetColor colors[0]
-
-        if this.useUvCoordinates then
-            this.surfaceTool.SetUV uvs[0]
-
-        this.surfaceTool.AddVertex <| HexMetrics.perturb vertices[0]
-
-        if this.useColor then
-            this.surfaceTool.SetColor colors[1]
-
-        if this.useUvCoordinates then
-            this.surfaceTool.SetUV uvs[1]
-
-        this.surfaceTool.AddVertex <| HexMetrics.perturb vertices[1]
-
-        if this.useColor then
-            this.surfaceTool.SetColor colors[2]
-
-        if this.useUvCoordinates then
-            this.surfaceTool.SetUV uvs[2]
-
-        this.surfaceTool.AddVertex <| HexMetrics.perturb vertices[2]
+        this.surfaceTool.AddVertex vertices[2]
 
         if this.useColor then
             this.surfaceTool.SetColor colors[3]
@@ -111,7 +114,10 @@ type HexMeshFS() =
         if this.useUvCoordinates then
             this.surfaceTool.SetUV uvs[3]
 
-        this.surfaceTool.AddVertex <| HexMetrics.perturb vertices[3]
+        if this.useUv2Coordinates then
+            this.surfaceTool.SetUV2 uv2s[3]
+
+        this.surfaceTool.AddVertex vertices[3]
         // Godot 渲染面方向和 Unity 相反
         this.surfaceTool.AddIndex <| vIndex
         this.surfaceTool.AddIndex <| vIndex + 1
@@ -120,6 +126,11 @@ type HexMeshFS() =
         this.surfaceTool.AddIndex <| vIndex + 1
         this.surfaceTool.AddIndex <| vIndex + 3
         vIndex <- vIndex + 4
+
+    /// 四边形
+    member this.AddQuad (vertices: Vector3 array) (colors: Color array) (uvs: Vector2 array) =
+        let perturbVertices = vertices |> Array.map HexMetrics.perturb
+        this.AddQuadUnperturbed perturbVertices colors uvs
 
     member this.Clear() =
         this.surfaceTool <- new SurfaceTool()

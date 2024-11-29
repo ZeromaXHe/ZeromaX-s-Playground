@@ -7,7 +7,7 @@ uniform sampler2D main_tex: hint_default_white;
 uniform float glossiness: hint_range(0.0, 1.0) = 0.5;
 uniform float metallic: hint_range(0.0, 1.0) = 0.0;
 
-// gdshaderinc 这玩意好像官方文档现在 4.3 都没怎么提？
+// #include 和 gdshaderinc 在官方文档“着色器预处理器”讲的
 #include "Water.gdshaderinc"
 
 void fragment() {

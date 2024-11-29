@@ -92,7 +92,16 @@ module HexMetrics =
     let streamBedElevationOffset = -1.75f
 
     let getSolidEdgeMiddle (direction: HexDirection) =
-        (corners[int direction] + corners[int direction + 1]) * (0.5f * solidFactor)
+        (getFirstCorner direction + getSecondCorner direction) * (0.5f * solidFactor)
 
     /// 水面高度偏移
     let waterElevationOffset = -0.5f
+    /// 水因子
+    let waterFactor = 0.6f
+    let waterBlendFactor = 1f - waterFactor
+    let getFirstWaterCorner (direction: HexDirection) =
+        getFirstCorner direction * waterFactor
+    let getSecondWaterCorner (direction: HexDirection) =
+        getSecondCorner direction * waterFactor
+    let getWaterBridge (direction: HexDirection) =
+        (getFirstCorner direction + getSecondCorner direction) * waterBlendFactor

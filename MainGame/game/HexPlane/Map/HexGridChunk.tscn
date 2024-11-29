@@ -1,12 +1,13 @@
-[gd_scene load_steps=13 format=3 uid="uid://btjayimhgt0pk"]
+[gd_scene load_steps=15 format=3 uid="uid://btjayimhgt0pk"]
 
 [ext_resource type="PackedScene" uid="uid://dgi5lqferr3en" path="res://game/HexPlane/Map/HexMesh.tscn" id="1_ohi0j"]
 [ext_resource type="Script" path="res://game/HexPlane/Map/HexGridChunk.cs" id="1_y4c6g"]
-[ext_resource type="Shader" path="res://game/HexPlane/Map/River.gdshader" id="3_l5ass"]
+[ext_resource type="Shader" path="res://Shaders/HexPlane/River.gdshader" id="3_l5ass"]
 [ext_resource type="Texture2D" uid="uid://cts1rn3gu83qb" path="res://resources/CatlikeCoding/HexMap/noise.png" id="4_tcvt3"]
-[ext_resource type="Shader" path="res://game/HexPlane/Map/Road.gdshader" id="5_p5rjp"]
-[ext_resource type="Shader" path="res://game/HexPlane/Map/Water.gdshader" id="6_b0n41"]
-[ext_resource type="Shader" path="res://game/HexPlane/Map/WaterShore.gdshader" id="7_2qm6b"]
+[ext_resource type="Shader" path="res://Shaders/HexPlane/Road.gdshader" id="5_p5rjp"]
+[ext_resource type="Shader" path="res://Shaders/HexPlane/Water.gdshader" id="6_b0n41"]
+[ext_resource type="Shader" path="res://Shaders/HexPlane/WaterShore.gdshader" id="7_2qm6b"]
+[ext_resource type="Shader" path="res://Shaders/HexPlane/Estuary.gdshader" id="8_ojdmq"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_e78pv"]
 vertex_color_use_as_albedo = true
@@ -44,36 +45,44 @@ shader_parameter/glossiness = 0.5
 shader_parameter/metallic = 0.0
 shader_parameter/main_tex = ExtResource("4_tcvt3")
 
-[node name="HexGridChunk" type="Node3D" node_paths=PackedStringArray("Terrain", "Rivers", "Roads", "Water", "WaterShore")]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_dwtbc"]
+render_priority = 0
+shader = ExtResource("8_ojdmq")
+shader_parameter/color = Color(0.25098, 0.411765, 1, 0.196078)
+shader_parameter/glossiness = 0.5
+shader_parameter/metallic = 0.0
+shader_parameter/main_tex = ExtResource("4_tcvt3")
+
+[node name="HexGridChunk" type="Node3D" node_paths=PackedStringArray("Terrain", "Rivers", "Roads", "Water", "WaterShore", "Estuaries")]
 script = ExtResource("1_y4c6g")
 Terrain = NodePath("Terrain")
 Rivers = NodePath("Rivers")
 Roads = NodePath("Roads")
 Water = NodePath("Water")
 WaterShore = NodePath("WaterShore")
+Estuaries = NodePath("Estuaries")
 
 [node name="Terrain" parent="." instance=ExtResource("1_ohi0j")]
 material_override = SubResource("StandardMaterial3D_e78pv")
+UseCollider = true
+UseColor = true
 
 [node name="Rivers" parent="." instance=ExtResource("1_ohi0j")]
 material_override = SubResource("ShaderMaterial_7x664")
-UseCollider = false
-UseColor = false
 UseUvCoordinates = true
 
 [node name="Roads" parent="." instance=ExtResource("1_ohi0j")]
 material_override = SubResource("ShaderMaterial_sy07w")
-UseCollider = false
-UseColor = false
 UseUvCoordinates = true
 
 [node name="Water" parent="." instance=ExtResource("1_ohi0j")]
 material_override = SubResource("ShaderMaterial_pidn7")
-UseCollider = false
-UseColor = false
 
 [node name="WaterShore" parent="." instance=ExtResource("1_ohi0j")]
 material_override = SubResource("ShaderMaterial_7meiv")
-UseCollider = false
-UseColor = false
 UseUvCoordinates = true
+
+[node name="Estuaries" parent="." instance=ExtResource("1_ohi0j")]
+material_override = SubResource("ShaderMaterial_dwtbc")
+UseUvCoordinates = true
+UseUv2Coordinates = true

@@ -7,22 +7,12 @@ uniform sampler2D main_tex: hint_default_white;
 uniform float glossiness: hint_range(0.0, 1.0) = 0.5;
 uniform float metallic: hint_range(0.0, 1.0) = 0.0;
 
+#include "Water.gdshaderinc"
+
 void fragment() {
-    vec2 uv = UV;
-    
-    // 第一次采样
-    uv.x = uv.x * 0.0625 + TIME * 0.005;
-    uv.y -= TIME * 0.25;
-    vec4 noise = texture(main_tex, uv);
-    
-    // 第二次采样
-    vec2 uv2 = UV;
-    uv2.x = uv2.x * 0.0625 - TIME * 0.0052;
-    uv2.y -= TIME * 0.23;
-    vec4 noise2 = texture(main_tex, uv2);
-    
+    float river = River(UV, main_tex);
     // 计算最终颜色
-    vec4 c = clamp(color + noise.r * noise2.a, 0.0, 1.0);
+    vec4 c = clamp(color + river, 0.0, 1.0);
     
     // 设置漫反射颜色
     ALBEDO = c.rgb;

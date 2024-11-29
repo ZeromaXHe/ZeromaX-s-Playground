@@ -52,6 +52,7 @@ type HexCellFS() as this =
                 color <- value
                 refresh ()
 
+    /// 高度
     let mutable elevation: int = Int32.MinValue
 
     member this.Elevation
@@ -69,15 +70,7 @@ type HexCellFS() as this =
 
                 this.Position <- Vector3(pos.X, y + perturbY, pos.Z)
 
-                if outgoingRiver.IsSome then
-                    match this.GetNeighbor outgoingRiver.Value with
-                    | Some n when elevation < n.Elevation -> this.RemoveOutgoingRiver()
-                    | _ -> ()
-
-                if incomingRiver.IsSome then
-                    match this.GetNeighbor incomingRiver.Value with
-                    | Some n when elevation < n.Elevation -> this.RemoveIncomingRiver()
-                    | _ -> ()
+                this.ValidateRivers()
 
                 for i in 0 .. this.roads.Length - 1 do
                     if this.roads[i] && this.GetElevationDifference <| enum<HexDirection> i > 1 then
@@ -125,8 +118,7 @@ type HexCellFS() as this =
         * HexMetrics.elevationStep
 
     member this.RiverSurfaceY =
-        (float32 elevation + HexMetrics.waterElevationOffset)
-        * HexMetrics.elevationStep
+        (float32 elevation + HexMetrics.waterElevationOffset) * HexMetrics.elevationStep
 
     member this.HasRiverThroughEdge(direction: HexDirection) =
         (incomingRiver.IsSome && incomingRiver.Value = direction)
@@ -166,8 +158,10 @@ type HexCellFS() as this =
             GD.Print $"SetOutgoingRiver already river {direction}"
             ()
         else
-            match this.GetNeighbor direction with
-            | Some neighbor when elevation >= neighbor.Elevation ->
+            let neighborOpt = this.GetNeighbor direction
+
+            if this.IsValidRiverDestination neighborOpt then
+                let neighbor = neighborOpt.Value
                 // GD.Print $"SetOutgoingRiver refresh {direction}"
                 this.RemoveOutgoingRiver()
 
@@ -178,7 +172,7 @@ type HexCellFS() as this =
                 neighbor.RemoveIncomingRiver()
                 neighbor.IncomingRiver <- Some <| direction.Opposite()
                 this.SetRoad <| int direction <| false
-            | _ ->
+            else
                 GD.Print $"SetOutgoingRiver no neighbor or low {direction}"
                 ()
 
@@ -213,6 +207,7 @@ type HexCellFS() as this =
             && this.GetElevationDifference direction <= 1
         then
             this.SetRoad (int direction) true
+
     /// 水位
     let mutable waterLevel = 0
 
@@ -223,10 +218,28 @@ type HexCellFS() as this =
                 ()
             else
                 waterLevel <- value
+                this.ValidateRivers()
                 refresh ()
+
     /// 是否在水下
     member this.IsUnderWater = waterLevel > elevation
 
     member this.WaterSurfaceY =
         (float32 waterLevel + HexMetrics.waterElevationOffset)
         * HexMetrics.elevationStep
+
+    /// 判断某个邻居是否可以作为河流目的地
+    member this.IsValidRiverDestination(neighborOpt: HexCellFS option) =
+        neighborOpt.IsSome
+        && (elevation >= neighborOpt.Value.Elevation
+            || waterLevel = neighborOpt.Value.Elevation)
+
+    member this.ValidateRivers() =
+        if
+            outgoingRiver.IsSome
+            && not << this.IsValidRiverDestination <| this.GetNeighbor outgoingRiver.Value
+        then
+            this.RemoveOutgoingRiver()
+
+        if incomingRiver.IsSome && not << this.IsValidRiverDestination <| Some this then
+            this.RemoveIncomingRiver()

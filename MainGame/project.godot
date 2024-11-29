@@ -26,9 +26,10 @@ project/assembly_name="ZeromaXPlayground"
 [file_customization]
 
 folder_colors={
+"res://Shaders/": "purple",
 "res://demo/": "orange",
 "res://game/": "red",
-"res://resources/": "gray"
+"res://resources/": "teal"
 }
 
 [input]

@@ -28,12 +28,16 @@ type HexGridChunkFS() as this =
 
     /// 道路段
     let triangulateRoadSegment v1 v2 v3 v4 v5 v6 =
-        this.roads.AddQuad [| v1; v2; v4; v5 |] Array.empty (quadUV 0f 1f 0f 0f)
-        this.roads.AddQuad [| v2; v3; v5; v6 |] Array.empty (quadUV 1f 0f 0f 0f)
+        this.roads.AddQuad [| v1; v2; v4; v5 |] Array.empty (quadUV 0f 1f 0f 0f) Array.empty
+        this.roads.AddQuad [| v2; v3; v5; v6 |] Array.empty (quadUV 1f 0f 0f 0f) Array.empty
 
     /// 道路边缘
     let triangulateRoadEdge center mL mR =
-        this.roads.AddTriangle [| center; mL; mR |] Array.empty [| Vector2(1f, 0f); Vector2(0f, 0f); Vector2(0f, 0f) |]
+        this.roads.AddTriangle
+            [| center; mL; mR |]
+            Array.empty
+            [| Vector2(1f, 0f); Vector2(0f, 0f); Vector2(0f, 0f) |]
+            Array.empty
 
     /// 道路
     let triangulateRoad center (mL: Vector3) mR (e: EdgeVertices) hasRoadThroughCellEdge =
@@ -45,11 +49,13 @@ type HexGridChunkFS() as this =
                 [| center; mL; mC |]
                 Array.empty
                 [| Vector2(1f, 0f); Vector2(0f, 0f); Vector2(1f, 0f) |]
+                Array.empty
 
             this.roads.AddTriangle
                 [| center; mC; mR |]
                 Array.empty
                 [| Vector2(1f, 0f); Vector2(1f, 0f); Vector2(0f, 0f) |]
+                Array.empty
         else
             triangulateRoadEdge center mL mR
 
@@ -70,19 +76,19 @@ type HexGridChunkFS() as this =
     /// 三角形扇形
     let triangulateEdgeFan center (edge: EdgeVertices) color =
         let colors = tri1Color color
-        this.terrain.AddTriangle [| center; edge.v1; edge.v2 |] colors Array.empty
-        this.terrain.AddTriangle [| center; edge.v2; edge.v3 |] colors Array.empty
-        this.terrain.AddTriangle [| center; edge.v3; edge.v4 |] colors Array.empty
-        this.terrain.AddTriangle [| center; edge.v4; edge.v5 |] colors Array.empty
+        this.terrain.AddTriangle [| center; edge.v1; edge.v2 |] colors Array.empty Array.empty
+        this.terrain.AddTriangle [| center; edge.v2; edge.v3 |] colors Array.empty Array.empty
+        this.terrain.AddTriangle [| center; edge.v3; edge.v4 |] colors Array.empty Array.empty
+        this.terrain.AddTriangle [| center; edge.v4; edge.v5 |] colors Array.empty Array.empty
 
     /// 四边形折条
     let triangulateEdgeStrip (e1: EdgeVertices) c1 (e2: EdgeVertices) c2 (hasRoad: bool) =
         let colors = quad2Color c1 c2
 
-        this.terrain.AddQuad [| e1.v1; e1.v2; e2.v1; e2.v2 |] colors Array.empty
-        this.terrain.AddQuad [| e1.v2; e1.v3; e2.v2; e2.v3 |] colors Array.empty
-        this.terrain.AddQuad [| e1.v3; e1.v4; e2.v3; e2.v4 |] colors Array.empty
-        this.terrain.AddQuad [| e1.v4; e1.v5; e2.v4; e2.v5 |] colors Array.empty
+        this.terrain.AddQuad [| e1.v1; e1.v2; e2.v1; e2.v2 |] colors Array.empty Array.empty
+        this.terrain.AddQuad [| e1.v2; e1.v3; e2.v2; e2.v3 |] colors Array.empty Array.empty
+        this.terrain.AddQuad [| e1.v3; e1.v4; e2.v3; e2.v4 |] colors Array.empty Array.empty
+        this.terrain.AddQuad [| e1.v4; e1.v5; e2.v4; e2.v5 |] colors Array.empty Array.empty
 
         if hasRoad then
             triangulateRoadSegment e1.v2 e1.v3 e1.v4 e2.v2 e2.v3 e2.v4
@@ -103,7 +109,7 @@ type HexGridChunkFS() as this =
         let c3 = HexMetrics.terraceColorLerp beginCell.Color leftCell.Color 1
         let c4 = HexMetrics.terraceColorLerp beginCell.Color rightCell.Color 1
         // 第一个三角形
-        this.terrain.AddTriangle [| beginV; v3; v4 |] [| beginCell.Color; c3; c4 |] Array.empty
+        this.terrain.AddTriangle [| beginV; v3; v4 |] [| beginCell.Color; c3; c4 |] Array.empty Array.empty
         // 中间的四边形
         let v3, v4, c3, c4 =
             [ 2 .. HexMetrics.terraceSteps - 1 ]
@@ -114,12 +120,16 @@ type HexGridChunkFS() as this =
                     let c3' = HexMetrics.terraceColorLerp beginCell.Color leftCell.Color i
                     let c4' = HexMetrics.terraceColorLerp beginCell.Color rightCell.Color i
 
-                    this.terrain.AddQuad [| v1; v2; v3'; v4' |] [| c1; c2; c3'; c4' |] Array.empty
+                    this.terrain.AddQuad [| v1; v2; v3'; v4' |] [| c1; c2; c3'; c4' |] Array.empty Array.empty
 
                     v3', v4', c3', c4')
                 (v3, v4, c3, c4)
         // 最后一个四边形
-        this.terrain.AddQuad [| v3; v4; left; right |] [| c3; c4; leftCell.Color; rightCell.Color |] Array.empty
+        this.terrain.AddQuad
+            [| v3; v4; left; right |]
+            [| c3; c4; leftCell.Color; rightCell.Color |]
+            Array.empty
+            Array.empty
 
     /// 三角形阶梯
     let triangulateBoundaryTriangle beginV (beginCell: HexCellFS) left (leftCell: HexCellFS) boundary boundaryColor =
@@ -129,6 +139,7 @@ type HexGridChunkFS() as this =
         this.terrain.AddTriangleUnperturbed
             [| HexMetrics.perturb beginV; v2; boundary |]
             [| beginCell.Color; c2; boundaryColor |]
+            Array.empty
             Array.empty
         // 中间的三角形
         let v2, c2 =
@@ -142,6 +153,7 @@ type HexGridChunkFS() as this =
                         [| v1; v2'; boundary |]
                         [| c1; c2'; boundaryColor |]
                         Array.empty
+                        Array.empty
 
                     v2', c2')
                 (v2, c2)
@@ -149,6 +161,7 @@ type HexGridChunkFS() as this =
         this.terrain.AddTriangleUnperturbed
             [| v2; HexMetrics.perturb left; boundary |]
             [| c2; leftCell.Color; boundaryColor |]
+            Array.empty
             Array.empty
 
     /// 处理 SCS 和 SCC
@@ -173,6 +186,7 @@ type HexGridChunkFS() as this =
                 [| HexMetrics.perturb left; HexMetrics.perturb right; boundary |]
                 [| leftCell.Color; rightCell.Color; boundaryColor |]
                 Array.empty
+                Array.empty
 
     /// 处理 CSS 和 CSC
     let triangulateCornerCliffTerraces
@@ -195,6 +209,7 @@ type HexGridChunkFS() as this =
             this.terrain.AddTriangleUnperturbed
                 [| HexMetrics.perturb left; HexMetrics.perturb right; boundary |]
                 [| leftCell.Color; rightCell.Color; boundaryColor |]
+                Array.empty
                 Array.empty
 
     /// 处理角
@@ -221,6 +236,7 @@ type HexGridChunkFS() as this =
             this.terrain.AddTriangle
                 [| bottom; left; right |]
                 [| bottomCell.Color; leftCell.Color; rightCell.Color |]
+                Array.empty
                 Array.empty
 
     // 处理阶梯边
@@ -256,10 +272,22 @@ type HexGridChunkFS() as this =
                  quadUV 1f 0f (0.8f - v) (0.6f - v)
              else
                  quadUV 0f 1f v (v + 0.2f))
+            Array.empty
 
     /// 河面四边形（平）
     let triangulateRiverQuadFlat (v1: Vector3) (v2: Vector3) (v3: Vector3) (v4: Vector3) y v reversed =
         triangulateRiverQuadSlope v1 v2 v3 v4 y y v reversed
+
+    /// 处理流入水中的瀑布
+    let triangulateWaterfallInWater v1 v2 v3 v4 y1 y2 waterY =
+        let v1 = HexMetrics.perturb <| changeY v1 y1
+        let v2 = HexMetrics.perturb <| changeY v2 y1
+        let v3 = HexMetrics.perturb <| changeY v3 y2
+        let v4 = HexMetrics.perturb <| changeY v4 y2
+        let t = (waterY - y2) / (y1 - y2)
+        let v3 = v3.Lerp(v1, t)
+        let v4 = v4.Lerp(v2, t)
+        this.rivers.AddQuadUnperturbed [| v1; v2; v3; v4 |] Array.empty (quadUV 0f 1f 0.8f 1f) Array.empty
 
     /// 处理连接
     let triangulateConnection (cell: HexCellFS) dir (e1: EdgeVertices) =
@@ -273,15 +301,35 @@ type HexGridChunkFS() as this =
             if cell.HasRiverThroughEdge dir then
                 e2 <- e2.ChangeV3 <| changeY e2.v3 neighbor.StreamBedY
 
-                triangulateRiverQuadSlope
-                    e1.v2
-                    e1.v4
-                    e2.v2
-                    e2.v4
-                    cell.RiverSurfaceY
-                    neighbor.RiverSurfaceY
-                    0.8f
-                    (cell.IncomingRiver = Some dir)
+                if not cell.IsUnderWater then
+                    if not neighbor.IsUnderWater then
+                        triangulateRiverQuadSlope
+                            e1.v2
+                            e1.v4
+                            e2.v2
+                            e2.v4
+                            cell.RiverSurfaceY
+                            neighbor.RiverSurfaceY
+                            0.8f
+                            (cell.IncomingRiver = Some dir)
+                    elif cell.Elevation > neighbor.WaterLevel then
+                        triangulateWaterfallInWater
+                            e1.v2
+                            e1.v4
+                            e2.v2
+                            e2.v4
+                            cell.RiverSurfaceY
+                            neighbor.RiverSurfaceY
+                            neighbor.WaterSurfaceY
+                elif not neighbor.IsUnderWater && neighbor.Elevation > cell.WaterLevel then
+                    triangulateWaterfallInWater
+                        e2.v4
+                        e2.v2
+                        e1.v4
+                        e1.v2
+                        neighbor.WaterSurfaceY
+                        cell.WaterSurfaceY
+                        cell.WaterSurfaceY
 
             // 连接条
             if cell.GetEdgeType dir = Some HexEdgeType.Slope then
@@ -338,14 +386,15 @@ type HexGridChunkFS() as this =
         // 边缘条
         triangulateEdgeStripNoRoad m cell.Color e cell.Color
         // 两边两个三角形和中间两个四边形
-        this.terrain.AddTriangle [| centerL; m.v1; m.v2 |] (tri1Color cell.Color) Array.empty
-        this.terrain.AddQuad [| centerL; center; m.v2; m.v3 |] (quad1Color cell.Color) Array.empty
-        this.terrain.AddQuad [| center; centerR; m.v3; m.v4 |] (quad1Color cell.Color) Array.empty
-        this.terrain.AddTriangle [| centerR; m.v4; m.v5 |] (tri1Color cell.Color) Array.empty
+        this.terrain.AddTriangle [| centerL; m.v1; m.v2 |] (tri1Color cell.Color) Array.empty Array.empty
+        this.terrain.AddQuad [| centerL; center; m.v2; m.v3 |] (quad1Color cell.Color) Array.empty Array.empty
+        this.terrain.AddQuad [| center; centerR; m.v3; m.v4 |] (quad1Color cell.Color) Array.empty Array.empty
+        this.terrain.AddTriangle [| centerR; m.v4; m.v5 |] (tri1Color cell.Color) Array.empty Array.empty
         // 河面绘制
-        let reversed = cell.IncomingRiver = Some dir
-        triangulateRiverQuadFlat centerL centerR m.v2 m.v4 cell.RiverSurfaceY 0.4f reversed
-        triangulateRiverQuadFlat m.v2 m.v4 e.v2 e.v4 cell.RiverSurfaceY 0.6f reversed
+        if not cell.IsUnderWater then
+            let reversed = cell.IncomingRiver = Some dir
+            triangulateRiverQuadFlat centerL centerR m.v2 m.v4 cell.RiverSurfaceY 0.4f reversed
+            triangulateRiverQuadFlat m.v2 m.v4 e.v2 e.v4 cell.RiverSurfaceY 0.6f reversed
 
     /// 处理河流开始和结束
     let triangulateWithRiverBeginOrEnd (dir: HexDirection) (cell: HexCellFS) (center: Vector3) (e: EdgeVertices) =
@@ -353,18 +402,21 @@ type HexGridChunkFS() as this =
         m <- m.ChangeV3 <| changeY m.v3 e.v3.Y
         triangulateEdgeStripNoRoad m cell.Color e cell.Color
         triangulateEdgeFan center m cell.Color
-        let reversed = cell.IncomingRiver.IsSome
-        triangulateRiverQuadFlat m.v2 m.v4 e.v2 e.v4 cell.RiverSurfaceY 0.6f reversed
-        let center = changeY center cell.RiverSurfaceY
-        m <- EdgeVertices(m.v1, changeY m.v2 cell.RiverSurfaceY, m.v3, changeY m.v4 cell.RiverSurfaceY, m.v5)
+        // 河面绘制
+        if not cell.IsUnderWater then
+            let reversed = cell.IncomingRiver.IsSome
+            triangulateRiverQuadFlat m.v2 m.v4 e.v2 e.v4 cell.RiverSurfaceY 0.6f reversed
+            let center = changeY center cell.RiverSurfaceY
+            m <- EdgeVertices(m.v1, changeY m.v2 cell.RiverSurfaceY, m.v3, changeY m.v4 cell.RiverSurfaceY, m.v5)
 
-        this.rivers.AddTriangle
-            [| center; m.v2; m.v4 |]
-            Array.empty
-            (if reversed then
-                 [| Vector2(0.5f, 0.4f); Vector2(1f, 0.2f); Vector2(0f, 0.2f) |]
-             else
-                 [| Vector2(0.5f, 0.4f); Vector2(0f, 0.6f); Vector2(1f, 0.6f) |])
+            this.rivers.AddTriangle
+                [| center; m.v2; m.v4 |]
+                Array.empty
+                (if reversed then
+                     [| Vector2(0.5f, 0.4f); Vector2(1f, 0.2f); Vector2(0f, 0.2f) |]
+                 else
+                     [| Vector2(0.5f, 0.4f); Vector2(0f, 0.6f); Vector2(1f, 0.6f) |])
+                Array.empty
 
     /// 处理有道路的河流流域
     let triangulateRoadAdjacentToRiver (dir: HexDirection) (cell: HexCellFS) (center: Vector3) (e: EdgeVertices) =
@@ -462,50 +514,123 @@ type HexGridChunkFS() as this =
             <| e
             <| cell.HasRoadThroughEdge dir
 
+    /// 处理河口
+    let triangulateEstuary (e1: EdgeVertices) (e2: EdgeVertices) isIncomingRiver =
+        this.waterShore.AddTriangle
+            [| e2.v1; e1.v2; e1.v1 |]
+            Array.empty
+            [| Vector2(0f, 1f); Vector2(0f, 0f); Vector2(0f, 0f) |]
+            Array.empty
+
+        this.waterShore.AddTriangle
+            [| e2.v5; e1.v5; e1.v4 |]
+            Array.empty
+            [| Vector2(0f, 1f); Vector2(0f, 0f); Vector2(0f, 0f) |]
+            Array.empty
+
+        this.estuaries.AddQuad
+            [| e2.v1; e1.v2; e2.v2; e1.v3 |]
+            Array.empty
+            [| Vector2(0f, 1f); Vector2(0f, 0f); Vector2(1f, 1f); Vector2(0f, 0f) |]
+            (if isIncomingRiver then
+                 [| Vector2(1.5f, 1f)
+                    Vector2(0.7f, 1.15f)
+                    Vector2(1f, 0.8f)
+                    Vector2(0.5f, 1.1f) |]
+             else
+                 [| Vector2(-0.5f, -0.2f)
+                    Vector2(0.3f, -0.35f)
+                    Vector2(0f, 0f)
+                    Vector2(0.5f, -0.3f) |])
+
+        this.estuaries.AddTriangle
+            [| e1.v3; e2.v2; e2.v4 |]
+            Array.empty
+            [| Vector2(0f, 0f); Vector2(1f, 1f); Vector2(1f, 1f) |]
+            (if isIncomingRiver then
+                 [| Vector2(0.5f, 1.1f); Vector2(1f, 0.8f); Vector2(0f, 0.8f) |]
+             else
+                 [| Vector2(0.5f, -0.3f); Vector2(0f, 0f); Vector2(1f, 0f) |])
+
+        this.estuaries.AddQuad
+            [| e1.v3; e1.v4; e2.v4; e2.v5 |]
+            Array.empty
+            [| Vector2(0f, 0f); Vector2(0f, 0f); Vector2(1f, 1f); Vector2(1f, 1f) |]
+            (if isIncomingRiver then
+                 [| Vector2(0.5f, 1.1f)
+                    Vector2(0.3f, 1.15f)
+                    Vector2(0f, 0.8f)
+                    Vector2(-0.5f, 1f) |]
+             else
+                 [| Vector2(0.5f, -0.3f)
+                    Vector2(0.7f, -0.35f)
+                    Vector2(1f, 0f)
+                    Vector2(-1.5f, -0.2f) |])
+
     /// 处理岸边水域
     let triangulateWaterShore dir (cell: HexCellFS) (neighbor: HexCellFS) center =
         let e1 =
-            EdgeVertices(center + HexMetrics.getFirstSolidCorner dir, center + HexMetrics.getSecondSolidCorner dir)
+            EdgeVertices(center + HexMetrics.getFirstWaterCorner dir, center + HexMetrics.getSecondWaterCorner dir)
 
-        this.water.AddTriangle [| center; e1.v1; e1.v2 |] Array.empty Array.empty
-        this.water.AddTriangle [| center; e1.v2; e1.v3 |] Array.empty Array.empty
-        this.water.AddTriangle [| center; e1.v3; e1.v4 |] Array.empty Array.empty
-        this.water.AddTriangle [| center; e1.v4; e1.v5 |] Array.empty Array.empty
-        let bridge = HexMetrics.getBridge dir
-        let e2 = EdgeVertices(e1.v1 + bridge, e1.v5 + bridge)
-        this.waterShore.AddQuad [| e1.v1; e1.v2; e2.v1; e2.v2 |] Array.empty (quadUV 0f 0f 0f 1f)
-        this.waterShore.AddQuad [| e1.v2; e1.v3; e2.v2; e2.v3 |] Array.empty (quadUV 0f 0f 0f 1f)
-        this.waterShore.AddQuad [| e1.v3; e1.v4; e2.v3; e2.v4 |] Array.empty (quadUV 0f 0f 0f 1f)
-        this.waterShore.AddQuad [| e1.v4; e1.v5; e2.v4; e2.v5 |] Array.empty (quadUV 0f 0f 0f 1f)
+        this.water.AddTriangle [| center; e1.v1; e1.v2 |] Array.empty Array.empty Array.empty
+        this.water.AddTriangle [| center; e1.v2; e1.v3 |] Array.empty Array.empty Array.empty
+        this.water.AddTriangle [| center; e1.v3; e1.v4 |] Array.empty Array.empty Array.empty
+        this.water.AddTriangle [| center; e1.v4; e1.v5 |] Array.empty Array.empty Array.empty
+        let center2 = changeY neighbor.Position center.Y
+
+        let e2 =
+            EdgeVertices(
+                center2 + (HexMetrics.getSecondSolidCorner <| dir.Opposite()),
+                center2 + (HexMetrics.getFirstSolidCorner <| dir.Opposite())
+            )
+
+        if cell.HasRiverThroughEdge dir then
+            triangulateEstuary e1 e2 (cell.IncomingRiver = Some dir)
+        else
+            this.waterShore.AddQuad [| e1.v1; e1.v2; e2.v1; e2.v2 |] Array.empty (quadUV 0f 0f 0f 1f) Array.empty
+            this.waterShore.AddQuad [| e1.v2; e1.v3; e2.v2; e2.v3 |] Array.empty (quadUV 0f 0f 0f 1f) Array.empty
+            this.waterShore.AddQuad [| e1.v3; e1.v4; e2.v3; e2.v4 |] Array.empty (quadUV 0f 0f 0f 1f) Array.empty
+            this.waterShore.AddQuad [| e1.v4; e1.v5; e2.v4; e2.v5 |] Array.empty (quadUV 0f 0f 0f 1f) Array.empty
 
         match cell.GetNeighbor <| dir.Next() with
         | Some nextNeighbor ->
+            let v3 =
+                nextNeighbor.Position
+                + if nextNeighbor.IsUnderWater then
+                      HexMetrics.getFirstWaterCorner <| dir.Previous()
+                  else
+                      HexMetrics.getFirstSolidCorner <| dir.Previous()
+
+            let v3 = changeY v3 center.Y
+
             this.waterShore.AddTriangle
-                [| e1.v5; e2.v5; e1.v5 + (HexMetrics.getBridge <| dir.Next()) |]
+                [| e1.v5; e2.v5; v3 |]
                 Array.empty
                 [| Vector2(0f, 0f)
                    Vector2(0f, 1f)
                    Vector2(0f, (if nextNeighbor.IsUnderWater then 0f else 1f)) |]
+                Array.empty
         | _ -> ()
 
 
     /// 处理开放水域
     let triangulateOpenWater dir (cell: HexCellFS) (neighborOpt: HexCellFS option) center =
-        let c1 = center + HexMetrics.getFirstSolidCorner dir
-        let c2 = center + HexMetrics.getSecondSolidCorner dir
-        this.water.AddTriangle [| center; c1; c2 |] Array.empty Array.empty
+        let c1 = center + HexMetrics.getFirstWaterCorner dir
+        let c2 = center + HexMetrics.getSecondWaterCorner dir
+        this.water.AddTriangle [| center; c1; c2 |] Array.empty Array.empty Array.empty
 
         if dir <= HexDirection.SE && neighborOpt.IsSome then
-            let bridge = HexMetrics.getBridge dir
+            let bridge = HexMetrics.getWaterBridge dir
             let e1 = c1 + bridge
             let e2 = c2 + bridge
-            this.water.AddQuad [| c1; c2; e1; e2 |] Array.empty Array.empty
+            this.water.AddQuad [| c1; c2; e1; e2 |] Array.empty Array.empty Array.empty
 
             if dir <= HexDirection.E then
                 match cell.GetNeighbor <| dir.Next() with
                 | Some nextNeighbor when nextNeighbor.IsUnderWater ->
                     this.water.AddTriangle
-                        [| c2; e2; c2 + (HexMetrics.getBridge <| dir.Next()) |]
+                        [| c2; e2; c2 + (HexMetrics.getWaterBridge <| dir.Next()) |]
+                        Array.empty
                         Array.empty
                         Array.empty
                 | _ -> ()
@@ -546,21 +671,29 @@ type HexGridChunkFS() as this =
     let triangulate (cell: HexCellFS) =
         allHexDirs () |> List.iter (triangulateDir cell)
 
-
+    /// 地形
     [<DefaultValue>]
     val mutable terrain: HexMeshFS
 
+    /// 河流
     [<DefaultValue>]
     val mutable rivers: HexMeshFS
 
+    /// 道路
     [<DefaultValue>]
     val mutable roads: HexMeshFS
 
+    /// 水面
     [<DefaultValue>]
     val mutable water: HexMeshFS
 
+    /// 近岸水面
     [<DefaultValue>]
     val mutable waterShore: HexMeshFS
+
+    /// 河口
+    [<DefaultValue>]
+    val mutable estuaries: HexMeshFS
 
     interface IChunk with
         member this.Refresh() =
@@ -584,11 +717,13 @@ type HexGridChunkFS() as this =
             this.roads.Clear()
             this.water.Clear()
             this.waterShore.Clear()
+            this.estuaries.Clear()
             cells |> Array.iter triangulate
             this.terrain.Apply()
             this.rivers.Apply()
             this.roads.Apply()
             this.water.Apply()
             this.waterShore.Apply()
+            this.estuaries.Apply()
         // 这里写法挺有意思，可以控制 _Process 不频繁调用
         this.SetProcess false

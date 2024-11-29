@@ -5,5 +5,3 @@
 [node name="HexMesh" type="MeshInstance3D"]
 lod_bias = 100.0
 script = ExtResource("1_oa61u")
-UseCollider = true
-UseColor = true
