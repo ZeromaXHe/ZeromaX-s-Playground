@@ -4,6 +4,13 @@
 
 [node name="HexMapCamera" type="Node3D"]
 script = ExtResource("1_vl5fw")
+StickMinZoom = 250.0
+StickMaxZoom = 45.0
+SwivelMinZoom = -90.0
+SwivelMaxZoom = -45.0
+MoveSpeedMinZoom = 400.0
+MoveSpeedMaxZoom = 100.0
+RotationSpeed = 180.0
 
 [node name="Swivel" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 0, 0)

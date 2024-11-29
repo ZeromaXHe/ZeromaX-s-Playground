@@ -94,5 +94,5 @@ module HexMetrics =
     let getSolidEdgeMiddle (direction: HexDirection) =
         (corners[int direction] + corners[int direction + 1]) * (0.5f * solidFactor)
 
-    /// 河面高度偏移
-    let riverSurfaceElevationOffset = -0.5f
+    /// 水面高度偏移
+    let waterElevationOffset = -0.5f

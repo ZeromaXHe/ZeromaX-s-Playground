@@ -82,6 +82,19 @@ ticks_on_borders = true
 [node name="HSeparator2" type="HSeparator" parent="PanelContainer/CellVBox"]
 layout_mode = 2
 
+[node name="WaterChange" type="CheckButton" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+text = "Water"
+
+[node name="WaterSlider" type="HSlider" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+max_value = 6.0
+tick_count = 7
+ticks_on_borders = true
+
+[node name="HSeparator3" type="HSeparator" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+
 [node name="BrushLabel2" type="Label" parent="PanelContainer/CellVBox"]
 layout_mode = 2
 text = "Brush Size"
@@ -93,7 +106,7 @@ max_value = 4.0
 tick_count = 5
 ticks_on_borders = true
 
-[node name="HSeparator3" type="HSeparator" parent="PanelContainer/CellVBox"]
+[node name="HSeparator4" type="HSeparator" parent="PanelContainer/CellVBox"]
 layout_mode = 2
 
 [node name="RiverHBox" type="HBoxContainer" parent="PanelContainer/CellVBox"]

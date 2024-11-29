@@ -125,7 +125,7 @@ type HexCellFS() as this =
         * HexMetrics.elevationStep
 
     member this.RiverSurfaceY =
-        (float32 elevation + HexMetrics.riverSurfaceElevationOffset)
+        (float32 elevation + HexMetrics.waterElevationOffset)
         * HexMetrics.elevationStep
 
     member this.HasRiverThroughEdge(direction: HexDirection) =
@@ -213,3 +213,20 @@ type HexCellFS() as this =
             && this.GetElevationDifference direction <= 1
         then
             this.SetRoad (int direction) true
+    /// 水位
+    let mutable waterLevel = 0
+
+    member this.WaterLevel
+        with get () = waterLevel
+        and set value =
+            if waterLevel = value then
+                ()
+            else
+                waterLevel <- value
+                refresh ()
+    /// 是否在水下
+    member this.IsUnderWater = waterLevel > elevation
+
+    member this.WaterSurfaceY =
+        (float32 waterLevel + HexMetrics.waterElevationOffset)
+        * HexMetrics.elevationStep

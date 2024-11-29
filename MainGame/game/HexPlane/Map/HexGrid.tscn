@@ -37,11 +37,4 @@ directional_shadow_blend_splits = true
 directional_shadow_max_distance = 400.0
 
 [node name="HexMapCamera" parent="." node_paths=PackedStringArray("Grid") instance=ExtResource("3_r4khn")]
-StickMinZoom = 250.0
-StickMaxZoom = 45.0
-SwivelMinZoom = -90.0
-SwivelMaxZoom = -45.0
-MoveSpeedMinZoom = 400.0
-MoveSpeedMaxZoom = 100.0
-RotationSpeed = 180.0
 Grid = NodePath("..")

@@ -24,6 +24,11 @@ type HexMapEditorFS() as this =
     let _elevationSlider =
         lazy this.GetNode<HSlider> "PanelContainer/CellVBox/ElevationSlider"
 
+    let _waterChangeCheckButton =
+        lazy this.GetNode<CheckButton> "PanelContainer/CellVBox/WaterChange"
+
+    let _waterSlider = lazy this.GetNode<HSlider> "PanelContainer/CellVBox/WaterSlider"
+
     let _brushSlider = lazy this.GetNode<HSlider> "PanelContainer/CellVBox/BrushSlider"
 
     let _riverModeOptionButton =
@@ -48,6 +53,8 @@ type HexMapEditorFS() as this =
     // 默认修改高度
     let mutable changeElevation = true
     let mutable activeElevation = 1
+    let mutable changeWaterLevel = false
+    let mutable activeWaterLevel = 0
     let mutable brushSize = 0
     let mutable riverMode = OptionalToggle.Ignore
     let mutable roadMode = OptionalToggle.Ignore
@@ -69,6 +76,9 @@ type HexMapEditorFS() as this =
 
         if changeElevation then
             cell.Elevation <- activeElevation
+
+        if changeWaterLevel then
+            cell.WaterLevel <- activeWaterLevel
 
         if riverMode = OptionalToggle.No then
             // GD.Print $"cell removeRiver"
@@ -142,6 +152,8 @@ type HexMapEditorFS() as this =
 
         _elevationChangeCheckButton.Value.add_Toggled (fun toggle -> changeElevation <- toggle)
         _elevationSlider.Value.add_ValueChanged (fun value -> activeElevation <- int value)
+        _waterChangeCheckButton.Value.add_Toggled (fun toggle -> changeWaterLevel <- toggle)
+        _waterSlider.Value.add_ValueChanged (fun value -> activeWaterLevel <- int value)
         _brushSlider.Value.add_ValueChanged (fun value -> brushSize <- int value)
         _riverModeOptionButton.Value.add_ItemSelected (fun index -> riverMode <- enum<OptionalToggle> <| int index)
         _roadModeOptionButton.Value.add_ItemSelected (fun index -> roadMode <- enum<OptionalToggle> <| int index)

@@ -462,6 +462,62 @@ type HexGridChunkFS() as this =
             <| e
             <| cell.HasRoadThroughEdge dir
 
+    /// 处理岸边水域
+    let triangulateWaterShore dir (cell: HexCellFS) (neighbor: HexCellFS) center =
+        let e1 =
+            EdgeVertices(center + HexMetrics.getFirstSolidCorner dir, center + HexMetrics.getSecondSolidCorner dir)
+
+        this.water.AddTriangle [| center; e1.v1; e1.v2 |] Array.empty Array.empty
+        this.water.AddTriangle [| center; e1.v2; e1.v3 |] Array.empty Array.empty
+        this.water.AddTriangle [| center; e1.v3; e1.v4 |] Array.empty Array.empty
+        this.water.AddTriangle [| center; e1.v4; e1.v5 |] Array.empty Array.empty
+        let bridge = HexMetrics.getBridge dir
+        let e2 = EdgeVertices(e1.v1 + bridge, e1.v5 + bridge)
+        this.waterShore.AddQuad [| e1.v1; e1.v2; e2.v1; e2.v2 |] Array.empty (quadUV 0f 0f 0f 1f)
+        this.waterShore.AddQuad [| e1.v2; e1.v3; e2.v2; e2.v3 |] Array.empty (quadUV 0f 0f 0f 1f)
+        this.waterShore.AddQuad [| e1.v3; e1.v4; e2.v3; e2.v4 |] Array.empty (quadUV 0f 0f 0f 1f)
+        this.waterShore.AddQuad [| e1.v4; e1.v5; e2.v4; e2.v5 |] Array.empty (quadUV 0f 0f 0f 1f)
+
+        match cell.GetNeighbor <| dir.Next() with
+        | Some nextNeighbor ->
+            this.waterShore.AddTriangle
+                [| e1.v5; e2.v5; e1.v5 + (HexMetrics.getBridge <| dir.Next()) |]
+                Array.empty
+                [| Vector2(0f, 0f)
+                   Vector2(0f, 1f)
+                   Vector2(0f, (if nextNeighbor.IsUnderWater then 0f else 1f)) |]
+        | _ -> ()
+
+
+    /// 处理开放水域
+    let triangulateOpenWater dir (cell: HexCellFS) (neighborOpt: HexCellFS option) center =
+        let c1 = center + HexMetrics.getFirstSolidCorner dir
+        let c2 = center + HexMetrics.getSecondSolidCorner dir
+        this.water.AddTriangle [| center; c1; c2 |] Array.empty Array.empty
+
+        if dir <= HexDirection.SE && neighborOpt.IsSome then
+            let bridge = HexMetrics.getBridge dir
+            let e1 = c1 + bridge
+            let e2 = c2 + bridge
+            this.water.AddQuad [| c1; c2; e1; e2 |] Array.empty Array.empty
+
+            if dir <= HexDirection.E then
+                match cell.GetNeighbor <| dir.Next() with
+                | Some nextNeighbor when nextNeighbor.IsUnderWater ->
+                    this.water.AddTriangle
+                        [| c2; e2; c2 + (HexMetrics.getBridge <| dir.Next()) |]
+                        Array.empty
+                        Array.empty
+                | _ -> ()
+
+    /// 处理水
+    let triangulateWater dir (cell: HexCellFS) center =
+        let center = changeY center cell.WaterSurfaceY
+
+        match cell.GetNeighbor dir with
+        | Some neighbor when not neighbor.IsUnderWater -> triangulateWaterShore dir cell neighbor center
+        | neighborOpt -> triangulateOpenWater dir cell neighborOpt center
+
     let triangulateDir (cell: HexCellFS) dir =
         let center = cell.Position
 
@@ -484,6 +540,9 @@ type HexGridChunkFS() as this =
         if dir <= HexDirection.SE then
             triangulateConnection cell dir e
 
+        if cell.IsUnderWater then
+            triangulateWater dir cell center
+
     let triangulate (cell: HexCellFS) =
         allHexDirs () |> List.iter (triangulateDir cell)
 
@@ -496,6 +555,12 @@ type HexGridChunkFS() as this =
 
     [<DefaultValue>]
     val mutable roads: HexMeshFS
+
+    [<DefaultValue>]
+    val mutable water: HexMeshFS
+
+    [<DefaultValue>]
+    val mutable waterShore: HexMeshFS
 
     interface IChunk with
         member this.Refresh() =
@@ -517,9 +582,13 @@ type HexGridChunkFS() as this =
             this.terrain.Clear()
             this.rivers.Clear()
             this.roads.Clear()
+            this.water.Clear()
+            this.waterShore.Clear()
             cells |> Array.iter triangulate
             this.terrain.Apply()
             this.rivers.Apply()
             this.roads.Apply()
+            this.water.Apply()
+            this.waterShore.Apply()
         // 这里写法挺有意思，可以控制 _Process 不频繁调用
         this.SetProcess false

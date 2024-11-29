@@ -1,8 +1,6 @@
 // 通义灵码根据 Catlike Coding - Hex Map 6 河流 - 8 河流动画 中的 Unity Shader 直接转写过来的
 // https://catlikecoding.com/unity/tutorials/hex-map/part-6/#8
 shader_type spatial;
-// 设置渲染模式为混合模式（透明效果）和无光照模式
-render_mode blend_mix, unshaded;
 
 uniform vec4 color: source_color = vec4(1.0, 1.0, 1.0, 1.0);
 uniform sampler2D main_tex: hint_default_white;

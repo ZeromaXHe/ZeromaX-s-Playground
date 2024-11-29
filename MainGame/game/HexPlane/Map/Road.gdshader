@@ -2,7 +2,6 @@
 // https://catlikecoding.com/unity/tutorials/hex-map/part-7/#5
 // 这次转的比较失败，很多是我自己改好的。它写了很多 fragment() 和 vertex() 的入参，感觉和之前几次比变蠢了……
 shader_type spatial;
-render_mode unshaded, depth_draw_opaque;
 
 uniform vec4 color: source_color = vec4(1.0, 1.0, 1.0, 1.0);
 uniform sampler2D main_tex: hint_default_white;
@@ -11,8 +10,7 @@ uniform float metallic: hint_range(0.0, 1.0) = 0.0;
 
 // 设置深度偏移
 void vertex() {
-	// 设置深度偏移，相当于 Unity 中的 Offset -1, -1。
-	VERTEX.y += 1.0;
+	VERTEX.y += 0.1;
 }
 
 void fragment() {
