@@ -13,7 +13,7 @@ type IChunk =
 type HexCellFS() as this =
     inherit Node3D()
 
-    let _label = lazy this.GetNode<Label3D>("Label")
+    let _label = lazy this.GetNode<Label3D> "Label"
 
     [<DefaultValue>]
     val mutable Coordinates: HexCoordinates
@@ -79,7 +79,17 @@ type HexCellFS() as this =
                     | Some n when elevation < n.Elevation -> this.RemoveIncomingRiver()
                     | _ -> ()
 
+                for i in 0 .. this.roads.Length - 1 do
+                    if this.roads[i] && this.GetElevationDifference <| enum<HexDirection> i > 1 then
+                        this.SetRoad i false
+
                 refresh ()
+
+    /// 获取某个方向上的高度差
+    member this.GetElevationDifference(direction: HexDirection) =
+        match this.GetNeighbor direction with
+        | Some n -> elevation - n.Elevation |> Mathf.Abs
+        | None -> Int32.MaxValue
 
     member this.GetEdgeType direction =
         this.GetNeighbor direction
@@ -103,6 +113,12 @@ type HexCellFS() as this =
 
     member this.HasRiver = incomingRiver.IsSome || outgoingRiver.IsSome
     member this.HasRiverBeginOrEnd = incomingRiver.IsSome <> outgoingRiver.IsSome
+
+    member this.RiverBeginOrEndDirection =
+        if incomingRiver.IsSome then
+            incomingRiver.Value
+        else
+            outgoingRiver.Value
 
     member this.StreamBedY =
         (float32 elevation + HexMetrics.streamBedElevationOffset)
@@ -152,17 +168,48 @@ type HexCellFS() as this =
         else
             match this.GetNeighbor direction with
             | Some neighbor when elevation >= neighbor.Elevation ->
-                GD.Print $"SetOutgoingRiver refresh {direction}"
+                // GD.Print $"SetOutgoingRiver refresh {direction}"
                 this.RemoveOutgoingRiver()
 
                 if incomingRiver.IsSome && incomingRiver.Value = direction then
                     this.RemoveIncomingRiver()
 
                 this.OutgoingRiver <- Some direction
-                this.RefreshSelfOnly()
                 neighbor.RemoveIncomingRiver()
                 neighbor.IncomingRiver <- Some <| direction.Opposite()
-                neighbor.RefreshSelfOnly()
+                this.SetRoad <| int direction <| false
             | _ ->
                 GD.Print $"SetOutgoingRiver no neighbor or low {direction}"
                 ()
+
+    /// 道路
+    member val roads: bool array = Array.create 6 false
+    /// 某个方向上是否有道路
+    member this.HasRoadThroughEdge(direction: HexDirection) = this.roads[int direction]
+    /// 是否至少有一条道路
+    member this.HasRoads = this.roads |> Array.exists id
+
+    member this.SetRoad index state =
+        this.roads[index] <- state
+
+        match this.neighbors[index] with
+        | Some neighbor ->
+            neighbor.roads[int <| (enum<HexDirection> index).Opposite()] <- state
+            neighbor.RefreshSelfOnly()
+            this.RefreshSelfOnly()
+        | None -> ()
+
+    /// 移除道路
+    member this.RemoveRoads() =
+        for i in 0 .. this.neighbors.Length - 1 do
+            if this.roads[i] then
+                this.SetRoad i false
+
+    /// 添加道路
+    member this.AddRoad(direction: HexDirection) =
+        if
+            not <| this.HasRoadThroughEdge direction
+            && not <| this.HasRiverThroughEdge direction
+            && this.GetElevationDifference direction <= 1
+        then
+            this.SetRoad (int direction) true

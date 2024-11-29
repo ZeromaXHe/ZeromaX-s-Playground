@@ -13,32 +13,30 @@ type HexMapEditorFS() as this =
     inherit Control()
 
     let _hexGrid =
-        lazy this.GetNode<HexGridFS>("SubViewportContainer/SubViewport/HexGrid")
+        lazy this.GetNode<HexGridFS> "SubViewportContainer/SubViewport/HexGrid"
 
-    let _yellowCheckBox = lazy this.GetNode<CheckBox>("PanelContainer/CellVBox/Yellow")
-    let _greenCheckBox = lazy this.GetNode<CheckBox>("PanelContainer/CellVBox/Green")
-    let _blueCheckBox = lazy this.GetNode<CheckBox>("PanelContainer/CellVBox/Blue")
-    let _whiteCheckBox = lazy this.GetNode<CheckBox>("PanelContainer/CellVBox/White")
-
-    let _noChangeColorCheckBox =
-        lazy this.GetNode<CheckBox>("PanelContainer/CellVBox/NoChangeColor")
+    let _colorModeOptionButton =
+        lazy this.GetNode<OptionButton> "PanelContainer/CellVBox/ColorHBox/ColorMode"
 
     let _elevationChangeCheckButton =
-        lazy this.GetNode<CheckButton>("PanelContainer/CellVBox/ElevationChange")
+        lazy this.GetNode<CheckButton> "PanelContainer/CellVBox/ElevationChange"
 
     let _elevationSlider =
-        lazy this.GetNode<HSlider>("PanelContainer/CellVBox/ElevationSlider")
+        lazy this.GetNode<HSlider> "PanelContainer/CellVBox/ElevationSlider"
 
-    let _brushSlider = lazy this.GetNode<HSlider>("PanelContainer/CellVBox/BrushSlider")
+    let _brushSlider = lazy this.GetNode<HSlider> "PanelContainer/CellVBox/BrushSlider"
 
     let _riverModeOptionButton =
-        lazy this.GetNode<OptionButton>("PanelContainer/CellVBox/RiverHBox/RiverMode")
+        lazy this.GetNode<OptionButton> "PanelContainer/CellVBox/RiverHBox/RiverMode"
+
+    let _roadModeOptionButton =
+        lazy this.GetNode<OptionButton> "PanelContainer/CellVBox/RoadHBox/RoadMode"
 
     let _showLabelsCheckButton =
-        lazy this.GetNode<CheckButton>("PanelContainer/CellVBox/ShowLabels")
+        lazy this.GetNode<CheckButton> "PanelContainer/CellVBox/ShowLabels"
 
     let _wireframeCheckButton =
-        lazy this.GetNode<CheckButton>("PanelContainer/CellVBox/Wireframe")
+        lazy this.GetNode<CheckButton> "PanelContainer/CellVBox/Wireframe"
 
     // 默认不变色
     let mutable changeColor = false
@@ -52,6 +50,7 @@ type HexMapEditorFS() as this =
     let mutable activeElevation = 1
     let mutable brushSize = 0
     let mutable riverMode = OptionalToggle.Ignore
+    let mutable roadMode = OptionalToggle.Ignore
     let mutable inDragProcess = false
     // dragDirection 的有无对应教程中的 isDrag（即 isDrag 都替换为 dragDirection.IsSome）
     let mutable dragDirection: HexDirection option = None
@@ -64,24 +63,30 @@ type HexMapEditorFS() as this =
             allHexDirs ()
             |> List.tryFind (fun dir -> previousCell.IsSome && previousCell.Value.GetNeighbor dir = Some cell)
 
-    let editCell (cellOpt: HexCellFS option) =
-        cellOpt
-        |> Option.iter (fun cell ->
-            if changeColor then
-                cell.Color <- activeColor
+    let editCell (cell: HexCellFS) =
+        if changeColor then
+            cell.Color <- activeColor
 
-            if changeElevation then
-                cell.Elevation <- activeElevation
+        if changeElevation then
+            cell.Elevation <- activeElevation
 
-            if riverMode = OptionalToggle.No then
-                // GD.Print $"cell removeRiver"
-                cell.RemoveRiver()
-            elif dragDirection.IsSome && riverMode = OptionalToggle.Yes then
-                // dragDirection.IsSome 对应 isDrag
-                GD.Print $"cell setRiver {dragDirection.Value}"
+        if riverMode = OptionalToggle.No then
+            // GD.Print $"cell removeRiver"
+            cell.RemoveRiver()
 
-                cell.GetNeighbor <| dragDirection.Value.Opposite()
-                |> Option.iter (fun otherCell -> otherCell.SetOutgoingRiver dragDirection.Value))
+        if roadMode = OptionalToggle.No then
+            cell.RemoveRoads()
+
+        if dragDirection.IsSome then
+            // dragDirection.IsSome 对应 isDrag
+            cell.GetNeighbor <| dragDirection.Value.Opposite()
+            |> Option.iter (fun otherCell ->
+                if riverMode = OptionalToggle.Yes then
+                    // GD.Print $"otherCell setRiver {dragDirection.Value}"
+                    otherCell.SetOutgoingRiver <| dragDirection.Value
+
+                if roadMode = OptionalToggle.Yes then
+                    otherCell.AddRoad dragDirection.Value)
 
     let editCells (center: HexCellFS) =
         let centerX = center.Coordinates.X
@@ -92,14 +97,14 @@ type HexMapEditorFS() as this =
 
             for x = centerX - r to centerX + brushSize do
                 let coords = HexCoordinates(x, z)
-                editCell <| _hexGrid.Value.GetCell coords
+                _hexGrid.Value.GetCell coords |> Option.iter editCell
         // F# for ... downto 写法
         for z = centerZ + brushSize downto centerZ + 1 do
             let r = centerZ + brushSize - z
 
             for x = centerX - brushSize to centerX + r do
                 let coords = HexCoordinates(x, z)
-                editCell <| _hexGrid.Value.GetCell coords
+                _hexGrid.Value.GetCell coords |> Option.iter editCell
 
     /// 显示/隐藏 UI
     let showUI visible = _hexGrid.Value.ShowUI visible
@@ -122,20 +127,24 @@ type HexMapEditorFS() as this =
     member val _colors: Color array = Array.empty with get, set
 
     override this._Ready() =
+        _colorModeOptionButton.Value.Selected <- 0
         _elevationSlider.Value.Value <- activeElevation
         _brushSlider.Value.Value <- brushSize
-        _noChangeColorCheckBox.Value.ButtonPressed <- not changeColor
         _elevationChangeCheckButton.Value.ButtonPressed <- changeElevation
+        _riverModeOptionButton.Value.Selected <- 0
+        _roadModeOptionButton.Value.Selected <- 0
 
-        _yellowCheckBox.Value.add_Pressed (fun _ -> setColor 0)
-        _greenCheckBox.Value.add_Pressed (fun _ -> setColor 1)
-        _blueCheckBox.Value.add_Pressed (fun _ -> setColor 2)
-        _whiteCheckBox.Value.add_Pressed (fun _ -> setColor 3)
-        _noChangeColorCheckBox.Value.add_Pressed (fun _ -> changeColor <- false)
+        _colorModeOptionButton.Value.add_ItemSelected (fun index ->
+            if index = 0 then
+                changeColor <- false
+            else
+                setColor <| int index - 1)
+
         _elevationChangeCheckButton.Value.add_Toggled (fun toggle -> changeElevation <- toggle)
         _elevationSlider.Value.add_ValueChanged (fun value -> activeElevation <- int value)
         _brushSlider.Value.add_ValueChanged (fun value -> brushSize <- int value)
         _riverModeOptionButton.Value.add_ItemSelected (fun index -> riverMode <- enum<OptionalToggle> <| int index)
+        _roadModeOptionButton.Value.add_ItemSelected (fun index -> roadMode <- enum<OptionalToggle> <| int index)
         _showLabelsCheckButton.Value.add_Toggled showUI
 
         _wireframeCheckButton.Value.add_Toggled (fun toggle ->

@@ -26,6 +26,47 @@ type HexGridChunkFS() as this =
            Vector2(uMin, vMax)
            Vector2(uMax, vMax) |]
 
+    /// 道路段
+    let triangulateRoadSegment v1 v2 v3 v4 v5 v6 =
+        this.roads.AddQuad [| v1; v2; v4; v5 |] Array.empty (quadUV 0f 1f 0f 0f)
+        this.roads.AddQuad [| v2; v3; v5; v6 |] Array.empty (quadUV 1f 0f 0f 0f)
+
+    /// 道路边缘
+    let triangulateRoadEdge center mL mR =
+        this.roads.AddTriangle [| center; mL; mR |] Array.empty [| Vector2(1f, 0f); Vector2(0f, 0f); Vector2(0f, 0f) |]
+
+    /// 道路
+    let triangulateRoad center (mL: Vector3) mR (e: EdgeVertices) hasRoadThroughCellEdge =
+        if hasRoadThroughCellEdge then
+            let mC = mL.Lerp(mR, 0.5f)
+            triangulateRoadSegment mL mC mR e.v2 e.v3 e.v4
+
+            this.roads.AddTriangle
+                [| center; mL; mC |]
+                Array.empty
+                [| Vector2(1f, 0f); Vector2(0f, 0f); Vector2(1f, 0f) |]
+
+            this.roads.AddTriangle
+                [| center; mC; mR |]
+                Array.empty
+                [| Vector2(1f, 0f); Vector2(1f, 0f); Vector2(0f, 0f) |]
+        else
+            triangulateRoadEdge center mL mR
+
+    /// 道路插值器
+    let getRoadInterpolator dir (cell: HexCellFS) =
+        if cell.HasRoadThroughEdge dir then
+            Vector2(0.5f, 0.5f)
+        else
+            let x =
+                if cell.HasRoadThroughEdge(dir.Previous()) then
+                    0.5f
+                else
+                    0.25f
+
+            let y = if cell.HasRoadThroughEdge(dir.Next()) then 0.5f else 0.25f
+            Vector2(x, y)
+
     /// 三角形扇形
     let triangulateEdgeFan center (edge: EdgeVertices) color =
         let colors = tri1Color color
@@ -35,13 +76,18 @@ type HexGridChunkFS() as this =
         this.terrain.AddTriangle [| center; edge.v4; edge.v5 |] colors Array.empty
 
     /// 四边形折条
-    let triangulateEdgeStrip (e1: EdgeVertices) c1 (e2: EdgeVertices) c2 =
+    let triangulateEdgeStrip (e1: EdgeVertices) c1 (e2: EdgeVertices) c2 (hasRoad: bool) =
         let colors = quad2Color c1 c2
 
         this.terrain.AddQuad [| e1.v1; e1.v2; e2.v1; e2.v2 |] colors Array.empty
         this.terrain.AddQuad [| e1.v2; e1.v3; e2.v2; e2.v3 |] colors Array.empty
         this.terrain.AddQuad [| e1.v3; e1.v4; e2.v3; e2.v4 |] colors Array.empty
         this.terrain.AddQuad [| e1.v4; e1.v5; e2.v4; e2.v5 |] colors Array.empty
+
+        if hasRoad then
+            triangulateRoadSegment e1.v2 e1.v3 e1.v4 e2.v2 e2.v3 e2.v4
+
+    let triangulateEdgeStripNoRoad (e1: EdgeVertices) c1 (e2: EdgeVertices) c2 = triangulateEdgeStrip e1 c1 e2 c2 false
 
     /// SSF 和双斜坡变体 SFS、FSS
     let triangulateCornerTerraces
@@ -178,11 +224,11 @@ type HexGridChunkFS() as this =
                 Array.empty
 
     // 处理阶梯边
-    let triangulateEdgeTerraces beginE (beginCell: HexCellFS) endE (endCell: HexCellFS) =
+    let triangulateEdgeTerraces beginE (beginCell: HexCellFS) endE (endCell: HexCellFS) hasRoad =
         let e2 = EdgeVertices.TerraceLerp beginE endE 1
         let c2 = HexMetrics.terraceColorLerp beginCell.Color endCell.Color 1
         // 第一个条
-        triangulateEdgeStrip beginE beginCell.Color e2 c2
+        triangulateEdgeStrip beginE beginCell.Color e2 c2 hasRoad
         // 中间条
         let e2, c2 =
             [ 2 .. HexMetrics.terraceSteps - 1 ]
@@ -190,11 +236,11 @@ type HexGridChunkFS() as this =
                 (fun (e1, c1) i ->
                     let e2' = EdgeVertices.TerraceLerp beginE endE i
                     let c2' = HexMetrics.terraceColorLerp beginCell.Color endCell.Color i
-                    triangulateEdgeStrip e1 c1 e2' c2'
+                    triangulateEdgeStrip e1 c1 e2' c2' hasRoad
                     e2', c2')
                 (e2, c2)
         // 最后一个条
-        triangulateEdgeStrip e2 c2 endE endCell.Color
+        triangulateEdgeStrip e2 c2 endE endCell.Color hasRoad
 
     /// 河面四边形（斜）
     let triangulateRiverQuadSlope (v1: Vector3) (v2: Vector3) (v3: Vector3) (v4: Vector3) y1 y2 v reversed =
@@ -206,7 +252,10 @@ type HexGridChunkFS() as this =
         this.rivers.AddQuad
             [| v1; v2; v3; v4 |]
             Array.empty
-            (if reversed then quadUV 1f 0f (0.8f - v) (0.6f - v) else quadUV 0f 1f v (v + 0.2f))
+            (if reversed then
+                 quadUV 1f 0f (0.8f - v) (0.6f - v)
+             else
+                 quadUV 0f 1f v (v + 0.2f))
 
     /// 河面四边形（平）
     let triangulateRiverQuadFlat (v1: Vector3) (v2: Vector3) (v3: Vector3) (v4: Vector3) y v reversed =
@@ -236,9 +285,10 @@ type HexGridChunkFS() as this =
 
             // 连接条
             if cell.GetEdgeType dir = Some HexEdgeType.Slope then
-                triangulateEdgeTerraces e1 cell e2 neighbor
+                triangulateEdgeTerraces e1 cell e2 neighbor <| cell.HasRoadThroughEdge dir
             else
                 triangulateEdgeStrip e1 cell.Color e2 neighbor.Color
+                <| cell.HasRoadThroughEdge dir
             // 避免重复绘制
             if dir <= HexDirection.E then
                 match cell.GetNeighbor <| dir.Next() with
@@ -286,7 +336,7 @@ type HexGridChunkFS() as this =
         // Unity 的 Vector3 可以修改 x、y、z，但是 Godot 不行
         let center = changeY center e.v3.Y
         // 边缘条
-        triangulateEdgeStrip m cell.Color e cell.Color
+        triangulateEdgeStripNoRoad m cell.Color e cell.Color
         // 两边两个三角形和中间两个四边形
         this.terrain.AddTriangle [| centerL; m.v1; m.v2 |] (tri1Color cell.Color) Array.empty
         this.terrain.AddQuad [| centerL; center; m.v2; m.v3 |] (quad1Color cell.Color) Array.empty
@@ -301,7 +351,7 @@ type HexGridChunkFS() as this =
     let triangulateWithRiverBeginOrEnd (dir: HexDirection) (cell: HexCellFS) (center: Vector3) (e: EdgeVertices) =
         let mutable m = EdgeVertices(center.Lerp(e.v1, 0.5f), center.Lerp(e.v5, 0.5f))
         m <- m.ChangeV3 <| changeY m.v3 e.v3.Y
-        triangulateEdgeStrip m cell.Color e cell.Color
+        triangulateEdgeStripNoRoad m cell.Color e cell.Color
         triangulateEdgeFan center m cell.Color
         let reversed = cell.IncomingRiver.IsSome
         triangulateRiverQuadFlat m.v2 m.v4 e.v2 e.v4 cell.RiverSurfaceY 0.6f reversed
@@ -316,8 +366,69 @@ type HexGridChunkFS() as this =
              else
                  [| Vector2(0.5f, 0.4f); Vector2(0f, 0.6f); Vector2(1f, 0.6f) |])
 
+    /// 处理有道路的河流流域
+    let triangulateRoadAdjacentToRiver (dir: HexDirection) (cell: HexCellFS) (center: Vector3) (e: EdgeVertices) =
+        let hasRoadThroughEdge = cell.HasRoadThroughEdge dir
+        let previousHasRiver = cell.HasRiverThroughEdge <| dir.Previous()
+        let nextHasRiver = cell.HasRiverThroughEdge <| dir.Next()
+        let interpolator = getRoadInterpolator dir cell
+
+        let roadCenter, center, prune =
+            if cell.HasRiverBeginOrEnd then
+                center
+                + HexMetrics.getSolidEdgeMiddle (cell.RiverBeginOrEndDirection.Opposite())
+                  * (1f / 3f),
+                center,
+                false
+            // 前提保证了这里 IncomingRiver 和 OutgoingRiver 一定是 Some
+            elif cell.IncomingRiver.Value = cell.OutgoingRiver.Value.Opposite() then
+                let corner, prune =
+                    if previousHasRiver then
+                        let prune = not hasRoadThroughEdge && not << cell.HasRoadThroughEdge <| dir.Next()
+                        HexMetrics.getSecondSolidCorner dir, prune
+                    else
+                        let prune =
+                            not hasRoadThroughEdge && not << cell.HasRoadThroughEdge <| dir.Previous()
+
+                        HexMetrics.getFirstSolidCorner dir, prune
+
+                center + corner * 0.5f, center + corner * 0.25f, prune
+            elif cell.IncomingRiver.Value = cell.OutgoingRiver.Value.Previous() then
+                center - HexMetrics.getSecondSolidCorner cell.IncomingRiver.Value * 0.2f, center, false
+            elif cell.IncomingRiver.Value = cell.OutgoingRiver.Value.Next() then
+                center - HexMetrics.getFirstSolidCorner cell.IncomingRiver.Value * 0.2f, center, false
+            elif previousHasRiver && nextHasRiver then
+                let offset = HexMetrics.getSolidEdgeMiddle dir * HexMetrics.innerToOuter
+                center + offset * 0.7f, center + offset * 0.5f, not hasRoadThroughEdge
+            else
+                let middle =
+                    if previousHasRiver then dir.Next()
+                    elif nextHasRiver then dir.Previous()
+                    else dir
+
+                let prune =
+                    not <| cell.HasRoadThroughEdge middle
+                    && not << cell.HasRoadThroughEdge <| middle.Previous()
+                    && not << cell.HasRoadThroughEdge <| middle.Next()
+
+                center + HexMetrics.getSolidEdgeMiddle middle * 0.25f, center, prune
+        // 如果需要修剪跨河对面的道路残渣，后面就不需要执行了
+        if not prune then
+            let mL = roadCenter.Lerp(e.v1, interpolator.X)
+            let mR = roadCenter.Lerp(e.v5, interpolator.Y)
+            triangulateRoad roadCenter mL mR e hasRoadThroughEdge
+
+            if previousHasRiver then
+                triangulateRoadEdge roadCenter center mL
+
+            if nextHasRiver then
+                triangulateRoadEdge roadCenter mR center
+
     /// 处理河流流域
     let triangulateAdjacentToRiver (dir: HexDirection) (cell: HexCellFS) (center: Vector3) (e: EdgeVertices) =
+        if cell.HasRoads then
+            triangulateRoadAdjacentToRiver dir cell center e
+
         let center =
             if cell.HasRiverThroughEdge <| dir.Next() then
                 if cell.HasRiverThroughEdge <| dir.Previous() then
@@ -335,8 +446,21 @@ type HexGridChunkFS() as this =
                 center
 
         let m = EdgeVertices(center.Lerp(e.v1, 0.5f), center.Lerp(e.v5, 0.5f))
-        triangulateEdgeStrip m cell.Color e cell.Color
+        triangulateEdgeStripNoRoad m cell.Color e cell.Color
         triangulateEdgeFan center m cell.Color
+
+    /// 处理没有河流的单元格
+    let triangulateWithoutRiver dir (cell: HexCellFS) center e =
+        triangulateEdgeFan center e cell.Color
+
+        if cell.HasRoads then
+            let interpolator = getRoadInterpolator dir cell
+
+            triangulateRoad center
+            <| center.Lerp(e.v1, interpolator.X)
+            <| center.Lerp(e.v5, interpolator.Y)
+            <| e
+            <| cell.HasRoadThroughEdge dir
 
     let triangulateDir (cell: HexCellFS) dir =
         let center = cell.Position
@@ -355,7 +479,7 @@ type HexGridChunkFS() as this =
             else
                 triangulateAdjacentToRiver dir cell center e
         else
-            triangulateEdgeFan center e cell.Color
+            triangulateWithoutRiver dir cell center e
 
         if dir <= HexDirection.SE then
             triangulateConnection cell dir e
@@ -370,6 +494,9 @@ type HexGridChunkFS() as this =
     [<DefaultValue>]
     val mutable rivers: HexMeshFS
 
+    [<DefaultValue>]
+    val mutable roads: HexMeshFS
+
     interface IChunk with
         member this.Refresh() =
             // GD.Print $"{this.Name} Refresh"
@@ -382,15 +509,17 @@ type HexGridChunkFS() as this =
         this.AddChild cell
 
     override this._Ready() =
-        cells <- Array.zeroCreate (HexMetrics.chunkSizeX * HexMetrics.chunkSizeZ)
+        cells <- Array.zeroCreate <| HexMetrics.chunkSizeX * HexMetrics.chunkSizeZ
 
     override this._Process _ =
         // 防止编辑器内循环报错，卡死
         if anyCell then
             this.terrain.Clear()
             this.rivers.Clear()
+            this.roads.Clear()
             cells |> Array.iter triangulate
             this.terrain.Apply()
             this.rivers.Apply()
+            this.roads.Apply()
         // 这里写法挺有意思，可以控制 _Process 不频繁调用
         this.SetProcess false

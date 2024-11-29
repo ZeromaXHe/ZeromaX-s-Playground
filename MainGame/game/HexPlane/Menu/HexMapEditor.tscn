@@ -1,9 +1,7 @@
-[gd_scene load_steps=4 format=3 uid="uid://bv4ennj4u5ap7"]
+[gd_scene load_steps=3 format=3 uid="uid://bv4ennj4u5ap7"]
 
 [ext_resource type="Script" path="res://game/HexPlane/Menu/HexMapEditor.cs" id="1_pjtj7"]
 [ext_resource type="PackedScene" uid="uid://ctsv3hyrh2w4j" path="res://game/HexPlane/Map/HexGrid.tscn" id="2_g6vaw"]
-
-[sub_resource type="ButtonGroup" id="ButtonGroup_1v4oh"]
 
 [node name="HexMapEditor" type="Control"]
 layout_mode = 3
@@ -14,7 +12,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 1
 script = ExtResource("1_pjtj7")
-Colors = PackedColorArray(1, 0.862745, 0, 1, 0, 0.682353, 0, 1, 0.0745098, 0.219608, 0.839216, 1, 1, 1, 1, 1)
+Colors = PackedColorArray(1, 0.862745, 0, 1, 0, 0.682353, 0, 1, 0.0745098, 0.219608, 0.839216, 1, 1, 0.305882, 0.105882, 1, 1, 1, 1, 1)
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="."]
 layout_mode = 1
@@ -43,36 +41,29 @@ offset_bottom = 40.0
 layout_mode = 2
 alignment = 1
 
-[node name="ColorLabel" type="Label" parent="PanelContainer/CellVBox"]
+[node name="ColorHBox" type="HBoxContainer" parent="PanelContainer/CellVBox"]
 layout_mode = 2
+
+[node name="ColorLabel" type="Label" parent="PanelContainer/CellVBox/ColorHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
 text = "Color"
-horizontal_alignment = 1
 
-[node name="Yellow" type="CheckBox" parent="PanelContainer/CellVBox"]
+[node name="ColorMode" type="OptionButton" parent="PanelContainer/CellVBox/ColorHBox"]
 layout_mode = 2
-button_group = SubResource("ButtonGroup_1v4oh")
-text = "Yellow"
-
-[node name="Green" type="CheckBox" parent="PanelContainer/CellVBox"]
-layout_mode = 2
-button_group = SubResource("ButtonGroup_1v4oh")
-text = "Green"
-
-[node name="Blue" type="CheckBox" parent="PanelContainer/CellVBox"]
-layout_mode = 2
-button_group = SubResource("ButtonGroup_1v4oh")
-text = "Blue"
-
-[node name="White" type="CheckBox" parent="PanelContainer/CellVBox"]
-layout_mode = 2
-button_group = SubResource("ButtonGroup_1v4oh")
-text = "White"
-
-[node name="NoChangeColor" type="CheckBox" parent="PanelContainer/CellVBox"]
-layout_mode = 2
-button_pressed = true
-button_group = SubResource("ButtonGroup_1v4oh")
-text = "No change"
+selected = 0
+item_count = 6
+popup/item_0/text = "---"
+popup/item_1/text = "Yellow"
+popup/item_1/id = 1
+popup/item_2/text = "Green"
+popup/item_2/id = 2
+popup/item_3/text = "Blue"
+popup/item_3/id = 3
+popup/item_4/text = "Orange"
+popup/item_4/id = 4
+popup/item_5/text = "White"
+popup/item_5/id = 5
 
 [node name="HSeparator" type="HSeparator" parent="PanelContainer/CellVBox"]
 layout_mode = 2
@@ -117,7 +108,25 @@ text = "River"
 layout_mode = 2
 selected = 0
 item_count = 3
-popup/item_0/text = "Ignore"
+popup/item_0/text = "---"
+popup/item_1/text = "Yes"
+popup/item_1/id = 1
+popup/item_2/text = "No"
+popup/item_2/id = 2
+
+[node name="RoadHBox" type="HBoxContainer" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+
+[node name="RoadLabel" type="Label" parent="PanelContainer/CellVBox/RoadHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Road"
+
+[node name="RoadMode" type="OptionButton" parent="PanelContainer/CellVBox/RoadHBox"]
+layout_mode = 2
+selected = 0
+item_count = 3
+popup/item_0/text = "---"
 popup/item_1/text = "Yes"
 popup/item_1/id = 1
 popup/item_2/text = "No"

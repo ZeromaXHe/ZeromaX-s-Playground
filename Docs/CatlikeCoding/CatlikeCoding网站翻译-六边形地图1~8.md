@@ -8034,6 +8034,8 @@ void TriangulateRoadAdjacentToRiver (
 		}
 ```
 
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-7/road-appearance/red.png)
+
 *红色的道路。*
 
 这看起来已经好多了！但是，让我们继续将道路与地形混合，使用 U 坐标作为混合因子。

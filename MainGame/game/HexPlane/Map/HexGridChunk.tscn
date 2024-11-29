@@ -1,9 +1,10 @@
-[gd_scene load_steps=7 format=3 uid="uid://btjayimhgt0pk"]
+[gd_scene load_steps=9 format=3 uid="uid://btjayimhgt0pk"]
 
 [ext_resource type="PackedScene" uid="uid://dgi5lqferr3en" path="res://game/HexPlane/Map/HexMesh.tscn" id="1_ohi0j"]
 [ext_resource type="Script" path="res://game/HexPlane/Map/HexGridChunk.cs" id="1_y4c6g"]
 [ext_resource type="Shader" path="res://game/HexPlane/Map/RiverAlpha.gdshader" id="3_l5ass"]
 [ext_resource type="Texture2D" uid="uid://cts1rn3gu83qb" path="res://resources/CatlikeCoding/HexMap/noise.png" id="4_tcvt3"]
+[ext_resource type="Shader" path="res://game/HexPlane/Map/Road.gdshader" id="5_p5rjp"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_e78pv"]
 vertex_color_use_as_albedo = true
@@ -17,16 +18,31 @@ shader_parameter/glossiness = 0.5
 shader_parameter/metallic = 0.0
 shader_parameter/main_tex = ExtResource("4_tcvt3")
 
-[node name="HexGridChunk" type="Node3D" node_paths=PackedStringArray("Terrain", "Rivers")]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sy07w"]
+render_priority = 0
+shader = ExtResource("5_p5rjp")
+shader_parameter/color = Color(0.831373, 0, 0, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/metallic = 0.0
+shader_parameter/main_tex = ExtResource("4_tcvt3")
+
+[node name="HexGridChunk" type="Node3D" node_paths=PackedStringArray("Terrain", "Rivers", "Roads")]
 script = ExtResource("1_y4c6g")
 Terrain = NodePath("Terrain")
 Rivers = NodePath("Rivers")
+Roads = NodePath("Roads")
 
 [node name="Terrain" parent="." instance=ExtResource("1_ohi0j")]
 material_override = SubResource("StandardMaterial3D_e78pv")
 
 [node name="Rivers" parent="." instance=ExtResource("1_ohi0j")]
 material_override = SubResource("ShaderMaterial_7x664")
+UseCollider = false
+UseColor = false
+UseUvCoordinates = true
+
+[node name="Roads" parent="." instance=ExtResource("1_ohi0j")]
+material_override = SubResource("ShaderMaterial_sy07w")
 UseCollider = false
 UseColor = false
 UseUvCoordinates = true
