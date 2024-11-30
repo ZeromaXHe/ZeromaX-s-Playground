@@ -2,6 +2,10 @@
 
 
 
+# [跳转系列独立 Markdown 1 ~ 8](./CatlikeCoding网站翻译-六边形地图1~8.md)
+
+
+
 # Hex Map 9：地形特征
 
 发布于 2016-09-23
@@ -2353,7 +2357,7 @@ https://catlikecoding.com/unity/tutorials/hex-map/part-11/
 	public Transform[] special;
 ```
 
-首先将城堡添加到阵列中，然后是金字塔，然后是巨型植物。
+首先将城堡添加到数组中，然后是金字塔，然后是巨型植物。
 
 ![img](https://catlikecoding.com/unity/tutorials/hex-map/part-11/special-features/inspector.png)
 
@@ -3257,7 +3261,7 @@ public class HexGrid : MonoBehaviour {
 	}
 ```
 
-我们现在正在存储完全保存和恢复地图所需的所有细胞数据。每个单元格需要九个整数和九个布尔值。布尔值每个占用一个字节，所以我们最终每个单元格使用 45 个字节。因此，一个包含 300 个单元格的地图总共需要 13500 个字节。
+我们现在正在存储完全保存和恢复地图所需的所有单元格数据。每个单元格需要九个整数和九个布尔值。布尔值每个占用一个字节，所以我们最终每个单元格使用 45 个字节。因此，一个包含 300 个单元格的地图总共需要 13500 个字节。
 
 [unitypackage](https://catlikecoding.com/unity/tutorials/hex-map/part-12/writing-and-reading-map-data/writing-and-reading-map-data.unitypackage)
 
@@ -3527,7 +3531,7 @@ https://catlikecoding.com/unity/tutorials/hex-map/part-13/
 
 > **我们不能重用现有的对象吗？**
 >
-> 这是可能的，但从新鲜的块和细胞开始是最简单的。当我们支持多种地图尺寸时，尤其如此。此外，创建新地图是一种相对罕见的行为。优化在这里不是很重要。
+> 这是可能的，但从新鲜的块和单元格开始是最简单的。当我们支持多种地图尺寸时，尤其如此。此外，创建新地图是一种相对罕见的行为。优化在这里不是很重要。
 
 > **我们能像那样在循环中把孩子们破坏（destroy）吗？**
 >
@@ -4360,3 +4364,1907 @@ public class SaveLoadMenu : MonoBehaviour {
 [unitypackage](https://catlikecoding.com/unity/tutorials/hex-map/part-13/file-management/file-management.unitypackage)
 
 [PDF](https://catlikecoding.com/unity/tutorials/hex-map/part-13/Hex-Map-13.pdf)
+
+# Hex Map 14：地形纹理
+
+发布于 2017-02-23
+
+https://catlikecoding.com/unity/tutorials/hex-map/part-14/
+
+*使用顶点颜色设计飞溅贴图。*
+*创建纹理数组资源。*
+*将地形索引添加到网格中。*
+*地形纹理之间的混合。*
+
+这是关于[六边形地图](https://catlikecoding.com/unity/tutorials/hex-map/)的系列教程的第 14 部分。到目前为止，我们已经使用纯色来绘制地图。现在我们将使用纹理。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-14/tutorial-image.jpg)
+
+*用纹理绘画。*
+
+## 1 混合三种类型
+
+虽然统一的颜色很清晰，可以完成工作，但它们看起来并不是很有趣。升级到纹理可以大大提高我们地图的吸引力。当然，这要求我们混合纹理，而不仅仅是颜色。“[渲染 3，组合纹理](https://catlikecoding.com/unity/tutorials/rendering/part-3/)”教程展示了如何使用 splat 贴图混合多个纹理。我们可以对六边形地图使用类似的方法。
+
+“[渲染 3](https://catlikecoding.com/unity/tutorials/rendering/part-3/)”教程只混合了四种纹理，并且可以使用单个 splat 贴图支持多达五种纹理。我们目前使用五种不同的颜色，因此可以工作。但是，我们可能希望以后添加更多类型。因此，我们应该支持任意数量的地形类型。对于显式纹理属性，这是不可能的。相反，我们必须使用纹理数组。稍后我们将创建一个。
+
+使用纹理数组时，我们必须以某种方式告诉着色器要混合哪些纹理。角三角形需要最复杂的混合，它可以位于三个单元之间，每个单元都有不同的地形类型。因此，我们必须支持每个三角形中三种不同类型的混合。
+
+### 1.1 使用顶点颜色作为 Splat 贴图
+
+假设我们可以传达要混合的纹理，我们可以使用顶点颜色为每个三角形创建一个平面图。由于一次最多有三个纹理在播放，我们只需要三个颜色通道。红色代表第一个纹理，绿色代表第二个纹理，蓝色代表第三个纹理。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-14/blending-three-types/splat-triangle.png)
+
+*绘制地图三角形。*
+
+> **平面图三角形的总和总是 1 吗？**
+>
+> 对。三个颜色通道定义了三角形表面上的三线性插值。它们起着重心坐标的作用。例如，在拐角处有三种可能的排列，即（1，0，0），在边缘中间有（½，½，0）的变体，在中心有（1/3，1/3，1/3）的变体。
+
+如果三角形只需要一个纹理，我们将只使用第一个通道。因此，它的颜色将是纯红色。在两种不同类型的混合的情况下，我们将使用第一和第二通道。所以三角形的颜色将是红色和绿色的混合。如果这三种类型都在发挥作用，那就是红色、绿色和蓝色的混合。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-14/blending-three-types/splat-configurations.png)
+
+*三种布局图配置。*
+
+无论实际混合了哪些纹理，我们都会使用这些 splat-map 配置。所以飞溅图总是一样的。不同的是纹理。我们稍后会想出如何做到这一点。
+
+我们必须更新 `HexGridChunk`，以便它创建这些 splat 贴图，而不是使用单元格颜色。因为我们将大量使用这三种颜色，所以为它们创建静态字段。
+
+```c#
+	static Color color1 = new Color(1f, 0f, 0f);
+	static Color color2 = new Color(0f, 1f, 0f);
+	static Color color3 = new Color(0f, 0f, 1f);
+```
+
+### 1.2 单元格中心
+
+首先替换默认单元格中心的颜色。这里没有混合，所以我们只使用第一种颜色，即红色。
+
+```c#
+	void TriangulateWithoutRiver (
+		HexDirection direction, HexCell cell, Vector3 center, EdgeVertices e
+	) {
+		TriangulateEdgeFan(center, e, color1);
+
+		…
+	}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-14/blending-three-types/red-center.png)
+
+*红单元格中心。*
+
+单元格中心现在变成了红色。无论碰巧是哪种纹理，它们都使用三种纹理中的第一种。无论你画什么颜色的单元格，它们的斑点贴图都是相同的。
+
+### 1.3 毗邻河流
+
+我们只改变了单元格内的片段，没有河流流过它们。我们必须对靠近河流的河段做同样的事情。在这种情况下，它既是边缘条又是边缘扇。再一次，红色是我们所需要的。
+
+```c#
+	void TriangulateAdjacentToRiver (
+		HexDirection direction, HexCell cell, Vector3 center, EdgeVertices e
+	) {
+		…
+
+		TriangulateEdgeStrip(m, color1, e, color1);
+		TriangulateEdgeFan(center, m, color1);
+
+		…
+	}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-14/blending-three-types/red-adjacent-to-river.png)
+
+*河流附近的红色段。*
+
+### 1.4 河流
+
+接下来，我们必须处理单元格内的河流几何形状。它们也应该变成红色。首先，河流的起点和终点。
+
+```c#
+	void TriangulateWithRiverBeginOrEnd (
+		HexDirection direction, HexCell cell, Vector3 center, EdgeVertices e
+	) {
+		…
+
+		TriangulateEdgeStrip(m, color1, e, color1);
+		TriangulateEdgeFan(center, m, color1);
+
+		…
+	}
+```
+
+然后是构成河岸和河道的几何形状。我还对 color 方法调用进行了分组，这样代码更容易阅读。
+
+```c#
+	void TriangulateWithRiver (
+		HexDirection direction, HexCell cell, Vector3 center, EdgeVertices e
+	) {
+		…
+
+		TriangulateEdgeStrip(m, color1, e, color1);
+
+		terrain.AddTriangle(centerL, m.v1, m.v2);
+//		terrain.AddTriangleColor(cell.Color);
+		terrain.AddQuad(centerL, center, m.v2, m.v3);
+//		terrain.AddQuadColor(cell.Color);
+		terrain.AddQuad(center, centerR, m.v3, m.v4);
+//		terrain.AddQuadColor(cell.Color);
+		terrain.AddTriangle(centerR, m.v4, m.v5);
+//		terrain.AddTriangleColor(cell.Color);
+		
+		terrain.AddTriangleColor(color1);
+		terrain.AddQuadColor(color1);
+		terrain.AddQuadColor(color1);
+		terrain.AddTriangleColor(color1);
+
+		…
+	}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-14/blending-three-types/red-rivers.png)
+
+*红色的河流穿过单元格。*
+
+### 1.5 边缘
+
+边缘是不同的，因为它们位于两个单元之间，这两个单元可能具有不同的地形类型。我们将使用第一种颜色表示当前单元格的类型，使用第二种颜色表示其邻居的类型。因此，即使两个单元格恰好具有相同的类型，splat 图也是红绿色的渐变。如果两个单元格使用相同的纹理，那么它将只是两端相同纹理的混合。
+
+```c#
+	void TriangulateConnection (
+		HexDirection direction, HexCell cell, EdgeVertices e1
+	) {
+		…
+
+		if (cell.GetEdgeType(direction) == HexEdgeType.Slope) {
+			TriangulateEdgeTerraces(e1, cell, e2, neighbor, hasRoad);
+		}
+		else {
+			TriangulateEdgeStrip(e1, color1, e2, color2, hasRoad);
+		}
+
+		…
+	}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-14/blending-three-types/red-green-edges.png)
+
+*红绿色边缘，梯田除外。*
+
+> **红色和绿色之间的艰难过渡难道不是一个问题吗？**
+>
+> 虽然边缘过渡是从红色到绿色，但两侧的单元格中心都是红色的。因此，边缘的一侧似乎存在不连续性。然而，这只是一张地图。相邻三角形的颜色不需要链接到相同的纹理。在这种情况下，一侧的绿色对应另一侧的红色。
+
+请注意，如果三角形共享顶点，这是不可能的。
+
+带露台的边更复杂，因为它们有额外的顶点。幸运的是，现有的插值代码与我们的 splat 贴图颜色配合得很好。只需使用第一种和第二种颜色，而不是开始和结束单元格的颜色。
+
+```c#
+	void TriangulateEdgeTerraces (
+		EdgeVertices begin, HexCell beginCell,
+		EdgeVertices end, HexCell endCell,
+		bool hasRoad
+	) {
+		EdgeVertices e2 = EdgeVertices.TerraceLerp(begin, end, 1);
+		Color c2 = HexMetrics.TerraceLerp(color1, color2, 1);
+
+		TriangulateEdgeStrip(begin, color1, e2, c2, hasRoad);
+
+		for (int i = 2; i < HexMetrics.terraceSteps; i++) {
+			EdgeVertices e1 = e2;
+			Color c1 = c2;
+			e2 = EdgeVertices.TerraceLerp(begin, end, i);
+			c2 = HexMetrics.TerraceLerp(color1, color2, i);
+			TriangulateEdgeStrip(e1, c1, e2, c2, hasRoad);
+		}
+
+		TriangulateEdgeStrip(e2, c2, end, color2, hasRoad);
+	}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-14/blending-three-types/red-green-edge-terraces.png)
+
+*红绿色边缘梯田。*
+
+### 1.6 角
+
+单元格角是最复杂的，因为它们必须混合三种不同的纹理。我们将使用红色作为底部顶点，绿色作为左侧顶点，蓝色作为右侧顶点。我们从单个三角形的角开始。
+
+```c#
+	void TriangulateCorner (
+		Vector3 bottom, HexCell bottomCell,
+		Vector3 left, HexCell leftCell,
+		Vector3 right, HexCell rightCell
+	) {
+		…
+		else {
+			terrain.AddTriangle(bottom, left, right);
+			terrain.AddTriangleColor(color1, color2, color3);
+		}
+
+		features.AddWall(bottom, bottomCell, left, leftCell, right, rightCell);
+	}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-14/blending-three-types/red-green-blue-corners.png)
+
+*红绿蓝角，梯田除外。*
+
+同样，我们可以对有露台的角落使用现有的颜色插值代码。它只是三种颜色之间，而不是两种。首先，不靠近悬崖的梯田。
+
+```c#
+	void TriangulateCornerTerraces (
+		Vector3 begin, HexCell beginCell,
+		Vector3 left, HexCell leftCell,
+		Vector3 right, HexCell rightCell
+	) {
+		Vector3 v3 = HexMetrics.TerraceLerp(begin, left, 1);
+		Vector3 v4 = HexMetrics.TerraceLerp(begin, right, 1);
+		Color c3 = HexMetrics.TerraceLerp(color1, color2, 1);
+		Color c4 = HexMetrics.TerraceLerp(color1, color3, 1);
+
+		terrain.AddTriangle(begin, v3, v4);
+		terrain.AddTriangleColor(color1, c3, c4);
+
+		for (int i = 2; i < HexMetrics.terraceSteps; i++) {
+			Vector3 v1 = v3;
+			Vector3 v2 = v4;
+			Color c1 = c3;
+			Color c2 = c4;
+			v3 = HexMetrics.TerraceLerp(begin, left, i);
+			v4 = HexMetrics.TerraceLerp(begin, right, i);
+			c3 = HexMetrics.TerraceLerp(color1, color2, i);
+			c4 = HexMetrics.TerraceLerp(color1, color3, i);
+			terrain.AddQuad(v1, v2, v3, v4);
+			terrain.AddQuadColor(c1, c2, c3, c4);
+		}
+
+		terrain.AddQuad(v3, v4, left, right);
+		terrain.AddQuadColor(c3, c4, color2, color3);
+	}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-14/blending-three-types/red-green-blue-corner-terraces.png)
+
+*红绿蓝角梯田，悬崖旁除外。*
+
+当涉及悬崖时，我们必须使用 `TriangulateBoundaryTriangle` 方法。此方法用于将开始单元格和左侧单元格作为参数。然而，我们现在需要相关的splat颜色，它可以根据拓扑结构而变化。因此，将这些参数更改为颜色。
+
+```c#
+	void TriangulateBoundaryTriangle (
+		Vector3 begin, Color beginColor,
+		Vector3 left, Color leftColor,
+		Vector3 boundary, Color boundaryColor
+	) {
+		Vector3 v2 = HexMetrics.Perturb(HexMetrics.TerraceLerp(begin, left, 1));
+		Color c2 = HexMetrics.TerraceLerp(beginColor, leftColor, 1);
+
+		terrain.AddTriangleUnperturbed(HexMetrics.Perturb(begin), v2, boundary);
+		terrain.AddTriangleColor(beginColor, c2, boundaryColor);
+
+		for (int i = 2; i < HexMetrics.terraceSteps; i++) {
+			Vector3 v1 = v2;
+			Color c1 = c2;
+			v2 = HexMetrics.Perturb(HexMetrics.TerraceLerp(begin, left, i));
+			c2 = HexMetrics.TerraceLerp(beginColor, leftColor, i);
+			terrain.AddTriangleUnperturbed(v1, v2, boundary);
+			terrain.AddTriangleColor(c1, c2, boundaryColor);
+		}
+
+		terrain.AddTriangleUnperturbed(v2, HexMetrics.Perturb(left), boundary);
+		terrain.AddTriangleColor(c2, leftColor, boundaryColor);
+	}
+```
+
+调整 `TriangulateCornerTerracesCliff` ，使其使用正确的颜色。
+
+```c#
+	void TriangulateCornerTerracesCliff (
+		Vector3 begin, HexCell beginCell,
+		Vector3 left, HexCell leftCell,
+		Vector3 right, HexCell rightCell
+	) {
+		…
+		Color boundaryColor = Color.Lerp(color1, color3, b);
+
+		TriangulateBoundaryTriangle(
+			begin, color1, left, color2, boundary, boundaryColor
+		);
+
+		if (leftCell.GetEdgeType(rightCell) == HexEdgeType.Slope) {
+			TriangulateBoundaryTriangle(
+				left, color2, right, color3, boundary, boundaryColor
+			);
+		}
+		else {
+			terrain.AddTriangleUnperturbed(
+				HexMetrics.Perturb(left), HexMetrics.Perturb(right), boundary
+			);
+			terrain.AddTriangleColor(color2, color3, boundaryColor);
+		}
+	}
+```
+
+对 `TriangulateCornerCliffTerraces`做同样的事情。
+
+```c#
+	void TriangulateCornerCliffTerraces (
+		Vector3 begin, HexCell beginCell,
+		Vector3 left, HexCell leftCell,
+		Vector3 right, HexCell rightCell
+	) {
+		…
+		Color boundaryColor = Color.Lerp(color1, color2, b);
+
+		TriangulateBoundaryTriangle(
+			right, color3, begin, color1, boundary, boundaryColor
+		);
+
+		if (leftCell.GetEdgeType(rightCell) == HexEdgeType.Slope) {
+			TriangulateBoundaryTriangle(
+				left, color2, right, color3, boundary, boundaryColor
+			);
+		}
+		else {
+			terrain.AddTriangleUnperturbed(
+				HexMetrics.Perturb(left), HexMetrics.Perturb(right), boundary
+			);
+			terrain.AddTriangleColor(color2, color3, boundaryColor);
+		}
+	}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-14/blending-three-types/red-green-blue-corner-terraces-cliffs.png)
+
+*完整的地形平面图。*
+
+[unitypackage](https://catlikecoding.com/unity/tutorials/hex-map/part-14/blending-three-types/blending-three-types.unitypackage)
+
+## 2 纹理数组
+
+现在我们的地形有了一个飞溅贴图，我们必须为着色器提供一组纹理。我们不能仅仅将 C# 纹理数组分配给着色器，因为该数组必须作为单个实体存在于 GPU 内存中。我们必须使用一个特殊的 Texture2DArray 对象，Unity 从 5.4 版本开始就支持这个对象。
+
+> **所有 GPU 都支持纹理数组吗？**
+>
+> 现代 GPU 支持它们，但较旧的和一些移动 GPU 可能不支持。根据 [Unity 文档](https://docs.unity3d.com/Manual/SL-TextureArrays.html)，以下是支持的平台列表。
+>
+> - Direct3D 11/12（Windows、Xbox One）
+> - OpenGL核心（Mac OS X、Linux）
+> - 金属（iOS、Mac OS X）
+> - OpenGL ES 3.0（安卓、iOS、WebGL 2.0）
+> - PlayStation 4
+
+### 2.1 向导（Wizard）
+
+不幸的是，Unity 5.5 版本对纹理数组的编辑器支持很少。我们不能简单地创建纹理数组资源并为其分配纹理。我们必须手动完成。我们可以在播放模式下创建纹理数组，也可以在编辑器中创建资源。让我们去资产。
+
+> **为什么要创建资产？**
+>
+> 使用资源的优点是，我们不必在播放模式下花费时间来创建纹理数组。我们不必在构建中包含单个纹理，只需复制它们，然后就不再使用它们。
+>
+> 缺点是自定义资产是固定的。Unity 不会根据构建目标自动更改其纹理格式。因此，您必须确保使用正确的纹理格式创建资源，并在需要其他格式时手动重新创建。当然，您可以使用构建脚本自动执行此操作。
+
+要创建纹理数组，我们将构建一个自定义向导。创建 `TextureArrayWizard` 脚本并将其放置在 *Editor* 文件夹中。它应该从 `UnityEditor` 命名空间扩展 `ScriptableWizard` 类型，而不是 `MonoBehaviour`。
+
+```c#
+using UnityEditor;
+using UnityEngine;
+
+public class TextureArrayWizard : ScriptableWizard {
+}
+```
+
+我们可以通过通用的静态 `ScriptableWizard.DisplayWizard` 方法打开向导。它的参数是向导窗口及其创建按钮的名称。在静态 `CreateWizard` 方法中调用此方法。
+
+```c#
+	static void CreateWizard () {
+		ScriptableWizard.DisplayWizard<TextureArrayWizard>(
+			"Create Texture Array", "Create"
+		);
+	}
+```
+
+要通过编辑器访问向导，我们必须将此方法添加到 Unity 的菜单中。这是通过将 `MenuItem` 属性添加到方法中来实现的。让我们将其添加到“*资源*”菜单中，特别是“*资源/创建/纹理数组*”。
+
+```c#
+	[MenuItem("Assets/Create/Texture Array")]
+	static void CreateWizard () {
+		…
+	}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-14/texture-arrays/wizard.png)
+
+*我们的自定义向导。*
+
+使用新的菜单项，我们会得到一个自定义向导的弹出窗口。这并不漂亮，但它会完成工作。然而，它仍然是空的。要创建纹理数组，我们需要一个纹理数组。为此向导添加一个公共字段。默认向导 GUI 将显示它，就像默认检查器一样。
+
+```c#
+	public Texture2D[] textures;
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-14/texture-arrays/wizard-textures.png)
+
+*带有纹理的向导。*
+
+### 2.2 创造一些东西
+
+当您按下向导的“*创建*”按钮时，它将消失。此外，Unity 会抱怨没有 `OnWizardCreate` 方法。这是按下创建按钮时调用的方法，因此我们应该将其添加到向导中。
+
+```c#
+	void OnWizardCreate () {
+	}
+```
+
+这是我们创建纹理数组的地方。至少，如果用户已将任何纹理添加到向导中。如果没有，那么就没有什么可创建的，所以我们应该中止。
+
+```c#
+	void OnWizardCreate () {
+		if (textures.Length == 0) {
+			return;
+		}
+	}
+```
+
+下一步是询问用户将纹理数组资源保存在哪里。我们可以通过 `EditorUtility.SaveFilePanelInProject` 方法打开保存文件面板。其参数决定面板名称、默认文件名、文件扩展名和描述。纹理数组使用通用*资源*文件扩展名。
+
+```c#
+		if (textures.Length == 0) {
+			return;
+		}
+		EditorUtility.SaveFilePanelInProject(
+			"Save Texture Array", "Texture Array", "asset", "Save Texture Array"
+		);
+```
+
+`SaveFilePanelInProject` 返回用户选择的文件路径。如果用户取消了面板，那么路径将是空字符串。因此，在这种情况下，我们应该中止。
+
+```c#
+		string path = EditorUtility.SaveFilePanelInProject(
+			"Save Texture Array", "Texture Array", "asset", "Save Texture Array"
+		);
+		if (path.Length == 0) {
+			return;
+		}
+```
+
+### 2.3 创建纹理数组
+
+如果我们有一个有效的路径，我们可以继续创建一个新的 `Texture2DArray` 对象。它的构造函数方法需要纹理宽度和高度、数组长度、纹理格式以及是否有 mipmaps。数组中的所有纹理的这些设置必须相同。我们将使用第一个纹理来配置对象。用户有责任确保所有纹理具有相同的格式。
+
+```c#
+		if (path.Length == 0) {
+			return;
+		}
+
+		Texture2D t = textures[0];
+		Texture2DArray textureArray = new Texture2DArray(
+			t.width, t.height, textures.Length, t.format, t.mipmapCount > 1
+		);
+```
+
+由于纹理数组是单个 GPU 资源，因此它对所有纹理使用相同的过滤器和包裹模式。我们将再次使用第一个纹理来配置它。
+
+```c#
+		Texture2DArray textureArray = new Texture2DArray(
+			t.width, t.height, textures.Length, t.format, t.mipmapCount > 1
+		);
+		textureArray.anisoLevel = t.anisoLevel;
+		textureArray.filterMode = t.filterMode;
+		textureArray.wrapMode = t.wrapMode;
+```
+
+现在我们可以使用 `Graphics.CopyTexture` 方法将纹理复制到数组中。此方法一次复制一个 mip 级别的原始纹理数据。因此，我们必须遍历所有纹理及其 mip 级别。该方法的参数是由纹理资源、索引和 mip 级别组成的两组。由于源纹理不是数组，因此它们的索引始终为零。
+
+```c#
+		textureArray.wrapMode = t.wrapMode;
+
+		for (int i = 0; i < textures.Length; i++) {
+			for (int m = 0; m < t.mipmapCount; m++) {
+				Graphics.CopyTexture(textures[i], 0, m, textureArray, i, m);
+			}
+		}
+```
+
+此时，我们在内存中有一个有效的纹理数组，但它还不是资产。最后一步是调用 `AssetDatabase.CreateAsset` 使用数组及其路径。这将把数据写入我们项目中的一个文件，它将出现在项目窗口中。
+
+```c#
+		for (int i = 0; i < textures.Length; i++) {
+			…
+		}
+
+		AssetDatabase.CreateAsset(textureArray, path);
+```
+
+### 2.4 纹理
+
+要实际创建纹理数组，我们需要源纹理。这里有五种纹理，与我们迄今为止使用的颜色相对应。黄色变成沙子，绿色变成草，蓝色变成泥，橙色变成石头，白色变成雪。
+
+![sand](https://catlikecoding.com/unity/tutorials/hex-map/part-14/texture-arrays/sand.png) ![grass](https://catlikecoding.com/unity/tutorials/hex-map/part-14/texture-arrays/grass.png) ![mud](https://catlikecoding.com/unity/tutorials/hex-map/part-14/texture-arrays/mud.png) ![stone](https://catlikecoding.com/unity/tutorials/hex-map/part-14/texture-arrays/stone.png) ![snow](https://catlikecoding.com/unity/tutorials/hex-map/part-14/texture-arrays/snow.png)
+*沙、草、泥、石和雪的纹理。*
+
+请注意，这些纹理不是实际地形的照片，它们是微妙的伪随机图案。我的目标是在不与抽象的多边形地形冲突的情况下，提出可识别的地形类型和细节。写实主义会让人觉得格格不入。此外，虽然这些图案增加了多样性，但它们缺乏独特的特征，这会使它们的平铺立即变得明显。
+
+将这些纹理添加到向导的数组中，确保它们的顺序与我们的颜色匹配。所以先是沙子，然后是草、泥、石头，最后是雪。
+
+![wizard](https://catlikecoding.com/unity/tutorials/hex-map/part-14/texture-arrays/wizard-texture-selection.png) ![hierarchy](https://catlikecoding.com/unity/tutorials/hex-map/part-14/texture-arrays/hierarchy.png)
+
+*创建纹理数组。*
+
+创建纹理数组资源后，选择它并在检查器中查看。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-14/texture-arrays/inspector.png)
+
+*纹理数组检查器。*
+
+这是纹理数组的一些数据的简单显示。请注意，有一个初始启用的“*是否可读*”切换。由于我们不需要从数组中读取像素数据，请禁用它。我们无法通过向导完成此操作，因为 `Texture2DArray` 没有访问此设置的方法或属性。
+
+（Unity 5.6 中有一个错误，在多个平台上的构建中会破坏纹理数组。解决方法是保持启用“*可读*”。此外，在 Unity 的后续版本中，您需要将检查器设置为调试模式才能查看大部分数据。）
+
+另请注意，有一个设置为 1 的*颜色空间*字段。这意味着纹理被假定在 gamma 空间中，这是正确的。如果它们必须在线性空间中，我们必须将此字段设置为 0。`Texture2DArray` 的构造函数实际上有一个额外的参数来设置颜色空间，但是 `Texture2D` 不会公开它是否在线性空间中，所以无论如何你都必须手动设置它。
+
+### 2.5 着色器
+
+现在我们有了纹理数组，是时候让我们的着色器使用它了。我们目前正在使用 *VertexColors* 着色器渲染我们的地形。由于我们将切换到纹理而不是颜色，请将其重命名为Terrain。然后将其 *_MainTex* 参数转换为纹理数组，并将我们的资源分配给它。
+
+```glsl
+Shader "Custom/Terrain" {
+	Properties {
+		_Color ("Color", Color) = (1,1,1,1)
+		_MainTex ("Terrain Texture Array", 2DArray) = "white" {}
+		_Glossiness ("Smoothness", Range(0,1)) = 0.5
+		_Metallic ("Metallic", Range(0,1)) = 0.0
+	}
+	…
+}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-14/texture-arrays/material.png)
+
+*带有纹理数组的地形材质。*
+
+为了在支持它的所有平台上启用纹理数组，我们必须将着色器目标级别从 3.0 提高到 3.5。
+
+```glsl
+		#pragma target 3.5
+```
+
+由于 `_MainTex` 变量现在引用纹理数组，我们必须更改其类型。确切的类型取决于目标平台，该平台由 `UNITY_DECLARE_TEX2DARAY` 宏处理。
+
+```c#
+//		sampler2D _MainTex;
+		UNITY_DECLARE_TEX2DARRAY(_MainTex);
+```
+
+与其他着色器一样，我们需要 XZ 世界坐标来采样地形纹理。因此，将世界位置添加到曲面着色器输入结构中。同时删除默认的 UV 坐标，因为我们不需要它们。
+
+```c#
+		struct Input {
+//			float2 uv_MainTex;
+			float4 color : COLOR;
+			float3 worldPos;
+		};
+```
+
+要对纹理数组进行采样，我们必须使用 `UNITY_SAMPLE_TEX2DARRAY` 宏。它需要三个坐标来对数组进行采样。前两个是常规 UV 坐标。我们将使用按 0.02 缩放的世界 XZ 坐标。当完全放大时，这会产生良好的纹理分辨率，纹理大约每四个单元格平铺一次。
+
+第三个坐标用于对纹理数组进行索引，就像常规数组一样。由于坐标是浮点数，GPU 在索引数组之前会对其进行舍入。由于我们还不知道需要哪种纹理，所以让我们始终使用第一种纹理。此外，不再将顶点颜色纳入最终结果，因为这是 splat 贴图。
+
+```glsl
+		void surf (Input IN, inout SurfaceOutputStandard o) {
+			float2 uv = IN.worldPos.xz * 0.02;
+			fixed4 c = UNITY_SAMPLE_TEX2DARRAY(_MainTex, float3(uv, 0));
+			o.Albedo = c.rgb * _Color;
+			o.Metallic = _Metallic;
+			o.Smoothness = _Glossiness;
+			o.Alpha = c.a;
+		}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-14/texture-arrays/default-sand.png)
+
+*一切都是沙子。*
+
+[unitypackage](https://catlikecoding.com/unity/tutorials/hex-map/part-14/texture-arrays/texture-arrays.unitypackage)
+
+## 3 选择纹理
+
+我们有一个地形平面图，每个三角形有三种类型。我们有一个纹理数组，每个地形类型都有纹理。我们有一个着色器可以对纹理数组进行采样。但我们还没有办法告诉着色器每个三角形要选择哪些纹理。
+
+由于每个三角形最多可以混合三种类型，我们需要将三个索引与每个三角形相关联。由于我们无法为每个三角形存储信息，因此我们必须为每个顶点存储索引。三角形的所有三个顶点将简单地存储相同的索引，就像纯色一样。
+
+### 3.1 网格数据
+
+我们可以使用网格的 UV 集之一来存储索引。因为每个顶点有三个索引，所以现有的二维 UV 集是不够的。幸运的是，UV 集最多可以包含四个坐标。因此，让我们在 `HexMesh` 中添加第二个 `Vector3` 列表，我们称之为地形类型。
+
+```c#
+	public bool useCollider, useColors, useUVCoordinates, useUV2Coordinates;
+	public bool useTerrainTypes;
+
+	[NonSerialized] List<Vector3> vertices, terrainTypes;
+```
+
+为 *Hex Grid Chunk* 预制件的 *Terrain* 子对象启用地形类型。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-14/selecting-textures/using-terrain-types.png)
+
+*使用地形类型。*
+
+如果需要，在清除网格时，为地形类型抓取另一个 `Vector3` 列表。
+
+```c#
+	public void Clear () {
+		…
+		if (useTerrainTypes) {
+			terrainTypes = ListPool<Vector3>.Get();
+		}
+		triangles = ListPool<int>.Get();
+	}
+```
+
+应用网格数据时，将地形类型存储在第三个 UV 集中。这样，如果我们一起使用它们，它就不会与其他两套发生冲突。
+
+```c#
+	public void Apply () {
+		…
+		if (useTerrainTypes) {
+			hexMesh.SetUVs(2, terrainTypes);
+			ListPool<Vector3>.Add(terrainTypes);
+		}
+		hexMesh.SetTriangles(triangles, 0);
+		…
+	}
+```
+
+我们将使用 `Vector3` 来设置三角形的地形类型。由于它们在三角形中是一致的，只需将相同的数据添加三次即可。
+
+```c#
+	public void AddTriangleTerrainTypes (Vector3 types) {
+		terrainTypes.Add(types);
+		terrainTypes.Add(types);
+		terrainTypes.Add(types);
+	}
+```
+
+在四边形中混合的方式是一样的。所有四个顶点都具有相同的类型。
+
+```c#
+	public void AddQuadTerrainTypes (Vector3 types) {
+		terrainTypes.Add(types);
+		terrainTypes.Add(types);
+		terrainTypes.Add(types);
+		terrainTypes.Add(types);
+	}
+```
+
+### 3.2 边缘粉丝
+
+现在我们必须将类型添加到 `HexGridChunk` 中的网格数据中。让我们从 `TriangulateEdgeFan` 开始。首先，为了可读性，让我们将顶点和颜色方法调用分开。还要记住，无论我们在哪里调用此方法，我们都会为其提供 `color1`。因此，我们可以直接使用该颜色，而不依赖于参数。
+
+```c#
+	void TriangulateEdgeFan (Vector3 center, EdgeVertices edge, Color color) {
+		terrain.AddTriangle(center, edge.v1, edge.v2);
+//		terrain.AddTriangleColor(color);
+		terrain.AddTriangle(center, edge.v2, edge.v3);
+//		terrain.AddTriangleColor(color);
+		terrain.AddTriangle(center, edge.v3, edge.v4);
+//		terrain.AddTriangleColor(color);
+		terrain.AddTriangle(center, edge.v4, edge.v5);
+//		terrain.AddTriangleColor(color);
+		
+		terrain.AddTriangleColor(color1);
+		terrain.AddTriangleColor(color1);
+		terrain.AddTriangleColor(color1);
+		terrain.AddTriangleColor(color1);
+	}
+```
+
+在颜色之后，我们添加地形类型。由于每个三角形的类型不同，它必须是一个参数，替换颜色。使用此单一类型构造 `Vector3`。只有第一个通道很重要，因为在这种情况下，splat 图总是红色的。由于所有三个向量分量都需要设置为某个值，让我们将它们都设置为相同的类型。
+
+```c#
+	void TriangulateEdgeFan (Vector3 center, EdgeVertices edge, float type) {
+		…
+
+		Vector3 types;
+		types.x = types.y = types.z = type;
+		terrain.AddTriangleTerrainTypes(types);
+		terrain.AddTriangleTerrainTypes(types);
+		terrain.AddTriangleTerrainTypes(types);
+		terrain.AddTriangleTerrainTypes(types);
+	}
+```
+
+现在我们必须调整此方法的所有调用，用单元格的地形类型索引替换颜色参数。在 `TriangulateWithoutRiver`, `TriangulateAdjacentToRiver`, 和 `TriangulateWithRiverBeginOrEnd` 中进行此调整。
+
+```c#
+//		TriangulateEdgeFan(center, e, color1);
+		TriangulateEdgeFan(center, e, cell.TerrainTypeIndex);
+```
+
+此时，进入播放模式将产生错误，即网格的第三组 UV 超出界限。这是因为我们还没有将地形类型添加到每个三角形和四边形中。那么，让我们继续更新 `HexGridChunk`。
+
+### 3.3 边缘条带
+
+在创建边缘条带时，我们现在必须知道两侧的地形类型是什么。因此，将它们添加为参数。然后构造一个类型向量，将前两个通道设置为这些类型。第三个通道并不重要，只需使其与第一个通道相等即可。在添加颜色后，将类型添加到四边形。
+
+```c#
+	void TriangulateEdgeStrip (
+		EdgeVertices e1, Color c1, float type1,
+		EdgeVertices e2, Color c2, float type2,
+		bool hasRoad = false
+	) {
+		terrain.AddQuad(e1.v1, e1.v2, e2.v1, e2.v2);
+		terrain.AddQuad(e1.v2, e1.v3, e2.v2, e2.v3);
+		terrain.AddQuad(e1.v3, e1.v4, e2.v3, e2.v4);
+		terrain.AddQuad(e1.v4, e1.v5, e2.v4, e2.v5);
+
+		terrain.AddQuadColor(c1, c2);
+		terrain.AddQuadColor(c1, c2);
+		terrain.AddQuadColor(c1, c2);
+		terrain.AddQuadColor(c1, c2);
+
+		Vector3 types;
+		types.x = types.z = type1;
+		types.y = type2;
+		terrain.AddQuadTerrainTypes(types);
+		terrain.AddQuadTerrainTypes(types);
+		terrain.AddQuadTerrainTypes(types);
+		terrain.AddQuadTerrainTypes(types);
+
+		if (hasRoad) {
+			TriangulateRoadSegment(e1.v2, e1.v3, e1.v4, e2.v2, e2.v3, e2.v4);
+		}
+	}
+```
+
+现在我们必须更新 `TriangulateEdgeStrip` 的调用。首先，`TriangulatesAdjacentToRiver`、`TriangulateWithRiverBeginOrEnd` 和 `TriangulateWithRiver` 必须对边缘条的两侧使用单元格的类型。
+
+```c#
+//		TriangulateEdgeStrip(m, color1, e, color1);
+		TriangulateEdgeStrip(
+			m, color1, cell.TerrainTypeIndex,
+			e, color1, cell.TerrainTypeIndex
+		);
+```
+
+接下来，`TriangulateConnection` 的最简单边情况必须使用单元的类型作为近边，使用邻居的类型作为远边。它们可能相同，但也可能不同。
+
+```c#
+	void TriangulateConnection (
+		HexDirection direction, HexCell cell, EdgeVertices e1
+	) {
+		…
+		if (cell.GetEdgeType(direction) == HexEdgeType.Slope) {
+			TriangulateEdgeTerraces(e1, cell, e2, neighbor, hasRoad);
+		}
+		else {
+//			TriangulateEdgeStrip(e1, color1, e2, color2, hasRoad);
+			TriangulateEdgeStrip(
+				e1, color1, cell.TerrainTypeIndex,
+				e2, color2, neighbor.TerrainTypeIndex, hasRoad
+			);
+		}
+		…
+	}
+```
+
+`TriangulateEdgeTerraces` 也是如此，它调用 `TriangulatedgeStrip` 三次。梯田上的类型是统一的。
+
+```c#
+	void TriangulateEdgeTerraces (
+		EdgeVertices begin, HexCell beginCell,
+		EdgeVertices end, HexCell endCell,
+		bool hasRoad
+	) {
+		EdgeVertices e2 = EdgeVertices.TerraceLerp(begin, end, 1);
+		Color c2 = HexMetrics.TerraceLerp(color1, color2, 1);
+		float t1 = beginCell.TerrainTypeIndex;
+		float t2 = endCell.TerrainTypeIndex;
+
+		TriangulateEdgeStrip(begin, color1, t1, e2, c2, t2, hasRoad);
+
+		for (int i = 2; i < HexMetrics.terraceSteps; i++) {
+			EdgeVertices e1 = e2;
+			Color c1 = c2;
+			e2 = EdgeVertices.TerraceLerp(begin, end, i);
+			c2 = HexMetrics.TerraceLerp(color1, color2, i);
+			TriangulateEdgeStrip(e1, c1, t1, e2, c2, t2, hasRoad);
+		}
+
+		TriangulateEdgeStrip(e2, c2, t1, end, color2, t2, hasRoad);
+	}
+```
+
+### 3.4 角
+
+最简单的角情况是一个三角形。底部单元格提供第一种类型，左侧单元格提供第二种类型，右侧单元格提供第三种类型。用它们构造一个类型向量，并将其添加到三角形中。
+
+```c#
+	void TriangulateCorner (
+		Vector3 bottom, HexCell bottomCell,
+		Vector3 left, HexCell leftCell,
+		Vector3 right, HexCell rightCell
+	) {
+		…
+		else {
+			terrain.AddTriangle(bottom, left, right);
+			terrain.AddTriangleColor(color1, color2, color3);
+			Vector3 types;
+			types.x = bottomCell.TerrainTypeIndex;
+			types.y = leftCell.TerrainTypeIndex;
+			types.z = rightCell.TerrainTypeIndex;
+			terrain.AddTriangleTerrainTypes(types);
+		}
+
+		features.AddWall(bottom, bottomCell, left, leftCell, right, rightCell);
+	}
+```
+
+我们在 `TriangulateCornerTerraces` 中使用了相同的方法，除了我们也在创建一堆四边形。
+
+```c#
+	void TriangulateCornerTerraces (
+		Vector3 begin, HexCell beginCell,
+		Vector3 left, HexCell leftCell,
+		Vector3 right, HexCell rightCell
+	) {
+		Vector3 v3 = HexMetrics.TerraceLerp(begin, left, 1);
+		Vector3 v4 = HexMetrics.TerraceLerp(begin, right, 1);
+		Color c3 = HexMetrics.TerraceLerp(color1, color2, 1);
+		Color c4 = HexMetrics.TerraceLerp(color1, color3, 1);
+		Vector3 types;
+		types.x = beginCell.TerrainTypeIndex;
+		types.y = leftCell.TerrainTypeIndex;
+		types.z = rightCell.TerrainTypeIndex;
+
+		terrain.AddTriangle(begin, v3, v4);
+		terrain.AddTriangleColor(color1, c3, c4);
+		terrain.AddTriangleTerrainTypes(types);
+
+		for (int i = 2; i < HexMetrics.terraceSteps; i++) {
+			Vector3 v1 = v3;
+			Vector3 v2 = v4;
+			Color c1 = c3;
+			Color c2 = c4;
+			v3 = HexMetrics.TerraceLerp(begin, left, i);
+			v4 = HexMetrics.TerraceLerp(begin, right, i);
+			c3 = HexMetrics.TerraceLerp(color1, color2, i);
+			c4 = HexMetrics.TerraceLerp(color1, color3, i);
+			terrain.AddQuad(v1, v2, v3, v4);
+			terrain.AddQuadColor(c1, c2, c3, c4);
+			terrain.AddQuadTerrainTypes(types);
+		}
+
+		terrain.AddQuad(v3, v4, left, right);
+		terrain.AddQuadColor(c3, c4, color2, color3);
+		terrain.AddQuadTerrainTypes(types);
+	}
+```
+
+当梯田和悬崖混合在一起时，我们需要使用 `TriangulateBoundaryTriangle`。只需给它一个类型向量参数，并将其添加到所有三角形中。
+
+```c#
+	void TriangulateBoundaryTriangle (
+		Vector3 begin, Color beginColor,
+		Vector3 left, Color leftColor,
+		Vector3 boundary, Color boundaryColor, Vector3 types
+	) {
+		Vector3 v2 = HexMetrics.Perturb(HexMetrics.TerraceLerp(begin, left, 1));
+		Color c2 = HexMetrics.TerraceLerp(beginColor, leftColor, 1);
+
+		terrain.AddTriangleUnperturbed(HexMetrics.Perturb(begin), v2, boundary);
+		terrain.AddTriangleColor(beginColor, c2, boundaryColor);
+		terrain.AddTriangleTerrainTypes(types);
+
+		for (int i = 2; i < HexMetrics.terraceSteps; i++) {
+			Vector3 v1 = v2;
+			Color c1 = c2;
+			v2 = HexMetrics.Perturb(HexMetrics.TerraceLerp(begin, left, i));
+			c2 = HexMetrics.TerraceLerp(beginColor, leftColor, i);
+			terrain.AddTriangleUnperturbed(v1, v2, boundary);
+			terrain.AddTriangleColor(c1, c2, boundaryColor);
+			terrain.AddTriangleTerrainTypes(types);
+		}
+
+		terrain.AddTriangleUnperturbed(v2, HexMetrics.Perturb(left), boundary);
+		terrain.AddTriangleColor(c2, leftColor, boundaryColor);
+		terrain.AddTriangleTerrainTypes(types);
+	}
+```
+
+在 `TriangulateCornerTerracesCliff` 中，使用提供的单元格创建类型向量。然后将其添加到单个三角形中，并将其传递给 `TriangulateBoundaryTriangle`。
+
+```c#
+	void TriangulateCornerTerracesCliff (
+		Vector3 begin, HexCell beginCell,
+		Vector3 left, HexCell leftCell,
+		Vector3 right, HexCell rightCell
+	) {
+		float b = 1f / (rightCell.Elevation - beginCell.Elevation);
+		if (b < 0) {
+			b = -b;
+		}
+		Vector3 boundary = Vector3.Lerp(
+			HexMetrics.Perturb(begin), HexMetrics.Perturb(right), b
+		);
+		Color boundaryColor = Color.Lerp(color1, color3, b);
+		Vector3 types;
+		types.x = beginCell.TerrainTypeIndex;
+		types.y = leftCell.TerrainTypeIndex;
+		types.z = rightCell.TerrainTypeIndex;
+
+		TriangulateBoundaryTriangle(
+			begin, color1, left, color2, boundary, boundaryColor, types
+		);
+
+		if (leftCell.GetEdgeType(rightCell) == HexEdgeType.Slope) {
+			TriangulateBoundaryTriangle(
+				left, color2, right, color3, boundary, boundaryColor, types
+			);
+		}
+		else {
+			terrain.AddTriangleUnperturbed(
+				HexMetrics.Perturb(left), HexMetrics.Perturb(right), boundary
+			);
+			terrain.AddTriangleColor(color2, color3, boundaryColor);
+			terrain.AddTriangleTerrainTypes(types);
+		}
+	}
+```
+
+`TriangulateCornerCliffTerraces` 也是如此。
+
+```c#
+	void TriangulateCornerCliffTerraces (
+		Vector3 begin, HexCell beginCell,
+		Vector3 left, HexCell leftCell,
+		Vector3 right, HexCell rightCell
+	) {
+		float b = 1f / (leftCell.Elevation - beginCell.Elevation);
+		if (b < 0) {
+			b = -b;
+		}
+		Vector3 boundary = Vector3.Lerp(
+			HexMetrics.Perturb(begin), HexMetrics.Perturb(left), b
+		);
+		Color boundaryColor = Color.Lerp(color1, color2, b);
+		Vector3 types;
+		types.x = beginCell.TerrainTypeIndex;
+		types.y = leftCell.TerrainTypeIndex;
+		types.z = rightCell.TerrainTypeIndex;
+
+		TriangulateBoundaryTriangle(
+			right, color3, begin, color1, boundary, boundaryColor, types
+		);
+
+		if (leftCell.GetEdgeType(rightCell) == HexEdgeType.Slope) {
+			TriangulateBoundaryTriangle(
+				left, color2, right, color3, boundary, boundaryColor, types
+			);
+		}
+		else {
+			terrain.AddTriangleUnperturbed(
+				HexMetrics.Perturb(left), HexMetrics.Perturb(right), boundary
+			);
+			terrain.AddTriangleColor(color2, color3, boundaryColor);
+			terrain.AddTriangleTerrainTypes(types);
+		}
+	}
+```
+
+### 3.5 河流
+
+最后一个需要更新的方法是 `TriangulateWithRiver`。由于我们在这里的单元格中心内，我们只处理当前单元格的类型。因此，为它创建一个向量，并将其添加到三角形和四边形中。
+
+```c#
+	void TriangulateWithRiver (
+		HexDirection direction, HexCell cell, Vector3 center, EdgeVertices e
+	) {
+		…
+
+		terrain.AddTriangleColor(color1);
+		terrain.AddQuadColor(color1);
+		terrain.AddQuadColor(color1);
+		terrain.AddTriangleColor(color1);
+
+		Vector3 types;
+		types.x = types.y = types.z = cell.TerrainTypeIndex;
+		terrain.AddTriangleTerrainTypes(types);
+		terrain.AddQuadTerrainTypes(types);
+		terrain.AddQuadTerrainTypes(types);
+		terrain.AddTriangleTerrainTypes(types);
+
+		…
+	}
+```
+
+### 3.6 混合类型
+
+到目前为止，网格包含所需的地形索引。剩下的就是让*Terrain* 着色器实际使用它们。要获取片段着色器的索引，我们必须先将它们传递给顶点着色器。我们可以使用自定义顶点函数来实现这一点，就像我们在 *Estuary* 着色器中所做的那样。在这种情况下，我们将 `float3 terrain` 字段添加到输入结构中，并将 `v.texcoord2.xyz` 复制到其中。
+
+```glsl
+		#pragma surface surf Standard fullforwardshadows vertex:vert
+		#pragma target 3.5
+
+		…
+
+		struct Input {
+			float4 color : COLOR;
+			float3 worldPos;
+			float3 terrain;
+		};
+		
+		void vert (inout appdata_full v, out Input data) {
+			UNITY_INITIALIZE_OUTPUT(Input, data);
+			data.terrain = v.texcoord2.xyz;
+		}
+```
+
+我们必须对每个片段对纹理数组进行三次采样。因此，让我们创建一个方便的函数来构造纹理坐标，对数组进行采样，并用一个索引的 splat 映射对采样进行调制。
+
+```c#
+		float4 GetTerrainColor (Input IN, int index) {
+			float3 uvw = float3(IN.worldPos.xz * 0.02, IN.terrain[index]);
+			float4 c = UNITY_SAMPLE_TEX2DARRAY(_MainTex, uvw);
+			return c * IN.color[index];
+		}
+
+		void surf (Input IN, inout SurfaceOutputStandard o) {
+			…
+		}
+```
+
+> **你能把向量当作数组吗？**
+>
+> 对。当使用常数索引时，`color[0]` 等于 `color.r`，`color[1]` 等于 `color.g`，以此类推。
+
+使用此函数，可以简单地对纹理数组进行三次采样并组合结果。
+
+```c#
+		void surf (Input IN, inout SurfaceOutputStandard o) {
+//			float2 uv = IN.worldPos.xz * 0.02;
+			fixed4 c =
+				GetTerrainColor(IN, 0) +
+				GetTerrainColor(IN, 1) +
+				GetTerrainColor(IN, 2);
+			o.Albedo = c.rgb * _Color;
+			o.Metallic = _Metallic;
+			o.Smoothness = _Glossiness;
+			o.Alpha = c.a;
+		}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-14/selecting-textures/textured-terrain.png)
+
+*纹理地形。*
+
+我们现在可以用纹理绘制地形。它们就像纯色一样混合在一起。因为我们使用世界位置作为 UV 坐标，所以它们不会随着高度而变化。因此，纹理沿着陡峭的悬崖延伸。如果纹理足够中性，并且种类繁多，那么结果是可以接受的。否则，你会得到丑陋的条纹。你可以尝试用额外的几何体或悬崖纹理来隐藏它，但这不是本教程的一部分。
+
+### 3.7 清理
+
+现在我们使用的是纹理而不是颜色，调整编辑器面板是有意义的。你可以制作一个整洁的界面，甚至可以显示地形纹理，但我会接受适合现有布局的缩写。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-14/selecting-textures/terrain-choices.png)
+
+*地形选择。*
+
+此外，`HexCell` 不再需要颜色属性，因此将其删除。
+
+```c#
+//	public Color Color {
+//		get {
+//			return HexMetrics.colors[terrainTypeIndex];
+//		}
+//	}
+```
+
+颜色数组和相关代码也可以从 `HexGrid` 中删除。
+
+```c#
+//	public Color[] colors;
+
+	…
+
+	void Awake () {
+		HexMetrics.noiseSource = noiseSource;
+		HexMetrics.InitializeHashGrid(seed);
+//		HexMetrics.colors = colors;
+		CreateMap(cellCountX, cellCountZ);
+	}
+	
+	…
+
+	…
+
+	void OnEnable () {
+		if (!HexMetrics.noiseSource) {
+			HexMetrics.noiseSource = noiseSource;
+			HexMetrics.InitializeHashGrid(seed);
+//			HexMetrics.colors = colors;
+		}
+	}
+```
+
+最后，`HexMetrics` 也不再需要颜色数组。
+
+```c#
+//	public static Color[] colors;
+```
+
+下一个教程是“[距离](https://catlikecoding.com/unity/tutorials/hex-map/part-15/)”。
+
+[unitypackage](https://catlikecoding.com/unity/tutorials/hex-map/part-14/selecting-textures/selecting-textures.unitypackage)
+
+[PDF](https://catlikecoding.com/unity/tutorials/hex-map/part-14/Hex-Map-14.pdf)
+
+# Hex Map 15：距离
+
+发布于 2017-03-26
+
+https://catlikecoding.com/unity/tutorials/hex-map/part-15/
+
+*显示网格线。*
+*在编辑和导航模式之间切换。*
+*计算单元格之间的距离。*
+*找到绕过障碍的方法。*
+*处理不同的移动成本。*
+
+这是关于[六边形地图](https://catlikecoding.com/unity/tutorials/hex-map/)的系列教程的第 15 部分。现在我们可以创建像样的地图了，我们将看看导航。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/tutorial-image.jpg)
+
+*最短的路径并不总是直线。*
+
+## 1 显示网格
+
+导航我们的地图是通过从一个单元格到另一个单元格来完成的。你必须穿过一系列单元格才能到达任何地方。为了更容易判断距离，让我们添加一个选项来显示我们的地图所基于的六边形网格。
+
+### 1.1 网格纹理
+
+尽管我们的地图网格不规则，但底层网格是完全规则的。我们可以通过在地图上投影网格图案来可视化它。我们可以用平铺网格纹理来实现这一点。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/showing-the-grid/grid.png)
+
+*平铺网格纹理。*
+
+上述纹理包含一小部分六边形网格。它覆盖了 2 乘 2 个单元格。这个区域是矩形的，但不是正方形的。因为纹理本身是正方形的，所以图案看起来是拉伸的。我们在取样时必须对此进行补偿。
+
+### 1.2 投影网格
+
+为了投影网格图案，我们必须在地形着色器中添加纹理属性。
+
+```glsl
+	Properties {
+		_Color ("Color", Color) = (1,1,1,1)
+		_MainTex ("Terrain Texture Array", 2DArray) = "white" {}
+		_GridTex ("Grid Texture", 2D) = "white" {}
+		_Glossiness ("Smoothness", Range(0,1)) = 0.5
+		_Metallic ("Metallic", Range(0,1)) = 0.0
+	}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/showing-the-grid/material-inspector.png)
+
+*具有网格纹理的地形材质。*
+
+使用世界 XZ 坐标对纹理进行采样，然后将其与反照率相乘。由于纹理的网格线是灰色的，这将把图案烧到地形中。
+
+```glsl
+		sampler2D _GridTex;
+
+		…
+
+		void surf (Input IN, inout SurfaceOutputStandard o) {
+			fixed4 c =
+				GetTerrainColor(IN, 0) +
+				GetTerrainColor(IN, 1) +
+				GetTerrainColor(IN, 2);
+
+			fixed4 grid = tex2D(_GridTex, IN.worldPos.xz);
+			
+			o.Albedo = c.rgb * grid * _Color;
+			o.Metallic = _Metallic;
+			o.Smoothness = _Glossiness;
+			o.Alpha = c.a;
+		}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/showing-the-grid/multiplied.png)
+
+*Albedo 与小网格相乘。*
+
+我们必须缩放图案，使其适合我们地图上的单元格。相邻电池中心之间的向前距离为 15，是将两个电池直接向上移动的两倍。因此，我们必须将网格的 V 坐标除以 30。我们单元格的内半径是 5√3，所以向右移动两个单元格需要四倍。因此，我们必须将网格的 U 坐标除以 20√3。
+
+```glsl
+			float2 gridUV = IN.worldPos.xz;
+			gridUV.x *= 1 / (4 * 8.66025404);
+			gridUV.y *= 1 / (2 * 15.0);
+			fixed4 grid = tex2D(_GridTex, gridUV);
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/showing-the-grid/scaled.png)
+
+*正确调整网格单元的大小。*
+
+网格线现在与地图单元格匹配。就像地形纹理一样，它们忽略了海拔。所以这些线可以沿着悬崖延伸。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/showing-the-grid/elevation.png)
+
+*在升高的单元格上投影。*
+
+网格变形通常没那么糟糕，尤其是从远处看地图时。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/showing-the-grid/distance.png)
+
+*从远处看网格。*
+
+### 1.3 切换网格
+
+虽然查看网格很方便，但您可能并不总是希望它可见。例如，在截图时。此外，并不是每个人都喜欢一直看到网格。所以，让我们把它变成可选的。我们将在着色器中添加一个多编译指令，以创建一个有网格和没有网格的变体。我们将使用 GRID_ON 关键字来控制这一点。条件着色器编译在“[渲染 5，多个灯光](https://catlikecoding.com/unity/tutorials/rendering/part-5/)”教程中进行了说明。
+
+```glsl
+		#pragma surface surf Standard fullforwardshadows vertex:vert
+		#pragma target 3.5
+
+		#pragma multi_compile _ GRID_ON
+```
+
+声明 `grid` 变量时，首先将其设置为 1。这将导致没有网格。然后只对定义了 `GRID_ON` 关键字的变体的网格纹理进行采样。
+
+```glsl
+			fixed4 grid = 1;
+			#if defined(GRID_ON)
+				float2 gridUV = IN.worldPos.xz;
+				gridUV.x *= 1 / (4 * 8.66025404);
+				gridUV.y *= 1 / (2 * 15.0);
+				grid = tex2D(_GridTex, gridUV);
+			#endif
+			
+			o.Albedo = c.rgb * grid * _Color;
+```
+
+由于我们的地形着色器未启用 `GRID_ON` 关键字，网格将消失。为了再次启用它，我们将在地图编辑器 UI 中添加一个切换。为了实现这一点，`HexMapEditor` 必须获取对*地形*材质的引用，以及启用或禁用 `GRID_ON` 关键字的方法。
+
+```c#
+	public Material terrainMaterial;
+	
+	…
+	
+	public void ShowGrid (bool visible) {
+		if (visible) {
+			terrainMaterial.EnableKeyword("GRID_ON");
+		}
+		else {
+			terrainMaterial.DisableKeyword("GRID_ON");
+		}
+	}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/showing-the-grid/editor-inspector.png)
+
+*带材质参考的六边形地图编辑器。*
+
+在 UI 中添加*网格*切换，并将其与 `ShowGrid` 方法连接。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/showing-the-grid/ui.png)
+
+*网格切换。*
+
+### 1.4 保持一致
+
+我们现在可以在游戏模式下切换网格。我们第一次尝试时，网格开始禁用，一旦我们启用切换，它就会变得可见。禁用切换将使网格再次消失。但是，如果我们在网格可见的情况下退出播放模式，即使禁用了切换，下次进入播放模式时网格仍然可见。
+
+这是因为我们正在调整共享Terrain材质的关键字。我们正在编辑素材资产，因此更改将在Unity编辑器中保持不变。它不会坚持建造。
+
+为了确保我们总是在没有网格的情况下开始，请在 `HexMapEditor` 唤醒时禁用 `GRID_ON` 关键字。
+
+```c#
+	void Awake () {
+		terrainMaterial.DisableKeyword("GRID_ON");
+	}
+```
+
+[unitypackage](https://catlikecoding.com/unity/tutorials/hex-map/part-15/showing-the-grid/showing-the-grid.unitypackage)
+
+## 2 编辑模式
+
+如果我们想控制地图上的移动，我们必须与之互动。至少，我们必须选择一个单元格作为我们旅程的起点。但是单击单元格会对其进行编辑。我们可以手动禁用所有编辑选项，但这很不方便。此外，我们不想在编辑地图时触发移动计算。因此，让我们添加一个切换来控制我们是否处于编辑模式。
+
+### 2.1 编辑切换
+
+在 `HexMapEditor` 中添加一个布尔 `editMode` 字段以及一个设置它的方法。然后在 UI 中添加另一个切换来控制它。让我们从导航模式开始，所以默认情况下编辑模式是禁用的。
+
+```c#
+	bool editMode;
+	
+	…
+
+	public void SetEditMode (bool toggle) {
+		editMode = toggle;
+	}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/edit-mode/ui.png)
+
+*编辑模式切换。*
+
+要实际禁用编辑，请使 `EditCells` 的调用依赖于 `editMode`。
+
+```c#
+	void HandleInput () {
+		Ray inputRay = Camera.main.ScreenPointToRay(Input.mousePosition);
+		RaycastHit hit;
+		if (Physics.Raycast(inputRay, out hit)) {
+			HexCell currentCell = hexGrid.GetCell(hit.point);
+			if (previousCell && previousCell != currentCell) {
+				ValidateDrag(currentCell);
+			}
+			else {
+				isDrag = false;
+			}
+			if (editMode) {
+				EditCells(currentCell);
+			}
+			previousCell = currentCell;
+		}
+		else {
+			previousCell = null;
+		}
+	}
+```
+
+### 2.2 调试标签
+
+我们目前没有单位可以在地图上移动。相反，我们将可视化移动距离。我们可以使用现有的单元格标签。因此，当我们不处于编辑模式时，让它们可见。
+
+```c#
+	public void SetEditMode (bool toggle) {
+		editMode = toggle;
+		hexGrid.ShowUI(!toggle);
+	}
+```
+
+当我们在导航模式下开始时，默认情况下标签应该是可见的。目前，`HexGridChunk.Awake` 会禁用它们，它不应该再这样做了。
+
+```c#
+	void Awake () {
+		gridCanvas = GetComponentInChildren<Canvas>();
+
+		cells = new HexCell[HexMetrics.chunkSizeX * HexMetrics.chunkSizeZ];
+//		ShowUI(false);
+	}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/edit-mode/coordinate-labels.png)
+
+*协调标签。*
+
+进入播放模式后，现在可以直接看到单元格坐标。但我们对坐标不感兴趣。我们将使用标签来显示距离。由于每个单元格只有一个数字，我们可以增加字体大小，使其更容易阅读。调整*六边形单元格标签（Hex Cell Label）*预制件，使其使用大小为8的粗体。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/edit-mode/bold-8.png)
+
+*粗体 8 号标签。*
+
+进入游戏模式后，我们将看到大标签。只有每个单元格的第一个坐标最终可见，其他坐标不再合适。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/edit-mode/big-labels.png)
+
+*大标签。*
+
+由于我们不再需要坐标，请删除 `HexGrid.CreateCell` 中 `label.text` 的赋值。
+
+```c#
+	void CreateCell (int x, int z, int i) {
+		…
+
+		Text label = Instantiate<Text>(cellLabelPrefab);
+		label.rectTransform.anchoredPosition =
+			new Vector2(position.x, position.z);
+//		label.text = cell.coordinates.ToStringOnSeparateLines();
+		cell.uiRect = label.rectTransform;
+
+		…
+	}
+```
+
+您还可以从 UI 中删除*标签*切换及其附带的 `HexMapEditor.ShowUI` 方法。
+
+```c#
+//	public void ShowUI (bool visible) {
+//		hexGrid.ShowUI(visible);
+//	}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/edit-mode/ui-no-label-toggle.png)
+
+*不再有标签切换。*
+
+[unitypackage](https://catlikecoding.com/unity/tutorials/hex-map/part-15/edit-mode/edit-mode.unitypackage)
+
+## 3 寻找距离
+
+现在我们有了带标签的导航模式，我们可以开始显示距离了。我们要做的是选择一个单元格，然后显示地图上所有单元格与该单元格的距离。
+
+### 3.1 显示距离
+
+要跟踪单元格的距离，请在 `HexCell` 中添加一个整数 `distance` 字段。这表示该单元格和选定单元格之间的距离。因此，所选单元格本身将为零，其直接邻居将为 1，以此类推。
+
+```c#
+	int distance;
+```
+
+设置距离后，我们应该更新单元格的标签以显示其值。`HexCell` 引用了其UI对象的 `RectTransform`。我们必须在它上面调用 `GetComponent<Text>` 来获取标签。请注意，文本位于 `UnityEngine.UI` 命名空间中，因此请在脚本顶部使用它。
+
+```c#
+	void UpdateDistanceLabel () {
+		Text label = uiRect.GetComponent<Text>();
+		label.text = distance.ToString();
+	}
+```
+
+> **我们不应该存储对 `Text` 组件的直接引用吗？**
+>
+> 你可以。我对此并不在意，因为标签只是用来表明我们的导航代码正在工作。一旦我们确定了这一点，我们就不会再使用它们了。
+
+创建公共属性以获取和设置单元格的距离，并更新其标签。
+
+```c#
+	public int Distance {
+		get {
+			return distance;
+		}
+		set {
+			distance = value;
+			UpdateDistanceLabel();
+		}
+	}
+```
+
+使用单元格参数向 `HexGrid` 添加公共 `FindDistancesTo` 方法。现在，只需将每个单元格的距离设置为零。
+
+```c#
+	public void FindDistancesTo (HexCell cell) {
+		for (int i = 0; i < cells.Length; i++) {
+			cells[i].Distance = 0;
+		}
+	}
+```
+
+在 `HexMapEditor.HandleInput` 中，如果当前单元格未处于编辑模式，则使用当前单元格调用新方法。
+
+```c#
+			if (editMode) {
+				EditCells(currentCell);
+			}
+			else {
+				hexGrid.FindDistancesTo(currentCell);
+			}
+```
+
+### 3.2 坐标之间的距离
+
+现在，当我们在导航模式下触摸 1 时，所有单元格都会显示数字 0。但当然，他们应该显示他们与被触摸的单元格的实际距离。我们可以使用单元格坐标来计算它们的距离。因此，让我们假设 `HexCoordinates` 有一个 `DistanceTo` 方法，并在 `HexGrid.FindDistancesTo` 中使用它。
+
+```c#
+	public void FindDistancesTo (HexCell cell) {
+		for (int i = 0; i < cells.Length; i++) {
+			cells[i].Distance =
+				cell.coordinates.DistanceTo(cells[i].coordinates);
+		}
+	}
+```
+
+现在将 `DistanceTo` 方法添加到 `HexCoordinates` 中。它必须将自己的坐标与另一组坐标进行比较。让我们从只考虑 X 维度开始，通过相互减去 X 坐标。
+
+```c#
+	public int DistanceTo (HexCoordinates other) {
+		return x - other.x;
+	}
+```
+
+这将导致相对于选定单元格沿 X 的偏移。但是距离不能为负，所以我们必须返回 X 坐标之间的绝对差。
+
+```c#
+		return x < other.x ? other.x - x : x - other.x;
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/finding-distances/x-distances.png)
+
+*X 距离。*
+
+如果我们只考虑一个维度，这给了我们正确的距离。但是我们的六边形网格有三个维度。所以，让我们把所有三维空间的距离加起来，看看我们得到了什么。
+
+```c#
+		return
+			(x < other.x ? other.x - x : x - other.x) +
+			(Y < other.Y ? other.Y - Y : Y - other.Y) +
+			(z < other.z ? other.z - z : z - other.z);
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/finding-distances/xyz-distances.png)
+
+*XYZ 距离求和。*
+
+事实证明，我们得到的距离是实际距离的两倍。因此，为了得到最终的距离，我们必须将总和减半。
+
+```c#
+		return
+			((x < other.x ? other.x - x : x - other.x) +
+			(Y < other.Y ? other.Y - Y : Y - other.Y) +
+			(z < other.z ? other.z - z : z - other.z)) / 2;
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/finding-distances/actual-distances.png)
+
+*实际距离。*
+
+> **为什么总和是距离的两倍？**
+>
+> 请记住，我们的网格使用立方体坐标。这些坐标的总和始终为零，例如（1，−3，2）。正坐标和负坐标相互抵消。取它们的绝对值会将所有坐标移到正侧。结果等于最大绝对坐标的两倍。此外，请注意，单元格到原点的距离等于其最大的绝对坐标。所以我们也可以使用绝对坐标差的最大值。
+>
+> ![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/finding-distances/cube-coordinates.png)
+>
+> *立方体坐标。*
+
+[unitypackage](https://catlikecoding.com/unity/tutorials/hex-map/part-15/finding-distances/finding-distances.unitypackage)
+
+## 4 应对障碍
+
+我们计算的距离与从所选单元格到其他单元格的最短路径的长度相匹配。您找不到长度较短的路径。但只有在没有任何阻碍旅行的情况下，这些路径才保证有效。悬崖、水和其他障碍物可能会迫使我们绕道而行。有些单元格可能根本无法访问。
+
+为了能够绕过障碍物，我们必须使用一种不同的方法，而不是简单地计算坐标之间的距离。我们不能再孤立地评估每个单元格。相反，我们必须搜索我们的地图，直到找到可以到达的每个单元格。
+
+### 4.1 可视化搜索
+
+在地图上搜索是一个迭代过程。为了了解我们在做什么，能够看到搜索的每个步骤是有用的。我们可以通过将搜索算法转换为协程来实现这一点，这需要我们使用 `System.Collections` 命名空间。每秒 60 次迭代的更新频率足够慢，我们可以看到正在发生的事情，而无需在小地图上花费太长时间。
+
+```c#
+	public void FindDistancesTo (HexCell cell) {
+		StartCoroutine(Search(cell));
+	}
+
+	IEnumerator Search (HexCell cell) {
+		WaitForSeconds delay = new WaitForSeconds(1 / 60f);
+		for (int i = 0; i < cells.Length; i++) {
+			yield return delay;
+			cells[i].Distance =
+				cell.coordinates.DistanceTo(cells[i].coordinates);
+		}
+	}
+```
+
+我们应该确保任何时候都只有一次搜索处于活动状态。因此，在开始新的搜索之前，请停止所有协程。
+
+```c#
+	public void FindDistancesTo (HexCell cell) {
+		StopAllCoroutines();
+		StartCoroutine(Search(cell));
+	}
+```
+
+此外，当加载另一张地图时，我们应该停止搜索。
+
+```c#
+	public void Load (BinaryReader reader, int header) {
+		StopAllCoroutines();
+		…
+	}
+```
+
+### 4.2 广度优先搜索
+
+在我们开始搜索之前，我们知道到所选单元格的距离为零。当然，只要能到达，它所有邻居的距离都是 1。然后我们可以看看其中一个邻居。这个单元格可能有自己的邻居，可以联系到，但还没有距离。如果是这样，这些邻居的距离必须是 2。我们可以对距离 1 的所有邻居重复此操作。之后，我们对距离2的所有邻居重复此操作。以此类推，直到我们到达所有单元格。
+
+因此，我们首先找到距离 1 处的所有单元格，然后找到距离 2 处的所有单元格，再找到距离 3 处的单元格，直到完成。这保证了我们找到每个可到达的单元格的最小距离。这种算法被称为广度优先搜索。
+
+为了实现这一点，我们必须知道我们是否已经确定了单元格的距离。通常，这是通过将它们放入一个称为成品集或封闭集的集合中来实现的。但是我们可以将单元格的距离设置为 `int.MaxValue`，以表示我们还没有访问过它。我们必须在搜索之前对所有单元格都这样做。
+
+```c#
+	IEnumerator Search (HexCell cell) {
+		for (int i = 0; i < cells.Length; i++) {
+			cells[i].Distance = int.MaxValue;
+		}
+		
+		…
+	}
+```
+
+我们还可以通过调整 `HexCell.UpdateDistanceLabel` 来隐藏未访问单元格的标签。这样，我们每次搜索都会以一张干净的地图开始。
+
+```c#
+	void UpdateDistanceLabel () {
+		Text label = uiRect.GetComponent<Text>();
+		label.text = distance == int.MaxValue ? "" : distance.ToString();
+	}
+```
+
+接下来，我们必须跟踪我们必须访问哪些单元格，以及访问顺序。这个系列通常被称为边疆或开放集合（open set）。我们只需按照遇到单元格的顺序处理单元格。我们可以为此使用队列，这是 `System.Collections.Generic` 命名空间的一部分。所选单元格是第一个放入此队列的单元格，距离为零。
+
+```c#
+	IEnumerator Search (HexCell cell) {
+		for (int i = 0; i < cells.Length; i++) {
+			cells[i].Distance = int.MaxValue;
+		}
+
+		WaitForSeconds delay = new WaitForSeconds(1 / 60f);
+		Queue<HexCell> frontier = new Queue<HexCell>();
+		cell.Distance = 0;
+		frontier.Enqueue(cell);
+//		for (int i = 0; i < cells.Length; i++) {
+//			yield return delay;
+//			cells[i].Distance =
+//				cell.coordinates.DistanceTo(cells[i].coordinates);
+//		}
+	}
+```
+
+从这一点开始，只要队列中有东西，算法就会循环。每次迭代，最前面的单元格都会从队列中取出。
+
+```c#
+		frontier.Enqueue(cell);
+		while (frontier.Count > 0) {
+			yield return delay;
+			HexCell current = frontier.Dequeue();
+		}
+```
+
+我们现在有一个当前（current）单元格，它可以在任何距离。接下来，我们将其所有邻居添加到队列中，距离所选单元格更远一步。
+
+```c#
+		while (frontier.Count > 0) {
+			yield return delay;
+			HexCell current = frontier.Dequeue();
+			for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++) {
+				HexCell neighbor = current.GetNeighbor(d);
+				if (neighbor != null) {
+					neighbor.Distance = current.Distance + 1;
+					frontier.Enqueue(neighbor);
+				}
+			}
+		}
+```
+
+但我们应该只添加我们还没有给出距离的单元格。
+
+```c#
+				if (neighbor != null && neighbor.Distance == int.MaxValue) {
+					neighbor.Distance = current.Distance + 1;
+					frontier.Enqueue(neighbor);
+				}
+```
+
+*广度优先搜索。*
+
+### 4.3 避免水
+
+在验证了广度优先搜索在无特征地图上找到了正确的距离后，我们可以开始添加障碍物。我们将通过在满足各种条件时拒绝向队列中添加单元格来实现这一点。
+
+我们实际上已经跳过了一些单元格。那些不存在的，那些我们已经给了一段距离。让我们重写代码，以便在这些情况下明确跳过邻居。
+
+```c#
+			for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++) {
+				HexCell neighbor = current.GetNeighbor(d);
+				if (neighbor == null || neighbor.Distance != int.MaxValue) {
+					continue;
+				}
+				neighbor.Distance = current.Distance + 1;
+				frontier.Enqueue(neighbor);
+			}
+```
+
+让我们跳过所有在水下的细胞。这意味着，在寻找最短距离时，我们只考虑陆地旅行。
+
+```c#
+				if (neighbor == null || neighbor.Distance != int.MaxValue) {
+					continue;
+				}
+				if (neighbor.IsUnderwater) {
+					continue;
+				}
+```
+
+*没有游泳的距离。*
+
+该算法仍然可以找到最短距离，但现在避免了所有的水。因此，水下单元格永远不会有距离，断开连接的陆地也不会有距离。水下单元格获得距离的唯一时间是当它是所选单元格时。
+
+### 4.4 避开悬崖
+
+我们还可以使用边类型来确定是否可以访问邻居。例如，我们可以让悬崖阻挡旅行。通过仍然允许沿着斜坡旅行，悬崖两侧的单元格都可以到达，但可以通过不同的路径。因此，它们最终可能会有非常不同的距离。
+
+```c#
+				if (neighbor.IsUnderwater) {
+					continue;
+				}
+				if (current.GetEdgeType(neighbor) == HexEdgeType.Cliff) {
+					continue;
+				}
+```
+
+*没有攀登悬崖的距离。*
+
+[unitypackage](https://catlikecoding.com/unity/tutorials/hex-map/part-15/dealing-with-obstacles/dealing-with-obstacles.unitypackage)
+
+## 5 移动成本
+
+我们可以避开单元格和边缘，但这些选择是二元的。另一种可能性是，在某些方向上旅行比在其他方向上更容易。在这种情况下，距离是以努力或时间要求来衡量的。
+
+### 5.1 快速道路
+
+通过公路旅行既方便又快捷，这是有道理的，所以让我们让穿越公路的边缘更便宜。当我们使用整数来表示移动距离时，我们将道路保留为 1，并将穿越其他边的成本增加到 10。这是一个很大的差异，这使得我们很容易看到我们是否得到了正确的结果。
+
+```c#
+				int distance = current.Distance;
+				if (current.HasRoadThroughEdge(d)) {
+					distance += 1;
+				}
+				else {
+					distance += 10;
+				}
+				neighbor.Distance = distance;
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/movement-costs/roads-wrong.png)
+
+*距离不正确的道路。*
+
+### 5.2 整理边境
+
+不幸的是，事实证明，广度优先搜索无法应对不同的移动成本。它假设单元格是按照距离的升序添加到边界的，但这已不再适用。我们需要的是一个优先级队列，它是一个能够自我排序的队列。没有可用的标准优先级队列，因为没有通用的最佳编程方法。
+
+我们可以创建自己的优先级队列，但我们将把优化留给以后的教程。现在，我们可以简单地用一个具有 `Sort` 方法的列表替换队列。
+
+```c#
+		List<HexCell> frontier = new List<HexCell>();
+		cell.Distance = 0;
+		frontier.Add(cell);
+		while (frontier.Count > 0) {
+			yield return delay;
+			HexCell current = frontier[0];
+			frontier.RemoveAt(0);
+			for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++) {
+				…
+				neighbor.Distance = distance;
+				frontier.Add(neighbor);
+			}
+		}
+```
+
+> **我们不能使用 `ListPool<HexCell>` 吗？**
+>
+> 当然，请便。我在这里没有使用这种优化，特别是为了指出这是未优化的代码，其唯一目的是演示算法。
+
+为了保持边界有效，我们必须在向其添加单元格后对其进行排序。从技术上讲，我们可以延迟排序，直到添加了单元格的所有邻居，但此时不要担心优化。
+
+我们想按距离对单元格进行分类。为此，我们必须调用列表的排序方法，并引用执行此比较的方法。
+
+```c#
+				frontier.Add(neighbor);
+				frontier.Sort((x, y) => x.Distance.CompareTo(y.Distance));
+```
+
+> **`Sort` 方法是如何工作的？**
+>
+> 我们正在使用匿名内联方法。这是一种编写方法的简写方式，它依赖于编译器来找出参数的类型。上述代码相当于使用显式静态方法。
+>
+> ```c#
+> 				frontier.Sort(CompareDistances);
+> 	
+> 	…
+> 	
+> 	static int CompareDistances (HexCell x, HexCell y) {
+> 		return x.Distance.CompareTo(y.Distance);
+> 	}
+> ```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/movement-costs/sorted.png)
+
+*已排序的边界，仍然错误。*
+
+### 5.3 更新边境
+
+现在边界已经排序，我们得到了更好的结果，但仍然存在错误。这是因为当一个单元格被添加到边界时，并不能保证我们找到了到这个单元格的最短距离。这意味着我们不能再跳过已经有距离的邻居。相反，我们必须检查是否找到了更短的路径。如果是这样，我们必须调整邻居的距离，而不是将其添加到边界。
+
+```c#
+				HexCell neighbor = current.GetNeighbor(d);
+				if (neighbor == null) {
+					continue;
+				}
+				if (neighbor.IsUnderwater) {
+					continue;
+				}
+				if (current.GetEdgeType(neighbor) == HexEdgeType.Cliff) {
+					continue;
+				}
+				int distance = current.Distance;
+				if (current.HasRoadThroughEdge(d)) {
+					distance += 1;
+				}
+				else {
+					distance += 10;
+				}
+				if (neighbor.Distance == int.MaxValue) {
+					neighbor.Distance = distance;
+					frontier.Add(neighbor);
+				}
+				else if (distance < neighbor.Distance) {
+					neighbor.Distance = distance;
+				}
+				frontier.Sort((x, y) => x.Distance.CompareTo(y.Distance));
+```
+
+*正确的距离。*
+
+现在，考虑到移动成本，我们得到了正确的距离。你可以看到，一些单元格的距离开始时太长，但在它们被带出边界之前得到了纠正。这种方法被称为 Dijkstra 算法，以最先提出它的 Edsger Dijkstra 命名。
+
+### 5.4 斜坡
+
+我们不需要仅限于道路的不同成本。例如，让我们将没有道路的平坦边缘的穿越成本降低到 5，将没有公路的斜坡的成本降低到 10。
+
+```c#
+				HexEdgeType edgeType = current.GetEdgeType(neighbor);
+				if (edgeType == HexEdgeType.Cliff) {
+					continue;
+				}
+				int distance = current.Distance;
+				if (current.HasRoadThroughEdge(d)) {
+					distance += 1;
+				}
+				else {
+					distance += edgeType == HexEdgeType.Flat ? 5 : 10;
+				}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/movement-costs/slopes.png)
+
+*斜坡需要更多的努力，而道路总是很快。*
+
+### 5.5 地形特征
+
+我们也可以为地形特征的存在增加成本。例如，许多游戏使穿越森林变得更加困难。在我们的例子中，让我们将所有特征级别添加到距离中。再一次，一条路让这一切变得无关紧要。
+
+```c#
+				if (current.HasRoadThroughEdge(d)) {
+					distance += 1;
+				}
+				else {
+					distance += edgeType == HexEdgeType.Flat ? 5 : 10;
+					distance += neighbor.UrbanLevel + neighbor.FarmLevel +
+						neighbor.PlantLevel;
+				}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/movement-costs/features.png)
+
+*当没有道路时，特征会让你减速。*
+
+### 5.6 墙壁
+
+最后，让我们也考虑一下墙壁。除非有道路穿过，否则墙壁应该阻止移动。
+
+```c#
+				if (current.HasRoadThroughEdge(d)) {
+					distance += 1;
+				}
+				else if (current.Walled != neighbor.Walled) {
+					continue;
+				}
+				else {
+					distance += edgeType == HexEdgeType.Flat ? 5 : 10;
+					distance += neighbor.UrbanLevel + neighbor.FarmLevel +
+						neighbor.PlantLevel;
+				}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/movement-costs/walls.png)
+
+*墙把你挡在外面，所以找个门。*
+
+下一个教程是[寻路](https://catlikecoding.com/unity/tutorials/hex-map/part-16/)。
+
+[unitypackage](https://catlikecoding.com/unity/tutorials/hex-map/part-15/movement-costs/movement-costs.unitypackage)
+
+[PDF](https://catlikecoding.com/unity/tutorials/hex-map/part-15/Hex-Map-15.pdf)
+
+# [跳转系列独立 Markdown 16 ~ 21](./CatlikeCoding网站翻译-六边形地图16~21.md)
