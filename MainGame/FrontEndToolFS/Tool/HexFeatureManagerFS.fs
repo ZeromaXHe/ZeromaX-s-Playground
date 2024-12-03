@@ -34,6 +34,18 @@ type HexFeatureManagerFS() as this =
     [<DefaultValue>]
     val mutable walls: HexMeshFS
 
+    /// 塔楼
+    [<DefaultValue>]
+    val mutable wallTower: PackedScene
+
+    /// 桥梁
+    [<DefaultValue>]
+    val mutable bridge: PackedScene
+
+    /// 特殊特征
+    [<DefaultValue>]
+    val mutable special: PackedScene array
+
     let addWallCap near far =
         let near = HexMetrics.perturb near
         let far = HexMetrics.perturb far
@@ -61,7 +73,7 @@ type HexFeatureManagerFS() as this =
         this.walls.AddQuadUnperturbed [| point; v2; pointTop; v4 |]
         this.walls.AddTriangleUnperturbed [| pointTop; v3; v4 |]
 
-    let addWallSegment nearLeft farLeft nearRight farRight =
+    let addWallSegment nearLeft farLeft nearRight farRight addTower =
         let nearLeft = HexMetrics.perturb nearLeft
         let farLeft = HexMetrics.perturb farLeft
         let nearRight = HexMetrics.perturb nearRight
@@ -91,6 +103,13 @@ type HexFeatureManagerFS() as this =
         this.walls.AddQuadUnperturbed [| v2; v1; v4; v3 |]
         this.walls.AddQuadUnperturbed [| t1; t2; v3; v4 |]
 
+        if addTower then
+            let tower = this.wallTower.Instantiate<CsgBox3D>()
+            tower.Position <- (left + right) * 0.5f + tower.Position
+            let rightDirection = Vector3Util.changeY <| right - left <| 0f
+            tower.RotateY <| rightDirection.AngleTo Vector3.Right
+            _container.AddChild tower
+
     let addWallSegment2 pivot (pivotCell: HexCellFS) left (leftCell: HexCellFS) right (rightCell: HexCellFS) =
         if not pivotCell.IsUnderWater then
             let hasLeftWall =
@@ -102,7 +121,13 @@ type HexFeatureManagerFS() as this =
 
             if hasLeftWall then
                 if hasRightWall then
-                    addWallSegment pivot left pivot right
+                    let hash = HexMetrics.sampleHashGrid <| (pivot + left + right) * (1f / 3f)
+
+                    let hasTower =
+                        leftCell.Elevation = rightCell.Elevation
+                        && hash.e < HexMetrics.wallTowerThreshold
+
+                    addWallSegment pivot left pivot right hasTower
                 elif leftCell.Elevation < rightCell.Elevation then
                     addWallWedge pivot left right
                 else
@@ -125,34 +150,35 @@ type HexFeatureManagerFS() as this =
     member this.Apply() = this.walls.Apply()
 
     member this.AddFeature (cell: HexCellFS) (position: Vector3) =
-        let hash = HexMetrics.sampleHashGrid position
+        if not cell.IsSpecial then
+            let hash = HexMetrics.sampleHashGrid position
 
-        let mutable usedHash = hash.a
-        let mutable prefab = pickPrefab this.urbanPrefabs cell.UrbanLevel hash.a hash.d
-        let farmOpt = pickPrefab this.farmPrefabs cell.FarmLevel hash.b hash.d
+            let mutable usedHash = hash.a
+            let mutable prefab = pickPrefab this.urbanPrefabs cell.UrbanLevel hash.a hash.d
+            let farmOpt = pickPrefab this.farmPrefabs cell.FarmLevel hash.b hash.d
 
-        if prefab.IsSome then
-            if farmOpt.IsSome && hash.b < usedHash then
+            if prefab.IsSome then
+                if farmOpt.IsSome && hash.b < usedHash then
+                    prefab <- farmOpt
+                    usedHash <- hash.b
+            elif farmOpt.IsSome then
                 prefab <- farmOpt
                 usedHash <- hash.b
-        elif farmOpt.IsSome then
-            prefab <- farmOpt
-            usedHash <- hash.b
 
-        let plantOpt = pickPrefab this.plantPrefabs cell.PlantLevel hash.c hash.d
+            let plantOpt = pickPrefab this.plantPrefabs cell.PlantLevel hash.c hash.d
 
-        if prefab.IsSome then
-            if plantOpt.IsSome && hash.c < usedHash then
+            if prefab.IsSome then
+                if plantOpt.IsSome && hash.c < usedHash then
+                    prefab <- plantOpt
+            elif plantOpt.IsSome then
                 prefab <- plantOpt
-        elif plantOpt.IsSome then
-            prefab <- plantOpt
 
-        prefab
-        |> Option.iter (fun prefab ->
-            let cube = prefab.Instantiate<CsgBox3D>()
-            cube.Position <- HexMetrics.perturb <| position + Vector3.Up * 0.5f * cube.Size
-            cube.RotationDegrees <- Vector3(0f, 360f * hash.e, 0f)
-            _container.AddChild cube)
+            prefab
+            |> Option.iter (fun prefab ->
+                let cube = prefab.Instantiate<CsgBox3D>()
+                cube.Position <- HexMetrics.perturb <| position + Vector3.Up * 0.5f * cube.Size
+                cube.RotationDegrees <- Vector3(0f, 360f * hash.e, 0f)
+                _container.AddChild cube)
 
     member this.AddWall
         (near: EdgeVertices)
@@ -168,16 +194,16 @@ type HexFeatureManagerFS() as this =
             && not farCell.IsUnderWater
             && nearCell.GetEdgeType farCell <> HexEdgeType.Cliff
         then
-            addWallSegment near.v1 far.v1 near.v2 far.v2
+            addWallSegment near.v1 far.v1 near.v2 far.v2 false
 
             if hasRiver || hasRoad then
                 addWallCap near.v2 far.v2
                 addWallCap far.v4 near.v4
             else
-                addWallSegment near.v2 far.v2 near.v3 far.v3
-                addWallSegment near.v3 far.v3 near.v4 far.v4
+                addWallSegment near.v2 far.v2 near.v3 far.v3 false
+                addWallSegment near.v3 far.v3 near.v4 far.v4 false
 
-            addWallSegment near.v4 far.v4 near.v5 far.v5
+            addWallSegment near.v4 far.v4 near.v5 far.v5 false
 
     member this.AddWall2 c1 (cell1: HexCellFS) c2 (cell2: HexCellFS) c3 (cell3: HexCellFS) =
         if cell1.Walled then
@@ -195,3 +221,27 @@ type HexFeatureManagerFS() as this =
                 addWallSegment2 c2 cell2 c3 cell3 c1 cell1
         elif cell3.Walled then
             addWallSegment2 c3 cell3 c1 cell1 c2 cell2
+
+    /// 桥
+    /// <param name="roadCenter1">桥一端的中心</param>>
+    /// <param name="roadCenter2">桥另一端的中心</param>>
+    member this.AddBridge roadCenter1 roadCenter2 =
+        let roadCenter1 = HexMetrics.perturb roadCenter1
+        let roadCenter2 = HexMetrics.perturb roadCenter2
+        let instance = this.bridge.Instantiate<CsgBox3D>()
+        instance.Position <- (roadCenter1 + roadCenter2) * 0.5f + instance.Position
+        let length = roadCenter1.DistanceTo roadCenter2
+        instance.Scale <- Vector3(length * (1f / HexMetrics.bridgeDesignLength), 1f, 1f)
+        _container.AddChild instance
+        // instance.RotateY <| (roadCenter2 - roadCenter1).AngleTo Vector3.Right // 区分不了 1、2 哪个是外侧，不行
+        // 这里因为 Unity API 和 Godot 差距较大，所以用这种方法先把桥洞对准桥的两端，再旋转 90 度
+        instance.LookAt(instance.GlobalPosition + roadCenter2 - roadCenter1)
+        instance.RotateY <| Mathf.Pi / 2f
+
+    /// 特殊特征
+    member this.AddSpecialFeature (cell: HexCellFS) position =
+        let instance = this.special[cell.SpecialIndex - 1].Instantiate<CsgBox3D>()
+        instance.Position <- HexMetrics.perturb position + instance.Position
+        let hash = HexMetrics.sampleHashGrid position
+        instance.RotationDegrees <- Vector3(0f, 360f * hash.e, 0f)
+        _container.AddChild instance

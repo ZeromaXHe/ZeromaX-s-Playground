@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3 uid="uid://cd1u7jnyttt7c"]
+[gd_scene load_steps=25 format=3 uid="uid://cd1u7jnyttt7c"]
 
 [ext_resource type="Script" path="res://game/HexPlane/Map/HexFeatureManager.cs" id="1_mimn8"]
 [ext_resource type="PackedScene" uid="uid://d1ew6xi52rii0" path="res://game/HexPlane/Map/FeaturePrefab/UrbanHigh1.tscn" id="2_whejm"]
@@ -19,9 +19,17 @@
 [ext_resource type="PackedScene" uid="uid://dsg02ixnmaqsq" path="res://game/HexPlane/Map/FeaturePrefab/PlantMid2.tscn" id="17_efd32"]
 [ext_resource type="PackedScene" uid="uid://cnl5dfh5l1ebq" path="res://game/HexPlane/Map/FeaturePrefab/PlantLow1.tscn" id="18_yf407"]
 [ext_resource type="PackedScene" uid="uid://cf188l6koi8kd" path="res://game/HexPlane/Map/FeaturePrefab/PlantLow2.tscn" id="19_hka4d"]
+[ext_resource type="PackedScene" uid="uid://bb6xs7ivtq2av" path="res://game/HexPlane/Map/FeaturePrefab/WallTower.tscn" id="20_upth2"]
+[ext_resource type="PackedScene" uid="uid://dilod05r44yx0" path="res://game/HexPlane/Map/FeaturePrefab/Bridge.tscn" id="21_ovpno"]
+[ext_resource type="PackedScene" uid="uid://cgd36e5aeq422" path="res://game/HexPlane/Map/FeaturePrefab/Castle.tscn" id="22_7yx6l"]
+[ext_resource type="PackedScene" uid="uid://clvr4b3s8mc2c" path="res://game/HexPlane/Map/FeaturePrefab/Ziggurat.tscn" id="23_gw15i"]
+[ext_resource type="PackedScene" uid="uid://b6ueufxqhexh5" path="res://game/HexPlane/Map/FeaturePrefab/MegaFlora.tscn" id="24_xkeaq"]
 
 [node name="HexFeatureManager" type="Node3D"]
 script = ExtResource("1_mimn8")
 UrbanPrefabs = [[ExtResource("2_whejm"), ExtResource("3_cqi6g")], [ExtResource("4_n80rp"), ExtResource("5_lrrh4")], [ExtResource("6_ujr0l"), ExtResource("7_wwulv")]]
 FarmPrefabs = Array[Array]([[ExtResource("8_k04lb"), ExtResource("9_vkapf")], [ExtResource("10_ebuww"), ExtResource("11_52a4l")], [ExtResource("12_emso0"), ExtResource("13_f4g3h")]])
 PlantPrefabs = Array[Array]([[ExtResource("14_khs07"), ExtResource("15_2dxao")], [ExtResource("16_lwk3h"), ExtResource("17_efd32")], [ExtResource("18_yf407"), ExtResource("19_hka4d")]])
+WallTower = ExtResource("20_upth2")
+Bridge = ExtResource("21_ovpno")
+Special = [ExtResource("22_7yx6l"), ExtResource("23_gw15i"), ExtResource("24_xkeaq")]

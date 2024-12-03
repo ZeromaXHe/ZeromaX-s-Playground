@@ -1,0 +1,19 @@
+[gd_scene load_steps=2 format=3 uid="uid://clvr4b3s8mc2c"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l1f6h"]
+albedo_color = Color(1, 0, 0, 1)
+
+[node name="Ziggurat" type="CSGBox3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, 0)
+size = Vector3(8, 2.5, 8)
+material = SubResource("StandardMaterial3D_l1f6h")
+
+[node name="Mid" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+size = Vector3(5, 1.5, 5)
+material = SubResource("StandardMaterial3D_l1f6h")
+
+[node name="Top" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.25, 0)
+size = Vector3(2, 1, 2)
+material = SubResource("StandardMaterial3D_l1f6h")

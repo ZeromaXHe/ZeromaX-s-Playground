@@ -437,7 +437,17 @@ type HexGridChunkFS() as this =
 
                         HexMetrics.getFirstSolidCorner dir, prune
 
-                center + corner * 0.5f, center + corner * 0.25f, prune
+                let roadCenter = center + corner * 0.5f
+
+                if
+                    not prune
+                    && cell.IncomingRiver.Value = dir.Next()
+                    && (cell.HasRoadThroughEdge <| dir.Next2()
+                        || cell.HasRoadThroughEdge <| dir.Opposite())
+                then
+                    this.features.AddBridge roadCenter <| center - corner * 0.5f
+
+                roadCenter, center + corner * 0.25f, prune
             elif cell.IncomingRiver.Value = cell.OutgoingRiver.Value.Previous() then
                 center - HexMetrics.getSecondSolidCorner cell.IncomingRiver.Value * 0.2f, center, false
             elif cell.IncomingRiver.Value = cell.OutgoingRiver.Value.Next() then
@@ -456,7 +466,14 @@ type HexGridChunkFS() as this =
                     && not << cell.HasRoadThroughEdge <| middle.Previous()
                     && not << cell.HasRoadThroughEdge <| middle.Next()
 
-                center + HexMetrics.getSolidEdgeMiddle middle * 0.25f, center, prune
+                let offset = HexMetrics.getSolidEdgeMiddle middle
+                let roadCenter = if prune then center else center + offset * 0.25f
+
+                if not prune && dir = middle && cell.HasRoadThroughEdge <| dir.Opposite() then
+                    this.features.AddBridge roadCenter
+                    <| center - offset * HexMetrics.innerToOuter * 0.7f
+
+                roadCenter, center, prune
         // 如果需要修剪跨河对面的道路残渣，后面就不需要执行了
         if not prune then
             let mL = roadCenter.Lerp(e.v1, interpolator.X)
@@ -667,8 +684,12 @@ type HexGridChunkFS() as this =
     let triangulate (cell: HexCellFS) =
         allHexDirs () |> List.iter (triangulateDir cell)
 
-        if not cell.IsUnderWater && not cell.HasRiver && not cell.HasRoads then
-            this.features.AddFeature cell cell.Position
+        if not cell.IsUnderWater then
+            if not cell.HasRiver && not cell.HasRoads then
+                this.features.AddFeature cell cell.Position
+
+            if cell.IsSpecial then
+                this.features.AddSpecialFeature cell cell.Position
 
     /// 地形
     [<DefaultValue>]

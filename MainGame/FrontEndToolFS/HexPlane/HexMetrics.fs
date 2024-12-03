@@ -137,6 +137,7 @@ module HexMetrics =
 
     // 城墙
     let wallHeight = 3f
+    let wallYOffset = -1f
     let wallThickness = 0.75f
 
     let wallThicknessOffset (near: Vector3) (far: Vector3) =
@@ -154,5 +155,9 @@ module HexMetrics =
             else
                 1f - wallElevationOffset
 
-        let y = near.Y + (far.Y - near.Y) * v
+        let y = near.Y + (far.Y - near.Y) * v + wallYOffset
         Vector3(x, y, z)
+    // 城墙塔楼
+    let wallTowerThreshold = 0.5f
+    // 桥
+    let bridgeDesignLength = 7f

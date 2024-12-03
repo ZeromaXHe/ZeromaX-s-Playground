@@ -55,6 +55,9 @@ type HexMapEditorFS() as this =
     let _walledModeOptionButton =
         lazy this.GetNode<OptionButton> "PanelContainer/CellVBox/WalledHBox/WalledMode"
 
+    let _specialModeOptionButton =
+        lazy this.GetNode<OptionButton> "PanelContainer/CellVBox/SpecialHBox/SpecialMode"
+
     let _showLabelsCheckButton =
         lazy this.GetNode<CheckButton> "PanelContainer/CellVBox/ShowLabels"
 
@@ -79,6 +82,8 @@ type HexMapEditorFS() as this =
     let mutable activeFarmLevel = 0
     let mutable changePlantLevel = false
     let mutable activePlantLevel = 0
+    let mutable changeSpecial = false
+    let mutable activeSpecial = 0
     let mutable brushSize = 0
     let mutable riverMode = OptionalToggle.Ignore
     let mutable roadMode = OptionalToggle.Ignore
@@ -104,6 +109,9 @@ type HexMapEditorFS() as this =
 
         if changeWaterLevel then
             cell.WaterLevel <- activeWaterLevel
+
+        if changeSpecial then
+            cell.SpecialIndex <- activeSpecial
 
         if changeUrbanLevel then
             cell.UrbanLevel <- activeUrbanLevel
@@ -189,6 +197,7 @@ type HexMapEditorFS() as this =
         _riverModeOptionButton.Value.Selected <- 0
         _roadModeOptionButton.Value.Selected <- 0
         _walledModeOptionButton.Value.Selected <- 0
+        _specialModeOptionButton.Value.Selected <- 0
 
         _colorModeOptionButton.Value.add_ItemSelected (fun index ->
             if index = 0 then
@@ -210,6 +219,11 @@ type HexMapEditorFS() as this =
         _riverModeOptionButton.Value.add_ItemSelected (fun index -> riverMode <- enum<OptionalToggle> <| int index)
         _roadModeOptionButton.Value.add_ItemSelected (fun index -> roadMode <- enum<OptionalToggle> <| int index)
         _walledModeOptionButton.Value.add_ItemSelected (fun index -> walledMode <- enum<OptionalToggle> <| int index)
+
+        _specialModeOptionButton.Value.add_ItemSelected (fun index ->
+            activeSpecial <- int index - 1
+            changeSpecial <- int index <> 0)
+
         _showLabelsCheckButton.Value.add_Toggled showUI
 
         _wireframeCheckButton.Value.add_Toggled (fun toggle ->

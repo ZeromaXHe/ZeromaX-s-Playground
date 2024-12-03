@@ -1,0 +1,29 @@
+[gd_scene load_steps=2 format=3 uid="uid://cgd36e5aeq422"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l1f6h"]
+albedo_color = Color(1, 0, 0, 1)
+
+[node name="Castle" type="CSGBox3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+size = Vector3(6, 4, 6)
+material = SubResource("StandardMaterial3D_l1f6h")
+
+[node name="Tower1" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 0.75, 2.5)
+size = Vector3(2, 5.5, 2)
+material = SubResource("StandardMaterial3D_l1f6h")
+
+[node name="Tower2" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 0.75, 2.5)
+size = Vector3(2, 5.5, 2)
+material = SubResource("StandardMaterial3D_l1f6h")
+
+[node name="Tower3" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 0.75, -2.5)
+size = Vector3(2, 5.5, 2)
+material = SubResource("StandardMaterial3D_l1f6h")
+
+[node name="Tower4" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 0.75, -2.5)
+size = Vector3(2, 5.5, 2)
+material = SubResource("StandardMaterial3D_l1f6h")

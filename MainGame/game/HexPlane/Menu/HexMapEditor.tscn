@@ -196,6 +196,28 @@ popup/item_1/id = 1
 popup/item_2/text = "No"
 popup/item_2/id = 2
 
+[node name="SpecialHBox" type="HBoxContainer" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+
+[node name="SpecialLabel" type="Label" parent="PanelContainer/CellVBox/SpecialHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Special"
+
+[node name="SpecialMode" type="OptionButton" parent="PanelContainer/CellVBox/SpecialHBox"]
+layout_mode = 2
+selected = 0
+item_count = 5
+popup/item_0/text = "---"
+popup/item_1/text = "No"
+popup/item_1/id = 1
+popup/item_2/text = "Castle"
+popup/item_2/id = 2
+popup/item_3/text = "Ziggurat"
+popup/item_3/id = 3
+popup/item_4/text = "MegaFlora"
+popup/item_4/id = 4
+
 [node name="HSeparator6" type="HSeparator" parent="PanelContainer/CellVBox"]
 layout_mode = 2
 

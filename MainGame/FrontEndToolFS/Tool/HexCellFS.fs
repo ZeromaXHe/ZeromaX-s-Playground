@@ -169,8 +169,10 @@ type HexCellFS() as this =
                     this.RemoveIncomingRiver()
 
                 this.OutgoingRiver <- Some direction
+                specialIndex <- 0
                 neighbor.RemoveIncomingRiver()
                 neighbor.IncomingRiver <- Some <| direction.Opposite()
+                neighbor.SpecialIndex <- 0
                 this.SetRoad <| int direction <| false
             else
                 GD.Print $"SetOutgoingRiver no neighbor or low {direction}"
@@ -204,6 +206,9 @@ type HexCellFS() as this =
         if
             not <| this.HasRoadThroughEdge direction
             && not <| this.HasRiverThroughEdge direction
+            && not this.IsSpecial
+            // AddRoad 的入口保证这里一定有邻居
+            && not <| (this.GetNeighbor direction).Value.IsSpecial
             && this.GetElevationDifference direction <= 1
         then
             this.SetRoad (int direction) true
@@ -283,3 +288,19 @@ type HexCellFS() as this =
             if walled <> value then
                 walled <- value
                 refresh ()
+
+    // 特殊特征
+    let mutable specialIndex = 0
+
+    member this.SpecialIndex
+        with get () = specialIndex
+        and set value =
+            if specialIndex <> value && (not this.HasRiver || value = 0) then
+                specialIndex <- value
+
+                if value <> 0 then
+                    this.RemoveRoads()
+
+                this.RefreshSelfOnly()
+
+    member this.IsSpecial = specialIndex > 0

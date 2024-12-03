@@ -32,4 +32,25 @@ public partial class HexFeatureManager : HexFeatureManagerFS
         get => walls;
         set => walls = value;
     }
+
+    [Export]
+    public PackedScene WallTower
+    {
+        get => wallTower;
+        set => wallTower = value;
+    }
+
+    [Export]
+    public PackedScene Bridge
+    {
+        get => bridge;
+        set => bridge = value;
+    }
+
+    [Export]
+    public PackedScene[] Special
+    {
+        get => special;
+        set => special = value;
+    }
 }
