@@ -13,12 +13,14 @@
         <Compile Include="HexGlobal\HexEntry.fs" />
         <Compile Include="HexPlane\HexDirection.fs" />
         <Compile Include="HexPlane\HexEdgeType.fs" />
+        <Compile Include="HexPlane\HexHash.fs" />
         <Compile Include="HexPlane\HexMetrics.fs" />
         <Compile Include="HexPlane\HexCoordinates.fs" />
         <Compile Include="HexPlane\EdgeVertices.fs" />
         <Compile Include="Tool\HexPlanetManagerFS.fs" />
         <Compile Include="Tool\HexCellFS.fs" />
         <Compile Include="Tool\HexMeshFS.fs" />
+        <Compile Include="Tool\HexFeatureManagerFS.fs" />
         <Compile Include="Tool\HexGridChunkFS.fs" />
         <Compile Include="Tool\HexGridFS.fs" />
         <Compile Include="Tool\HexMapCameraFS.fs" />

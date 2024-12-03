@@ -501,6 +501,9 @@ type HexGridChunkFS() as this =
         triangulateEdgeStripNoRoad m cell.Color e cell.Color
         triangulateEdgeFan center m cell.Color
 
+        if not cell.IsUnderWater && not <| cell.HasRoadThroughEdge dir then
+            this.features.AddFeature cell <| (center + e.v1 + e.v5) * (1f / 3f)
+
     /// 处理没有河流的单元格
     let triangulateWithoutRiver dir (cell: HexCellFS) center e =
         triangulateEdgeFan center e cell.Color
@@ -662,6 +665,9 @@ type HexGridChunkFS() as this =
         else
             triangulateWithoutRiver dir cell center e
 
+            if not cell.IsUnderWater && not <| cell.HasRoadThroughEdge dir then
+                this.features.AddFeature cell <| (center + e.v1 + e.v5) * (1f / 3f)
+
         if dir <= HexDirection.SE then
             triangulateConnection cell dir e
 
@@ -670,6 +676,9 @@ type HexGridChunkFS() as this =
 
     let triangulate (cell: HexCellFS) =
         allHexDirs () |> List.iter (triangulateDir cell)
+
+        if not cell.IsUnderWater && not cell.HasRiver && not cell.HasRoads then
+            this.features.AddFeature cell cell.Position
 
     /// 地形
     [<DefaultValue>]
@@ -695,6 +704,10 @@ type HexGridChunkFS() as this =
     [<DefaultValue>]
     val mutable estuaries: HexMeshFS
 
+    /// 特征
+    [<DefaultValue>]
+    val mutable features: HexFeatureManagerFS
+
     interface IChunk with
         member this.Refresh() =
             // GD.Print $"{this.Name} Refresh"
@@ -718,6 +731,7 @@ type HexGridChunkFS() as this =
             this.water.Clear()
             this.waterShore.Clear()
             this.estuaries.Clear()
+            this.features.Clear()
             cells |> Array.iter triangulate
             this.terrain.Apply()
             this.rivers.Apply()
@@ -725,5 +739,6 @@ type HexGridChunkFS() as this =
             this.water.Apply()
             this.waterShore.Apply()
             this.estuaries.Apply()
+            this.features.Apply()
         // 这里写法挺有意思，可以控制 _Process 不频繁调用
         this.SetProcess false

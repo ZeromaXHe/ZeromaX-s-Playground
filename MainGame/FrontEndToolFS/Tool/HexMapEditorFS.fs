@@ -29,6 +29,21 @@ type HexMapEditorFS() as this =
 
     let _waterSlider = lazy this.GetNode<HSlider> "PanelContainer/CellVBox/WaterSlider"
 
+    let _urbanChangeCheckButton =
+        lazy this.GetNode<CheckButton> "PanelContainer/CellVBox/UrbanChange"
+
+    let _urbanSlider = lazy this.GetNode<HSlider> "PanelContainer/CellVBox/UrbanSlider"
+
+    let _farmChangeCheckButton =
+        lazy this.GetNode<CheckButton> "PanelContainer/CellVBox/FarmChange"
+
+    let _farmSlider = lazy this.GetNode<HSlider> "PanelContainer/CellVBox/FarmSlider"
+
+    let _plantChangeCheckButton =
+        lazy this.GetNode<CheckButton> "PanelContainer/CellVBox/PlantChange"
+
+    let _plantSlider = lazy this.GetNode<HSlider> "PanelContainer/CellVBox/PlantSlider"
+
     let _brushSlider = lazy this.GetNode<HSlider> "PanelContainer/CellVBox/BrushSlider"
 
     let _riverModeOptionButton =
@@ -55,6 +70,12 @@ type HexMapEditorFS() as this =
     let mutable activeElevation = 1
     let mutable changeWaterLevel = false
     let mutable activeWaterLevel = 0
+    let mutable changeUrbanLevel = false
+    let mutable activeUrbanLevel = 0
+    let mutable changeFarmLevel = false
+    let mutable activeFarmLevel = 0
+    let mutable changePlantLevel = false
+    let mutable activePlantLevel = 0
     let mutable brushSize = 0
     let mutable riverMode = OptionalToggle.Ignore
     let mutable roadMode = OptionalToggle.Ignore
@@ -79,6 +100,15 @@ type HexMapEditorFS() as this =
 
         if changeWaterLevel then
             cell.WaterLevel <- activeWaterLevel
+
+        if changeUrbanLevel then
+            cell.UrbanLevel <- activeUrbanLevel
+
+        if changeFarmLevel then
+            cell.FarmLevel <- activeFarmLevel
+
+        if changePlantLevel then
+            cell.PlantLevel <- activePlantLevel
 
         if riverMode = OptionalToggle.No then
             // GD.Print $"cell removeRiver"
@@ -139,8 +169,16 @@ type HexMapEditorFS() as this =
     override this._Ready() =
         _colorModeOptionButton.Value.Selected <- 0
         _elevationSlider.Value.Value <- activeElevation
+        _waterSlider.Value.Value <- activeWaterLevel
+        _urbanSlider.Value.Value <- activeUrbanLevel
+        _farmSlider.Value.Value <- activeFarmLevel
+        _plantSlider.Value.Value <- activePlantLevel
         _brushSlider.Value.Value <- brushSize
         _elevationChangeCheckButton.Value.ButtonPressed <- changeElevation
+        _waterChangeCheckButton.Value.ButtonPressed <- changeWaterLevel
+        _urbanChangeCheckButton.Value.ButtonPressed <- changeUrbanLevel
+        _farmChangeCheckButton.Value.ButtonPressed <- changeFarmLevel
+        _plantChangeCheckButton.Value.ButtonPressed <- changePlantLevel
         _riverModeOptionButton.Value.Selected <- 0
         _roadModeOptionButton.Value.Selected <- 0
 
@@ -154,6 +192,12 @@ type HexMapEditorFS() as this =
         _elevationSlider.Value.add_ValueChanged (fun value -> activeElevation <- int value)
         _waterChangeCheckButton.Value.add_Toggled (fun toggle -> changeWaterLevel <- toggle)
         _waterSlider.Value.add_ValueChanged (fun value -> activeWaterLevel <- int value)
+        _urbanChangeCheckButton.Value.add_Toggled (fun toggle -> changeUrbanLevel <- toggle)
+        _urbanSlider.Value.add_ValueChanged (fun value -> activeUrbanLevel <- int value)
+        _farmChangeCheckButton.Value.add_Toggled (fun toggle -> changeFarmLevel <- toggle)
+        _farmSlider.Value.add_ValueChanged (fun value -> activeFarmLevel <- int value)
+        _plantChangeCheckButton.Value.add_Toggled (fun toggle -> changePlantLevel <- toggle)
+        _plantSlider.Value.add_ValueChanged (fun value -> activePlantLevel <- int value)
         _brushSlider.Value.add_ValueChanged (fun value -> brushSize <- int value)
         _riverModeOptionButton.Value.add_ItemSelected (fun index -> riverMode <- enum<OptionalToggle> <| int index)
         _roadModeOptionButton.Value.add_ItemSelected (fun index -> roadMode <- enum<OptionalToggle> <| int index)

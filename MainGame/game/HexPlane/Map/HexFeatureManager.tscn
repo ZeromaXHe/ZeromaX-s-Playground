@@ -1,0 +1,27 @@
+[gd_scene load_steps=20 format=3 uid="uid://cd1u7jnyttt7c"]
+
+[ext_resource type="Script" path="res://game/HexPlane/Map/HexFeatureManager.cs" id="1_mimn8"]
+[ext_resource type="PackedScene" uid="uid://d1ew6xi52rii0" path="res://game/HexPlane/Map/FeaturePrefab/UrbanHigh1.tscn" id="2_whejm"]
+[ext_resource type="PackedScene" uid="uid://dgoo7mhyk8i2g" path="res://game/HexPlane/Map/FeaturePrefab/UrbanHigh2.tscn" id="3_cqi6g"]
+[ext_resource type="PackedScene" uid="uid://bpn6pydgx415l" path="res://game/HexPlane/Map/FeaturePrefab/UrbanMid1.tscn" id="4_n80rp"]
+[ext_resource type="PackedScene" uid="uid://begfeen3t3ykw" path="res://game/HexPlane/Map/FeaturePrefab/UrbanMid2.tscn" id="5_lrrh4"]
+[ext_resource type="PackedScene" uid="uid://d0x0gijbqr5h1" path="res://game/HexPlane/Map/FeaturePrefab/UrbanLow1.tscn" id="6_ujr0l"]
+[ext_resource type="PackedScene" uid="uid://cy54o5twn3cn" path="res://game/HexPlane/Map/FeaturePrefab/UrbanLow2.tscn" id="7_wwulv"]
+[ext_resource type="PackedScene" uid="uid://dyp8nbbrnfpb2" path="res://game/HexPlane/Map/FeaturePrefab/FarmHigh1.tscn" id="8_k04lb"]
+[ext_resource type="PackedScene" uid="uid://ecclhbtd1oh7" path="res://game/HexPlane/Map/FeaturePrefab/FarmHigh2.tscn" id="9_vkapf"]
+[ext_resource type="PackedScene" uid="uid://cr4d5ofqlporh" path="res://game/HexPlane/Map/FeaturePrefab/FarmMid1.tscn" id="10_ebuww"]
+[ext_resource type="PackedScene" uid="uid://cmriqr5c41g5a" path="res://game/HexPlane/Map/FeaturePrefab/FarmMid2.tscn" id="11_52a4l"]
+[ext_resource type="PackedScene" uid="uid://cui7dd52tk4yf" path="res://game/HexPlane/Map/FeaturePrefab/FarmLow1.tscn" id="12_emso0"]
+[ext_resource type="PackedScene" uid="uid://cdt476jaxlru1" path="res://game/HexPlane/Map/FeaturePrefab/FarmLow2.tscn" id="13_f4g3h"]
+[ext_resource type="PackedScene" uid="uid://bnkkteq17d6uj" path="res://game/HexPlane/Map/FeaturePrefab/PlantHigh1.tscn" id="14_khs07"]
+[ext_resource type="PackedScene" uid="uid://c0vuwmfkmaaoq" path="res://game/HexPlane/Map/FeaturePrefab/PlantHigh2.tscn" id="15_2dxao"]
+[ext_resource type="PackedScene" uid="uid://py2ds280wvgt" path="res://game/HexPlane/Map/FeaturePrefab/PlantMid1.tscn" id="16_lwk3h"]
+[ext_resource type="PackedScene" uid="uid://dsg02ixnmaqsq" path="res://game/HexPlane/Map/FeaturePrefab/PlantMid2.tscn" id="17_efd32"]
+[ext_resource type="PackedScene" uid="uid://cnl5dfh5l1ebq" path="res://game/HexPlane/Map/FeaturePrefab/PlantLow1.tscn" id="18_yf407"]
+[ext_resource type="PackedScene" uid="uid://cf188l6koi8kd" path="res://game/HexPlane/Map/FeaturePrefab/PlantLow2.tscn" id="19_hka4d"]
+
+[node name="HexFeatureManager" type="Node3D"]
+script = ExtResource("1_mimn8")
+UrbanPrefabs = [[ExtResource("2_whejm"), ExtResource("3_cqi6g")], [ExtResource("4_n80rp"), ExtResource("5_lrrh4")], [ExtResource("6_ujr0l"), ExtResource("7_wwulv")]]
+FarmPrefabs = Array[Array]([[ExtResource("8_k04lb"), ExtResource("9_vkapf")], [ExtResource("10_ebuww"), ExtResource("11_52a4l")], [ExtResource("12_emso0"), ExtResource("13_f4g3h")]])
+PlantPrefabs = Array[Array]([[ExtResource("14_khs07"), ExtResource("15_2dxao")], [ExtResource("16_lwk3h"), ExtResource("17_efd32")], [ExtResource("18_yf407"), ExtResource("19_hka4d")]])

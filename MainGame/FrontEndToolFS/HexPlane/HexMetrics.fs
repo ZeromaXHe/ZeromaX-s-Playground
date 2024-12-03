@@ -99,9 +99,38 @@ module HexMetrics =
     /// 水因子
     let waterFactor = 0.6f
     let waterBlendFactor = 1f - waterFactor
-    let getFirstWaterCorner (direction: HexDirection) =
-        getFirstCorner direction * waterFactor
-    let getSecondWaterCorner (direction: HexDirection) =
-        getSecondCorner direction * waterFactor
+    let getFirstWaterCorner (direction: HexDirection) = getFirstCorner direction * waterFactor
+    let getSecondWaterCorner (direction: HexDirection) = getSecondCorner direction * waterFactor
+
     let getWaterBridge (direction: HexDirection) =
         (getFirstCorner direction + getSecondCorner direction) * waterBlendFactor
+    // 随机哈希网格
+    let hashGridSize = 256
+
+    let hashGrid: HexHash array = Array.zeroCreate <| hashGridSize * hashGridSize
+
+    let random = new RandomNumberGenerator()
+
+    let initializeHashGrid seed =
+        random.Seed <- seed
+        let initState = random.State
+
+        for i in 0 .. hashGrid.Length - 1 do
+            hashGrid[i] <- HexHash.Create()
+
+        random.State <- initState
+
+    let hashGridScale = 0.25f
+
+    let sampleHashGrid (position: Vector3) =
+        let x = int (position.X * hashGridScale) % hashGridSize
+        let x = if x < 0 then x + hashGridSize else x
+        let z = int (position.Z * hashGridScale) % hashGridSize
+        let z = if z < 0 then z + hashGridSize else z
+        //GD.Print $"hash x:{x} z:{z} a:{hashGrid[x + z * hashGridSize].a} b:{hashGrid[x + z * hashGridSize].b}"
+        hashGrid[x + z * hashGridSize]
+
+    let featureThresholds =
+        [| [| 0f; 0f; 0.4f |]; [| 0f; 0.4f; 0.6f |]; [| 0.4f; 0.6f; 0.8f |] |]
+
+    let getFeatureThresholds level = featureThresholds[level]

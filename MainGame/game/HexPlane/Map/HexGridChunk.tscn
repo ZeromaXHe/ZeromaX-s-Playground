@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://btjayimhgt0pk"]
+[gd_scene load_steps=16 format=3 uid="uid://btjayimhgt0pk"]
 
 [ext_resource type="PackedScene" uid="uid://dgi5lqferr3en" path="res://game/HexPlane/Map/HexMesh.tscn" id="1_ohi0j"]
 [ext_resource type="Script" path="res://game/HexPlane/Map/HexGridChunk.cs" id="1_y4c6g"]
@@ -8,6 +8,7 @@
 [ext_resource type="Shader" path="res://Shaders/HexPlane/Water.gdshader" id="6_b0n41"]
 [ext_resource type="Shader" path="res://Shaders/HexPlane/WaterShore.gdshader" id="7_2qm6b"]
 [ext_resource type="Shader" path="res://Shaders/HexPlane/Estuary.gdshader" id="8_ojdmq"]
+[ext_resource type="PackedScene" uid="uid://cd1u7jnyttt7c" path="res://game/HexPlane/Map/HexFeatureManager.tscn" id="9_buywg"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_e78pv"]
 vertex_color_use_as_albedo = true
@@ -53,7 +54,7 @@ shader_parameter/glossiness = 0.5
 shader_parameter/metallic = 0.0
 shader_parameter/main_tex = ExtResource("4_tcvt3")
 
-[node name="HexGridChunk" type="Node3D" node_paths=PackedStringArray("Terrain", "Rivers", "Roads", "Water", "WaterShore", "Estuaries")]
+[node name="HexGridChunk" type="Node3D" node_paths=PackedStringArray("Terrain", "Rivers", "Roads", "Water", "WaterShore", "Estuaries", "Features")]
 script = ExtResource("1_y4c6g")
 Terrain = NodePath("Terrain")
 Rivers = NodePath("Rivers")
@@ -61,6 +62,7 @@ Roads = NodePath("Roads")
 Water = NodePath("Water")
 WaterShore = NodePath("WaterShore")
 Estuaries = NodePath("Estuaries")
+Features = NodePath("HexFeatureManager")
 
 [node name="Terrain" parent="." instance=ExtResource("1_ohi0j")]
 material_override = SubResource("StandardMaterial3D_e78pv")
@@ -86,3 +88,5 @@ UseUvCoordinates = true
 material_override = SubResource("ShaderMaterial_dwtbc")
 UseUvCoordinates = true
 UseUv2Coordinates = true
+
+[node name="HexFeatureManager" parent="." instance=ExtResource("9_buywg")]

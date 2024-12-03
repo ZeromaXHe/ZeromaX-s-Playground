@@ -95,6 +95,39 @@ ticks_on_borders = true
 [node name="HSeparator3" type="HSeparator" parent="PanelContainer/CellVBox"]
 layout_mode = 2
 
+[node name="UrbanChange" type="CheckButton" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+text = "Urban"
+
+[node name="UrbanSlider" type="HSlider" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+max_value = 3.0
+tick_count = 4
+ticks_on_borders = true
+
+[node name="FarmChange" type="CheckButton" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+text = "Farm"
+
+[node name="FarmSlider" type="HSlider" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+max_value = 3.0
+tick_count = 4
+ticks_on_borders = true
+
+[node name="PlantChange" type="CheckButton" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+text = "Plant"
+
+[node name="PlantSlider" type="HSlider" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+max_value = 3.0
+tick_count = 4
+ticks_on_borders = true
+
+[node name="HSeparator4" type="HSeparator" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+
 [node name="BrushLabel2" type="Label" parent="PanelContainer/CellVBox"]
 layout_mode = 2
 text = "Brush Size"
@@ -106,7 +139,7 @@ max_value = 4.0
 tick_count = 5
 ticks_on_borders = true
 
-[node name="HSeparator4" type="HSeparator" parent="PanelContainer/CellVBox"]
+[node name="HSeparator5" type="HSeparator" parent="PanelContainer/CellVBox"]
 layout_mode = 2
 
 [node name="RiverHBox" type="HBoxContainer" parent="PanelContainer/CellVBox"]

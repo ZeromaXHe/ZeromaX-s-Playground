@@ -243,3 +243,33 @@ type HexCellFS() as this =
 
         if incomingRiver.IsSome && not << this.IsValidRiverDestination <| Some this then
             this.RemoveIncomingRiver()
+
+    // 城市级别
+    let mutable urbanLevel = 0
+
+    member this.UrbanLevel
+        with get () = urbanLevel
+        and set value =
+            if urbanLevel <> value then
+                urbanLevel <- value
+                this.RefreshSelfOnly()
+
+    // 农场级别
+    let mutable farmLevel = 0
+
+    member this.FarmLevel
+        with get () = farmLevel
+        and set value =
+            if farmLevel <> value then
+                farmLevel <- value
+                this.RefreshSelfOnly()
+
+    // 植物级别
+    let mutable plantLevel = 0
+
+    member this.PlantLevel
+        with get () = plantLevel
+        and set value =
+            if plantLevel <> value then
+                plantLevel <- value
+                this.RefreshSelfOnly()

@@ -13,6 +13,8 @@ type HexGridFS() as this =
     let _hexChunkScene =
         lazy (GD.Load("res://game/HexPlane/Map/HexGridChunk.tscn") :?> PackedScene)
 
+    let seed = uint64 1234
+
     let mutable cellCountX = 24
     let mutable cellCountZ = 18
 
@@ -119,6 +121,8 @@ type HexGridFS() as this =
     override this._Ready() =
         GD.Print "HexGridFS _Ready"
         HexMetrics.noiseSource <- this._noiseSource.GetImage()
+
+        HexMetrics.initializeHashGrid seed
 
         cellCountX <- this._chunkCountX * HexMetrics.chunkSizeX
         cellCountZ <- this._chunkCountZ * HexMetrics.chunkSizeZ
