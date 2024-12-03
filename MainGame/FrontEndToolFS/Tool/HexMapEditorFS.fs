@@ -52,6 +52,9 @@ type HexMapEditorFS() as this =
     let _roadModeOptionButton =
         lazy this.GetNode<OptionButton> "PanelContainer/CellVBox/RoadHBox/RoadMode"
 
+    let _walledModeOptionButton =
+        lazy this.GetNode<OptionButton> "PanelContainer/CellVBox/WalledHBox/WalledMode"
+
     let _showLabelsCheckButton =
         lazy this.GetNode<CheckButton> "PanelContainer/CellVBox/ShowLabels"
 
@@ -79,6 +82,7 @@ type HexMapEditorFS() as this =
     let mutable brushSize = 0
     let mutable riverMode = OptionalToggle.Ignore
     let mutable roadMode = OptionalToggle.Ignore
+    let mutable walledMode = OptionalToggle.Ignore
     let mutable inDragProcess = false
     // dragDirection 的有无对应教程中的 isDrag（即 isDrag 都替换为 dragDirection.IsSome）
     let mutable dragDirection: HexDirection option = None
@@ -116,6 +120,9 @@ type HexMapEditorFS() as this =
 
         if roadMode = OptionalToggle.No then
             cell.RemoveRoads()
+
+        if walledMode <> OptionalToggle.Ignore then
+            cell.Walled <- (walledMode = OptionalToggle.Yes)
 
         if dragDirection.IsSome then
             // dragDirection.IsSome 对应 isDrag
@@ -181,6 +188,7 @@ type HexMapEditorFS() as this =
         _plantChangeCheckButton.Value.ButtonPressed <- changePlantLevel
         _riverModeOptionButton.Value.Selected <- 0
         _roadModeOptionButton.Value.Selected <- 0
+        _walledModeOptionButton.Value.Selected <- 0
 
         _colorModeOptionButton.Value.add_ItemSelected (fun index ->
             if index = 0 then
@@ -201,6 +209,7 @@ type HexMapEditorFS() as this =
         _brushSlider.Value.add_ValueChanged (fun value -> brushSize <- int value)
         _riverModeOptionButton.Value.add_ItemSelected (fun index -> riverMode <- enum<OptionalToggle> <| int index)
         _roadModeOptionButton.Value.add_ItemSelected (fun index -> roadMode <- enum<OptionalToggle> <| int index)
+        _walledModeOptionButton.Value.add_ItemSelected (fun index -> walledMode <- enum<OptionalToggle> <| int index)
         _showLabelsCheckButton.Value.add_Toggled showUI
 
         _wireframeCheckButton.Value.add_Toggled (fun toggle ->

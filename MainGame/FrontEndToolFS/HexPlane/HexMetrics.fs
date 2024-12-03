@@ -134,3 +134,25 @@ module HexMetrics =
         [| [| 0f; 0f; 0.4f |]; [| 0f; 0.4f; 0.6f |]; [| 0.4f; 0.6f; 0.8f |] |]
 
     let getFeatureThresholds level = featureThresholds[level]
+
+    // 城墙
+    let wallHeight = 3f
+    let wallThickness = 0.75f
+
+    let wallThicknessOffset (near: Vector3) (far: Vector3) =
+        Vector3(far.X - near.X, 0f, far.Z - near.Z).Normalized() * wallThickness * 0.5f
+
+    let wallElevationOffset = verticalTerraceStepSize
+
+    let wallLerp (near: Vector3) (far: Vector3) =
+        let x = near.X + (far.X - near.X) * 0.5f
+        let z = near.Z + (far.Z - near.Z) * 0.5f
+
+        let v =
+            if near.Y < far.Y then
+                wallElevationOffset
+            else
+                1f - wallElevationOffset
+
+        let y = near.Y + (far.Y - near.Y) * v
+        Vector3(x, y, z)

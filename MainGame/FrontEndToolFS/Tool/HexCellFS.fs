@@ -273,3 +273,13 @@ type HexCellFS() as this =
             if plantLevel <> value then
                 plantLevel <- value
                 this.RefreshSelfOnly()
+
+    // 围墙
+    let mutable walled = false
+
+    member this.Walled
+        with get () = walled
+        and set value =
+            if walled <> value then
+                walled <- value
+                refresh ()

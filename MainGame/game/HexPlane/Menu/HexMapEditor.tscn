@@ -178,6 +178,27 @@ popup/item_1/id = 1
 popup/item_2/text = "No"
 popup/item_2/id = 2
 
+[node name="WalledHBox" type="HBoxContainer" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+
+[node name="WalledLabel" type="Label" parent="PanelContainer/CellVBox/WalledHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Walled"
+
+[node name="WalledMode" type="OptionButton" parent="PanelContainer/CellVBox/WalledHBox"]
+layout_mode = 2
+selected = 0
+item_count = 3
+popup/item_0/text = "---"
+popup/item_1/text = "Yes"
+popup/item_1/id = 1
+popup/item_2/text = "No"
+popup/item_2/id = 2
+
+[node name="HSeparator6" type="HSeparator" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+
 [node name="ShowLabels" type="CheckButton" parent="PanelContainer/CellVBox"]
 layout_mode = 2
 button_pressed = true

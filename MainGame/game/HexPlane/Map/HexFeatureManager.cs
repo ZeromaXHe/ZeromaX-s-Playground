@@ -25,4 +25,11 @@ public partial class HexFeatureManager : HexFeatureManagerFS
         get => plantPrefabs;
         set => plantPrefabs = value;
     }
+
+    [Export]
+    public HexMeshFS Walls
+    {
+        get => walls;
+        set => walls = value;
+    }
 }
