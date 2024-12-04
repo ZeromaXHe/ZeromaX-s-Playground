@@ -1,7 +1,10 @@
-[gd_scene load_steps=3 format=3 uid="uid://bv4ennj4u5ap7"]
+[gd_scene load_steps=6 format=3 uid="uid://bv4ennj4u5ap7"]
 
 [ext_resource type="Script" path="res://game/HexPlane/Menu/HexMapEditor.cs" id="1_pjtj7"]
 [ext_resource type="PackedScene" uid="uid://ctsv3hyrh2w4j" path="res://game/HexPlane/Map/HexGrid.tscn" id="2_g6vaw"]
+[ext_resource type="PackedScene" uid="uid://dolya8qm0l4jk" path="res://game/HexPlane/Menu/NewMapMenu.tscn" id="3_rt4n2"]
+[ext_resource type="PackedScene" uid="uid://b13t7sj6f2ei6" path="res://game/HexPlane/Map/HexMapCamera.tscn" id="3_tv3uy"]
+[ext_resource type="PackedScene" uid="uid://br6a86xflw0sy" path="res://game/HexPlane/Menu/SaveLoadMenu.tscn" id="5_qwppy"]
 
 [node name="HexMapEditor" type="Control"]
 layout_mode = 3
@@ -31,24 +34,33 @@ render_target_update_mode = 4
 
 [node name="HexGrid" parent="SubViewportContainer/SubViewport" instance=ExtResource("2_g6vaw")]
 
-[node name="PanelContainer" type="PanelContainer" parent="."]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+[node name="HexMapCamera2" parent="SubViewportContainer/SubViewport/HexGrid" node_paths=PackedStringArray("Grid") instance=ExtResource("3_tv3uy")]
+Grid = NodePath("..")
 
-[node name="CellVBox" type="VBoxContainer" parent="PanelContainer"]
+[node name="PanelC" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_right = 180.0
+grow_vertical = 2
+
+[node name="ScrollC" type="ScrollContainer" parent="PanelC"]
 layout_mode = 2
+
+[node name="CellVBox" type="VBoxContainer" parent="PanelC/ScrollC"]
+layout_mode = 2
+size_flags_horizontal = 3
 alignment = 1
 
-[node name="ColorHBox" type="HBoxContainer" parent="PanelContainer/CellVBox"]
+[node name="ColorHBox" type="HBoxContainer" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="ColorLabel" type="Label" parent="PanelContainer/CellVBox/ColorHBox"]
+[node name="ColorLabel" type="Label" parent="PanelC/ScrollC/CellVBox/ColorHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Color"
 
-[node name="ColorMode" type="OptionButton" parent="PanelContainer/CellVBox/ColorHBox"]
+[node name="ColorMode" type="OptionButton" parent="PanelC/ScrollC/CellVBox/ColorHBox"]
 layout_mode = 2
 selected = 0
 item_count = 6
@@ -64,92 +76,92 @@ popup/item_4/id = 4
 popup/item_5/text = "White"
 popup/item_5/id = 5
 
-[node name="HSeparator" type="HSeparator" parent="PanelContainer/CellVBox"]
+[node name="HSeparator" type="HSeparator" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="ElevationChange" type="CheckButton" parent="PanelContainer/CellVBox"]
+[node name="ElevationChange" type="CheckButton" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 button_pressed = true
 text = "Elevation"
 
-[node name="ElevationSlider" type="HSlider" parent="PanelContainer/CellVBox"]
+[node name="ElevationSlider" type="HSlider" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 max_value = 6.0
 tick_count = 7
 ticks_on_borders = true
 
-[node name="HSeparator2" type="HSeparator" parent="PanelContainer/CellVBox"]
+[node name="HSeparator2" type="HSeparator" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="WaterChange" type="CheckButton" parent="PanelContainer/CellVBox"]
+[node name="WaterChange" type="CheckButton" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 text = "Water"
 
-[node name="WaterSlider" type="HSlider" parent="PanelContainer/CellVBox"]
+[node name="WaterSlider" type="HSlider" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 max_value = 6.0
 tick_count = 7
 ticks_on_borders = true
 
-[node name="HSeparator3" type="HSeparator" parent="PanelContainer/CellVBox"]
+[node name="HSeparator3" type="HSeparator" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="UrbanChange" type="CheckButton" parent="PanelContainer/CellVBox"]
+[node name="UrbanChange" type="CheckButton" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 text = "Urban"
 
-[node name="UrbanSlider" type="HSlider" parent="PanelContainer/CellVBox"]
+[node name="UrbanSlider" type="HSlider" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 max_value = 3.0
 tick_count = 4
 ticks_on_borders = true
 
-[node name="FarmChange" type="CheckButton" parent="PanelContainer/CellVBox"]
+[node name="FarmChange" type="CheckButton" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 text = "Farm"
 
-[node name="FarmSlider" type="HSlider" parent="PanelContainer/CellVBox"]
+[node name="FarmSlider" type="HSlider" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 max_value = 3.0
 tick_count = 4
 ticks_on_borders = true
 
-[node name="PlantChange" type="CheckButton" parent="PanelContainer/CellVBox"]
+[node name="PlantChange" type="CheckButton" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 text = "Plant"
 
-[node name="PlantSlider" type="HSlider" parent="PanelContainer/CellVBox"]
+[node name="PlantSlider" type="HSlider" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 max_value = 3.0
 tick_count = 4
 ticks_on_borders = true
 
-[node name="HSeparator4" type="HSeparator" parent="PanelContainer/CellVBox"]
+[node name="HSeparator4" type="HSeparator" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="BrushLabel2" type="Label" parent="PanelContainer/CellVBox"]
+[node name="BrushLabel2" type="Label" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 text = "Brush Size"
 horizontal_alignment = 1
 
-[node name="BrushSlider" type="HSlider" parent="PanelContainer/CellVBox"]
+[node name="BrushSlider" type="HSlider" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 max_value = 4.0
 tick_count = 5
 ticks_on_borders = true
 
-[node name="HSeparator5" type="HSeparator" parent="PanelContainer/CellVBox"]
+[node name="HSeparator5" type="HSeparator" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="RiverHBox" type="HBoxContainer" parent="PanelContainer/CellVBox"]
+[node name="RiverHBox" type="HBoxContainer" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="RiverLabel" type="Label" parent="PanelContainer/CellVBox/RiverHBox"]
+[node name="RiverLabel" type="Label" parent="PanelC/ScrollC/CellVBox/RiverHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "River"
 
-[node name="RiverMode" type="OptionButton" parent="PanelContainer/CellVBox/RiverHBox"]
+[node name="RiverMode" type="OptionButton" parent="PanelC/ScrollC/CellVBox/RiverHBox"]
 layout_mode = 2
 selected = 0
 item_count = 3
@@ -159,15 +171,15 @@ popup/item_1/id = 1
 popup/item_2/text = "No"
 popup/item_2/id = 2
 
-[node name="RoadHBox" type="HBoxContainer" parent="PanelContainer/CellVBox"]
+[node name="RoadHBox" type="HBoxContainer" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="RoadLabel" type="Label" parent="PanelContainer/CellVBox/RoadHBox"]
+[node name="RoadLabel" type="Label" parent="PanelC/ScrollC/CellVBox/RoadHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Road"
 
-[node name="RoadMode" type="OptionButton" parent="PanelContainer/CellVBox/RoadHBox"]
+[node name="RoadMode" type="OptionButton" parent="PanelC/ScrollC/CellVBox/RoadHBox"]
 layout_mode = 2
 selected = 0
 item_count = 3
@@ -177,15 +189,15 @@ popup/item_1/id = 1
 popup/item_2/text = "No"
 popup/item_2/id = 2
 
-[node name="WalledHBox" type="HBoxContainer" parent="PanelContainer/CellVBox"]
+[node name="WalledHBox" type="HBoxContainer" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="WalledLabel" type="Label" parent="PanelContainer/CellVBox/WalledHBox"]
+[node name="WalledLabel" type="Label" parent="PanelC/ScrollC/CellVBox/WalledHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Walled"
 
-[node name="WalledMode" type="OptionButton" parent="PanelContainer/CellVBox/WalledHBox"]
+[node name="WalledMode" type="OptionButton" parent="PanelC/ScrollC/CellVBox/WalledHBox"]
 layout_mode = 2
 selected = 0
 item_count = 3
@@ -195,15 +207,15 @@ popup/item_1/id = 1
 popup/item_2/text = "No"
 popup/item_2/id = 2
 
-[node name="SpecialHBox" type="HBoxContainer" parent="PanelContainer/CellVBox"]
+[node name="SpecialHBox" type="HBoxContainer" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="SpecialLabel" type="Label" parent="PanelContainer/CellVBox/SpecialHBox"]
+[node name="SpecialLabel" type="Label" parent="PanelC/ScrollC/CellVBox/SpecialHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Special"
 
-[node name="SpecialMode" type="OptionButton" parent="PanelContainer/CellVBox/SpecialHBox"]
+[node name="SpecialMode" type="OptionButton" parent="PanelC/ScrollC/CellVBox/SpecialHBox"]
 layout_mode = 2
 selected = 0
 item_count = 5
@@ -217,27 +229,40 @@ popup/item_3/id = 3
 popup/item_4/text = "MegaFlora"
 popup/item_4/id = 4
 
-[node name="HSeparator6" type="HSeparator" parent="PanelContainer/CellVBox"]
+[node name="HSeparator6" type="HSeparator" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="ShowLabels" type="CheckButton" parent="PanelContainer/CellVBox"]
+[node name="ShowLabels" type="CheckButton" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 button_pressed = true
 text = "Labels"
 
-[node name="Wireframe" type="CheckButton" parent="PanelContainer/CellVBox"]
+[node name="Wireframe" type="CheckButton" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 text = "Wireframe"
 
-[node name="SaveLoadHBox" type="HBoxContainer" parent="PanelContainer/CellVBox"]
+[node name="SaveLoadHBox" type="HBoxContainer" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="SaveButton" type="Button" parent="PanelContainer/CellVBox/SaveLoadHBox"]
+[node name="SaveButton" type="Button" parent="PanelC/ScrollC/CellVBox/SaveLoadHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Save"
 
-[node name="LoadButton" type="Button" parent="PanelContainer/CellVBox/SaveLoadHBox"]
+[node name="LoadButton" type="Button" parent="PanelC/ScrollC/CellVBox/SaveLoadHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Load"
+
+[node name="NewMapButton" type="Button" parent="PanelC/ScrollC/CellVBox"]
+layout_mode = 2
+text = "New Map"
+
+[node name="NewMapMenu" parent="." node_paths=PackedStringArray("HexGrid") instance=ExtResource("3_rt4n2")]
+visible = false
+layout_mode = 1
+HexGrid = NodePath("../SubViewportContainer/SubViewport/HexGrid")
+
+[node name="SaveLoadMenu" parent="." node_paths=PackedStringArray("HexGrid") instance=ExtResource("5_qwppy")]
+layout_mode = 1
+HexGrid = NodePath("../SubViewportContainer/SubViewport/HexGrid")

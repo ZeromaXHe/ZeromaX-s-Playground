@@ -1,0 +1,79 @@
+[gd_scene load_steps=6 format=3 uid="uid://br6a86xflw0sy"]
+
+[ext_resource type="Script" path="res://game/HexPlane/Menu/SaveLoadMenu.cs" id="1_cq0lc"]
+[ext_resource type="PackedScene" uid="uid://sutbkw8jbam2" path="res://game/HexPlane/Menu/SaveLoadItem.tscn" id="2_4r5qr"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_iffv8"]
+bg_color = Color(0, 0, 0, 0.752941)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gym7l"]
+bg_color = Color(0.6, 0.6, 0.6, 0.752941)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yorlo"]
+bg_color = Color(0, 0, 0, 0.403922)
+
+[node name="SaveLoadMenu" type="PanelContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_iffv8")
+script = ExtResource("1_cq0lc")
+ItemPrefab = ExtResource("2_4r5qr")
+
+[node name="CenterC" type="CenterContainer" parent="."]
+layout_mode = 2
+
+[node name="MenuPanel" type="PanelContainer" parent="CenterC"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_gym7l")
+
+[node name="MarginC" type="MarginContainer" parent="CenterC/MenuPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="VBox" type="VBoxContainer" parent="CenterC/MenuPanel/MarginC"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="CenterC/MenuPanel/MarginC/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "Save Map"
+horizontal_alignment = 1
+
+[node name="ScrollContainer" type="ScrollContainer" parent="CenterC/MenuPanel/MarginC/VBox"]
+custom_minimum_size = Vector2(290, 200)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_yorlo")
+horizontal_scroll_mode = 0
+
+[node name="ItemVBox" type="VBoxContainer" parent="CenterC/MenuPanel/MarginC/VBox/ScrollContainer"]
+layout_mode = 2
+
+[node name="NameInput" type="LineEdit" parent="CenterC/MenuPanel/MarginC/VBox"]
+layout_mode = 2
+placeholder_text = "Enter or select a map name.."
+
+[node name="ButtonHBox" type="HBoxContainer" parent="CenterC/MenuPanel/MarginC/VBox"]
+layout_mode = 2
+alignment = 1
+
+[node name="ActionButton" type="Button" parent="CenterC/MenuPanel/MarginC/VBox/ButtonHBox"]
+layout_mode = 2
+size_flags_horizontal = 2
+text = "Save"
+
+[node name="DeleteButton" type="Button" parent="CenterC/MenuPanel/MarginC/VBox/ButtonHBox"]
+layout_mode = 2
+size_flags_horizontal = 6
+text = "Delete"
+
+[node name="CancelButton" type="Button" parent="CenterC/MenuPanel/MarginC/VBox/ButtonHBox"]
+layout_mode = 2
+size_flags_horizontal = 10
+text = "Cancel"

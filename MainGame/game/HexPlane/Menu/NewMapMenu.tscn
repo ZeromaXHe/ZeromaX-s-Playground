@@ -1,0 +1,58 @@
+[gd_scene load_steps=4 format=3 uid="uid://dolya8qm0l4jk"]
+
+[ext_resource type="Script" path="res://game/HexPlane/Menu/NewMapMenu.cs" id="1_gi5ii"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_c7gcr"]
+bg_color = Color(0, 0, 0, 0.752941)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mqh8r"]
+bg_color = Color(0.6, 0.6, 0.6, 0.752941)
+
+[node name="NewMapMenu" type="PanelContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_c7gcr")
+script = ExtResource("1_gi5ii")
+
+[node name="CenterC" type="CenterContainer" parent="."]
+layout_mode = 2
+
+[node name="MenuPanel" type="PanelContainer" parent="CenterC"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_mqh8r")
+
+[node name="MarginC" type="MarginContainer" parent="CenterC/MenuPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBox" type="VBoxContainer" parent="CenterC/MenuPanel/MarginC"]
+layout_mode = 2
+
+[node name="NewMapLabel" type="Label" parent="CenterC/MenuPanel/MarginC/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "Create New Map"
+horizontal_alignment = 1
+
+[node name="SmallButton" type="Button" parent="CenterC/MenuPanel/MarginC/VBox"]
+layout_mode = 2
+text = "Small"
+
+[node name="MidButton" type="Button" parent="CenterC/MenuPanel/MarginC/VBox"]
+layout_mode = 2
+text = "Medium"
+
+[node name="LargeButton" type="Button" parent="CenterC/MenuPanel/MarginC/VBox"]
+layout_mode = 2
+text = "Large"
+
+[node name="CancelButton" type="Button" parent="CenterC/MenuPanel/MarginC/VBox"]
+layout_mode = 2
+text = "Cancel"

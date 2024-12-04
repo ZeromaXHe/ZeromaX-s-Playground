@@ -1,8 +1,7 @@
-[gd_scene load_steps=7 format=3 uid="uid://ctsv3hyrh2w4j"]
+[gd_scene load_steps=6 format=3 uid="uid://ctsv3hyrh2w4j"]
 
 [ext_resource type="Script" path="res://game/HexPlane/Map/HexGrid.cs" id="1_ncacf"]
 [ext_resource type="Texture2D" uid="uid://cts1rn3gu83qb" path="res://resources/CatlikeCoding/HexMap/noise.png" id="2_w2l35"]
-[ext_resource type="PackedScene" uid="uid://b13t7sj6f2ei6" path="res://game/HexPlane/Map/HexMapCamera.tscn" id="3_r4khn"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_75qco"]
 sky_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
@@ -19,8 +18,8 @@ glow_enabled = true
 
 [node name="HexGrid" type="Node3D"]
 script = ExtResource("1_ncacf")
-ChunkCountX = 6
-ChunkCountZ = 6
+CellCountX = 20
+CellCountZ = 15
 NoiseSource = ExtResource("2_w2l35")
 Seed = 1234
 Colors = PackedColorArray(1, 0.862745, 0, 1, 0.00392157, 0.682353, 0.0313726, 1, 0.0745098, 0.219608, 0.839216, 1, 1, 0.305882, 0.105882, 1, 1, 1, 1, 1)
@@ -36,6 +35,3 @@ shadow_bias = 0.03
 shadow_normal_bias = 0.0
 directional_shadow_blend_splits = true
 directional_shadow_max_distance = 400.0
-
-[node name="HexMapCamera" parent="." node_paths=PackedStringArray("Grid") instance=ExtResource("3_r4khn")]
-Grid = NodePath("..")

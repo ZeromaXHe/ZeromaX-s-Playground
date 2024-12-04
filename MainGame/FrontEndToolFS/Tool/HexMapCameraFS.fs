@@ -32,31 +32,11 @@ type HexMapCameraFS() as this =
         this.RotationDegrees <- Vector3(0.0f, degree, 0.0f)
 
     let clampPosition (pos: Vector3) =
-        let xMax =
-            (float32 (this._grid._chunkCountX * HexMetrics.chunkSizeX) - 0.5f)
-            * 2f
-            * HexMetrics.innerRadius
-
-        let zMax =
-            float32 (this._grid._chunkCountZ * HexMetrics.chunkSizeZ - 1)
-            * 1.5f
-            * HexMetrics.outerRadius
-
+        let xMax = (float32 this._grid.cellCountX - 0.5f) * 2f * HexMetrics.innerRadius
+        let zMax = float32 (this._grid.cellCountZ - 1) * 1.5f * HexMetrics.outerRadius
         let x = Mathf.Clamp(pos.X, 0f, xMax)
         let z = Mathf.Clamp(pos.Z, 0f, zMax)
         Vector3(x, pos.Y, z)
-
-    let adjustPosition (xDelta: float32) (zDelta: float32) (delta: float) =
-        let direction = (this.Basis.X * xDelta + this.Basis.Z * zDelta).Normalized()
-
-        let damping = Mathf.Max(Mathf.Abs(xDelta), Mathf.Abs(zDelta))
-
-        let distance =
-            (float32 <| Mathf.Lerp(this._moveSpeedMinZoom, this._moveSpeedMaxZoom, zoom))
-            * damping
-            * (float32 delta)
-        // GD.Print $"移动摄像头 x:{xDelta}, z:{zDelta} delta:{delta}, distance:{distance}, damping:{damping}, direction:{direction}"
-        this.Position <- clampPosition this.Position + direction * distance
 
     // Unity 的 z 方向和 Godot 相反，所以这里都是正的
     member val _stickMinZoom = 250.0 with get, set
@@ -69,6 +49,30 @@ type HexMapCameraFS() as this =
 
     [<DefaultValue>]
     val mutable _grid: HexGridFS
+
+    // 因为这些静态变量的存在，不能把摄像机放在 HexGrid 这种 [Tool] 节点下，否则又会程序集卸载失败……
+    // 目前摄像机是直接放在 HexMapEditor 里面的 HexGrid 下
+    static member val instance: HexMapCameraFS option = None with get, set
+
+    static member Locked
+        with set value = HexMapCameraFS.instance.Value.SetProcess <| not value
+
+    static member ValidatePosition() =
+        HexMapCameraFS.instance.Value.AdjustPosition 0f 0f 0.0
+
+    member this.AdjustPosition (xDelta: float32) (zDelta: float32) (delta: float) =
+        let direction = (this.Basis.X * xDelta + this.Basis.Z * zDelta).Normalized()
+
+        let damping = Mathf.Max(Mathf.Abs(xDelta), Mathf.Abs(zDelta))
+
+        let distance =
+            (float32 <| Mathf.Lerp(this._moveSpeedMinZoom, this._moveSpeedMaxZoom, zoom))
+            * damping
+            * (float32 delta)
+        // GD.Print $"移动摄像头 x:{xDelta}, z:{zDelta} delta:{delta}, distance:{distance}, damping:{damping}, direction:{direction}"
+        this.Position <- clampPosition this.Position + direction * distance
+
+    override this._Ready() = HexMapCameraFS.instance <- Some this
 
     override this._UnhandledInput e =
         match e with
@@ -103,4 +107,4 @@ type HexMapCameraFS() as this =
         let zDelta = Input.GetAxis("move_forward", "move_back")
 
         if xDelta <> 0.0f || zDelta <> 0.0f then
-            adjustPosition xDelta zDelta delta
+            this.AdjustPosition xDelta zDelta delta

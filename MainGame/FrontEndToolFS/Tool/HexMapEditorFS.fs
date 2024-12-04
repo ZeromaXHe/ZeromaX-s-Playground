@@ -17,59 +17,65 @@ type HexMapEditorFS() as this =
         lazy this.GetNode<HexGridFS> "SubViewportContainer/SubViewport/HexGrid"
 
     let _colorModeOptionButton =
-        lazy this.GetNode<OptionButton> "PanelContainer/CellVBox/ColorHBox/ColorMode"
+        lazy this.GetNode<OptionButton> "PanelC/ScrollC/CellVBox/ColorHBox/ColorMode"
 
     let _elevationChangeCheckButton =
-        lazy this.GetNode<CheckButton> "PanelContainer/CellVBox/ElevationChange"
+        lazy this.GetNode<CheckButton> "PanelC/ScrollC/CellVBox/ElevationChange"
 
     let _elevationSlider =
-        lazy this.GetNode<HSlider> "PanelContainer/CellVBox/ElevationSlider"
+        lazy this.GetNode<HSlider> "PanelC/ScrollC/CellVBox/ElevationSlider"
 
     let _waterChangeCheckButton =
-        lazy this.GetNode<CheckButton> "PanelContainer/CellVBox/WaterChange"
+        lazy this.GetNode<CheckButton> "PanelC/ScrollC/CellVBox/WaterChange"
 
-    let _waterSlider = lazy this.GetNode<HSlider> "PanelContainer/CellVBox/WaterSlider"
+    let _waterSlider = lazy this.GetNode<HSlider> "PanelC/ScrollC/CellVBox/WaterSlider"
 
     let _urbanChangeCheckButton =
-        lazy this.GetNode<CheckButton> "PanelContainer/CellVBox/UrbanChange"
+        lazy this.GetNode<CheckButton> "PanelC/ScrollC/CellVBox/UrbanChange"
 
-    let _urbanSlider = lazy this.GetNode<HSlider> "PanelContainer/CellVBox/UrbanSlider"
+    let _urbanSlider = lazy this.GetNode<HSlider> "PanelC/ScrollC/CellVBox/UrbanSlider"
 
     let _farmChangeCheckButton =
-        lazy this.GetNode<CheckButton> "PanelContainer/CellVBox/FarmChange"
+        lazy this.GetNode<CheckButton> "PanelC/ScrollC/CellVBox/FarmChange"
 
-    let _farmSlider = lazy this.GetNode<HSlider> "PanelContainer/CellVBox/FarmSlider"
+    let _farmSlider = lazy this.GetNode<HSlider> "PanelC/ScrollC/CellVBox/FarmSlider"
 
     let _plantChangeCheckButton =
-        lazy this.GetNode<CheckButton> "PanelContainer/CellVBox/PlantChange"
+        lazy this.GetNode<CheckButton> "PanelC/ScrollC/CellVBox/PlantChange"
 
-    let _plantSlider = lazy this.GetNode<HSlider> "PanelContainer/CellVBox/PlantSlider"
+    let _plantSlider = lazy this.GetNode<HSlider> "PanelC/ScrollC/CellVBox/PlantSlider"
 
-    let _brushSlider = lazy this.GetNode<HSlider> "PanelContainer/CellVBox/BrushSlider"
+    let _brushSlider = lazy this.GetNode<HSlider> "PanelC/ScrollC/CellVBox/BrushSlider"
 
     let _riverModeOptionButton =
-        lazy this.GetNode<OptionButton> "PanelContainer/CellVBox/RiverHBox/RiverMode"
+        lazy this.GetNode<OptionButton> "PanelC/ScrollC/CellVBox/RiverHBox/RiverMode"
 
     let _roadModeOptionButton =
-        lazy this.GetNode<OptionButton> "PanelContainer/CellVBox/RoadHBox/RoadMode"
+        lazy this.GetNode<OptionButton> "PanelC/ScrollC/CellVBox/RoadHBox/RoadMode"
 
     let _walledModeOptionButton =
-        lazy this.GetNode<OptionButton> "PanelContainer/CellVBox/WalledHBox/WalledMode"
+        lazy this.GetNode<OptionButton> "PanelC/ScrollC/CellVBox/WalledHBox/WalledMode"
 
     let _specialModeOptionButton =
-        lazy this.GetNode<OptionButton> "PanelContainer/CellVBox/SpecialHBox/SpecialMode"
+        lazy this.GetNode<OptionButton> "PanelC/ScrollC/CellVBox/SpecialHBox/SpecialMode"
 
     let _showLabelsCheckButton =
-        lazy this.GetNode<CheckButton> "PanelContainer/CellVBox/ShowLabels"
+        lazy this.GetNode<CheckButton> "PanelC/ScrollC/CellVBox/ShowLabels"
 
     let _wireframeCheckButton =
-        lazy this.GetNode<CheckButton> "PanelContainer/CellVBox/Wireframe"
+        lazy this.GetNode<CheckButton> "PanelC/ScrollC/CellVBox/Wireframe"
 
     let _saveButton =
-        lazy this.GetNode<Button> "PanelContainer/CellVBox/SaveLoadHBox/SaveButton"
+        lazy this.GetNode<Button> "PanelC/ScrollC/CellVBox/SaveLoadHBox/SaveButton"
 
     let _loadButton =
-        lazy this.GetNode<Button> "PanelContainer/CellVBox/SaveLoadHBox/LoadButton"
+        lazy this.GetNode<Button> "PanelC/ScrollC/CellVBox/SaveLoadHBox/LoadButton"
+
+    let _newMapButton = lazy this.GetNode<Button> "PanelC/ScrollC/CellVBox/NewMapButton"
+
+    let _newMapMenu = lazy this.GetNode<NewMapMenuFS> "NewMapMenu"
+
+    let _saveLoadMenu = lazy this.GetNode<SaveLoadMenuFS> "SaveLoadMenu"
 
     let mutable activeTerrainTypeIndex = 0
     // 默认修改高度
@@ -162,24 +168,6 @@ type HexMapEditorFS() as this =
                 let coords = HexCoordinates(x, z)
                 _hexGrid.Value.GetCell coords |> Option.iter editCell
 
-    let save () =
-        let path = Path.Combine(ProjectSettings.GlobalizePath "res://save", "test.map")
-        use writer = new BinaryWriter(File.Open(path, FileMode.Create))
-        writer.Write 0
-        _hexGrid.Value.Save writer
-        GD.Print "Saved!"
-
-    let load () =
-        let path = Path.Combine(ProjectSettings.GlobalizePath "res://save", "test.map")
-        use reader = new BinaryReader(File.OpenRead path)
-        let header = reader.ReadInt32()
-
-        if header = 0 then
-            _hexGrid.Value.Load reader
-            GD.Print "Loaded!"
-        else
-            GD.PrintErr $"Unknown map format {header}"
-
     /// 显示/隐藏 UI
     let showUI visible = _hexGrid.Value.ShowUI visible
 
@@ -215,6 +203,8 @@ type HexMapEditorFS() as this =
         _roadModeOptionButton.Value.Selected <- 0
         _walledModeOptionButton.Value.Selected <- 0
         _specialModeOptionButton.Value.Selected <- 0
+        _newMapMenu.Value.Hide()
+        _saveLoadMenu.Value.Hide()
 
         _colorModeOptionButton.Value.add_ItemSelected (fun index -> activeTerrainTypeIndex <- int index)
         _elevationChangeCheckButton.Value.add_Toggled (fun toggle -> changeElevation <- toggle)
@@ -244,8 +234,14 @@ type HexMapEditorFS() as this =
             else
                 _hexGrid.Value.GetViewport().SetDebugDraw(Viewport.DebugDrawEnum.Disabled))
 
-        _saveButton.Value.add_Pressed (fun _ -> save ())
-        _loadButton.Value.add_Pressed (fun _ -> load ())
+        // 我们传入标签的显示与否，是因为需要这样刷新一下新地图的 HexCell 标签的显示，因为我们的标签实现和教程不同
+        _saveButton.Value.add_Pressed (fun _ ->
+            _saveLoadMenu.Value.Open true _showLabelsCheckButton.Value.ButtonPressed)
+
+        _loadButton.Value.add_Pressed (fun _ ->
+            _saveLoadMenu.Value.Open false _showLabelsCheckButton.Value.ButtonPressed)
+
+        _newMapButton.Value.add_Pressed (fun _ -> _newMapMenu.Value.Open _showLabelsCheckButton.Value.ButtonPressed)
         // 默认隐藏 UI，放在最后是为了触发事件调用 showUI
         _showLabelsCheckButton.Value.ButtonPressed <- false
 

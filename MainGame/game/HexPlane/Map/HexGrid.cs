@@ -5,17 +5,17 @@ using FrontEndToolFS.Tool;
 public partial class HexGrid : HexGridFS
 {
     [Export]
-    public int ChunkCountX
+    public int CellCountX
     {
-        get => _chunkCountX;
-        set => _chunkCountX = value;
+        get => cellCountX;
+        set => cellCountX = value;
     }
 
     [Export]
-    public int ChunkCountZ
+    public int CellCountZ
     {
-        get => _chunkCountZ;
-        set => _chunkCountZ = value;
+        get => cellCountZ;
+        set => cellCountZ = value;
     }
 
     [Export]

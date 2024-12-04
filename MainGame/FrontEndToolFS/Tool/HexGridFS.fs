@@ -14,38 +14,36 @@ type HexGridFS() as this =
     let _hexChunkScene =
         lazy (GD.Load("res://game/HexPlane/Map/HexGridChunk.tscn") :?> PackedScene)
 
-    let mutable cellCountX = 24
-    let mutable cellCountZ = 18
+    let mutable chunkCountX = 4
+    let mutable chunkCountZ = 3
 
     let mutable _cells: HexCellFS array = null
     let mutable _chunks: HexGridChunkFS array = null
 
     let createChunks () =
-        _chunks <-
-            Array.init (this._chunkCountX * this._chunkCountZ) (fun _ ->
-                _hexChunkScene.Value.Instantiate<HexGridChunkFS>())
+        _chunks <- Array.init (chunkCountX * chunkCountZ) (fun _ -> _hexChunkScene.Value.Instantiate<HexGridChunkFS>())
 
         _chunks
         |> Array.iteri (fun i c ->
-            let x = i % this._chunkCountX
-            let z = i / this._chunkCountX
+            let x = i % chunkCountX
+            let z = i / chunkCountX
             c.Name <- $"Chunk{x}_{z}"
             this.AddChild c)
 
     let addCellToChunk x z cell =
         let chunkX = x / HexMetrics.chunkSizeX
         let chunkZ = z / HexMetrics.chunkSizeZ
-        let chunk = _chunks[chunkX + chunkZ * this._chunkCountX]
+        let chunk = _chunks[chunkX + chunkZ * chunkCountX]
         let localX = x - chunkX * HexMetrics.chunkSizeX
         let localZ = z - chunkZ * HexMetrics.chunkSizeZ
         chunk.AddCell (localX + localZ * HexMetrics.chunkSizeX) cell
 
     let createCells () =
-        _cells <- Array.init (cellCountX * cellCountZ) (fun _ -> _hexCellScene.Value.Instantiate<HexCellFS>())
+        _cells <- Array.init (this.cellCountX * this.cellCountZ) (fun _ -> _hexCellScene.Value.Instantiate<HexCellFS>())
 
         for i in 0 .. _cells.Length - 1 do
-            let z = i / cellCountX
-            let x = i % cellCountX
+            let z = i / this.cellCountX
+            let x = i % this.cellCountX
             let cell = _cells[i]
             cell.Name <- $"Cell{x}_{z}"
             cell.Coordinates <- HexCoordinates.FromOffsetCoordinates x z
@@ -55,15 +53,15 @@ type HexGridFS() as this =
 
             if z > 0 then
                 if z &&& 1 = 0 then
-                    cell.SetNeighbor HexDirection.SE (Some _cells[i - cellCountX])
+                    cell.SetNeighbor HexDirection.SE (Some _cells[i - this.cellCountX])
 
                     if x > 0 then
-                        cell.SetNeighbor HexDirection.SW (Some _cells[i - cellCountX - 1])
+                        cell.SetNeighbor HexDirection.SW (Some _cells[i - this.cellCountX - 1])
                 else
-                    cell.SetNeighbor HexDirection.SW (Some _cells[i - cellCountX])
+                    cell.SetNeighbor HexDirection.SW (Some _cells[i - this.cellCountX])
 
-                    if x < cellCountX - 1 then
-                        cell.SetNeighbor HexDirection.SE (Some _cells[i - cellCountX + 1])
+                    if x < this.cellCountX - 1 then
+                        cell.SetNeighbor HexDirection.SE (Some _cells[i - this.cellCountX + 1])
 
             cell.Position <-
                 Vector3(
@@ -79,8 +77,8 @@ type HexGridFS() as this =
             // 触发 setter 应用扰动 y
             cell.Elevation <- 0
 
-    member val _chunkCountX: int = 6 with get, set
-    member val _chunkCountZ: int = 6 with get, set
+    member val cellCountX: int = 20 with get, set
+    member val cellCountZ: int = 15 with get, set
     member val _noiseSource: Texture2D = null with get, set
     member val seed = 1234 with get, set
     member val colors: Color array = null with get, set
@@ -100,24 +98,54 @@ type HexGridFS() as this =
     member this.GetCell(coordinates: HexCoordinates) =
         let z = coordinates.Z
 
-        if z < 0 || z >= cellCountZ then
+        if z < 0 || z >= this.cellCountZ then
             None
         else
             let x = coordinates.X + z / 2
 
-            if x < 0 || x >= cellCountX then
+            if x < 0 || x >= this.cellCountX then
                 None
             else
-                Some _cells[x + z * cellCountX]
+                Some _cells[x + z * this.cellCountX]
 
     member this.GetCell(pos: Vector3) =
         let coordinates = HexCoordinates.FromPosition pos
         this.GetCell coordinates
 
-    member this.Save(writer: BinaryWriter) = _cells |> Array.iter _.Save(writer)
-    member this.Load(reader: BinaryReader) =
-        _cells |> Array.iter _.Load(reader)
-        _chunks |> Array.iter _.Refresh()
+    member this.Save(writer: BinaryWriter) =
+        writer.Write this.cellCountX
+        writer.Write this.cellCountZ
+        _cells |> Array.iter _.Save(writer)
+
+    member this.Load (reader: BinaryReader) header =
+        let x = if header >= 1 then reader.ReadInt32() else 20
+        let z = if header >= 1 then reader.ReadInt32() else 15
+
+        if (x = this.cellCountX && z = this.cellCountZ) || this.CreateMap x z then
+            _cells |> Array.iter _.Load(reader)
+            _chunks |> Array.iter _.Refresh()
+
+    member this.CreateMap x z =
+        if
+            x <= 0
+            || x % HexMetrics.chunkSizeX <> 0
+            || z <= 0
+            || z % HexMetrics.chunkSizeZ <> 0
+        then
+            GD.PrintErr "Unsupported map size"
+            false
+        else
+            if _chunks <> null then
+                _chunks |> Array.iter _.QueueFree()
+
+            this.cellCountX <- x
+            this.cellCountZ <- z
+            chunkCountX <- this.cellCountX / HexMetrics.chunkSizeX
+            chunkCountZ <- this.cellCountZ / HexMetrics.chunkSizeZ
+
+            createChunks ()
+            createCells ()
+            true
 
     member this.ShowUI visible =
         _cells |> Array.iter (fun c -> c.ShowUI visible)
@@ -125,16 +153,9 @@ type HexGridFS() as this =
     override this._Ready() =
         GD.Print "HexGridFS _Ready"
         HexMetrics.noiseSource <- this._noiseSource.GetImage()
-        HexMetrics.colors <- this.colors
-
         HexMetrics.initializeHashGrid <| uint64 this.seed
-
-        cellCountX <- this._chunkCountX * HexMetrics.chunkSizeX
-        cellCountZ <- this._chunkCountZ * HexMetrics.chunkSizeZ
-
-        createChunks ()
-        createCells ()
-
+        HexMetrics.colors <- this.colors
+        this.CreateMap this.cellCountX this.cellCountZ |> ignore
         // 编辑器里显示随机颜色和随机高度的单元格
         if Engine.IsEditorHint() then
             let rand = Random()
