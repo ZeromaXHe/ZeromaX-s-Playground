@@ -1,6 +1,7 @@
 namespace FrontEndToolFS.Tool
 
 open System
+open System.IO
 open FrontEndToolFS.HexPlane
 open FrontEndToolFS.HexPlane.HexDirection
 open Godot
@@ -41,19 +42,27 @@ type HexCellFS() as this =
 
     member this.RefreshSelfOnly() = this.Chunk.Refresh()
 
-    let mutable color: Color = Colors.White
+    let mutable terrainTypeIndex = 0
 
-    member this.Color
-        with get () = color
+    member this.TerrainTypeIndex
+        with get () = terrainTypeIndex
         and set value =
-            if color = value then
-                ()
-            else
-                color <- value
+            if terrainTypeIndex <> value then
+                terrainTypeIndex <- value
                 refresh ()
 
+    member this.Color = HexMetrics.colors[terrainTypeIndex]
     /// 高度
     let mutable elevation: int = Int32.MinValue
+
+    let refreshPosition () =
+        let pos = this.Position
+        let y = float32 elevation * HexMetrics.elevationStep
+
+        let perturbY =
+            ((HexMetrics.sampleNoise pos).Y * 2f - 1f) * HexMetrics.elevationPerturbStrength
+
+        this.Position <- Vector3(pos.X, y + perturbY, pos.Z)
 
     member this.Elevation
         with get () = elevation
@@ -62,14 +71,7 @@ type HexCellFS() as this =
                 ()
             else
                 elevation <- value
-                let pos = this.Position
-                let y = float32 value * HexMetrics.elevationStep
-
-                let perturbY =
-                    ((HexMetrics.sampleNoise pos).Y * 2f - 1f) * HexMetrics.elevationPerturbStrength
-
-                this.Position <- Vector3(pos.X, y + perturbY, pos.Z)
-
+                refreshPosition ()
                 this.ValidateRivers()
 
                 for i in 0 .. this.roads.Length - 1 do
@@ -304,3 +306,50 @@ type HexCellFS() as this =
                 this.RefreshSelfOnly()
 
     member this.IsSpecial = specialIndex > 0
+
+    // 保存和加载
+    member this.Save(writer: BinaryWriter) =
+        writer.Write(byte terrainTypeIndex)
+        writer.Write(byte elevation)
+        writer.Write(byte waterLevel)
+        writer.Write(byte urbanLevel)
+        writer.Write(byte farmLevel)
+        writer.Write(byte plantLevel)
+        writer.Write(byte specialIndex)
+        writer.Write walled
+        writer.Write(incomingRiver |> Option.map byte |> Option.defaultValue Byte.MaxValue)
+        writer.Write(outgoingRiver |> Option.map byte |> Option.defaultValue Byte.MaxValue)
+
+        writer.Write(
+            this.roads
+            |> Array.fold (fun (i, w) b -> (i + 1), (if b then w ||| (1uy <<< i) else w)) (0, 0uy)
+            |> snd
+        )
+
+    member this.Load(reader: BinaryReader) =
+        terrainTypeIndex <- int <| reader.ReadByte()
+        elevation <- int <| reader.ReadByte()
+        refreshPosition ()
+        waterLevel <- int <| reader.ReadByte()
+        urbanLevel <- int <| reader.ReadByte()
+        farmLevel <- int <| reader.ReadByte()
+        plantLevel <- int <| reader.ReadByte()
+        specialIndex <- int <| reader.ReadByte()
+        walled <- reader.ReadBoolean()
+
+        incomingRiver <-
+            reader.ReadByte()
+            |> function
+                | Byte.MaxValue -> None
+                | x -> int x |> enum<HexDirection> |> Some
+
+        outgoingRiver <-
+            reader.ReadByte()
+            |> function
+                | Byte.MaxValue -> None
+                | x -> int x |> enum<HexDirection> |> Some
+
+        let roadFlags = reader.ReadByte()
+
+        this.roads
+        |> Array.iteri (fun i _ -> this.roads[i] <- (roadFlags &&& (1uy <<< i)) <> 0uy)

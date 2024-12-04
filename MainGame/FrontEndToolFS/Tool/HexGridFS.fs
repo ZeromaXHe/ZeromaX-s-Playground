@@ -1,6 +1,7 @@
 namespace FrontEndToolFS.Tool
 
 open System
+open System.IO
 open FrontEndToolFS.HexPlane
 open Godot
 
@@ -12,8 +13,6 @@ type HexGridFS() as this =
 
     let _hexChunkScene =
         lazy (GD.Load("res://game/HexPlane/Map/HexGridChunk.tscn") :?> PackedScene)
-
-    let seed = uint64 1234
 
     let mutable cellCountX = 24
     let mutable cellCountZ = 18
@@ -50,7 +49,6 @@ type HexGridFS() as this =
             let cell = _cells[i]
             cell.Name <- $"Cell{x}_{z}"
             cell.Coordinates <- HexCoordinates.FromOffsetCoordinates x z
-            cell.Color <- this._defaultColor
 
             if x > 0 then
                 cell.SetNeighbor HexDirection.W (Some _cells[i - 1])
@@ -83,8 +81,9 @@ type HexGridFS() as this =
 
     member val _chunkCountX: int = 6 with get, set
     member val _chunkCountZ: int = 6 with get, set
-    member val _defaultColor: Color = Colors.White with get, set
     member val _noiseSource: Texture2D = null with get, set
+    member val seed = 1234 with get, set
+    member val colors: Color array = null with get, set
 
     member this.CameraRayCastToMouse() =
         let spaceState = this.GetWorld3D().DirectSpaceState
@@ -115,14 +114,20 @@ type HexGridFS() as this =
         let coordinates = HexCoordinates.FromPosition pos
         this.GetCell coordinates
 
+    member this.Save(writer: BinaryWriter) = _cells |> Array.iter _.Save(writer)
+    member this.Load(reader: BinaryReader) =
+        _cells |> Array.iter _.Load(reader)
+        _chunks |> Array.iter _.Refresh()
+
     member this.ShowUI visible =
         _cells |> Array.iter (fun c -> c.ShowUI visible)
 
     override this._Ready() =
         GD.Print "HexGridFS _Ready"
         HexMetrics.noiseSource <- this._noiseSource.GetImage()
+        HexMetrics.colors <- this.colors
 
-        HexMetrics.initializeHashGrid seed
+        HexMetrics.initializeHashGrid <| uint64 this.seed
 
         cellCountX <- this._chunkCountX * HexMetrics.chunkSizeX
         cellCountZ <- this._chunkCountZ * HexMetrics.chunkSizeZ
@@ -135,7 +140,5 @@ type HexGridFS() as this =
             let rand = Random()
 
             for cell in _cells do
-                cell.Color <-
-                    Color(float32 <| rand.NextDouble(), float32 <| rand.NextDouble(), float32 <| rand.NextDouble())
-
+                cell.TerrainTypeIndex <- rand.Next(0, 5)
                 cell.Elevation <- rand.Next(0, 7)

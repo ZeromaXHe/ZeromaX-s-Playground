@@ -724,6 +724,9 @@ type HexGridChunkFS() as this =
             // GD.Print $"{this.Name} Refresh"
             this.SetProcess true
 
+    // F# 接口方法只能通过接口调用，通过这样把普通对象的 Refresh() 暴露直接使用
+    member this.Refresh() = (this :> IChunk).Refresh()
+
     member this.AddCell index cell =
         anyCell <- true
         cells[index] <- cell

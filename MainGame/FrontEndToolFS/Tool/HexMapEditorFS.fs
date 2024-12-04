@@ -1,5 +1,6 @@
 namespace FrontEndToolFS.Tool
 
+open System.IO
 open FrontEndToolFS.HexPlane
 open FrontEndToolFS.HexPlane.HexDirection
 open Godot
@@ -64,13 +65,13 @@ type HexMapEditorFS() as this =
     let _wireframeCheckButton =
         lazy this.GetNode<CheckButton> "PanelContainer/CellVBox/Wireframe"
 
-    // 默认不变色
-    let mutable changeColor = false
-    let mutable activeColor = Colors.White
+    let _saveButton =
+        lazy this.GetNode<Button> "PanelContainer/CellVBox/SaveLoadHBox/SaveButton"
 
-    let setColor index =
-        changeColor <- true
-        activeColor <- this._colors[index]
+    let _loadButton =
+        lazy this.GetNode<Button> "PanelContainer/CellVBox/SaveLoadHBox/LoadButton"
+
+    let mutable activeTerrainTypeIndex = 0
     // 默认修改高度
     let mutable changeElevation = true
     let mutable activeElevation = 1
@@ -101,8 +102,8 @@ type HexMapEditorFS() as this =
             |> List.tryFind (fun dir -> previousCell.IsSome && previousCell.Value.GetNeighbor dir = Some cell)
 
     let editCell (cell: HexCellFS) =
-        if changeColor then
-            cell.Color <- activeColor
+        if activeTerrainTypeIndex > 0 then
+            cell.TerrainTypeIndex <- activeTerrainTypeIndex - 1
 
         if changeElevation then
             cell.Elevation <- activeElevation
@@ -161,6 +162,24 @@ type HexMapEditorFS() as this =
                 let coords = HexCoordinates(x, z)
                 _hexGrid.Value.GetCell coords |> Option.iter editCell
 
+    let save () =
+        let path = Path.Combine(ProjectSettings.GlobalizePath "res://save", "test.map")
+        use writer = new BinaryWriter(File.Open(path, FileMode.Create))
+        writer.Write 0
+        _hexGrid.Value.Save writer
+        GD.Print "Saved!"
+
+    let load () =
+        let path = Path.Combine(ProjectSettings.GlobalizePath "res://save", "test.map")
+        use reader = new BinaryReader(File.OpenRead path)
+        let header = reader.ReadInt32()
+
+        if header = 0 then
+            _hexGrid.Value.Load reader
+            GD.Print "Loaded!"
+        else
+            GD.PrintErr $"Unknown map format {header}"
+
     /// 显示/隐藏 UI
     let showUI visible = _hexGrid.Value.ShowUI visible
 
@@ -179,10 +198,8 @@ type HexMapEditorFS() as this =
                 // GD.Print "rayCast no position"
                 None
 
-    member val _colors: Color array = Array.empty with get, set
-
     override this._Ready() =
-        _colorModeOptionButton.Value.Selected <- 0
+        _colorModeOptionButton.Value.Selected <- activeTerrainTypeIndex
         _elevationSlider.Value.Value <- activeElevation
         _waterSlider.Value.Value <- activeWaterLevel
         _urbanSlider.Value.Value <- activeUrbanLevel
@@ -199,12 +216,7 @@ type HexMapEditorFS() as this =
         _walledModeOptionButton.Value.Selected <- 0
         _specialModeOptionButton.Value.Selected <- 0
 
-        _colorModeOptionButton.Value.add_ItemSelected (fun index ->
-            if index = 0 then
-                changeColor <- false
-            else
-                setColor <| int index - 1)
-
+        _colorModeOptionButton.Value.add_ItemSelected (fun index -> activeTerrainTypeIndex <- int index)
         _elevationChangeCheckButton.Value.add_Toggled (fun toggle -> changeElevation <- toggle)
         _elevationSlider.Value.add_ValueChanged (fun value -> activeElevation <- int value)
         _waterChangeCheckButton.Value.add_Toggled (fun toggle -> changeWaterLevel <- toggle)
@@ -231,7 +243,10 @@ type HexMapEditorFS() as this =
                 _hexGrid.Value.GetViewport().SetDebugDraw(Viewport.DebugDrawEnum.Wireframe)
             else
                 _hexGrid.Value.GetViewport().SetDebugDraw(Viewport.DebugDrawEnum.Disabled))
-        // 默认隐藏 UI
+
+        _saveButton.Value.add_Pressed (fun _ -> save ())
+        _loadButton.Value.add_Pressed (fun _ -> load ())
+        // 默认隐藏 UI，放在最后是为了触发事件调用 showUI
         _showLabelsCheckButton.Value.ButtonPressed <- false
 
     override this._Process _ =

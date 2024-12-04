@@ -12,7 +12,6 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 1
 script = ExtResource("1_pjtj7")
-Colors = PackedColorArray(1, 0.862745, 0, 1, 0, 0.682353, 0, 1, 0.0745098, 0.219608, 0.839216, 1, 1, 0.305882, 0.105882, 1, 1, 1, 1, 1)
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="."]
 layout_mode = 1
@@ -229,3 +228,16 @@ text = "Labels"
 [node name="Wireframe" type="CheckButton" parent="PanelContainer/CellVBox"]
 layout_mode = 2
 text = "Wireframe"
+
+[node name="SaveLoadHBox" type="HBoxContainer" parent="PanelContainer/CellVBox"]
+layout_mode = 2
+
+[node name="SaveButton" type="Button" parent="PanelContainer/CellVBox/SaveLoadHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Save"
+
+[node name="LoadButton" type="Button" parent="PanelContainer/CellVBox/SaveLoadHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Load"
