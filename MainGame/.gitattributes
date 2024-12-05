@@ -1,3 +1,4 @@
 # Normalize EOL for all files that Git considers text files.
 * text=auto eol=lf
-*.map -text # don't change our map save
+# don't change our map save
+*.map -text 
