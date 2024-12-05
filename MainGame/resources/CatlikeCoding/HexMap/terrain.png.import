@@ -1,0 +1,26 @@
+[remap]
+
+importer="2d_array_texture"
+type="CompressedTexture2DArray"
+uid="uid://df6nmob25psrx"
+path="res://.godot/imported/terrain.png-2b1b1487891c4027c7e114098ec3da9d.ctexarray"
+metadata={
+"vram_texture": false
+}
+
+[deps]
+
+source_file="res://resources/CatlikeCoding/HexMap/terrain.png"
+dest_files=["res://.godot/imported/terrain.png-2b1b1487891c4027c7e114098ec3da9d.ctexarray"]
+
+[params]
+
+compress/mode=0
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+slices/horizontal=5
+slices/vertical=1

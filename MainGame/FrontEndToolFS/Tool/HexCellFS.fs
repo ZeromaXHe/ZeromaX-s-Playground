@@ -51,7 +51,6 @@ type HexCellFS() as this =
                 terrainTypeIndex <- value
                 refresh ()
 
-    member this.Color = HexMetrics.colors[terrainTypeIndex]
     /// 高度
     let mutable elevation: int = Int32.MinValue
 
@@ -248,7 +247,11 @@ type HexCellFS() as this =
         then
             this.RemoveOutgoingRiver()
 
-        if incomingRiver.IsSome && not << this.IsValidRiverDestination <| Some this then
+        if
+            incomingRiver.IsSome
+            && not << (this.GetNeighbor incomingRiver.Value).Value.IsValidRiverDestination
+               <| Some this
+        then
             this.RemoveIncomingRiver()
 
     // 城市级别

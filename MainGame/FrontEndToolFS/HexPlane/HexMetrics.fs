@@ -4,7 +4,6 @@ open Godot
 
 module HexMetrics =
     let mutable noiseSource: Image = null
-    let mutable colors: Color array = null
     // 内外半径
     let outerToInner = 0.866025404f
     let innerToOuter = 1f / outerToInner

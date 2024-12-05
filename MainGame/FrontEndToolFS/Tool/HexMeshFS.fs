@@ -16,45 +16,38 @@ type HexMeshFS() =
     member val useColor = false with get, set
     member val useUvCoordinates = false with get, set
     member val useUv2Coordinates = false with get, set
+    member val useTerrainTypes = false with get, set
 
     /// 未扰动的三角形
-    member this.AddTriangleUnperturbed(vs: Vector3 array, ?cs: Color array, ?uvs: Vector2 array, ?uv2s: Vector2 array) =
+    member this.AddTriangleUnperturbed
+        (
+            vs: Vector3 array,
+            ?cs: Color array,
+            ?uvs: Vector2 array,
+            ?uv2s: Vector2 array,
+            ?t: Vector3
+        ) =
         let cs = defaultArg cs Array.empty
         let uvs = defaultArg uvs Array.empty
         let uv2s = defaultArg uv2s Array.empty
+        let t = defaultArg t Vector3.Zero
 
-        if this.useColor then
-            this.surfaceTool.SetColor cs[0]
+        let addVertex index =
+            if this.useColor then
+                this.surfaceTool.SetColor cs[index]
 
-        if this.useUvCoordinates then
-            this.surfaceTool.SetUV uvs[0]
+            if this.useUvCoordinates then
+                this.surfaceTool.SetUV uvs[index]
 
-        if this.useUv2Coordinates then
-            this.surfaceTool.SetUV2 uv2s[0]
+            if this.useUv2Coordinates then
+                this.surfaceTool.SetUV2 uv2s[index]
 
-        this.surfaceTool.AddVertex vs[0]
+            if this.useTerrainTypes then
+                this.surfaceTool.SetCustom(0, Color(t.X, t.Y, t.Z))
 
-        if this.useColor then
-            this.surfaceTool.SetColor cs[1]
+            this.surfaceTool.AddVertex vs[index]
 
-        if this.useUvCoordinates then
-            this.surfaceTool.SetUV uvs[1]
-
-        if this.useUv2Coordinates then
-            this.surfaceTool.SetUV2 uv2s[1]
-
-        this.surfaceTool.AddVertex vs[1]
-
-        if this.useColor then
-            this.surfaceTool.SetColor cs[2]
-
-        if this.useUvCoordinates then
-            this.surfaceTool.SetUV uvs[2]
-
-        if this.useUv2Coordinates then
-            this.surfaceTool.SetUV2 uv2s[2]
-
-        this.surfaceTool.AddVertex vs[2]
+        [ 0..2 ] |> List.iter addVertex
         // Godot 渲染面方向和 Unity 相反
         this.surfaceTool.AddIndex <| vIndex
         this.surfaceTool.AddIndex <| vIndex + 2
@@ -62,62 +55,44 @@ type HexMeshFS() =
         vIndex <- vIndex + 3
 
     /// 三角形
-    member this.AddTriangle(vs: Vector3 array, ?colors, ?uvs, ?uv2s) =
+    member this.AddTriangle(vs: Vector3 array, ?colors, ?uvs, ?uv2s, ?t) =
         let colors = defaultArg colors Array.empty
         let uvs = defaultArg uvs Array.empty
         let uv2s = defaultArg uv2s Array.empty
+        let t = defaultArg t Vector3.Zero
         let perturbVertices = vs |> Array.map HexMetrics.perturb
-        this.AddTriangleUnperturbed(perturbVertices, colors, uvs, uv2s)
+        this.AddTriangleUnperturbed(perturbVertices, colors, uvs, uv2s, t)
 
     /// 未扰动的四边形
-    member this.AddQuadUnperturbed(vs: Vector3 array, ?cs: Color array, ?uvs: Vector2 array, ?uv2s: Vector2 array) =
+    member this.AddQuadUnperturbed
+        (
+            vs: Vector3 array,
+            ?cs: Color array,
+            ?uvs: Vector2 array,
+            ?uv2s: Vector2 array,
+            ?t: Vector3
+        ) =
         let cs = defaultArg cs Array.empty
         let uvs = defaultArg uvs Array.empty
         let uv2s = defaultArg uv2s Array.empty
+        let t = defaultArg t Vector3.Zero
 
-        if this.useColor then
-            this.surfaceTool.SetColor cs[0]
+        let addVertex index =
+            if this.useColor then
+                this.surfaceTool.SetColor cs[index]
 
-        if this.useUvCoordinates then
-            this.surfaceTool.SetUV uvs[0]
+            if this.useUvCoordinates then
+                this.surfaceTool.SetUV uvs[index]
 
-        if this.useUv2Coordinates then
-            this.surfaceTool.SetUV2 uv2s[0]
+            if this.useUv2Coordinates then
+                this.surfaceTool.SetUV2 uv2s[index]
 
-        this.surfaceTool.AddVertex vs[0]
+            if this.useTerrainTypes then
+                this.surfaceTool.SetCustom(0, Color(t.X, t.Y, t.Z))
 
-        if this.useColor then
-            this.surfaceTool.SetColor cs[1]
+            this.surfaceTool.AddVertex vs[index]
 
-        if this.useUvCoordinates then
-            this.surfaceTool.SetUV uvs[1]
-
-        if this.useUv2Coordinates then
-            this.surfaceTool.SetUV2 uv2s[1]
-
-        this.surfaceTool.AddVertex vs[1]
-
-        if this.useColor then
-            this.surfaceTool.SetColor cs[2]
-
-        if this.useUvCoordinates then
-            this.surfaceTool.SetUV uvs[2]
-
-        if this.useUv2Coordinates then
-            this.surfaceTool.SetUV2 uv2s[2]
-
-        this.surfaceTool.AddVertex vs[2]
-
-        if this.useColor then
-            this.surfaceTool.SetColor cs[3]
-
-        if this.useUvCoordinates then
-            this.surfaceTool.SetUV uvs[3]
-
-        if this.useUv2Coordinates then
-            this.surfaceTool.SetUV2 uv2s[3]
-
-        this.surfaceTool.AddVertex vs[3]
+        [ 0..3 ] |> List.iter addVertex
         // Godot 渲染面方向和 Unity 相反
         this.surfaceTool.AddIndex <| vIndex
         this.surfaceTool.AddIndex <| vIndex + 1
@@ -128,17 +103,21 @@ type HexMeshFS() =
         vIndex <- vIndex + 4
 
     /// 四边形
-    member this.AddQuad(vs: Vector3 array, ?cs, ?uvs, ?uv2s) =
+    member this.AddQuad(vs: Vector3 array, ?cs, ?uvs, ?uv2s, ?t) =
         let colors = defaultArg cs Array.empty
         let uvs = defaultArg uvs Array.empty
         let uv2s = defaultArg uv2s Array.empty
+        let t = defaultArg t Vector3.Zero
         let perturbVertices = vs |> Array.map HexMetrics.perturb
-        this.AddQuadUnperturbed(perturbVertices, colors, uvs, uv2s)
+        this.AddQuadUnperturbed(perturbVertices, colors, uvs, uv2s, t)
 
     member this.Clear() =
         this.surfaceTool <- new SurfaceTool()
         vIndex <- 0
         this.surfaceTool.Begin(Mesh.PrimitiveType.Triangles)
+
+        if this.useTerrainTypes then
+            this.surfaceTool.SetCustomFormat(0, SurfaceTool.CustomFormat.RgbFloat)
 
     member this.Apply() =
         // this.surfaceTool.Deindex()

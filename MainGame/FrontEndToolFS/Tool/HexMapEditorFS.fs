@@ -16,8 +16,8 @@ type HexMapEditorFS() as this =
     let _hexGrid =
         lazy this.GetNode<HexGridFS> "SubViewportContainer/SubViewport/HexGrid"
 
-    let _colorModeOptionButton =
-        lazy this.GetNode<OptionButton> "PanelC/ScrollC/CellVBox/ColorHBox/ColorMode"
+    let _terrainModeOptionButton =
+        lazy this.GetNode<OptionButton> "PanelC/ScrollC/CellVBox/TerrainHBox/TerrainMode"
 
     let _elevationChangeCheckButton =
         lazy this.GetNode<CheckButton> "PanelC/ScrollC/CellVBox/ElevationChange"
@@ -187,7 +187,7 @@ type HexMapEditorFS() as this =
                 None
 
     override this._Ready() =
-        _colorModeOptionButton.Value.Selected <- activeTerrainTypeIndex
+        _terrainModeOptionButton.Value.Selected <- activeTerrainTypeIndex
         _elevationSlider.Value.Value <- activeElevation
         _waterSlider.Value.Value <- activeWaterLevel
         _urbanSlider.Value.Value <- activeUrbanLevel
@@ -206,7 +206,7 @@ type HexMapEditorFS() as this =
         _newMapMenu.Value.Hide()
         _saveLoadMenu.Value.Hide()
 
-        _colorModeOptionButton.Value.add_ItemSelected (fun index -> activeTerrainTypeIndex <- int index)
+        _terrainModeOptionButton.Value.add_ItemSelected (fun index -> activeTerrainTypeIndex <- int index)
         _elevationChangeCheckButton.Value.add_Toggled (fun toggle -> changeElevation <- toggle)
         _elevationSlider.Value.add_ValueChanged (fun value -> activeElevation <- int value)
         _waterChangeCheckButton.Value.add_Toggled (fun toggle -> changeWaterLevel <- toggle)

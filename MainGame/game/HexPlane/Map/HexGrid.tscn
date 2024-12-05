@@ -22,7 +22,6 @@ CellCountX = 20
 CellCountZ = 15
 NoiseSource = ExtResource("2_w2l35")
 Seed = 1234
-Colors = PackedColorArray(1, 0.862745, 0, 1, 0.00392157, 0.682353, 0.0313726, 1, 0.0745098, 0.219608, 0.839216, 1, 1, 0.305882, 0.105882, 1, 1, 1, 1, 1)
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_yrd3c")

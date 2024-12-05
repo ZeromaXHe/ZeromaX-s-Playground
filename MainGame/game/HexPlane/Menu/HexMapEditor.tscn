@@ -52,28 +52,28 @@ layout_mode = 2
 size_flags_horizontal = 3
 alignment = 1
 
-[node name="ColorHBox" type="HBoxContainer" parent="PanelC/ScrollC/CellVBox"]
+[node name="TerrainHBox" type="HBoxContainer" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="ColorLabel" type="Label" parent="PanelC/ScrollC/CellVBox/ColorHBox"]
+[node name="TerrainLabel" type="Label" parent="PanelC/ScrollC/CellVBox/TerrainHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Color"
+text = "Terrain"
 
-[node name="ColorMode" type="OptionButton" parent="PanelC/ScrollC/CellVBox/ColorHBox"]
+[node name="TerrainMode" type="OptionButton" parent="PanelC/ScrollC/CellVBox/TerrainHBox"]
 layout_mode = 2
 selected = 0
 item_count = 6
 popup/item_0/text = "---"
-popup/item_1/text = "Yellow"
+popup/item_1/text = "Sand"
 popup/item_1/id = 1
-popup/item_2/text = "Green"
+popup/item_2/text = "Grass"
 popup/item_2/id = 2
-popup/item_3/text = "Blue"
+popup/item_3/text = "Mud"
 popup/item_3/id = 3
-popup/item_4/text = "Orange"
+popup/item_4/text = "Stone"
 popup/item_4/id = 4
-popup/item_5/text = "White"
+popup/item_5/text = "Snow"
 popup/item_5/id = 5
 
 [node name="HSeparator" type="HSeparator" parent="PanelC/ScrollC/CellVBox"]

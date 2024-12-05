@@ -1,17 +1,15 @@
 float River (vec2 riverUV, sampler2D noiseTex) {
 	vec2 uv = riverUV;
 	// 第一次采样
-    uv.x = uv.x * 0.0625 + TIME * 0.005;
-    uv.y -= TIME * 0.25;
-    vec4 noise = texture(noiseTex, uv);
-
-    // 第二次采样
-    vec2 uv2 = riverUV;
-    uv2.x = uv2.x * 0.0625 - TIME * 0.0052;
-    uv2.y -= TIME * 0.23;
-    vec4 noise2 = texture(noiseTex, uv2);
-
-    return noise.r * noise2.a;
+	uv.x = uv.x * 0.0625 + TIME * 0.005;
+	uv.y -= TIME * 0.25;
+	vec4 noise = texture(noiseTex, uv);
+	// 第二次采样
+	vec2 uv2 = riverUV;
+	uv2.x = uv2.x * 0.0625 - TIME * 0.0052;
+	uv2.y -= TIME * 0.23;
+	vec4 noise2 = texture(noiseTex, uv2);
+	return noise.r * noise2.a;
 }
 
 float Foam (float shore, vec2 worldXZ, sampler2D noiseTex) {
