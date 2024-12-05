@@ -5739,7 +5739,7 @@ https://catlikecoding.com/unity/tutorials/hex-map/part-15/
 
 ![img](https://catlikecoding.com/unity/tutorials/hex-map/part-15/edit-mode/coordinate-labels.png)
 
-*协调标签。*
+*坐标标签。*
 
 进入播放模式后，现在可以直接看到单元格坐标。但我们对坐标不感兴趣。我们将使用标签来显示距离。由于每个单元格只有一个数字，我们可以增加字体大小，使其更容易阅读。调整*六边形单元格标签（Hex Cell Label）*预制件，使其使用大小为8的粗体。
 

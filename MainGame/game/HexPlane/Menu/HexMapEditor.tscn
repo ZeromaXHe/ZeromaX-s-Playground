@@ -232,10 +232,14 @@ popup/item_4/id = 4
 [node name="HSeparator6" type="HSeparator" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="ShowLabels" type="CheckButton" parent="PanelC/ScrollC/CellVBox"]
+[node name="ShowGrid" type="CheckButton" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2
 button_pressed = true
-text = "Labels"
+text = "Show Grid"
+
+[node name="EditMode" type="CheckButton" parent="PanelC/ScrollC/CellVBox"]
+layout_mode = 2
+text = "Edit Mode"
 
 [node name="Wireframe" type="CheckButton" parent="PanelC/ScrollC/CellVBox"]
 layout_mode = 2

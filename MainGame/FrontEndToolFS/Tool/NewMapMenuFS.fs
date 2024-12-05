@@ -19,6 +19,7 @@ type NewMapMenuFS() as this =
         lazy this.GetNode<Button> "CenterC/MenuPanel/MarginC/VBox/CancelButton"
 
     let mutable labelVisible = false
+    let mutable gridVisible = false
 
     [<DefaultValue>]
     val mutable hexGrid: HexGridFS
@@ -26,13 +27,15 @@ type NewMapMenuFS() as this =
     let createMap x z =
         this.hexGrid.CreateMap x z |> ignore
         this.hexGrid.ShowUI labelVisible // 刷新显示标签与否
+        this.hexGrid.ShowGrid gridVisible // 刷新显示网格与否
         HexMapCameraFS.ValidatePosition()
         this.Close()
 
-    member this.Open visible =
+    member this.Open labelOn gridOn =
         this.Show()
         HexMapCameraFS.Locked <- true
-        labelVisible <- visible
+        labelVisible <- labelOn
+        gridVisible <- gridOn
 
     member this.Close() =
         this.Hide()

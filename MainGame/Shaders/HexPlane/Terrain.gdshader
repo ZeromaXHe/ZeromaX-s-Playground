@@ -8,6 +8,8 @@ shader_type spatial;
 // 定义 Uniform 变量
 uniform vec4 color: source_color = vec4(1.0, 1.0, 1.0, 1.0);
 uniform sampler2DArray main_tex: hint_default_white;
+uniform bool grid_on = true;
+uniform sampler2D grid_tex: hint_default_white;
 uniform float glossiness: hint_range(0.0, 1.0) = 0.3;
 uniform float metallic: hint_range(0.0, 1.0) = 0.0;
 
@@ -29,8 +31,16 @@ void fragment() {
 	vec4 c = GetTerrainColor(world_pos, 0, COLOR) +
 		GetTerrainColor(world_pos, 1, COLOR) +
 		GetTerrainColor(world_pos, 2, COLOR);
+	// 渲染六边形网格
+	vec4 grid = vec4(1.0);
+	if (grid_on) {
+		vec2 gridUV = world_pos.xz;
+		gridUV.x *= 1.0 / (4.0 * 8.66025404);
+		gridUV.y *= 1.0 / (2.0 * 15.0);
+		grid = texture(grid_tex, gridUV);
+	}
 	// 设置漫反射颜色
-	ALBEDO = c.rgb * color.rgb;
+	ALBEDO = c.rgb * grid.rgb * color.rgb;
 	// 设置金属度
 	METALLIC = metallic;
 	// 设置光滑度

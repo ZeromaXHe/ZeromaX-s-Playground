@@ -34,8 +34,13 @@ type HexCoordinates =
                 elif dZ > dY then HexCoordinates(iX, -iX - iY)
                 else HexCoordinates(iX, iZ)
 
-
         override this.ToString() = $"({this.X}, {this.Y}, {this.Z})"
 
         member this.ToStringOnSeparateLines() = $"{this.X}\n{this.Y}\n{this.Z}"
+
+        member this.DistanceTo(other: HexCoordinates) =
+            ((abs <| this.X - other.X)
+             + (abs <| this.Y - other.Y)
+             + (abs <| this.Z - other.Z))
+            / 2
     end

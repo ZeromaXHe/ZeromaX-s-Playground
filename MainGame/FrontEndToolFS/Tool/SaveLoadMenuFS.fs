@@ -32,6 +32,7 @@ type SaveLoadMenuFS() as this =
     let mutable saveMode = false
 
     let mutable labelVisible = false
+    let mutable gridVisible = true
 
     let saveDirPath = ProjectSettings.GlobalizePath "res://save"
 
@@ -51,6 +52,7 @@ type SaveLoadMenuFS() as this =
             if header <= 1 then
                 this.hexGrid.Load reader header
                 this.hexGrid.ShowUI labelVisible // 我们的实现需要这样刷新一下标签的显示
+                this.hexGrid.ShowGrid gridVisible // 刷新显示网格与否
                 HexMapCameraFS.ValidatePosition()
                 GD.Print "Loaded!"
             else
@@ -87,8 +89,9 @@ type SaveLoadMenuFS() as this =
 
     member this.SelectItem = (this :> ISaveLoadMenu).SelectItem
 
-    member this.Open saveBool labelVis =
+    member this.Open saveBool labelVis gridOn =
         labelVisible <- labelVis
+        gridVisible <- gridOn
         saveMode <- saveBool
 
         if saveMode then

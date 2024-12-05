@@ -1,6 +1,7 @@
 namespace FrontEndToolFS.Tool
 
 open System
+open System.Collections.Generic
 open System.IO
 open FrontEndToolFS.HexPlane
 open Godot
@@ -70,8 +71,8 @@ type HexGridFS() as this =
                     float32 z * HexMetrics.outerRadius * 1.5f
                 )
 
-            let label = cell.GetNode<Label3D>("Label")
-            label.Text <- cell.Coordinates.ToStringOnSeparateLines()
+            // let label = cell.GetNode<Label3D>("Label")
+            // label.Text <- cell.Coordinates.ToStringOnSeparateLines()
             // 得在 Elevation 前面。不然单元格的块还没赋值的话，setter 里面会有 refresh，需要刷新块，这时空引用会报错
             addCellToChunk x z cell
             // 触发 setter 应用扰动 y
@@ -149,6 +150,51 @@ type HexGridFS() as this =
 
     member this.ShowUI visible =
         _cells |> Array.iter (fun c -> c.ShowUI visible)
+
+    member this.ShowGrid visible =
+        // 同一个 Shader 的参数是共有的，改第一个 Chunk 就可以
+        _chunks[0].ShowGrid visible
+
+    member this.FindDistancesTo(cell: HexCellFS) =
+        _cells |> Array.iter (fun c -> c.Distance <- Int32.MaxValue)
+        let frontier = List<HexCellFS>()
+        cell.Distance <- 0
+        frontier.Add cell
+
+        while frontier.Count > 0 do
+            let current = frontier[0]
+            frontier.RemoveAt 0
+
+            for d in HexDirection.allHexDirs () do
+                match current.GetNeighbor d with
+                | Some neighbor when not neighbor.IsUnderWater && current.GetEdgeType neighbor <> HexEdgeType.Cliff ->
+                    let distance = current.Distance
+
+                    let distance =
+                        if current.HasRoadThroughEdge d then
+                            distance + 1
+                        elif current.Walled <> neighbor.Walled then
+                            Int32.MinValue // 被墙阻挡就得直接跳出逻辑
+                        else
+                            distance
+                            + if current.GetEdgeType neighbor = HexEdgeType.Flat then
+                                  5
+                              else
+                                  10
+                            + neighbor.UrbanLevel
+                            + neighbor.FarmLevel
+                            + neighbor.PlantLevel
+
+                    if distance <> Int32.MinValue then
+                        if neighbor.Distance = Int32.MaxValue then
+                            neighbor.Distance <- distance
+                            frontier.Add neighbor
+                        elif distance < neighbor.Distance then
+                            neighbor.Distance <- distance
+
+                        frontier.Sort(fun x y -> x.Distance.CompareTo y.Distance)
+                | _ -> ()
+
 
     override this._Ready() =
         GD.Print "HexGridFS _Ready"

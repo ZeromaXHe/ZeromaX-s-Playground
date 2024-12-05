@@ -59,8 +59,11 @@ type HexMapEditorFS() as this =
     let _specialModeOptionButton =
         lazy this.GetNode<OptionButton> "PanelC/ScrollC/CellVBox/SpecialHBox/SpecialMode"
 
-    let _showLabelsCheckButton =
-        lazy this.GetNode<CheckButton> "PanelC/ScrollC/CellVBox/ShowLabels"
+    let _showGridCheckButton =
+        lazy this.GetNode<CheckButton> "PanelC/ScrollC/CellVBox/ShowGrid"
+
+    let _editModeCheckButton =
+        lazy this.GetNode<CheckButton> "PanelC/ScrollC/CellVBox/EditMode"
 
     let _wireframeCheckButton =
         lazy this.GetNode<CheckButton> "PanelC/ScrollC/CellVBox/Wireframe"
@@ -170,6 +173,8 @@ type HexMapEditorFS() as this =
 
     /// 显示/隐藏 UI
     let showUI visible = _hexGrid.Value.ShowUI visible
+    // 显示/隐藏网格材质
+    let showGrid visible = _hexGrid.Value.ShowGrid visible
 
     let getMouseHitPoint () =
         let result = _hexGrid.Value.CameraRayCastToMouse()
@@ -185,6 +190,17 @@ type HexMapEditorFS() as this =
             else
                 // GD.Print "rayCast no position"
                 None
+
+    let handleCurrentCell cell =
+        dragDirection <- validateDrag cell
+
+        if _editModeCheckButton.Value.ButtonPressed then
+            editCells cell
+        else
+            _hexGrid.Value.FindDistancesTo cell
+
+        previousCell <- Some cell
+
 
     override this._Ready() =
         _terrainModeOptionButton.Value.Selected <- activeTerrainTypeIndex
@@ -226,34 +242,42 @@ type HexMapEditorFS() as this =
             activeSpecial <- int index - 1
             changeSpecial <- int index <> 0)
 
-        _showLabelsCheckButton.Value.add_Toggled showUI
+        _showGridCheckButton.Value.add_Toggled showGrid
+        _editModeCheckButton.Value.add_Toggled (fun toggle -> _hexGrid.Value.ShowUI <| not toggle)
 
         _wireframeCheckButton.Value.add_Toggled (fun toggle ->
             if toggle then
                 _hexGrid.Value.GetViewport().SetDebugDraw(Viewport.DebugDrawEnum.Wireframe)
             else
                 _hexGrid.Value.GetViewport().SetDebugDraw(Viewport.DebugDrawEnum.Disabled))
-
-        // 我们传入标签的显示与否，是因为需要这样刷新一下新地图的 HexCell 标签的显示，因为我们的标签实现和教程不同
+        // 我们需要这样刷新一下新地图的 HexCell 标签的显示和 HexChunk 的网格材质显示，因为我们的标签、网格材质 Shader 实现和教程不同
         _saveButton.Value.add_Pressed (fun _ ->
-            _saveLoadMenu.Value.Open true _showLabelsCheckButton.Value.ButtonPressed)
+            _saveLoadMenu.Value.Open
+                true
+                (not _editModeCheckButton.Value.ButtonPressed)
+                _showGridCheckButton.Value.ButtonPressed)
 
         _loadButton.Value.add_Pressed (fun _ ->
-            _saveLoadMenu.Value.Open false _showLabelsCheckButton.Value.ButtonPressed)
+            _saveLoadMenu.Value.Open
+                false
+                (not _editModeCheckButton.Value.ButtonPressed)
+                _showGridCheckButton.Value.ButtonPressed)
 
-        _newMapButton.Value.add_Pressed (fun _ -> _newMapMenu.Value.Open _showLabelsCheckButton.Value.ButtonPressed)
-        // 默认隐藏 UI，放在最后是为了触发事件调用 showUI
-        _showLabelsCheckButton.Value.ButtonPressed <- false
+        _newMapButton.Value.add_Pressed (fun _ ->
+            _newMapMenu.Value.Open
+                (not _editModeCheckButton.Value.ButtonPressed)
+                _showGridCheckButton.Value.ButtonPressed)
+        // 默认编辑模式禁用，显示 UI，放在最后是为了触发事件调用 ShowUI
+        _editModeCheckButton.Value.ButtonPressed <- false
+        // 默认显示网格，放在最后是为了触发事件调用 showGrid
+        _showGridCheckButton.Value.ButtonPressed <- true
 
     override this._Process _ =
         if inDragProcess && previousCell.IsSome then
             match getMouseHitPoint () with
             | Some pos ->
                 match _hexGrid.Value.GetCell pos with
-                | Some currentCell ->
-                    dragDirection <- validateDrag currentCell
-                    editCells currentCell
-                    previousCell <- Some currentCell
+                | Some currentCell -> handleCurrentCell currentCell
                 | None -> previousCell <- None
             | None -> previousCell <- None
 
@@ -268,9 +292,6 @@ type HexMapEditorFS() as this =
                 previousCell <- None
 
                 if inDragProcess then
-                    let currentCell = cellOpt.Value
-                    dragDirection <- validateDrag currentCell
-                    editCells currentCell
-                    previousCell <- Some currentCell
+                    handleCurrentCell cellOpt.Value
             | None -> inDragProcess <- false
         | _ -> ()

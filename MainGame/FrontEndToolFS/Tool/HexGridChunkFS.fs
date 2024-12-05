@@ -777,6 +777,10 @@ type HexGridChunkFS() as this =
         cell.Chunk <- this
         this.AddChild cell
 
+    member this.ShowGrid(visible: bool) =
+        (this.terrain.MaterialOverride :?> ShaderMaterial)
+            .SetShaderParameter("grid_on", visible)
+
     override this._Ready() =
         cells <- Array.zeroCreate <| HexMetrics.chunkSizeX * HexMetrics.chunkSizeZ
 

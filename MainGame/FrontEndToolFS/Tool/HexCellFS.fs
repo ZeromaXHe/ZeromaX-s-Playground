@@ -356,3 +356,16 @@ type HexCellFS() as this =
 
         this.roads
         |> Array.iteri (fun i _ -> this.roads[i] <- (roadFlags &&& (1uy <<< i)) <> 0uy)
+    // 距离
+    let mutable distance = 0
+
+    let updateDistanceLabel () =
+        let label = this.GetNode<Label3D> "Label"
+
+        label.Text <- if distance = Int32.MaxValue then "" else string distance
+
+    member this.Distance
+        with get () = distance
+        and set value =
+            distance <- value
+            updateDistanceLabel ()

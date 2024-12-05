@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3 uid="uid://btjayimhgt0pk"]
+[gd_scene load_steps=20 format=3 uid="uid://btjayimhgt0pk"]
 
 [ext_resource type="PackedScene" uid="uid://dgi5lqferr3en" path="res://game/HexPlane/Map/HexMesh.tscn" id="1_ohi0j"]
 [ext_resource type="Script" path="res://game/HexPlane/Map/HexGridChunk.cs" id="1_y4c6g"]
@@ -6,6 +6,7 @@
 [ext_resource type="Shader" path="res://Shaders/HexPlane/Terrain.gdshader" id="3_lieiy"]
 [ext_resource type="CompressedTexture2DArray" uid="uid://df6nmob25psrx" path="res://resources/CatlikeCoding/HexMap/terrain.png" id="4_nj5s3"]
 [ext_resource type="Texture2D" uid="uid://cts1rn3gu83qb" path="res://resources/CatlikeCoding/HexMap/noise.png" id="4_tcvt3"]
+[ext_resource type="Texture2D" uid="uid://cewq6lm8g3xji" path="res://resources/CatlikeCoding/HexMap/grid.png" id="4_xe7nb"]
 [ext_resource type="Shader" path="res://Shaders/HexPlane/Road.gdshader" id="5_p5rjp"]
 [ext_resource type="Shader" path="res://Shaders/HexPlane/Water.gdshader" id="6_b0n41"]
 [ext_resource type="Shader" path="res://Shaders/HexPlane/WaterShore.gdshader" id="7_2qm6b"]
@@ -16,9 +17,11 @@
 render_priority = 0
 shader = ExtResource("3_lieiy")
 shader_parameter/color = Color(1, 1, 1, 1)
+shader_parameter/grid_on = true
 shader_parameter/glossiness = 0.5
 shader_parameter/metallic = 0.0
 shader_parameter/main_tex = ExtResource("4_nj5s3")
+shader_parameter/grid_tex = ExtResource("4_xe7nb")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_7x664"]
 render_priority = 1
