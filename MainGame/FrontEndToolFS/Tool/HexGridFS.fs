@@ -195,7 +195,6 @@ type HexGridFS() as this =
                         frontier.Sort(fun x y -> x.Distance.CompareTo y.Distance)
                 | _ -> ()
 
-
     override this._Ready() =
         GD.Print "HexGridFS _Ready"
         HexMetrics.noiseSource <- this._noiseSource.GetImage()
