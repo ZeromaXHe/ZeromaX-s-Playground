@@ -6,6 +6,64 @@ open System.IO
 open FrontEndToolFS.HexPlane
 open Godot
 
+type HexCellPriorityQueue() =
+    let list = List<HexCellFS option>()
+
+    let mutable minimum = Int32.MaxValue
+    let mutable count = 0
+    member this.Count = count
+
+    member this.Enqueue(cell: HexCellFS) =
+        count <- count + 1
+        let priority = cell.SearchPriority
+
+        if priority < minimum then
+            minimum <- priority
+
+        while priority >= list.Count do
+            list.Add None
+
+        cell.NextWithSamePriority <- list[priority]
+        list[priority] <- Some cell
+
+    member this.Dequeue() =
+        count <- count - 1
+        let mutable breakLoop = false
+        let mutable result = None
+
+        while minimum < list.Count && not breakLoop do
+            let cellOpt = list[minimum]
+
+            if cellOpt.IsSome then
+                result <- cellOpt
+                list[minimum] <- cellOpt.Value.NextWithSamePriority
+                breakLoop <- true
+            else
+                minimum <- minimum + 1
+
+        result
+
+    member this.Change (cell: HexCellFS) oldPriority =
+        let mutable current = list[oldPriority]
+        let mutable next = current |> Option.bind _.NextWithSamePriority
+
+        if current = Some cell then
+            list[oldPriority] <- next
+        else
+            while next <> Some cell do
+                current <- next
+                next <- current |> Option.bind _.NextWithSamePriority
+
+            current.Value.NextWithSamePriority <- cell.NextWithSamePriority
+
+        this.Enqueue cell
+        count <- count - 1 // 但我们实际上并没有添加新的单元格
+
+    member this.Clear() =
+        list.Clear()
+        count <- 0
+        minimum <- Int32.MaxValue
+
 type HexGridFS() as this =
     inherit Node3D()
 
@@ -17,6 +75,8 @@ type HexGridFS() as this =
 
     [<DefaultValue>]
     val mutable chunkPrefab: PackedScene
+
+    let searchFrontier = HexCellPriorityQueue()
 
     let mutable chunkCountX = 4
     let mutable chunkCountZ = 3
@@ -159,45 +219,66 @@ type HexGridFS() as this =
         // 同一个 Shader 的参数是共有的，改第一个 Chunk 就可以
         _chunks[0].ShowGrid visible
 
-    member this.FindDistancesTo(cell: HexCellFS) =
-        _cells |> Array.iter (fun c -> c.Distance <- Int32.MaxValue)
-        let frontier = List<HexCellFS>()
-        cell.Distance <- 0
-        frontier.Add cell
+    member this.FindPath (fromCell: HexCellFS) (toCell: HexCellFS) =
+        searchFrontier.Clear()
 
-        while frontier.Count > 0 do
-            let current = frontier[0]
-            frontier.RemoveAt 0
+        _cells
+        |> Array.iter (fun c ->
+            c.Distance <- Int32.MaxValue
+            c.DisableHighlight())
 
-            for d in HexDirection.allHexDirs () do
-                match current.GetNeighbor d with
-                | Some neighbor when not neighbor.IsUnderWater && current.GetEdgeType neighbor <> HexEdgeType.Cliff ->
-                    let distance = current.Distance
+        fromCell.EnableHighlight Colors.Blue
+        toCell.EnableHighlight Colors.Red
 
-                    let distance =
-                        if current.HasRoadThroughEdge d then
-                            distance + 1
-                        elif current.Walled <> neighbor.Walled then
-                            Int32.MinValue // 被墙阻挡就得直接跳出逻辑
-                        else
-                            distance
-                            + if current.GetEdgeType neighbor = HexEdgeType.Flat then
-                                  5
-                              else
-                                  10
-                            + neighbor.UrbanLevel
-                            + neighbor.FarmLevel
-                            + neighbor.PlantLevel
+        fromCell.Distance <- 0
+        searchFrontier.Enqueue fromCell
 
-                    if distance <> Int32.MinValue then
-                        if neighbor.Distance = Int32.MaxValue then
-                            neighbor.Distance <- distance
-                            frontier.Add neighbor
-                        elif distance < neighbor.Distance then
-                            neighbor.Distance <- distance
+        let mutable breakLoop = false
 
-                        frontier.Sort(fun x y -> x.Distance.CompareTo y.Distance)
-                | _ -> ()
+        while searchFrontier.Count > 0 && not breakLoop do
+            let current = searchFrontier.Dequeue().Value
+
+            if current = toCell then
+                let mutable from = current.PathFrom
+
+                while from <> fromCell do
+                    from.EnableHighlight Colors.White
+                    from <- from.PathFrom
+
+                breakLoop <- true
+            else
+                for d in HexDirection.allHexDirs () do
+                    match current.GetNeighbor d with
+                    | Some neighbor when not neighbor.IsUnderWater && current.GetEdgeType neighbor <> HexEdgeType.Cliff ->
+                        let distance = current.Distance
+
+                        let distance =
+                            if current.HasRoadThroughEdge d then
+                                distance + 1
+                            elif current.Walled <> neighbor.Walled then
+                                Int32.MinValue // 被墙阻挡就得直接跳出逻辑
+                            else
+                                distance
+                                + if current.GetEdgeType neighbor = HexEdgeType.Flat then
+                                      5
+                                  else
+                                      10
+                                + neighbor.UrbanLevel
+                                + neighbor.FarmLevel
+                                + neighbor.PlantLevel
+
+                        if distance <> Int32.MinValue then
+                            if neighbor.Distance = Int32.MaxValue then
+                                neighbor.Distance <- distance
+                                neighbor.PathFrom <- current
+                                neighbor.SearchHeuristic <- neighbor.Coordinates.DistanceTo toCell.Coordinates
+                                searchFrontier.Enqueue neighbor
+                            elif distance < neighbor.Distance then
+                                let oldPriority = neighbor.SearchPriority
+                                neighbor.Distance <- distance
+                                neighbor.PathFrom <- current
+                                searchFrontier.Change neighbor oldPriority
+                    | _ -> ()
 
     override this._Ready() =
         GD.Print "HexGridFS _Ready"

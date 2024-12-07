@@ -369,3 +369,18 @@ type HexCellFS() as this =
         and set value =
             distance <- value
             updateDistanceLabel ()
+
+    // 突出显示
+    member this.DisableHighlight() =
+        let highlight = this.uiRect.GetNode<Sprite3D> "Highlight"
+        highlight.Visible <- false
+
+    member this.EnableHighlight color =
+        let highlight = this.uiRect.GetNode<Sprite3D> "Highlight"
+        highlight.Modulate <- color
+        highlight.Visible <- true
+
+    member val PathFrom = this with get, set
+    member val SearchHeuristic = 0 with get, set
+    member this.SearchPriority = distance + this.SearchHeuristic
+    member val NextWithSamePriority: HexCellFS option = None with get, set

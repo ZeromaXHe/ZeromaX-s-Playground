@@ -102,6 +102,8 @@ type HexMapEditorFS() as this =
     // dragDirection 的有无对应教程中的 isDrag（即 isDrag 都替换为 dragDirection.IsSome）
     let mutable dragDirection: HexDirection option = None
     let mutable previousCell: HexCellFS option = None
+    let mutable searchFromCell: HexCellFS option = None
+    let mutable searchToCell: HexCellFS option = None
 
     let validateDrag (cell: HexCellFS) =
         if previousCell.IsNone || previousCell.Value = cell then
@@ -196,8 +198,16 @@ type HexMapEditorFS() as this =
 
         if _editModeCheckButton.Value.ButtonPressed then
             editCells cell
-        else
-            _hexGrid.Value.FindDistancesTo cell
+        elif Input.IsKeyPressed Key.Shift && searchToCell <> Some cell then
+            searchFromCell |> Option.iter _.DisableHighlight()
+            searchFromCell <- Some cell
+            searchFromCell.Value.EnableHighlight Colors.Blue
+
+            if searchToCell.IsSome then
+                _hexGrid.Value.FindPath searchFromCell.Value searchToCell.Value
+        elif searchFromCell.IsSome && searchFromCell.Value <> cell then
+            searchToCell <- Some cell
+            _hexGrid.Value.FindPath searchFromCell.Value searchToCell.Value
 
         previousCell <- Some cell
 

@@ -1,10 +1,23 @@
-[gd_scene load_steps=2 format=3 uid="uid://opcnakxgnbbo"]
+[gd_scene load_steps=3 format=3 uid="uid://opcnakxgnbbo"]
 
 [ext_resource type="Script" path="res://game/HexPlane/Map/HexCellLabel.cs" id="1_hu731"]
+[ext_resource type="Texture2D" uid="uid://bjmwv45hc7mt8" path="res://resources/CatlikeCoding/HexMap/cell-outline.png" id="2_7eruc"]
 
 [node name="HexCellLabel" type="Label3D"]
 transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0, 0)
 pixel_size = 0.1
+render_priority = 2
+outline_render_priority = 1
+modulate = Color(0, 0, 0, 1)
+outline_modulate = Color(0.5, 0.5, 0.5, 1)
 text = "--"
 font_size = 64
 script = ExtResource("1_hu731")
+
+[node name="Highlight" type="Sprite3D" parent="."]
+transform = Transform3D(7, 0, 0, 0, 7, 0, 0, 0, 7, 0, 0, 0)
+visible = false
+double_sided = false
+no_depth_test = true
+render_priority = 10
+texture = ExtResource("2_7eruc")
