@@ -359,17 +359,9 @@ type HexCellFS() as this =
     // 距离
     let mutable distance = 0
 
-    let updateDistanceLabel () =
-        let label = this.uiRect
-
-        label.Text <- if distance = Int32.MaxValue then "" else string distance
-
     member this.Distance
         with get () = distance
-        and set value =
-            distance <- value
-            updateDistanceLabel ()
-
+        and set value = distance <- value
     // 突出显示
     member this.DisableHighlight() =
         let highlight = this.uiRect.GetNode<Sprite3D> "Highlight"
@@ -380,7 +372,14 @@ type HexCellFS() as this =
         highlight.Modulate <- color
         highlight.Visible <- true
 
-    member val PathFrom = this with get, set
+    [<DefaultValue>]
+    val mutable PathFrom: HexCellFS
     member val SearchHeuristic = 0 with get, set
     member this.SearchPriority = distance + this.SearchHeuristic
     member val NextWithSamePriority: HexCellFS option = None with get, set
+    // 修改标签
+    member this.SetLabel text =
+        let label = this.uiRect
+        label.Text <- text
+    // 搜索阶段
+    member val SearchPhase = 0 with get, set

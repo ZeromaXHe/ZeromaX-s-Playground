@@ -199,15 +199,17 @@ type HexMapEditorFS() as this =
         if _editModeCheckButton.Value.ButtonPressed then
             editCells cell
         elif Input.IsKeyPressed Key.Shift && searchToCell <> Some cell then
-            searchFromCell |> Option.iter _.DisableHighlight()
-            searchFromCell <- Some cell
-            searchFromCell.Value.EnableHighlight Colors.Blue
+            if searchFromCell <> Some cell then
+                searchFromCell |> Option.iter _.DisableHighlight()
+                searchFromCell <- Some cell
+                searchFromCell.Value.EnableHighlight Colors.Blue
 
-            if searchToCell.IsSome then
-                _hexGrid.Value.FindPath searchFromCell.Value searchToCell.Value
+                if searchToCell.IsSome then
+                    _hexGrid.Value.FindPath searchFromCell.Value searchToCell.Value 24
         elif searchFromCell.IsSome && searchFromCell.Value <> cell then
-            searchToCell <- Some cell
-            _hexGrid.Value.FindPath searchFromCell.Value searchToCell.Value
+            if searchFromCell <> Some cell then
+                searchToCell <- Some cell
+                _hexGrid.Value.FindPath searchFromCell.Value searchToCell.Value 24
 
         previousCell <- Some cell
 
