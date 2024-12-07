@@ -2,6 +2,8 @@ using FrontEndToolFS.Tool;
 using Godot;
 using Godot.Collections;
 
+namespace ZeromaXPlayground.game.HexPlane.Map;
+
 [Tool]
 public partial class HexFeatureManager : HexFeatureManagerFS
 {

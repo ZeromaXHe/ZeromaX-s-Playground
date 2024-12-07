@@ -77,6 +77,8 @@ WaterShore = NodePath("WaterShore")
 Estuaries = NodePath("Estuaries")
 Features = NodePath("Features")
 
+[node name="HexGridCanvas" type="Node3D" parent="."]
+
 [node name="Terrain" parent="." instance=ExtResource("1_ohi0j")]
 material_override = SubResource("ShaderMaterial_ldbv3")
 UseCollider = true

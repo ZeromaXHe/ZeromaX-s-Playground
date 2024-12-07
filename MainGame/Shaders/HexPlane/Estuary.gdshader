@@ -13,7 +13,7 @@ uniform float metallic: hint_range(0.0, 1.0) = 0.0;
 void fragment() {
 	// 获取世界坐标
 	vec3 world_pos = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	
+
 	float shore = UV.y;
 	float foam = Foam(shore, world_pos.xz, main_tex);
 	float waves = Waves(world_pos.xz, main_tex);

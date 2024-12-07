@@ -35,7 +35,7 @@ void fragment() {
 //	SubShader {
 //		Tags { "RenderType"="Transparent" "Queue"="Transparent" }
 //		LOD 200
-//		
+//
 //		CGPROGRAM
 //		#pragma surface surf Standard alpha
 //		#pragma target 3.0

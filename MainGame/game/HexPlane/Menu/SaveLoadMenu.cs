@@ -1,6 +1,8 @@
 using FrontEndToolFS.Tool;
 using Godot;
 
+namespace ZeromaXPlayground.game.HexPlane.Menu;
+
 public partial class SaveLoadMenu : SaveLoadMenuFS
 {
     [Export]

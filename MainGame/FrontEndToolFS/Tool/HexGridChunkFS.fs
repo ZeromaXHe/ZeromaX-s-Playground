@@ -8,6 +8,8 @@ open Godot
 type HexGridChunkFS() as this =
     inherit Node3D()
 
+    let _gridCanvas = lazy this.GetNode<Node3D> "HexGridCanvas"
+
     let mutable cells: HexCellFS array = null
     let mutable anyCell = false
     let color1 = Color(1f, 0f, 0f)
@@ -776,10 +778,13 @@ type HexGridChunkFS() as this =
         cells[index] <- cell
         cell.Chunk <- this
         this.AddChild cell
+        _gridCanvas.Value.AddChild cell.uiRect
 
     member this.ShowGrid(visible: bool) =
         (this.terrain.MaterialOverride :?> ShaderMaterial)
             .SetShaderParameter("grid_on", visible)
+
+    member this.ShowUI visible = _gridCanvas.Value.Visible <- visible
 
     override this._Ready() =
         cells <- Array.zeroCreate <| HexMetrics.chunkSizeX * HexMetrics.chunkSizeZ

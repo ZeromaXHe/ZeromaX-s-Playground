@@ -1,6 +1,8 @@
 using FrontEndToolFS.Tool;
 using Godot;
 
+namespace ZeromaXPlayground.game.HexPlane.Map;
+
 public partial class HexMapCamera : HexMapCameraFS
 {
     [Export]

@@ -9,11 +9,14 @@ open Godot
 type HexGridFS() as this =
     inherit Node3D()
 
-    let _hexCellScene =
-        lazy (GD.Load("res://game/HexPlane/Map/HexCell.tscn") :?> PackedScene)
+    [<DefaultValue>]
+    val mutable cellPrefab: PackedScene
 
-    let _hexChunkScene =
-        lazy (GD.Load("res://game/HexPlane/Map/HexGridChunk.tscn") :?> PackedScene)
+    [<DefaultValue>]
+    val mutable cellLabelPrefab: PackedScene
+
+    [<DefaultValue>]
+    val mutable chunkPrefab: PackedScene
 
     let mutable chunkCountX = 4
     let mutable chunkCountZ = 3
@@ -22,7 +25,7 @@ type HexGridFS() as this =
     let mutable _chunks: HexGridChunkFS array = null
 
     let createChunks () =
-        _chunks <- Array.init (chunkCountX * chunkCountZ) (fun _ -> _hexChunkScene.Value.Instantiate<HexGridChunkFS>())
+        _chunks <- Array.init (chunkCountX * chunkCountZ) (fun _ -> this.chunkPrefab.Instantiate<HexGridChunkFS>())
 
         _chunks
         |> Array.iteri (fun i c ->
@@ -40,7 +43,7 @@ type HexGridFS() as this =
         chunk.AddCell (localX + localZ * HexMetrics.chunkSizeX) cell
 
     let createCells () =
-        _cells <- Array.init (this.cellCountX * this.cellCountZ) (fun _ -> _hexCellScene.Value.Instantiate<HexCellFS>())
+        _cells <- Array.init (this.cellCountX * this.cellCountZ) (fun _ -> this.cellPrefab.Instantiate<HexCellFS>())
 
         for i in 0 .. _cells.Length - 1 do
             let z = i / this.cellCountX
@@ -71,8 +74,9 @@ type HexGridFS() as this =
                     float32 z * HexMetrics.outerRadius * 1.5f
                 )
 
-            // let label = cell.GetNode<Label3D>("Label")
-            // label.Text <- cell.Coordinates.ToStringOnSeparateLines()
+            let label = this.cellLabelPrefab.Instantiate<HexCellLabelFS>()
+            label.Position <- cell.Position + Vector3.Up * 0.01f
+            cell.uiRect <- label
             // 得在 Elevation 前面。不然单元格的块还没赋值的话，setter 里面会有 refresh，需要刷新块，这时空引用会报错
             addCellToChunk x z cell
             // 触发 setter 应用扰动 y
@@ -149,7 +153,7 @@ type HexGridFS() as this =
             true
 
     member this.ShowUI visible =
-        _cells |> Array.iter (fun c -> c.ShowUI visible)
+        _chunks |> Array.iter (fun c -> c.ShowUI visible)
 
     member this.ShowGrid visible =
         // 同一个 Shader 的参数是共有的，改第一个 Chunk 就可以

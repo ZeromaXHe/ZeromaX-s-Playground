@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://opcnakxgnbbo"]
+
+[ext_resource type="Script" path="res://game/HexPlane/Map/HexCellLabel.cs" id="1_hu731"]
+
+[node name="HexCellLabel" type="Label3D"]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0, 0)
+pixel_size = 0.1
+text = "--"
+font_size = 64
+script = ExtResource("1_hu731")

@@ -14,13 +14,14 @@ type IChunk =
 type HexCellFS() as this =
     inherit Node3D()
 
-    let _label = lazy this.GetNode<Label3D> "Label"
-
     [<DefaultValue>]
     val mutable Coordinates: HexCoordinates
 
     [<DefaultValue>]
     val mutable Chunk: IChunk
+
+    [<DefaultValue>]
+    val mutable uiRect: HexCellLabelFS
 
     member val neighbors: HexCellFS option array = Array.create 6 None
 
@@ -62,6 +63,7 @@ type HexCellFS() as this =
             ((HexMetrics.sampleNoise pos).Y * 2f - 1f) * HexMetrics.elevationPerturbStrength
 
         this.Position <- Vector3(pos.X, y + perturbY, pos.Z)
+        this.uiRect.Position <- this.Position + Vector3.Up * 0.01f
 
     member this.Elevation
         with get () = elevation
@@ -91,8 +93,6 @@ type HexCellFS() as this =
 
     member this.GetEdgeType(otherCell: HexCellFS) =
         HexMetrics.getEdgeType elevation otherCell.Elevation
-
-    member this.ShowUI visible = _label.Value.Visible <- visible
 
     let mutable incomingRiver: HexDirection option = None
     let mutable outgoingRiver: HexDirection option = None
@@ -360,7 +360,7 @@ type HexCellFS() as this =
     let mutable distance = 0
 
     let updateDistanceLabel () =
-        let label = this.GetNode<Label3D> "Label"
+        let label = this.uiRect
 
         label.Text <- if distance = Int32.MaxValue then "" else string distance
 

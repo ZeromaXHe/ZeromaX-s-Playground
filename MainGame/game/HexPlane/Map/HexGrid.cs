@@ -1,9 +1,32 @@
-using Godot;
 using FrontEndToolFS.Tool;
+using Godot;
+
+namespace ZeromaXPlayground.game.HexPlane.Map;
 
 [Tool]
 public partial class HexGrid : HexGridFS
 {
+    [Export]
+    public PackedScene CellPrefab
+    {
+        get => cellPrefab;
+        set => cellPrefab = value;
+    }
+
+    [Export]
+    public PackedScene CellLabelPrefab
+    {
+        get => cellLabelPrefab;
+        set => cellLabelPrefab = value;
+    }
+
+    [Export]
+    public PackedScene ChunkPrefab
+    {
+        get => chunkPrefab;
+        set => chunkPrefab = value;
+    }
+
     [Export]
     public int CellCountX
     {
