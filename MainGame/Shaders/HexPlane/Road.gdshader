@@ -4,7 +4,7 @@
 shader_type spatial;
 
 uniform vec4 color: source_color = vec4(1.0, 1.0, 1.0, 1.0);
-uniform sampler2D main_tex: hint_default_white;
+uniform sampler2D main_tex: filter_linear_mipmap, repeat_enable;
 uniform float glossiness: hint_range(0.0, 1.0) = 0.5;
 uniform float metallic: hint_range(0.0, 1.0) = 0.0;
 
@@ -47,7 +47,7 @@ void fragment() {
 //		}
 //		LOD 200
 //		Offset -1, -1
-//		
+//
 //		CGPROGRAM
 //		#pragma surface surf Standard fullforwardshadows decal:blend
 //		#pragma target 3.0
@@ -69,7 +69,7 @@ void fragment() {
 //			float blend = IN.uv_MainTex.x;
 //			blend *= noise.x + 0.5;
 //			blend = smoothstep(0.4, 0.7, blend);
-//			
+//
 //			o.Albedo = c.rgb;
 //			o.Metallic = _Metallic;
 //			o.Smoothness = _Glossiness;

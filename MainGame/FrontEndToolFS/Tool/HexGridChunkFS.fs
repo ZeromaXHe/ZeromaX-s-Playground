@@ -12,9 +12,9 @@ type HexGridChunkFS() as this =
 
     let mutable cells: HexCellFS array = null
     let mutable anyCell = false
-    let color1 = Color(1f, 0f, 0f)
-    let color2 = Color(0f, 1f, 0f)
-    let color3 = Color(0f, 0f, 1f)
+    let color1 = Colors.Red
+    let color2 = Colors.Green
+    let color3 = Colors.Blue
     /// 三角形纯色数组
     let tri1Arr c = Array.create 3 c
     /// 四边形纯色数组

@@ -3,7 +3,7 @@
 shader_type spatial;
 
 uniform vec4 color: source_color = vec4(1.0, 1.0, 1.0, 1.0);
-uniform sampler2D main_tex: hint_default_white;
+uniform sampler2D main_tex: source_color, filter_linear_mipmap, repeat_enable;
 uniform float glossiness: hint_range(0.0, 1.0) = 0.5;
 uniform float metallic: hint_range(0.0, 1.0) = 0.0;
 

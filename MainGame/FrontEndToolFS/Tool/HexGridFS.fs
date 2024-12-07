@@ -292,3 +292,16 @@ type HexGridFS() as this =
             for cell in _cells do
                 cell.TerrainTypeIndex <- rand.Next(0, 5)
                 cell.Elevation <- rand.Next(0, 7)
+                cell.WaterLevel <- 3
+
+                if cell.Elevation > 3 then
+                    cell.UrbanLevel <- rand.Next(0, 4)
+                    cell.FarmLevel <- rand.Next(0, 4)
+                    cell.PlantLevel <- rand.Next(0, 4)
+
+                    if cell.UrbanLevel = 3 then
+                        cell.Walled <- true
+
+                    cell.SetOutgoingRiver(rand.Next(0, 6) |> enum<HexDirection>)
+                    cell.SetRoad <| rand.Next(0, 6) <| true
+                    cell.SetRoad <| rand.Next(0, 6) <| true

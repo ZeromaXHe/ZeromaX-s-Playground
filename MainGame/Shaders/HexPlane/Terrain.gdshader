@@ -7,9 +7,9 @@ render_mode depth_prepass_alpha;
 
 // 定义 Uniform 变量
 uniform vec4 color: source_color = vec4(1.0, 1.0, 1.0, 1.0);
-uniform sampler2DArray main_tex: hint_default_white;
+uniform sampler2DArray main_tex: source_color, filter_linear_mipmap, repeat_enable;
 uniform bool grid_on = true;
-uniform sampler2D grid_tex: hint_default_white;
+uniform sampler2D grid_tex: source_color;
 uniform float glossiness: hint_range(0.0, 1.0) = 0.3;
 uniform float metallic: hint_range(0.0, 1.0) = 0.0;
 
@@ -28,9 +28,10 @@ vec4 GetTerrainColor(vec3 world_pos, int index, vec4 inColor) {
 void fragment() {
 	// 获取世界坐标
 	vec3 world_pos = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	vec4 c = GetTerrainColor(world_pos, 0, COLOR) +
-		GetTerrainColor(world_pos, 1, COLOR) +
-		GetTerrainColor(world_pos, 2, COLOR);
+	vec4 inColor = COLOR;
+	vec4 c = GetTerrainColor(world_pos, 0, inColor) +
+		GetTerrainColor(world_pos, 1, inColor) +
+		GetTerrainColor(world_pos, 2, inColor);
 	// 渲染六边形网格
 	vec4 grid = vec4(1.0);
 	if (grid_on) {
