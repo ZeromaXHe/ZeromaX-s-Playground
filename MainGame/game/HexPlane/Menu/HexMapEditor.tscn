@@ -1,9 +1,10 @@
-[gd_scene load_steps=6 format=3 uid="uid://bv4ennj4u5ap7"]
+[gd_scene load_steps=7 format=3 uid="uid://bv4ennj4u5ap7"]
 
 [ext_resource type="Script" path="res://game/HexPlane/Menu/HexMapEditor.cs" id="1_pjtj7"]
 [ext_resource type="PackedScene" uid="uid://ctsv3hyrh2w4j" path="res://game/HexPlane/Map/HexGrid.tscn" id="2_g6vaw"]
 [ext_resource type="PackedScene" uid="uid://dolya8qm0l4jk" path="res://game/HexPlane/Menu/NewMapMenu.tscn" id="3_rt4n2"]
 [ext_resource type="PackedScene" uid="uid://b13t7sj6f2ei6" path="res://game/HexPlane/Map/HexMapCamera.tscn" id="3_tv3uy"]
+[ext_resource type="PackedScene" uid="uid://bq8kkm70fsidi" path="res://game/HexPlane/Menu/HexGameUi.tscn" id="4_of2k3"]
 [ext_resource type="PackedScene" uid="uid://br6a86xflw0sy" path="res://game/HexPlane/Menu/SaveLoadMenu.tscn" id="5_qwppy"]
 
 [node name="HexMapEditor" type="Control"]
@@ -37,30 +38,36 @@ render_target_update_mode = 4
 [node name="HexMapCamera2" parent="SubViewportContainer/SubViewport/HexGrid" node_paths=PackedStringArray("Grid") instance=ExtResource("3_tv3uy")]
 Grid = NodePath("..")
 
-[node name="PanelC" type="PanelContainer" parent="."]
+[node name="TabC" type="TabContainer" parent="."]
 layout_mode = 1
-anchors_preset = 9
-anchor_bottom = 1.0
-offset_right = 180.0
-grow_vertical = 2
+offset_right = 190.0
+offset_bottom = 31.0
+current_tab = 0
+deselect_enabled = true
 
-[node name="ScrollC" type="ScrollContainer" parent="PanelC"]
+[node name="Editor" type="PanelContainer" parent="TabC"]
+custom_minimum_size = Vector2(190, 600)
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="ScrollC" type="ScrollContainer" parent="TabC/Editor"]
 layout_mode = 2
 
-[node name="CellVBox" type="VBoxContainer" parent="PanelC/ScrollC"]
+[node name="CellVBox" type="VBoxContainer" parent="TabC/Editor/ScrollC"]
+custom_minimum_size = Vector2(190, 600)
 layout_mode = 2
 size_flags_horizontal = 3
 alignment = 1
 
-[node name="TerrainHBox" type="HBoxContainer" parent="PanelC/ScrollC/CellVBox"]
+[node name="TerrainHBox" type="HBoxContainer" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="TerrainLabel" type="Label" parent="PanelC/ScrollC/CellVBox/TerrainHBox"]
+[node name="TerrainLabel" type="Label" parent="TabC/Editor/ScrollC/CellVBox/TerrainHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Terrain"
 
-[node name="TerrainMode" type="OptionButton" parent="PanelC/ScrollC/CellVBox/TerrainHBox"]
+[node name="TerrainMode" type="OptionButton" parent="TabC/Editor/ScrollC/CellVBox/TerrainHBox"]
 layout_mode = 2
 selected = 0
 item_count = 6
@@ -76,92 +83,92 @@ popup/item_4/id = 4
 popup/item_5/text = "Snow"
 popup/item_5/id = 5
 
-[node name="HSeparator" type="HSeparator" parent="PanelC/ScrollC/CellVBox"]
+[node name="HSeparator" type="HSeparator" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="ElevationChange" type="CheckButton" parent="PanelC/ScrollC/CellVBox"]
+[node name="ElevationChange" type="CheckButton" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 button_pressed = true
 text = "Elevation"
 
-[node name="ElevationSlider" type="HSlider" parent="PanelC/ScrollC/CellVBox"]
+[node name="ElevationSlider" type="HSlider" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 max_value = 6.0
 tick_count = 7
 ticks_on_borders = true
 
-[node name="HSeparator2" type="HSeparator" parent="PanelC/ScrollC/CellVBox"]
+[node name="HSeparator2" type="HSeparator" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="WaterChange" type="CheckButton" parent="PanelC/ScrollC/CellVBox"]
+[node name="WaterChange" type="CheckButton" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 text = "Water"
 
-[node name="WaterSlider" type="HSlider" parent="PanelC/ScrollC/CellVBox"]
+[node name="WaterSlider" type="HSlider" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 max_value = 6.0
 tick_count = 7
 ticks_on_borders = true
 
-[node name="HSeparator3" type="HSeparator" parent="PanelC/ScrollC/CellVBox"]
+[node name="HSeparator3" type="HSeparator" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="UrbanChange" type="CheckButton" parent="PanelC/ScrollC/CellVBox"]
+[node name="UrbanChange" type="CheckButton" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 text = "Urban"
 
-[node name="UrbanSlider" type="HSlider" parent="PanelC/ScrollC/CellVBox"]
+[node name="UrbanSlider" type="HSlider" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 max_value = 3.0
 tick_count = 4
 ticks_on_borders = true
 
-[node name="FarmChange" type="CheckButton" parent="PanelC/ScrollC/CellVBox"]
+[node name="FarmChange" type="CheckButton" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 text = "Farm"
 
-[node name="FarmSlider" type="HSlider" parent="PanelC/ScrollC/CellVBox"]
+[node name="FarmSlider" type="HSlider" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 max_value = 3.0
 tick_count = 4
 ticks_on_borders = true
 
-[node name="PlantChange" type="CheckButton" parent="PanelC/ScrollC/CellVBox"]
+[node name="PlantChange" type="CheckButton" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 text = "Plant"
 
-[node name="PlantSlider" type="HSlider" parent="PanelC/ScrollC/CellVBox"]
+[node name="PlantSlider" type="HSlider" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 max_value = 3.0
 tick_count = 4
 ticks_on_borders = true
 
-[node name="HSeparator4" type="HSeparator" parent="PanelC/ScrollC/CellVBox"]
+[node name="HSeparator4" type="HSeparator" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="BrushLabel2" type="Label" parent="PanelC/ScrollC/CellVBox"]
+[node name="BrushLabel2" type="Label" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 text = "Brush Size"
 horizontal_alignment = 1
 
-[node name="BrushSlider" type="HSlider" parent="PanelC/ScrollC/CellVBox"]
+[node name="BrushSlider" type="HSlider" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 max_value = 4.0
 tick_count = 5
 ticks_on_borders = true
 
-[node name="HSeparator5" type="HSeparator" parent="PanelC/ScrollC/CellVBox"]
+[node name="HSeparator5" type="HSeparator" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="RiverHBox" type="HBoxContainer" parent="PanelC/ScrollC/CellVBox"]
+[node name="RiverHBox" type="HBoxContainer" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="RiverLabel" type="Label" parent="PanelC/ScrollC/CellVBox/RiverHBox"]
+[node name="RiverLabel" type="Label" parent="TabC/Editor/ScrollC/CellVBox/RiverHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "River"
 
-[node name="RiverMode" type="OptionButton" parent="PanelC/ScrollC/CellVBox/RiverHBox"]
+[node name="RiverMode" type="OptionButton" parent="TabC/Editor/ScrollC/CellVBox/RiverHBox"]
 layout_mode = 2
 selected = 0
 item_count = 3
@@ -171,15 +178,15 @@ popup/item_1/id = 1
 popup/item_2/text = "No"
 popup/item_2/id = 2
 
-[node name="RoadHBox" type="HBoxContainer" parent="PanelC/ScrollC/CellVBox"]
+[node name="RoadHBox" type="HBoxContainer" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="RoadLabel" type="Label" parent="PanelC/ScrollC/CellVBox/RoadHBox"]
+[node name="RoadLabel" type="Label" parent="TabC/Editor/ScrollC/CellVBox/RoadHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Road"
 
-[node name="RoadMode" type="OptionButton" parent="PanelC/ScrollC/CellVBox/RoadHBox"]
+[node name="RoadMode" type="OptionButton" parent="TabC/Editor/ScrollC/CellVBox/RoadHBox"]
 layout_mode = 2
 selected = 0
 item_count = 3
@@ -189,15 +196,15 @@ popup/item_1/id = 1
 popup/item_2/text = "No"
 popup/item_2/id = 2
 
-[node name="WalledHBox" type="HBoxContainer" parent="PanelC/ScrollC/CellVBox"]
+[node name="WalledHBox" type="HBoxContainer" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="WalledLabel" type="Label" parent="PanelC/ScrollC/CellVBox/WalledHBox"]
+[node name="WalledLabel" type="Label" parent="TabC/Editor/ScrollC/CellVBox/WalledHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Walled"
 
-[node name="WalledMode" type="OptionButton" parent="PanelC/ScrollC/CellVBox/WalledHBox"]
+[node name="WalledMode" type="OptionButton" parent="TabC/Editor/ScrollC/CellVBox/WalledHBox"]
 layout_mode = 2
 selected = 0
 item_count = 3
@@ -207,15 +214,15 @@ popup/item_1/id = 1
 popup/item_2/text = "No"
 popup/item_2/id = 2
 
-[node name="SpecialHBox" type="HBoxContainer" parent="PanelC/ScrollC/CellVBox"]
+[node name="SpecialHBox" type="HBoxContainer" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="SpecialLabel" type="Label" parent="PanelC/ScrollC/CellVBox/SpecialHBox"]
+[node name="SpecialLabel" type="Label" parent="TabC/Editor/ScrollC/CellVBox/SpecialHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Special"
 
-[node name="SpecialMode" type="OptionButton" parent="PanelC/ScrollC/CellVBox/SpecialHBox"]
+[node name="SpecialMode" type="OptionButton" parent="TabC/Editor/ScrollC/CellVBox/SpecialHBox"]
 layout_mode = 2
 selected = 0
 item_count = 5
@@ -229,38 +236,39 @@ popup/item_3/id = 3
 popup/item_4/text = "MegaFlora"
 popup/item_4/id = 4
 
-[node name="HSeparator6" type="HSeparator" parent="PanelC/ScrollC/CellVBox"]
+[node name="HSeparator6" type="HSeparator" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="ShowGrid" type="CheckButton" parent="PanelC/ScrollC/CellVBox"]
+[node name="ShowGrid" type="CheckButton" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 button_pressed = true
 text = "Show Grid"
 
-[node name="EditMode" type="CheckButton" parent="PanelC/ScrollC/CellVBox"]
-layout_mode = 2
-text = "Edit Mode"
-
-[node name="Wireframe" type="CheckButton" parent="PanelC/ScrollC/CellVBox"]
+[node name="Wireframe" type="CheckButton" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 text = "Wireframe"
 
-[node name="SaveLoadHBox" type="HBoxContainer" parent="PanelC/ScrollC/CellVBox"]
+[node name="SaveLoadHBox" type="HBoxContainer" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 
-[node name="SaveButton" type="Button" parent="PanelC/ScrollC/CellVBox/SaveLoadHBox"]
+[node name="SaveButton" type="Button" parent="TabC/Editor/ScrollC/CellVBox/SaveLoadHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Save"
 
-[node name="LoadButton" type="Button" parent="PanelC/ScrollC/CellVBox/SaveLoadHBox"]
+[node name="LoadButton" type="Button" parent="TabC/Editor/ScrollC/CellVBox/SaveLoadHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Load"
 
-[node name="NewMapButton" type="Button" parent="PanelC/ScrollC/CellVBox"]
+[node name="NewMapButton" type="Button" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 text = "New Map"
+
+[node name="GameUi" parent="TabC" node_paths=PackedStringArray("Grid") instance=ExtResource("4_of2k3")]
+visible = false
+layout_mode = 2
+Grid = NodePath("../../SubViewportContainer/SubViewport/HexGrid")
 
 [node name="NewMapMenu" parent="." node_paths=PackedStringArray("HexGrid") instance=ExtResource("3_rt4n2")]
 visible = false

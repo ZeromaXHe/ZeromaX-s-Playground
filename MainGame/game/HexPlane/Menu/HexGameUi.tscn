@@ -1,0 +1,20 @@
+[gd_scene load_steps=2 format=3 uid="uid://bq8kkm70fsidi"]
+
+[ext_resource type="Script" path="res://game/HexPlane/Menu/HexGameUi.cs" id="1_kakf3"]
+
+[node name="HexGameUI" type="PanelContainer"]
+custom_minimum_size = Vector2(190, 300)
+script = ExtResource("1_kakf3")
+metadata/_tab_index = 1
+
+[node name="ScrollC" type="ScrollContainer" parent="."]
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="ScrollC"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="ScrollC/VBox"]
+layout_mode = 2
+text = "Game Mode"
+horizontal_alignment = 1

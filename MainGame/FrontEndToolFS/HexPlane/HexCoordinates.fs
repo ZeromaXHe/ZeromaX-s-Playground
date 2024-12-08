@@ -1,5 +1,6 @@
 namespace FrontEndToolFS.HexPlane
 
+open System.IO
 open Godot
 
 type HexCoordinates =
@@ -43,4 +44,13 @@ type HexCoordinates =
              + (abs <| this.Y - other.Y)
              + (abs <| this.Z - other.Z))
             / 2
+
+        member this.Save(writer: BinaryWriter) =
+            writer.Write this.X
+            writer.Write this.Z
+
+        static member Load(reader: BinaryReader) =
+            let x = reader.ReadInt32()
+            let z = reader.ReadInt32()
+            HexCoordinates(x, z)
     end

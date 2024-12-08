@@ -82,6 +82,7 @@ type HexGridFS() as this =
 
     let mutable _cells: HexCellFS array = null
     let mutable _chunks: HexGridChunkFS array = null
+    let units = List<HexUnitFS>()
 
     let createChunks () =
         _chunks <- Array.init (chunkCountX * chunkCountZ) (fun _ -> this.chunkPrefab.Instantiate<HexGridChunkFS>())
@@ -146,6 +147,7 @@ type HexGridFS() as this =
     let mutable currentPathFrom: HexCellFS option = None
     let mutable currentPathTo: HexCellFS option = None
     let mutable currentPathExists = false
+    member this.HasPath = currentPathExists
 
     let search (fromCell: HexCellFS) (toCell: HexCellFS) speed =
         searchFrontierPhase <- 2 + searchFrontierPhase
@@ -170,6 +172,7 @@ type HexGridFS() as this =
                     | Some neighbor when
                         neighbor.SearchPhase <= searchFrontierPhase
                         && not neighbor.IsUnderWater
+                        && neighbor.Unit.IsNone
                         && current.GetEdgeType neighbor <> HexEdgeType.Cliff
                         ->
                         let moveCost =
@@ -224,29 +227,18 @@ type HexGridFS() as this =
         currentPathFrom.Value.EnableHighlight Colors.Blue
         currentPathTo.Value.EnableHighlight Colors.Red
 
-    let clearPath () =
-        if currentPathExists then
-            let mutable current = currentPathTo.Value
-
-            while current <> currentPathFrom.Value do
-                current.SetLabel ""
-                current.DisableHighlight()
-                current <- current.PathFrom
-
-            current.DisableHighlight()
-            currentPathExists <- false
-        elif currentPathFrom.IsSome then
-            currentPathFrom.Value.DisableHighlight()
-            currentPathTo.Value.DisableHighlight()
-
-        currentPathFrom <- None
-        currentPathTo <- None
+    let clearUnits () =
+        units |> Seq.iter _.Die()
+        units.Clear()
 
     member val cellCountX: int = 20 with get, set
     member val cellCountZ: int = 15 with get, set
     // 其实这里可以直接导入 Image, 在导入界面选择导入类型。但是导入 Image 的场景 tscn 文件会大得吓人……（等于直接按像素写一遍）
     member val _noiseSource: Texture2D = null with get, set
     member val seed = 1234 with get, set
+
+    [<DefaultValue>]
+    val mutable unitPrefab: PackedScene
 
     member this.CameraRayCastToMouse() =
         let spaceState = this.GetWorld3D().DirectSpaceState
@@ -281,15 +273,24 @@ type HexGridFS() as this =
         writer.Write this.cellCountX
         writer.Write this.cellCountZ
         _cells |> Array.iter _.Save(writer)
+        writer.Write units.Count
+        units |> Seq.iter _.Save(writer)
 
     member this.Load (reader: BinaryReader) header =
-        clearPath ()
+        this.ClearPath()
+        clearUnits ()
         let x = if header >= 1 then reader.ReadInt32() else 20
         let z = if header >= 1 then reader.ReadInt32() else 15
 
         if (x = this.cellCountX && z = this.cellCountZ) || this.CreateMap x z then
             _cells |> Array.iter _.Load(reader)
             _chunks |> Array.iter _.Refresh()
+
+        if header >= 2 then
+            let unitCount = reader.ReadInt32()
+
+            for i in 0 .. unitCount - 1 do
+                HexUnitFS.Load reader this
 
     member this.CreateMap x z =
         if
@@ -301,7 +302,8 @@ type HexGridFS() as this =
             GD.PrintErr "Unsupported map size"
             false
         else
-            clearPath ()
+            this.ClearPath()
+            clearUnits ()
 
             if _chunks <> null then
                 _chunks |> Array.iter _.QueueFree()
@@ -325,7 +327,7 @@ type HexGridFS() as this =
     member this.FindPath (fromCell: HexCellFS) (toCell: HexCellFS) speed =
         let sw = Stopwatch()
         sw.Start()
-        clearPath ()
+        this.ClearPath()
         currentPathFrom <- Some fromCell
         currentPathTo <- Some toCell
         currentPathExists <- search fromCell toCell speed
@@ -334,10 +336,64 @@ type HexGridFS() as this =
         // BUG: 现在一次点击会执行多次
         GD.Print $"FindPath search cost: {sw.ElapsedMilliseconds} ms"
 
+    member this.ClearPath() =
+        if currentPathExists then
+            let mutable current = currentPathTo.Value
+
+            while current <> currentPathFrom.Value do
+                current.SetLabel ""
+                current.DisableHighlight()
+                current <- current.PathFrom
+
+            current.DisableHighlight()
+            currentPathExists <- false
+        elif currentPathFrom.IsSome then
+            currentPathFrom.Value.DisableHighlight()
+            currentPathTo.Value.DisableHighlight()
+
+        currentPathFrom <- None
+        currentPathTo <- None
+
+    interface IGrid with
+        // 感觉 Catlike Coding 这部分的逻辑写的一坨……
+        override this.AddUnit prefab cellOpt orientation =
+            cellOpt
+            |> Option.iter (fun cell ->
+                let unit = prefab.Instantiate<HexUnitFS>()
+                this.AddUnit unit cell orientation)
+
+        override this.GetCell coordinates = this.GetCell coordinates
+
+    member this.AddUnit (unit: HexUnitFS) (location: HexCellFS) orientation =
+        units.Add unit
+        unit.Location <- Some location
+        unit.Orientation <- orientation
+        this.AddChild unit
+
+    member this.RemoveUnit(unit: HexUnitFS) =
+        units.Remove unit |> ignore
+        unit.Die()
+
+    member this.GetRayCell() =
+        let result = this.CameraRayCastToMouse()
+
+        if result = null || result.Count = 0 then
+            // GD.Print "rayCast empty result"
+            None
+        else
+            let bool, res = result.TryGetValue "position"
+
+            if bool then
+                res.As<Vector3>() |> this.GetCell
+            else
+                // GD.Print "rayCast no position"
+                None
+
     override this._Ready() =
         GD.Print "HexGridFS _Ready"
         HexMetrics.noiseSource <- this._noiseSource.GetImage()
         HexMetrics.initializeHashGrid <| uint64 this.seed
+        HexUnitFS.unitPrefab <- this.unitPrefab
         this.CreateMap this.cellCountX this.cellCountZ |> ignore
         // 编辑器里显示随机颜色和随机高度的单元格
         if Engine.IsEditorHint() then

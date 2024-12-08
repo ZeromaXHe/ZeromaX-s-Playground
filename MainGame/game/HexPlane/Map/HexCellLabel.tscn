@@ -10,7 +10,6 @@ render_priority = 2
 outline_render_priority = 1
 modulate = Color(0, 0, 0, 1)
 outline_modulate = Color(0.5, 0.5, 0.5, 1)
-text = "--"
 font_size = 64
 script = ExtResource("1_hu731")
 

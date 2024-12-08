@@ -766,12 +766,12 @@ type HexGridChunkFS() as this =
     val mutable features: HexFeatureManagerFS
 
     interface IChunk with
-        member this.Refresh() =
-            // GD.Print $"{this.Name} Refresh"
-            this.SetProcess true
+        override this.Refresh() = this.Refresh()
 
     // F# 接口方法只能通过接口调用，通过这样把普通对象的 Refresh() 暴露直接使用
-    member this.Refresh() = (this :> IChunk).Refresh()
+    member this.Refresh() =
+        // GD.Print $"{this.Name} Refresh"
+        this.SetProcess true
 
     member this.AddCell index cell =
         anyCell <- true

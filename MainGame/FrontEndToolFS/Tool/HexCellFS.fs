@@ -2,6 +2,7 @@ namespace FrontEndToolFS.Tool
 
 open System
 open System.IO
+open System.Reactive
 open FrontEndToolFS.HexPlane
 open FrontEndToolFS.HexPlane.HexDirection
 open Godot
@@ -9,6 +10,12 @@ open Godot
 type IChunk =
     interface
         abstract member Refresh: unit -> unit
+    end
+
+type IUnit =
+    interface
+        abstract member ValidateLocation: unit -> unit
+        abstract member Die: unit -> unit
     end
 
 type HexCellFS() as this =
@@ -41,7 +48,11 @@ type HexCellFS() as this =
             if n.IsSome && n.Value.Chunk <> this.Chunk then
                 n.Value.Chunk.Refresh())
 
-    member this.RefreshSelfOnly() = this.Chunk.Refresh()
+        this.Unit |> Option.iter _.ValidateLocation()
+
+    member this.RefreshSelfOnly() =
+        this.Chunk.Refresh()
+        this.Unit |> Option.iter _.ValidateLocation()
 
     let mutable terrainTypeIndex = 0
 
@@ -374,6 +385,7 @@ type HexCellFS() as this =
 
     [<DefaultValue>]
     val mutable PathFrom: HexCellFS
+
     member val SearchHeuristic = 0 with get, set
     member this.SearchPriority = distance + this.SearchHeuristic
     member val NextWithSamePriority: HexCellFS option = None with get, set
@@ -383,3 +395,5 @@ type HexCellFS() as this =
         label.Text <- text
     // 搜索阶段
     member val SearchPhase = 0 with get, set
+    // 单位
+    member val Unit: IUnit option = None with get, set

@@ -20,6 +20,7 @@
         <Compile Include="Tool\HexPlanetManagerFS.fs" />
         <Compile Include="Tool\HexCellLabelFS.fs" />
         <Compile Include="Tool\HexCellFS.fs" />
+        <Compile Include="Tool\HexUnitFS.fs" />
         <Compile Include="Tool\HexMeshFS.fs" />
         <Compile Include="Tool\HexFeatureManagerFS.fs" />
         <Compile Include="Tool\HexGridChunkFS.fs" />
@@ -28,6 +29,7 @@
         <Compile Include="Tool\SaveLoadItemFS.fs" />
         <Compile Include="Tool\SaveLoadMenuFS.fs" />
         <Compile Include="Tool\NewMapMenuFS.fs" />
+        <Compile Include="Tool\HexGameUiFS.fs" />
         <Compile Include="Tool\HexMapEditorFS.fs" />
     </ItemGroup>
 

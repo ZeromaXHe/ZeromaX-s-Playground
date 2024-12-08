@@ -1,6 +1,5 @@
 namespace FrontEndToolFS.Tool
 
-open System.IO
 open FrontEndToolFS.HexPlane
 open FrontEndToolFS.HexPlane.HexDirection
 open Godot
@@ -16,65 +15,72 @@ type HexMapEditorFS() as this =
     let _hexGrid =
         lazy this.GetNode<HexGridFS> "SubViewportContainer/SubViewport/HexGrid"
 
+    let _tabContainer = lazy this.GetNode<TabContainer> "TabC"
+
+    let _gameUi = lazy this.GetNode<HexGameUiFS> "TabC/GameUi"
+
     let _terrainModeOptionButton =
-        lazy this.GetNode<OptionButton> "PanelC/ScrollC/CellVBox/TerrainHBox/TerrainMode"
+        lazy this.GetNode<OptionButton> "TabC/Editor/ScrollC/CellVBox/TerrainHBox/TerrainMode"
 
     let _elevationChangeCheckButton =
-        lazy this.GetNode<CheckButton> "PanelC/ScrollC/CellVBox/ElevationChange"
+        lazy this.GetNode<CheckButton> "TabC/Editor/ScrollC/CellVBox/ElevationChange"
 
     let _elevationSlider =
-        lazy this.GetNode<HSlider> "PanelC/ScrollC/CellVBox/ElevationSlider"
+        lazy this.GetNode<HSlider> "TabC/Editor/ScrollC/CellVBox/ElevationSlider"
 
     let _waterChangeCheckButton =
-        lazy this.GetNode<CheckButton> "PanelC/ScrollC/CellVBox/WaterChange"
+        lazy this.GetNode<CheckButton> "TabC/Editor/ScrollC/CellVBox/WaterChange"
 
-    let _waterSlider = lazy this.GetNode<HSlider> "PanelC/ScrollC/CellVBox/WaterSlider"
+    let _waterSlider =
+        lazy this.GetNode<HSlider> "TabC/Editor/ScrollC/CellVBox/WaterSlider"
 
     let _urbanChangeCheckButton =
-        lazy this.GetNode<CheckButton> "PanelC/ScrollC/CellVBox/UrbanChange"
+        lazy this.GetNode<CheckButton> "TabC/Editor/ScrollC/CellVBox/UrbanChange"
 
-    let _urbanSlider = lazy this.GetNode<HSlider> "PanelC/ScrollC/CellVBox/UrbanSlider"
+    let _urbanSlider =
+        lazy this.GetNode<HSlider> "TabC/Editor/ScrollC/CellVBox/UrbanSlider"
 
     let _farmChangeCheckButton =
-        lazy this.GetNode<CheckButton> "PanelC/ScrollC/CellVBox/FarmChange"
+        lazy this.GetNode<CheckButton> "TabC/Editor/ScrollC/CellVBox/FarmChange"
 
-    let _farmSlider = lazy this.GetNode<HSlider> "PanelC/ScrollC/CellVBox/FarmSlider"
+    let _farmSlider =
+        lazy this.GetNode<HSlider> "TabC/Editor/ScrollC/CellVBox/FarmSlider"
 
     let _plantChangeCheckButton =
-        lazy this.GetNode<CheckButton> "PanelC/ScrollC/CellVBox/PlantChange"
+        lazy this.GetNode<CheckButton> "TabC/Editor/ScrollC/CellVBox/PlantChange"
 
-    let _plantSlider = lazy this.GetNode<HSlider> "PanelC/ScrollC/CellVBox/PlantSlider"
+    let _plantSlider =
+        lazy this.GetNode<HSlider> "TabC/Editor/ScrollC/CellVBox/PlantSlider"
 
-    let _brushSlider = lazy this.GetNode<HSlider> "PanelC/ScrollC/CellVBox/BrushSlider"
+    let _brushSlider =
+        lazy this.GetNode<HSlider> "TabC/Editor/ScrollC/CellVBox/BrushSlider"
 
     let _riverModeOptionButton =
-        lazy this.GetNode<OptionButton> "PanelC/ScrollC/CellVBox/RiverHBox/RiverMode"
+        lazy this.GetNode<OptionButton> "TabC/Editor/ScrollC/CellVBox/RiverHBox/RiverMode"
 
     let _roadModeOptionButton =
-        lazy this.GetNode<OptionButton> "PanelC/ScrollC/CellVBox/RoadHBox/RoadMode"
+        lazy this.GetNode<OptionButton> "TabC/Editor/ScrollC/CellVBox/RoadHBox/RoadMode"
 
     let _walledModeOptionButton =
-        lazy this.GetNode<OptionButton> "PanelC/ScrollC/CellVBox/WalledHBox/WalledMode"
+        lazy this.GetNode<OptionButton> "TabC/Editor/ScrollC/CellVBox/WalledHBox/WalledMode"
 
     let _specialModeOptionButton =
-        lazy this.GetNode<OptionButton> "PanelC/ScrollC/CellVBox/SpecialHBox/SpecialMode"
+        lazy this.GetNode<OptionButton> "TabC/Editor/ScrollC/CellVBox/SpecialHBox/SpecialMode"
 
     let _showGridCheckButton =
-        lazy this.GetNode<CheckButton> "PanelC/ScrollC/CellVBox/ShowGrid"
-
-    let _editModeCheckButton =
-        lazy this.GetNode<CheckButton> "PanelC/ScrollC/CellVBox/EditMode"
+        lazy this.GetNode<CheckButton> "TabC/Editor/ScrollC/CellVBox/ShowGrid"
 
     let _wireframeCheckButton =
-        lazy this.GetNode<CheckButton> "PanelC/ScrollC/CellVBox/Wireframe"
+        lazy this.GetNode<CheckButton> "TabC/Editor/ScrollC/CellVBox/Wireframe"
 
     let _saveButton =
-        lazy this.GetNode<Button> "PanelC/ScrollC/CellVBox/SaveLoadHBox/SaveButton"
+        lazy this.GetNode<Button> "TabC/Editor/ScrollC/CellVBox/SaveLoadHBox/SaveButton"
 
     let _loadButton =
-        lazy this.GetNode<Button> "PanelC/ScrollC/CellVBox/SaveLoadHBox/LoadButton"
+        lazy this.GetNode<Button> "TabC/Editor/ScrollC/CellVBox/SaveLoadHBox/LoadButton"
 
-    let _newMapButton = lazy this.GetNode<Button> "PanelC/ScrollC/CellVBox/NewMapButton"
+    let _newMapButton =
+        lazy this.GetNode<Button> "TabC/Editor/ScrollC/CellVBox/NewMapButton"
 
     let _newMapMenu = lazy this.GetNode<NewMapMenuFS> "NewMapMenu"
 
@@ -102,8 +108,6 @@ type HexMapEditorFS() as this =
     // dragDirection 的有无对应教程中的 isDrag（即 isDrag 都替换为 dragDirection.IsSome）
     let mutable dragDirection: HexDirection option = None
     let mutable previousCell: HexCellFS option = None
-    let mutable searchFromCell: HexCellFS option = None
-    let mutable searchToCell: HexCellFS option = None
 
     let validateDrag (cell: HexCellFS) =
         if previousCell.IsNone || previousCell.Value = cell then
@@ -178,43 +182,37 @@ type HexMapEditorFS() as this =
     // 显示/隐藏网格材质
     let showGrid visible = _hexGrid.Value.ShowGrid visible
 
-    let getMouseHitPoint () =
-        let result = _hexGrid.Value.CameraRayCastToMouse()
-
-        if result = null || result.Count = 0 then
-            // GD.Print "rayCast empty result"
-            None
-        else
-            let bool, res = result.TryGetValue "position"
-
-            if bool then
-                Some <| res.As<Vector3>()
-            else
-                // GD.Print "rayCast no position"
-                None
+    let getCellUnderCursor () = _hexGrid.Value.GetRayCell()
 
     let handleCurrentCell cell =
         dragDirection <- validateDrag cell
-
-        if _editModeCheckButton.Value.ButtonPressed then
-            editCells cell
-        elif Input.IsKeyPressed Key.Shift && searchToCell <> Some cell then
-            if searchFromCell <> Some cell then
-                searchFromCell |> Option.iter _.DisableHighlight()
-                searchFromCell <- Some cell
-                searchFromCell.Value.EnableHighlight Colors.Blue
-
-                if searchToCell.IsSome then
-                    _hexGrid.Value.FindPath searchFromCell.Value searchToCell.Value 24
-        elif searchFromCell.IsSome && searchFromCell.Value <> cell then
-            if searchFromCell <> Some cell then
-                searchToCell <- Some cell
-                _hexGrid.Value.FindPath searchFromCell.Value searchToCell.Value 24
-
+        editCells cell
         previousCell <- Some cell
 
+    let createUnit () =
+        getCellUnderCursor ()
+        |> Option.filter _.Unit.IsNone
+        |> Option.iter (fun cell ->
+            let unit = HexUnitFS.unitPrefab.Instantiate<HexUnitFS>()
+            let orientation = GD.Randf() * 360f
+            _hexGrid.Value.AddUnit unit cell orientation)
+
+    let destroyUnit () =
+        getCellUnderCursor ()
+        |> Option.filter _.Unit.IsNone
+        |> Option.bind _.Unit
+        |> Option.iter (fun u -> _hexGrid.Value.RemoveUnit(u :?> HexUnitFS))
+
+    member this.SetEditMode toggle = this.SetProcess toggle
 
     override this._Ready() =
+        _tabContainer.Value.add_TabChanged (fun tab ->
+            let editMode = int tab = 0
+            this.SetEditMode editMode
+            _gameUi.Value.SetEditMode editMode)
+
+        _tabContainer.Value.CurrentTab <- 0
+        // 编辑界面
         _terrainModeOptionButton.Value.Selected <- activeTerrainTypeIndex
         _elevationSlider.Value.Value <- activeElevation
         _waterSlider.Value.Value <- activeWaterLevel
@@ -255,7 +253,6 @@ type HexMapEditorFS() as this =
             changeSpecial <- int index <> 0)
 
         _showGridCheckButton.Value.add_Toggled showGrid
-        _editModeCheckButton.Value.add_Toggled (fun toggle -> _hexGrid.Value.ShowUI <| not toggle)
 
         _wireframeCheckButton.Value.add_Toggled (fun toggle ->
             if toggle then
@@ -263,47 +260,34 @@ type HexMapEditorFS() as this =
             else
                 _hexGrid.Value.GetViewport().SetDebugDraw(Viewport.DebugDrawEnum.Disabled))
         // 我们需要这样刷新一下新地图的 HexCell 标签的显示和 HexChunk 的网格材质显示，因为我们的标签、网格材质 Shader 实现和教程不同
-        _saveButton.Value.add_Pressed (fun _ ->
-            _saveLoadMenu.Value.Open
-                true
-                (not _editModeCheckButton.Value.ButtonPressed)
-                _showGridCheckButton.Value.ButtonPressed)
+        _saveButton.Value.add_Pressed (fun _ -> _saveLoadMenu.Value.Open true _showGridCheckButton.Value.ButtonPressed)
 
-        _loadButton.Value.add_Pressed (fun _ ->
-            _saveLoadMenu.Value.Open
-                false
-                (not _editModeCheckButton.Value.ButtonPressed)
-                _showGridCheckButton.Value.ButtonPressed)
+        _loadButton.Value.add_Pressed (fun _ -> _saveLoadMenu.Value.Open false _showGridCheckButton.Value.ButtonPressed)
 
-        _newMapButton.Value.add_Pressed (fun _ ->
-            _newMapMenu.Value.Open
-                (not _editModeCheckButton.Value.ButtonPressed)
-                _showGridCheckButton.Value.ButtonPressed)
-        // 默认编辑模式禁用，显示 UI，放在最后是为了触发事件调用 ShowUI
-        _editModeCheckButton.Value.ButtonPressed <- false
+        _newMapButton.Value.add_Pressed (fun _ -> _newMapMenu.Value.Open _showGridCheckButton.Value.ButtonPressed)
         // 默认显示网格，放在最后是为了触发事件调用 showGrid
         _showGridCheckButton.Value.ButtonPressed <- true
 
     override this._Process _ =
         if inDragProcess && previousCell.IsSome then
-            match getMouseHitPoint () with
-            | Some pos ->
-                match _hexGrid.Value.GetCell pos with
-                | Some currentCell -> handleCurrentCell currentCell
-                | None -> previousCell <- None
+            match getCellUnderCursor () with
+            | Some cell -> handleCurrentCell cell
             | None -> previousCell <- None
 
     override this._UnhandledInput e =
-        match e with
-        | :? InputEventMouseButton as b when b.ButtonIndex = MouseButton.Left ->
-            match getMouseHitPoint () with
-            | Some pos ->
-                let cellOpt = _hexGrid.Value.GetCell pos
-                // 仅当左键按下，且是在单元格上的时候，开启拖拽过程
-                inDragProcess <- cellOpt.IsSome && b.Pressed
-                previousCell <- None
+        // 编辑模式
+        if _tabContainer.Value.CurrentTab = 0 then
+            match e with
+            | :? InputEventMouseButton as b when b.ButtonIndex = MouseButton.Left ->
+                match getCellUnderCursor () with
+                | Some cell ->
+                    // 仅当左键按下，且是在单元格上的时候，开启拖拽过程
+                    inDragProcess <- b.Pressed
+                    previousCell <- None
 
-                if inDragProcess then
-                    handleCurrentCell cellOpt.Value
-            | None -> inDragProcess <- false
-        | _ -> ()
+                    if inDragProcess then
+                        handleCurrentCell cell
+                | None -> inDragProcess <- false
+            | :? InputEventKey as k when k.Keycode = Key.U && k.Pressed && k.ShiftPressed -> destroyUnit ()
+            | :? InputEventKey as k when k.Keycode = Key.U && k.Pressed -> createUnit ()
+            | _ -> ()

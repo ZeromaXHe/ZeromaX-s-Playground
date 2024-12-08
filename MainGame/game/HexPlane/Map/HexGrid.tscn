@@ -1,10 +1,11 @@
-[gd_scene load_steps=9 format=3 uid="uid://ctsv3hyrh2w4j"]
+[gd_scene load_steps=10 format=3 uid="uid://ctsv3hyrh2w4j"]
 
 [ext_resource type="Script" path="res://game/HexPlane/Map/HexGrid.cs" id="1_ncacf"]
 [ext_resource type="PackedScene" uid="uid://b2320yq2a2g7m" path="res://game/HexPlane/Map/HexCell.tscn" id="2_ix3y3"]
 [ext_resource type="Texture2D" uid="uid://cts1rn3gu83qb" path="res://resources/CatlikeCoding/HexMap/noise.png" id="2_w2l35"]
 [ext_resource type="PackedScene" uid="uid://opcnakxgnbbo" path="res://game/HexPlane/Map/HexCellLabel.tscn" id="3_habid"]
 [ext_resource type="PackedScene" uid="uid://btjayimhgt0pk" path="res://game/HexPlane/Map/HexGridChunk.tscn" id="4_6xald"]
+[ext_resource type="PackedScene" uid="uid://dq4tp7ykc437w" path="res://game/HexPlane/Map/HexUnit.tscn" id="6_v6ltg"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_75qco"]
 sky_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
@@ -28,6 +29,7 @@ CellCountX = 20
 CellCountZ = 15
 NoiseSource = ExtResource("2_w2l35")
 Seed = 1234
+UnitPrefab = ExtResource("6_v6ltg")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_yrd3c")

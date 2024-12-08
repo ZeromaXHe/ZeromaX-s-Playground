@@ -30,15 +30,13 @@ type SaveLoadMenuFS() as this =
     val mutable itemPrefab: PackedScene
 
     let mutable saveMode = false
-
-    let mutable labelVisible = false
     let mutable gridVisible = true
 
     let saveDirPath = ProjectSettings.GlobalizePath "res://save"
 
     let save path =
         use writer = new BinaryWriter(File.Open(path, FileMode.Create))
-        writer.Write 1 // 版本号
+        writer.Write 2 // 版本号
         this.hexGrid.Save writer
         GD.Print "Saved!"
 
@@ -49,9 +47,8 @@ type SaveLoadMenuFS() as this =
             use reader = new BinaryReader(File.OpenRead path)
             let header = reader.ReadInt32()
 
-            if header <= 1 then
+            if header <= 2 then
                 this.hexGrid.Load reader header
-                this.hexGrid.ShowUI labelVisible // 我们的实现需要这样刷新一下标签的显示
                 this.hexGrid.ShowGrid gridVisible // 刷新显示网格与否
                 HexMapCameraFS.ValidatePosition()
                 GD.Print "Loaded!"
@@ -85,12 +82,11 @@ type SaveLoadMenuFS() as this =
             this.Close()
 
     interface ISaveLoadMenu with
-        member this.SelectItem name = _nameInput.Value.Text <- name
+        override this.SelectItem name = this.SelectItem name
 
-    member this.SelectItem = (this :> ISaveLoadMenu).SelectItem
+    member this.SelectItem name = _nameInput.Value.Text <- name
 
-    member this.Open saveBool labelVis gridOn =
-        labelVisible <- labelVis
+    member this.Open saveBool gridOn =
         gridVisible <- gridOn
         saveMode <- saveBool
 
