@@ -41,3 +41,5 @@ shadow_bias = 0.03
 shadow_normal_bias = 0.0
 directional_shadow_blend_splits = true
 directional_shadow_max_distance = 400.0
+
+[node name="PathShower" type="Node3D" parent="."]

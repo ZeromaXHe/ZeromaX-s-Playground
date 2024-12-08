@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://dq4tp7ykc437w"]
+[gd_scene load_steps=5 format=3 uid="uid://dq4tp7ykc437w"]
 
 [ext_resource type="Script" path="res://game/HexPlane/Map/HexUnit.cs" id="1_5uv8s"]
 
@@ -8,13 +8,23 @@ albedo_color = Color(0.203922, 0.282353, 0.870588, 1)
 [sub_resource type="BoxShape3D" id="BoxShape3D_65s3s"]
 size = Vector3(3, 10, 3)
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ul8vi"]
+
 [node name="HexUnit" type="CSGBox3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 0)
-size = Vector3(3, 10, 3)
 material = SubResource("StandardMaterial3D_bhv5k")
 script = ExtResource("1_5uv8s")
 
-[node name="StaticBody3D" type="StaticBody3D" parent="."]
+[node name="Pillar" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 0)
+size = Vector3(3, 10, 3)
+material = SubResource("StandardMaterial3D_bhv5k")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
+[node name="StaticBody3D" type="StaticBody3D" parent="Pillar"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pillar/StaticBody3D"]
 shape = SubResource("BoxShape3D_65s3s")
+
+[node name="Weapon" type="CSGBox3D" parent="."]
+transform = Transform3D(0.965926, 0.258819, 0, -0.23457, 0.875426, -0.422618, -0.109382, 0.408218, 0.906308, -1.5961, 4.55012, 1.42014)
+size = Vector3(0.1, 6, 0.5)
+material = SubResource("StandardMaterial3D_ul8vi")

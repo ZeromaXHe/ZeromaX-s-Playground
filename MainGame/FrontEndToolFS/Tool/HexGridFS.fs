@@ -165,7 +165,7 @@ type HexGridFS() as this =
             if current = toCell then
                 breakLoop <- true
             else
-                let currentTurn = current.Distance / speed
+                let currentTurn = (current.Distance - 1) / speed
 
                 for d in HexDirection.allHexDirs () do
                     match current.GetNeighbor d with
@@ -191,7 +191,7 @@ type HexGridFS() as this =
 
                         if moveCost <> Int32.MinValue then
                             let distance = current.Distance + moveCost
-                            let turn = distance / speed
+                            let turn = (distance - 1) / speed
 
                             let distance =
                                 if turn > currentTurn then
@@ -219,7 +219,7 @@ type HexGridFS() as this =
             let mutable current = currentPathTo.Value
 
             while current <> currentPathFrom.Value do
-                let turn = current.Distance / speed
+                let turn = (current.Distance - 1) / speed
                 current.SetLabel <| string turn
                 current.EnableHighlight Colors.White
                 current <- current.PathFrom
@@ -353,6 +353,21 @@ type HexGridFS() as this =
 
         currentPathFrom <- None
         currentPathTo <- None
+
+    member this.GetPath() =
+        if currentPathExists then
+            let path = List<HexCellFS>()
+            let mutable c = currentPathTo.Value
+
+            while Some c <> currentPathFrom do
+                path.Add c
+                c <- c.PathFrom
+
+            path.Add currentPathFrom.Value
+            path.Reverse()
+            path
+        else
+            null
 
     interface IGrid with
         // 感觉 Catlike Coding 这部分的逻辑写的一坨……

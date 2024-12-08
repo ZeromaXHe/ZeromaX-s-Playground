@@ -37,7 +37,7 @@ type HexGameUiFS() as this =
 
     let doMove () =
         if this.grid.HasPath then
-            selectedUnit.Value.Location <- currentCell
+            selectedUnit.Value.Travel <| this.grid.GetPath()
             this.grid.ClearPath()
 
     member this.SetEditMode toggle =
