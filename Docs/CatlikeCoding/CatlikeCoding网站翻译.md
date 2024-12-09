@@ -301,18 +301,22 @@ https://catlikecoding.com/unity/tutorials/hex-map/
 19. [动画运动](https://catlikecoding.com/unity/tutorials/hex-map/part-19/)
 20. [战争迷雾](https://catlikecoding.com/unity/tutorials/hex-map/part-20/)
 21. [探索](https://catlikecoding.com/unity/tutorials/hex-map/part-21/)
-22. [高级视觉](https://catlikecoding.com/unity/tutorials/hex-map/part-22/)
+22. [高级视野](https://catlikecoding.com/unity/tutorials/hex-map/part-22/)
 23. [生成土地](https://catlikecoding.com/unity/tutorials/hex-map/part-23/)
 24. [区域和侵蚀](https://catlikecoding.com/unity/tutorials/hex-map/part-24/)
 25. [水循环](https://catlikecoding.com/unity/tutorials/hex-map/part-25/)
 26. [生物群落与河流](https://catlikecoding.com/unity/tutorials/hex-map/part-26/)
-27. [包装](https://catlikecoding.com/unity/tutorials/hex-map/part-27/)
+27. [包覆](https://catlikecoding.com/unity/tutorials/hex-map/part-27/)
 
 ## [跳转系列独立 Markdown 1 ~ 8](./CatlikeCoding网站翻译-六边形地图1~8.md)
 
 ## [跳转系列独立 Markdown 9 ~ 15](./CatlikeCoding网站翻译-六边形地图9~15.md)
 
 ## [跳转系列独立 Markdown 16 ~ 21](./CatlikeCoding网站翻译-六边形地图16~21.md)
+
+## [跳转系列独立 Markdown 22 ~ 27](./CatlikeCoding网站翻译-六边形地图22~27.md)
+
+
 
 # 六边形地图：项目和教程
 
@@ -335,6 +339,10 @@ https://catlikecoding.com/unity/hex-map/
 - [2.2.0 单元格可视化升级](https://catlikecoding.com/unity/hex-map/2-2-0/)
 - [2.1.0 代码清理](https://catlikecoding.com/unity/hex-map/2-1-0/)
 - [2.0.0 URP](https://catlikecoding.com/unity/hex-map/2-0-0/)
+
+
+
+## [跳转项目独立 Markdown 2.0.0 ~ 3.4.0](./CatlikeCoding网站翻译-六边形地图项目2.0.0~3.4.0.md)
 
 
 

@@ -1273,7 +1273,7 @@ https://catlikecoding.com/unity/tutorials/hex-map/part-17/
 
 ## 4 清理道路
 
-当启动新的搜索时，我们首先必须清理之前路径的可视化。现在，我们通过禁用高亮显示并删除网格中每个单元格的标签来实现这一点。这是一种严厉的方法。理想情况下，我们只重置前一条路径中的细胞。
+当启动新的搜索时，我们首先必须清理之前路径的可视化。现在，我们通过禁用高亮显示并删除网格中每个单元格的标签来实现这一点。这是一种严厉的方法。理想情况下，我们只重置前一条路径中的单元格。
 
 ### 4.1 仅搜索
 
@@ -3289,3 +3289,2908 @@ public static class Bezier {
 [unitypackage](https://catlikecoding.com/unity/tutorials/hex-map/part-19/animating-orientation/animating-orientation.unitypackage)
 
 [PDF](https://catlikecoding.com/unity/tutorials/hex-map/part-19/Hex-Map-19.pdf)
+
+# Hex Map 20：战争迷雾
+
+发布于 2017-08-24
+
+https://catlikecoding.com/unity/tutorials/hex-map/part-20/
+
+*将单元格数据存储在纹理中。*
+*在不进行三角剖分的情况下更改地形类型。*
+*跟踪能见度。*
+*把所有看不见的东西都涂黑。*
+
+这是关于[六边形地图](https://catlikecoding.com/unity/tutorials/hex-map/)的系列教程的第 20 部分。本期将为我们的地图添加战争迷雾效果。
+
+从现在开始，本教程系列将使用 Unity 2017.1.0 制作。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-20/tutorial-image.jpg)
+
+*现在你可以看到你能看到和看不到的东西。*
+
+## 1 单元格着色器数据
+
+许多战略游戏都使用所谓的战争迷雾。这意味着你的视野是有限的。你只能看到靠近你的单位或控制区的东西。虽然你可能知道土地的布局，但当你看不见它时，你不确定那里发生了什么。通常，你目前看不见的地形会被渲染得比正常情况更暗。为了实现这一点，我们需要跟踪单元格的可见性，并确保它被适当地呈现。
+
+更改隐藏单元格外观的最直接方法是在网格数据中添加可见性指示器。然而，这将要求我们在能见度发生变化时触发新的地形三角剖分。由于游玩期间能见度一直在变化，这样做不是一个好主意。
+
+一种经常被描述的技术是在地形顶部渲染半透明表面，这会部分掩盖你看不见的单元格。这可以很好地用于相当平坦的地形，结合有限的视角。因为我们的地形可能包含各种各样的高程和特征，我们可以从任何角度观察它，所以需要一个非常详细的形状拟合网格。这将比直接的方法更昂贵。
+
+另一种方法是在渲染时使单元数据与地形网格分开，可供着色器使用。这使我们能够进行一次三角剖分。单元格数据可以通过纹理提供。调整纹理要简单得多，比三角剖分地形更快。多做一些纹理样本也比渲染单独的半透明覆盖更快。
+
+> **使用着色器数组怎么样？**
+>
+> 也可以通过向量数组将单元格数据传递给着色器。然而，着色器数组的大小限制以数千字节为单位，而纹理可以有数百万像素。要支持大贴图，请使用纹理。
+
+### 1.1 管理单元数据
+
+我们需要一种方法来管理包含单元格数据的纹理。让我们创建一个新的 `HexCellShaderData` 组件来处理这个问题。
+
+```c#
+using UnityEngine;
+
+public class HexCellShaderData : MonoBehaviour {
+	
+	Texture2D cellTexture;
+}
+```
+
+每当创建或加载新贴图时，我们都必须创建具有正确大小的新纹理。因此，给它一个创建纹理的初始化方法。我们将在线性颜色空间中使用 RGBA 纹理，不使用 mipmaps。我们不想混合单元格数据，所以使用点过滤。此外，数据不应该包装。纹理的每个像素将保存一个单元格的数据。
+
+```c#
+	public void Initialize (int x, int z) {
+		cellTexture = new Texture2D(
+			x, z, TextureFormat.RGBA32, false, true
+		);
+		cellTexture.filterMode = FilterMode.Point;
+		cellTexture.wrapMode = TextureWrapMode.Clamp;
+	}
+```
+
+> **纹理大小必须与地图大小匹配吗？**
+>
+> 不，它只需要有足够的像素来包含所有的单元格。精确匹配贴图大小可能会导致非二次幂（NPOT）纹理，这不是最有效的纹理格式。虽然您可以调整它以使用两个纹理的强大功能，但这是一个小的优化，使访问单元格数据不那么明显。
+
+实际上，我们不必每次创建新贴图时都创建新的纹理。如果纹理已经存在，我们可以调整其大小。我们甚至不必检查我们是否已经有了正确的大小，如 `Texture2D.Resize` 足够聪明，可以为我们做到这一点。
+
+```c#
+	public void Initialize (int x, int z) {
+		if (cellTexture) {
+			cellTexture.Resize(x, z);
+		}
+		else {
+			cellTexture = new Texture2D(
+				x, z, TextureFormat.RGBA32, false, true
+			);
+			cellTexture.filterMode = FilterMode.Point;
+			cellTexture.wrapMode = TextureWrapMode.Clamp;
+		}
+	}
+```
+
+我们将使用颜色缓冲区，一次性应用所有单元格数据，而不是一次应用一个像素的单元格数据。我们将为此使用 `Color32` 数组。需要时，在 `Initialize` 结束时创建一个新的数组实例。如果我们已经有一个大小正确的数组，请重置其内容。
+
+```c#
+	Texture2D cellTexture;
+	Color32[] cellTextureData;
+	
+	public void Initialize () {
+		…
+		
+		if (cellTextureData == null || cellTextureData.Length != x * z) {
+			cellTextureData = new Color32[x * z];
+		}
+		else {
+			for (int i = 0; i < cellTextureData.Length; i++) {
+				cellTextureData[i] = new Color32(0, 0, 0, 0);
+			}
+		}
+	}
+```
+
+> **`Color32` 是什么？**
+>
+> 默认的未压缩 RGBA 纹理包含大小为四个字节的像素。四个颜色通道中的每一个都有一个字节，因此它们有 256 个可能的值。使用 Unity 的 Color 结构体时，其 0-1 范围内的浮点分量将转换为 0-255 范围内的字节。GPU 在采样时执行反向转换。
+>
+> `Color32` 结构体直接处理字节。因此，它们占用的空间更少，不需要转换，这使得它们的使用效率更高。由于我们存储的是单元格数据而不是颜色，因此直接使用原始纹理数据而不是通过 `Color` 也更有意义。
+
+`HexGrid` 负责创建和初始化单元着色器数据。因此，给它一个 `cellShaderData` 字段，并在 `Awake` 中创建组件。
+
+```c#
+	HexCellShaderData cellShaderData;
+
+	void Awake () {
+		HexMetrics.noiseSource = noiseSource;
+		HexMetrics.InitializeHashGrid(seed);
+		HexUnit.unitPrefab = unitPrefab;
+		cellShaderData = gameObject.AddComponent<HexCellShaderData>();
+		CreateMap(cellCountX, cellCountZ);
+	}
+```
+
+每当创建新映射时，`cellShaderData` 也必须初始化。
+
+```c#
+	public bool CreateMap (int x, int z) {
+		…
+
+		cellCountX = x;
+		cellCountZ = z;
+		chunkCountX = cellCountX / HexMetrics.chunkSizeX;
+		chunkCountZ = cellCountZ / HexMetrics.chunkSizeZ;
+		cellShaderData.Initialize(cellCountX, cellCountZ);
+		CreateChunks();
+		CreateCells();
+		return true;
+	}
+```
+
+### 1.2 调整单元格数据
+
+到目前为止，每当单元格的属性发生变化时，都必须刷新一个或多个块。但从现在开始，单元格数据可能也需要刷新。这意味着单元格还必须引用单元格着色器数据。将此属性添加到 `HexCell`。
+
+```c#
+	public HexCellShaderData ShaderData { get; set; }
+```
+
+在 `HexGrid.CreateCell` 中，将其着色器数据组件指定给此属性。
+
+```c#
+	void CreateCell (int x, int z, int i) {
+		…
+
+		HexCell cell = cells[i] = Instantiate<HexCell>(cellPrefab);
+		cell.transform.localPosition = position;
+		cell.coordinates = HexCoordinates.FromOffsetCoordinates(x, z);
+		cell.ShaderData = cellShaderData;
+		
+		…
+	}
+```
+
+现在，我们可以让单元格更新其着色器数据。目前，我们还没有跟踪可见性，但我们也可以将着色器数据用于其他用途。单元格的地形类型决定了渲染时使用哪种纹理。它不会影响单元格的几何形状。因此，我们可以将地形类型索引存储在单元格数据中，而不是网格数据中。这将消除在单元地形类型更改时进行三角剖分的需要。
+
+在 `HexCellShaderData` 中添加 `RefreshTerrain` 方法，以方便特定单元格的操作。让我们暂时把它留空。
+
+```c#
+	public void RefreshTerrain (HexCell cell) {
+	}
+```
+
+更换 `HexCell.TerrainTypeIndex` 因此调用此方法，而不是安排块刷新。
+
+```c#
+	public int TerrainTypeIndex {
+		get {
+			return terrainTypeIndex;
+		}
+		set {
+			if (terrainTypeIndex != value) {
+				terrainTypeIndex = value;
+//				Refresh();
+				ShaderData.RefreshTerrain(this);
+			}
+		}
+	}
+```
+
+也在检索单元的地形类型后，在 `HexCell.Load` 中调用它。
+
+```c#
+	public void Load (BinaryReader reader) {
+		terrainTypeIndex = reader.ReadByte();
+		ShaderData.RefreshTerrain(this);
+		elevation = reader.ReadByte();
+		RefreshPosition();
+		…
+	}
+```
+
+### 1.3 单元格索引
+
+为了调整单元格数据，我们需要知道单元格的索引。最简单的方法是向 `HexCell` 添加 `Index` 属性。这表示地图单元格列表中单元格的索引，该索引与单元格着色器数据中的索引相匹配。
+
+```c#
+	public int Index { get; set; }
+```
+
+我们已经在 `HexGrid.CreateCell` 中提供了此索引，因此只需将其分配给新创建的单元格即可。
+
+```c#
+	void CreateCell (int x, int z, int i) {
+		…
+		cell.coordinates = HexCoordinates.FromOffsetCoordinates(x, z);
+		cell.Index = i;
+		cell.ShaderData = cellShaderData;
+
+		…
+	}
+```
+
+现在是 `HexCellShaderData.RefreshTerrain` 可以使用此索引设置单元格的数据。让我们将地形类型索引存储在其像素的 alpha 分量中，只需将类型转换为字节即可。这使我们能够支持多达 256 种地形类型，这已经足够了。
+
+```c#
+	public void RefreshTerrain (HexCell cell) {
+		cellTextureData[cell.Index].a = (byte)cell.TerrainTypeIndex;
+	}
+```
+
+要实际将数据应用于纹理并将其推送到 GPU，我们必须调用 `Texture2D.SetPixels32` 后面跟着 `Texture2D.Apply`。就像我们对块做的那样，我们将延迟到 `LateUpdate`，这样我们每帧最多做一次，不管改变了多少个单元格。
+
+```c#
+	public void RefreshTerrain (HexCell cell) {
+		cellTextureData[cell.Index].a = (byte)cell.TerrainTypeIndex;
+		enabled = true;
+	}
+	
+	void LateUpdate () {
+		cellTexture.SetPixels32(cellTextureData);
+		cellTexture.Apply();
+		enabled = false;
+	}
+```
+
+为了确保在创建新地图后更新数据，还需要在初始化后启用该组件。
+
+```c#
+	public void Initialize (int x, int z) {
+		…
+		enabled = true;
+	}
+```
+
+### 1.4 三角剖分单元格索引
+
+因为我们现在将地形类型索引存储在单元格数据中，所以我们在三角剖分时不再需要包含它。但是要使用单元格数据，着色器必须知道要使用哪些单元格索引。因此，我们必须将单元索引存储在网格数据中，替换地形类型索引。此外，在使用单元格数据时，我们仍然需要网格颜色通道在单元格之间进行混合。
+
+从 `HexMesh` 中删除过时的 `useColors` 和 `useTerrainTypes` 公共字段。用单个 `useCellData` 字段替换它们。
+
+```c#
+//	public bool useCollider, useColors, useUVCoordinates, useUV2Coordinates;
+//	public bool useTerrainTypes;
+	public bool useCollider, useCellData, useUVCoordinates, useUV2Coordinates;
+```
+
+将 `terrainTypes` 列表重新命名为 `cellIndices`。让我们还将重命名 `colors` 重构为 `cellWeights`，这是一个更合适的名称。
+
+```c#
+//	[NonSerialized] List<Vector3> vertices, terrainTypes;
+//	[NonSerialized] List<Color> colors;
+	[NonSerialized] List<Vector3> vertices, cellIndices;
+	[NonSerialized] List<Color> cellWeights;
+	[NonSerialized] List<Vector2> uvs, uv2s;
+	[NonSerialized] List<int> triangles;
+```
+
+调整 `Clear`，使其在使用单元格数据时将两个列表合并在一起，而不是相互独立。
+
+```c#
+	public void Clear () {
+		hexMesh.Clear();
+		vertices = ListPool<Vector3>.Get();
+		if (useCellData) {
+			cellWeights = ListPool<Color>.Get();
+			cellIndices = ListPool<Vector3>.Get();
+		}
+//		if (useColors) {
+//			colors = ListPool<Color>.Get();
+//		}
+		if (useUVCoordinates) {
+			uvs = ListPool<Vector2>.Get();
+		}
+		if (useUV2Coordinates) {
+			uv2s = ListPool<Vector2>.Get();
+		}
+//		if (useTerrainTypes) {
+//			terrainTypes = ListPool<Vector3>.Get();
+//		}
+		triangles = ListPool<int>.Get();
+	}
+```
+
+在 `Apply` 中执行相同的分组。
+
+```c#
+	public void Apply () {
+		hexMesh.SetVertices(vertices);
+		ListPool<Vector3>.Add(vertices);
+		if (useCellData) {
+			hexMesh.SetColors(cellWeights);
+			ListPool<Color>.Add(cellWeights);
+			hexMesh.SetUVs(2, cellIndices);
+			ListPool<Vector3>.Add(cellIndices);
+		}
+//		if (useColors) {
+//			hexMesh.SetColors(colors);
+//			ListPool<Color>.Add(colors);
+//		}
+		if (useUVCoordinates) {
+			hexMesh.SetUVs(0, uvs);
+			ListPool<Vector2>.Add(uvs);
+		}
+		if (useUV2Coordinates) {
+			hexMesh.SetUVs(1, uv2s);
+			ListPool<Vector2>.Add(uv2s);
+		}
+//		if (useTerrainTypes) {
+//			hexMesh.SetUVs(2, terrainTypes);
+//			ListPool<Vector3>.Add(terrainTypes);
+//		}
+		hexMesh.SetTriangles(triangles, 0);
+		ListPool<int>.Add(triangles);
+		hexMesh.RecalculateNormals();
+		if (useCollider) {
+			meshCollider.sharedMesh = hexMesh;
+		}
+	}
+```
+
+删除所有 `AddTriangleColor` 和 `AddTriangleTerrainTypes` 方法。用相应的 `AddTriangleCellData` 方法替换它们，这些方法一次性添加索引和权重。
+
+```c#
+	public void AddTriangleCellData (
+		Vector3 indices, Color weights1, Color weights2, Color weights3
+	) {
+		cellIndices.Add(indices);
+		cellIndices.Add(indices);
+		cellIndices.Add(indices);
+		cellWeights.Add(weights1);
+		cellWeights.Add(weights2);
+		cellWeights.Add(weights3);
+	}
+		
+	public void AddTriangleCellData (Vector3 indices, Color weights) {
+		AddTriangleCellData(indices, weights, weights, weights);
+	}
+```
+
+对相应的 `AddQuad` 方法应用相同的处理。
+
+```c#
+	public void AddQuadCellData (
+		Vector3 indices,
+		Color weights1, Color weights2, Color weights3, Color weights4
+	) {
+		cellIndices.Add(indices);
+		cellIndices.Add(indices);
+		cellIndices.Add(indices);
+		cellIndices.Add(indices);
+		cellWeights.Add(weights1);
+		cellWeights.Add(weights2);
+		cellWeights.Add(weights3);
+		cellWeights.Add(weights4);
+	}
+
+	public void AddQuadCellData (
+		Vector3 indices, Color weights1, Color weights2
+	) {
+		AddQuadCellData(indices, weights1, weights1, weights2, weights2);
+	}
+
+	public void AddQuadCellData (Vector3 indices, Color weights) {
+		AddQuadCellData(indices, weights, weights, weights, weights);
+	}
+```
+
+### 1.5 重构  HexGridChunk
+
+此时，我们在 `HexGridChunk` 中遇到了很多编译器错误，我们必须修复。但首先重构，将静态颜色重命名为权重，以保持一致。
+
+```c#
+	static Color weights1 = new Color(1f, 0f, 0f);
+	static Color weights2 = new Color(0f, 1f, 0f);
+	static Color weights3 = new Color(0f, 0f, 1f);
+```
+
+让我们从修复 `TriangulateEdgeFan` 开始。它过去需要一个类型，但现在需要一个单元格索引。将 `AddTriangleColor` 和 `AddTriangleTerrainTypes` 代码替换为相应的 `AddTriangleCellData` 代码。
+
+```c#
+	void TriangulateEdgeFan (Vector3 center, EdgeVertices edge, float index) {
+		terrain.AddTriangle(center, edge.v1, edge.v2);
+		terrain.AddTriangle(center, edge.v2, edge.v3);
+		terrain.AddTriangle(center, edge.v3, edge.v4);
+		terrain.AddTriangle(center, edge.v4, edge.v5);
+
+		Vector3 indices;
+		indices.x = indices.y = indices.z = index;
+		terrain.AddTriangleCellData(indices, weights1);
+		terrain.AddTriangleCellData(indices, weights1);
+		terrain.AddTriangleCellData(indices, weights1);
+		terrain.AddTriangleCellData(indices, weights1);
+
+//		terrain.AddTriangleColor(weights1);
+//		terrain.AddTriangleColor(weights1);
+//		terrain.AddTriangleColor(weights1);
+//		terrain.AddTriangleColor(weights1);
+
+//		Vector3 types;
+//		types.x = types.y = types.z = type;
+//		terrain.AddTriangleTerrainTypes(types);
+//		terrain.AddTriangleTerrainTypes(types);
+//		terrain.AddTriangleTerrainTypes(types);
+//		terrain.AddTriangleTerrainTypes(types);
+	}
+```
+
+此方法在几个地方被调用。浏览它们，确保它提供了单元格索引而不是地形类型。
+
+```c#
+		TriangulateEdgeFan(center, e, cell.Index);
+```
+
+接下来是 `TriangulateEdgeStrip`。这有点复杂，但采用相同的处理方法。同时重构，将 `c1` 和 `c2` 参数名称重命名为 `w1` 和 `w2`。
+
+```c#
+	void TriangulateEdgeStrip (
+		EdgeVertices e1, Color w1, float index1,
+		EdgeVertices e2, Color w2, float index2,
+		bool hasRoad = false
+	) {
+		terrain.AddQuad(e1.v1, e1.v2, e2.v1, e2.v2);
+		terrain.AddQuad(e1.v2, e1.v3, e2.v2, e2.v3);
+		terrain.AddQuad(e1.v3, e1.v4, e2.v3, e2.v4);
+		terrain.AddQuad(e1.v4, e1.v5, e2.v4, e2.v5);
+
+		Vector3 indices;
+		indices.x = indices.z = index1;
+		indices.y = index2;
+		terrain.AddQuadCellData(indices, w1, w2);
+		terrain.AddQuadCellData(indices, w1, w2);
+		terrain.AddQuadCellData(indices, w1, w2);
+		terrain.AddQuadCellData(indices, w1, w2);
+
+//		terrain.AddQuadColor(c1, c2);
+//		terrain.AddQuadColor(c1, c2);
+//		terrain.AddQuadColor(c1, c2);
+//		terrain.AddQuadColor(c1, c2);
+
+//		Vector3 types;
+//		types.x = types.z = type1;
+//		types.y = type2;
+//		terrain.AddQuadTerrainTypes(types);
+//		terrain.AddQuadTerrainTypes(types);
+//		terrain.AddQuadTerrainTypes(types);
+//		terrain.AddQuadTerrainTypes(types);
+
+		if (hasRoad) {
+			TriangulateRoadSegment(e1.v2, e1.v3, e1.v4, e2.v2, e2.v3, e2.v4);
+		}
+	}
+```
+
+更改此方法的调用，以便为其提供单元格索引。还要保持变量名的一致性。
+
+```c#
+		TriangulateEdgeStrip(
+			m, weights1, cell.Index,
+			e, weights1, cell.Index
+		);
+		
+	…
+		
+			TriangulateEdgeStrip(
+				e1, weights1, cell.Index,
+				e2, weights2, neighbor.Index, hasRoad
+			);
+	
+	…
+	
+	void TriangulateEdgeTerraces (
+		EdgeVertices begin, HexCell beginCell,
+		EdgeVertices end, HexCell endCell,
+		bool hasRoad
+	) {
+		EdgeVertices e2 = EdgeVertices.TerraceLerp(begin, end, 1);
+		Color w2 = HexMetrics.TerraceLerp(weights1, weights2, 1);
+		float i1 = beginCell.Index;
+		float i2 = endCell.Index;
+
+		TriangulateEdgeStrip(begin, weights1, i1, e2, w2, i2, hasRoad);
+
+		for (int i = 2; i < HexMetrics.terraceSteps; i++) {
+			EdgeVertices e1 = e2;
+			Color w1 = w2;
+			e2 = EdgeVertices.TerraceLerp(begin, end, i);
+			w2 = HexMetrics.TerraceLerp(weights1, weights2, i);
+			TriangulateEdgeStrip(e1, w1, i1, e2, w2, i2, hasRoad);
+		}
+
+		TriangulateEdgeStrip(e2, w2, i1, end, weights2, i2, hasRoad);
+	}
+```
+
+现在我们继续讨论角方法。这些更改很简单，但需要经过大量代码。首先是 `TriangulateCorner`。
+
+```c#
+	void TriangulateCorner (
+		Vector3 bottom, HexCell bottomCell,
+		Vector3 left, HexCell leftCell,
+		Vector3 right, HexCell rightCell
+	) {
+		…
+		else {
+			terrain.AddTriangle(bottom, left, right);
+			Vector3 indices;
+			indices.x = bottomCell.Index;
+			indices.y = leftCell.Index;
+			indices.z = rightCell.Index;
+			terrain.AddTriangleCellData(indices, weights1, weights2, weights3);
+//			terrain.AddTriangleColor(weights1, weights2, weights3);
+//			Vector3 types;
+//			types.x = bottomCell.TerrainTypeIndex;
+//			types.y = leftCell.TerrainTypeIndex;
+//			types.z = rightCell.TerrainTypeIndex;
+//			terrain.AddTriangleTerrainTypes(types);
+		}
+
+		features.AddWall(bottom, bottomCell, left, leftCell, right, rightCell);
+	}
+```
+
+接下来是 `TriangulateCornerTerraces`。
+
+```c#
+	void TriangulateCornerTerraces (
+		Vector3 begin, HexCell beginCell,
+		Vector3 left, HexCell leftCell,
+		Vector3 right, HexCell rightCell
+	) {
+		Vector3 v3 = HexMetrics.TerraceLerp(begin, left, 1);
+		Vector3 v4 = HexMetrics.TerraceLerp(begin, right, 1);
+		Color w3 = HexMetrics.TerraceLerp(weights1, weights2, 1);
+		Color w4 = HexMetrics.TerraceLerp(weights1, weights3, 1);
+		Vector3 indices;
+		indices.x = beginCell.Index;
+		indices.y = leftCell.Index;
+		indices.z = rightCell.Index;
+
+		terrain.AddTriangle(begin, v3, v4);
+		terrain.AddTriangleCellData(indices, weights1, w3, w4);
+//		terrain.AddTriangleColor(weights1, w3, w4);
+//		terrain.AddTriangleTerrainTypes(indices);
+
+		for (int i = 2; i < HexMetrics.terraceSteps; i++) {
+			Vector3 v1 = v3;
+			Vector3 v2 = v4;
+			Color w1 = w3;
+			Color w2 = w4;
+			v3 = HexMetrics.TerraceLerp(begin, left, i);
+			v4 = HexMetrics.TerraceLerp(begin, right, i);
+			w3 = HexMetrics.TerraceLerp(weights1, weights2, i);
+			w4 = HexMetrics.TerraceLerp(weights1, weights3, i);
+			terrain.AddQuad(v1, v2, v3, v4);
+			terrain.AddQuadCellData(indices, w1, w2, w3, w4);
+//			terrain.AddQuadColor(w1, w2, w3, w4);
+//			terrain.AddQuadTerrainTypes(indices);
+		}
+
+		terrain.AddQuad(v3, v4, left, right);
+		terrain.AddQuadCellData(indices, w3, w4, weights2, weights3);
+//		terrain.AddQuadColor(w3, w4, weights2, weights3);
+//		terrain.AddQuadTerrainTypes(indices);
+	}
+```
+
+接下来是 `TriangulateCornerTerracesCliff`。
+
+```c#
+	void TriangulateCornerTerracesCliff (
+		Vector3 begin, HexCell beginCell,
+		Vector3 left, HexCell leftCell,
+		Vector3 right, HexCell rightCell
+	) {
+		float b = 1f / (rightCell.Elevation - beginCell.Elevation);
+		if (b < 0) {
+			b = -b;
+		}
+		Vector3 boundary = Vector3.Lerp(
+			HexMetrics.Perturb(begin), HexMetrics.Perturb(right), b
+		);
+		Color boundaryWeights = Color.Lerp(weights1, weights3, b);
+		Vector3 indices;
+		indices.x = beginCell.Index;
+		indices.y = leftCell.Index;
+		indices.z = rightCell.Index;
+
+		TriangulateBoundaryTriangle(
+			begin, weights1, left, weights2, boundary, boundaryWeights, indices
+		);
+
+		if (leftCell.GetEdgeType(rightCell) == HexEdgeType.Slope) {
+			TriangulateBoundaryTriangle(
+				left, weights2, right, weights3,
+				boundary, boundaryWeights, indices
+			);
+		}
+		else {
+			terrain.AddTriangleUnperturbed(
+				HexMetrics.Perturb(left), HexMetrics.Perturb(right), boundary
+			);
+			terrain.AddTriangleCellData(
+				indices, weights2, weights3, boundaryWeights
+			);
+//			terrain.AddTriangleColor(weights2, weights3, boundaryColor);
+//			terrain.AddTriangleTerrainTypes(indices);
+		}
+	}
+```
+
+还有稍微不同的 `TriangulateCornerCliffTerraces`。
+
+```c#
+	void TriangulateCornerCliffTerraces (
+		Vector3 begin, HexCell beginCell,
+		Vector3 left, HexCell leftCell,
+		Vector3 right, HexCell rightCell
+	) {
+		float b = 1f / (leftCell.Elevation - beginCell.Elevation);
+		if (b < 0) {
+			b = -b;
+		}
+		Vector3 boundary = Vector3.Lerp(
+			HexMetrics.Perturb(begin), HexMetrics.Perturb(left), b
+		);
+		Color boundaryWeights = Color.Lerp(weights1, weights2, b);
+		Vector3 indices;
+		indices.x = beginCell.Index;
+		indices.y = leftCell.Index;
+		indices.z = rightCell.Index;
+
+		TriangulateBoundaryTriangle(
+			right, weights3, begin, weights1, boundary, boundaryWeights, indices
+		);
+
+		if (leftCell.GetEdgeType(rightCell) == HexEdgeType.Slope) {
+			TriangulateBoundaryTriangle(
+				left, weights2, right, weights3,
+				boundary, boundaryWeights, indices
+			);
+		}
+		else {
+			terrain.AddTriangleUnperturbed(
+				HexMetrics.Perturb(left), HexMetrics.Perturb(right), boundary
+			);
+			terrain.AddTriangleCellData(
+				indices, weights2, weights3, boundaryWeights
+			);
+//			terrain.AddTriangleColor(weights2, weights3, boundaryWeights);
+//			terrain.AddTriangleTerrainTypes(indices);
+		}
+	}
+```
+
+前两种方法依赖于 `TriangulateBoundaryTriangle`，这也需要更新。
+
+```c#
+	void TriangulateBoundaryTriangle (
+		Vector3 begin, Color beginWeights,
+		Vector3 left, Color leftWeights,
+		Vector3 boundary, Color boundaryWeights, Vector3 indices
+	) {
+		Vector3 v2 = HexMetrics.Perturb(HexMetrics.TerraceLerp(begin, left, 1));
+		Color w2 = HexMetrics.TerraceLerp(beginWeights, leftWeights, 1);
+
+		terrain.AddTriangleUnperturbed(HexMetrics.Perturb(begin), v2, boundary);
+		terrain.AddTriangleCellData(indices, beginWeights, w2, boundaryWeights);
+//		terrain.AddTriangleColor(beginColor, c2, boundaryColor);
+//		terrain.AddTriangleTerrainTypes(types);
+
+		for (int i = 2; i < HexMetrics.terraceSteps; i++) {
+			Vector3 v1 = v2;
+			Color w1 = w2;
+			v2 = HexMetrics.Perturb(HexMetrics.TerraceLerp(begin, left, i));
+			w2 = HexMetrics.TerraceLerp(beginWeights, leftWeights, i);
+			terrain.AddTriangleUnperturbed(v1, v2, boundary);
+			terrain.AddTriangleCellData(indices, w1, w2, boundaryWeights);
+//			terrain.AddTriangleColor(c1, c2, boundaryColor);
+//			terrain.AddTriangleTerrainTypes(types);
+		}
+
+		terrain.AddTriangleUnperturbed(v2, HexMetrics.Perturb(left), boundary);
+		terrain.AddTriangleCellData(indices, w2, leftWeights, boundaryWeights);
+//		terrain.AddTriangleColor(c2, leftColor, boundaryColor);
+//		terrain.AddTriangleTerrainTypes(types);
+	}
+```
+
+需要更改的最后一种方法是 `TriangulateWithRiver`。
+
+```c#
+	void TriangulateWithRiver (
+		HexDirection direction, HexCell cell, Vector3 center, EdgeVertices e
+	) {
+		…
+
+		terrain.AddTriangle(centerL, m.v1, m.v2);
+		terrain.AddQuad(centerL, center, m.v2, m.v3);
+		terrain.AddQuad(center, centerR, m.v3, m.v4);
+		terrain.AddTriangle(centerR, m.v4, m.v5);
+
+		Vector3 indices;
+		indices.x = indices.y = indices.z = cell.Index;
+		terrain.AddTriangleCellData(indices, weights1);
+		terrain.AddQuadCellData(indices, weights1);
+		terrain.AddQuadCellData(indices, weights1);
+		terrain.AddTriangleCellData(indices, weights1);
+
+//		terrain.AddTriangleColor(weights1);
+//		terrain.AddQuadColor(weights1);
+//		terrain.AddQuadColor(weights1);
+//		terrain.AddTriangleColor(weights1);
+
+//		Vector3 types;
+//		types.x = types.y = types.z = cell.TerrainTypeIndex;
+//		terrain.AddTriangleTerrainTypes(types);
+//		terrain.AddQuadTerrainTypes(types);
+//		terrain.AddQuadTerrainTypes(types);
+//		terrain.AddTriangleTerrainTypes(types);
+
+		…
+	}
+```
+
+为了实现这一点，我们必须表明我们使用单元数据作为块预制件的地形子对象。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-20/cell-shader-data/using-cell-data.png)
+
+*地形使用单元数据。*
+
+此时，我们的网格包含单元格索引，而不是地形类型索引。因为地形着色器仍然将它们解释为地形索引，所以您会看到第一个单元格是用第一个纹理渲染的，以此类推，直到达到最后一个地形纹理。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-20/cell-shader-data/index-terrain.png)
+
+*将单元格索引视为地形纹理索引。*
+
+> **我无法让重构的代码工作。我做错了什么？**
+>
+> 由于大量三角剖分代码一次更改，因此出现错误或疏忽的机会很大。如果你找不到错误，别忘了你可以下载本节的软件包并提取相关文件。您可以将它们导入到单独的项目中，并与自己的代码进行比较。
+
+### 1.6 将单元格数据传递给着色器
+
+为了使用单元数据，地形着色器需要访问它。我们可以通过着色器属性来实现这一点，这将需要 `HexCellShaderData` 设置地形材质的属性。另一种方法是使单元数据纹理对所有着色器全局可用。这很方便，因为我们需要在多个着色器中使用它，所以让我们使用这种方法。
+
+创建单元纹理后，调用静态 `Shader.SetGlobalTexture` 方法使其全局称为 ***_HexCellData***。
+
+```c#
+	public void Initialize (int x, int z) {
+		…
+		else {
+			cellTexture = new Texture2D(
+				x, z, TextureFormat.RGBA32, false, true
+			);
+			cellTexture.filterMode = FilterMode.Point;
+			cellTexture.wrapMode = TextureWrapMode.Clamp;
+			Shader.SetGlobalTexture("_HexCellData", cellTexture);
+		}
+
+		…
+	}
+```
+
+使用着色器属性时，Unity 还通过 ***textureName_TexelSize*** 变量使着色器可以使用纹理的大小。这是一个包含宽度和高度以及实际宽度和高度的乘法逆的四分量向量（This is a four-component vector which contains the multiplicative inverses of the width and height, and the actual width and height.）。但是，在全局设置纹理时，不会这样做。所以，让我们自己做，通过在创建或调整纹理大小后的 `Shader.SetGlobalVector`。
+
+```c#
+		else {
+			cellTexture = new Texture2D(
+				x, z, TextureFormat.RGBA32, false, true
+			);
+			cellTexture.filterMode = FilterMode.Point;
+			cellTexture.wrapMode = TextureWrapMode.Clamp;
+			Shader.SetGlobalTexture("_HexCellData", cellTexture);
+		}
+		Shader.SetGlobalVector(
+			"_HexCellData_TexelSize",
+			new Vector4(1f / x, 1f / z, x, z)
+		);
+```
+
+### 1.7 访问着色器数据
+
+在材质文件夹中创建一个名为 ***HexCellData*** 的新着色器包含文件。在其中，为单元格数据纹理和大小信息定义变量。还提供了一个函数，用于在给定顶点的网格数据的情况下检索单元数据。
+
+```glsl
+sampler2D _HexCellData;
+float4 _HexCellData_TexelSize;
+
+float4 GetCellData (appdata_full v) {
+}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-20/cell-shader-data/include-file.png)
+
+*新建包含文件。*
+
+单元格索引存储在 `v.texcoord2` 中，就像地形类型一样。让我们从第一个索引 `v.texcoord2.x` 开始。不幸的是，我们不能直接使用索引对单元格数据纹理进行采样。我们必须将其转换为 UV 坐标。
+
+构建 U 坐标的第一步是将单元格索引除以纹理宽度。我们可以通过乘以 `_HexCellData_TexelSize.x` 来实现这一点。
+
+```glsl
+float4 GetCellData (appdata_full v) {
+	float2 uv;
+	uv.x = v.texcoord2.x * _HexCellData_TexelSize.x;
+}
+```
+
+结果是一个形式为 Z.U 的数字，其中 Z 是行索引，U 是单元格的 U 坐标。我们可以通过将数字相乘来提取行，然后从数字中减去该值以获得 U 坐标。
+
+```glsl
+float4 GetCellData (appdata_full v) {
+	float2 uv;
+	uv.x = v.texcoord2.x * _HexCellData_TexelSize.x;
+	float row = floor(uv.x);
+	uv.x -= row;
+}
+```
+
+通过将行除以纹理高度来找到 V 坐标。
+
+```glsl
+float4 GetCellData (appdata_full v) {
+	float2 uv;
+	uv.x = v.texcoord2.x * _HexCellData_TexelSize.x;
+	float row = floor(uv.x);
+	uv.x -= row;
+	uv.y = row * _HexCellData_TexelSize.y;
+}
+```
+
+因为我们正在对纹理进行采样，所以我们希望使用与像素中心对齐的 UV 坐标。这确保了我们对正确的像素进行采样。因此，在除以纹理大小之前加 ½。
+
+```glsl
+float4 GetCellData (appdata_full v) {
+	float2 uv;
+	uv.x = (v.texcoord2.x + 0.5) * _HexCellData_TexelSize.x;
+	float row = floor(uv.x);
+	uv.x -= row;
+	uv.y = (row + 0.5) * _HexCellData_TexelSize.y;
+}
+```
+
+这为我们提供了存储在顶点数据中的第一个单元格索引的正确 UV 坐标。但每个顶点最多可以有三个不同的索引。所以，让我们让 `GetCellData` 适用于任何索引。给它一个整数 `index` 参数，我们用它来访问单元格索引向量的分量。
+
+```glsl
+float4 GetCellData (appdata_full v, int index) {
+	float2 uv;
+	uv.x = (v.texcoord2[index] + 0.5) * _HexCellData_TexelSize.x;
+	float row = floor(uv.x);
+	uv.x -= row;
+	uv.y = (row + 0.5) * _HexCellData_TexelSize.y;
+}
+```
+
+现在我们有了所需的单元格数据坐标，我们可以对 `_HexCellData` 进行采样。因为我们在顶点程序中对纹理进行采样，所以我们必须明确地告诉着色器要使用哪个 mipmap。这是通过 `tex2Dlod` 函数完成的，该函数需要四个纹理坐标。因为单元格数据没有 mipmaps，所以将额外的坐标设置为零。
+
+```glsl
+float4 GetCellData (appdata_full v, int index) {
+	float2 uv;
+	uv.x = (v.texcoord2[index] + 0.5) * _HexCellData_TexelSize.x;
+	float row = floor(uv.x);
+	uv.x -= row;
+	uv.y = (row + 0.5) * _HexCellData_TexelSize.y;
+	float4 data = tex2Dlod(_HexCellData, float4(uv, 0, 0));
+}
+```
+
+第四个数据组件包含地形类型索引，我们直接将其存储为字节。但是，GPU 会自动将其转换为 0-1 范围内的浮点值。要将其转换回正确的值，请将其与 255 相乘。之后，我们可以返回数据。
+
+```glsl
+	float4 data = tex2Dlod(_HexCellData, float4(uv, 0, 0));
+	data.w *= 255;
+	return data;
+```
+
+要使用此功能，请在 *Terrain* 着色器中包含 ***HexCellData***。因为我已将此着色器放置在“*Materials / Terrain*”中，所以我必须使用相对路径 *../HexCellData.cginc*。
+
+```glsl
+		#include "../HexCellData.cginc"
+
+		UNITY_DECLARE_TEX2DARRAY(_MainTex);
+```
+
+在顶点程序中，检索存储在顶点数据中的所有三个单元格索引的单元格数据。然后将它们的地形索引分配给 `data.terrain`。
+
+```glsl
+		void vert (inout appdata_full v, out Input data) {
+			UNITY_INITIALIZE_OUTPUT(Input, data);
+//			data.terrain = v.texcoord2.xyz;
+
+			float4 cell0 = GetCellData(v, 0);
+			float4 cell1 = GetCellData(v, 1);
+			float4 cell2 = GetCellData(v, 2);
+
+			data.terrain.x = cell0.w;
+			data.terrain.y = cell1.w;
+			data.terrain.z = cell2.w;
+		}
+```
+
+此时，我们的地图应该再次显示正确的地形。最大的区别在于，仅编辑地形类型不再触发新的三角剖分。如果在编辑过程中更改了其他单元格数据，则将像往常一样进行三角剖分。
+
+[unitypackage](https://catlikecoding.com/unity/tutorials/hex-map/part-20/cell-shader-data/cell-shader-data.unitypackage)
+
+## 2 可见性
+
+有了我们的单元格数据框架，我们可以继续添加对可见性的支持。这将涉及着色器、单元格本身以及决定可见内容的人。请注意，三角剖分过程完全没有意识到这一点。
+
+### 2.1 着色器
+
+让我们首先让地形着色器感知可见性。它将提取顶点程序中的可见性数据，并通过 `Input` 结构将其传递给片段程序。因为我们要通过三个单独的地形指数，所以让我们也通过三个能见度值。
+
+```glsl
+		struct Input {
+			float4 color : COLOR;
+			float3 worldPos;
+			float3 terrain;
+			float3 visibility;
+		};
+```
+
+我们将使用单元格数据的第一个组件来存储可见性。
+
+```glsl
+		void vert (inout appdata_full v, out Input data) {
+			UNITY_INITIALIZE_OUTPUT(Input, data);
+
+			float4 cell0 = GetCellData(v, 0);
+			float4 cell1 = GetCellData(v, 1);
+			float4 cell2 = GetCellData(v, 2);
+
+			data.terrain.x = cell0.w;
+			data.terrain.y = cell1.w;
+			data.terrain.z = cell2.w;
+
+			data.visibility.x = cell0.x;
+			data.visibility.y = cell1.x;
+			data.visibility.z = cell2.x;
+		}
+```
+
+可见性为 0 表示单元格当前不可见。如果单元格可见，则将其设置为 1。因此，我们可以通过将 GetTerrainColor 的结果乘以适当的可见度因子来使地形变暗。这样，我们就可以独立调节每个混合单元的地形颜色。
+
+```glsl
+		float4 GetTerrainColor (Input IN, int index) {
+			float3 uvw = float3(IN.worldPos.xz * 0.02, IN.terrain[index]);
+			float4 c = UNITY_SAMPLE_TEX2DARRAY(_MainTex, uvw);
+			return c * (IN.color[index] * IN.visibility[index]);
+		}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-20/visibility/black-cells.png)
+
+*单元格变黑了。*
+
+> **我们不能在顶点程序中结合可见性吗？**
+>
+> 这也是可能的，只需要将一个可见性因子传递给片段程序。通过为每个待混合的单元传递一个因子，三个地形样本被单独混合。结果是可见单元格对混合区域的贡献更大。使用单一因素需要首先混合地形，然后应用最终的插值可见性。这两种方法都有效，但它们在视觉上有所不同。
+
+对于目前不可见的单元格来说，完全黑暗有点太多了。为了仍然能够看到地形，我们应该增加用于隐藏单元格的因子。让我们将 0-1 选项更改为 ¼-1，这可以通过顶点程序末尾的 `lerp` 函数完成。
+
+```glsl
+		void vert (inout appdata_full v, out Input data) {
+			…
+
+			data.visibility.x = cell0.x;
+			data.visibility.y = cell1.x;
+			data.visibility.z = cell2.x;
+			data.visibility = lerp(0.25, 1, data.visibility);
+		}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-20/visibility/darkened-cells.png)
+
+*变暗的单元格。*
+
+### 2.2 跟踪单元格可见性
+
+为了使可见性工作，单元格必须跟踪其可见性。但是单元格是如何确定它是否可见的呢？我们可以通过让它跟踪有多少实体可以看到它来做到这一点。每当某物看到一个单元格时，它都应该通知该单元格。当某物失去对单元格的视线时，它也必须通知那个单元格。无论这些实体是什么或在哪里，该单元格都会简单地跟踪视图计数。如果单元格的可见性得分至少为 1，则它是可见的，否则就不可见。向 `HexCell` 添加一个变量、两个方法和一个属性来支持此行为。
+
+```c#
+	public bool IsVisible {
+		get {
+			return visibility > 0;
+		}
+	}
+
+	…
+
+	int visibility;
+
+	…
+
+	public void IncreaseVisibility () {
+		visibility += 1;
+	}
+
+	public void DecreaseVisibility () {
+		visibility -= 1;
+	}
+```
+
+接下来，向 `HexCellShaderData` 添加一个 `RefreshVisibility` 方法，该方法与 `RefreshTerrain` 相同，但用于可见性。将数据存储在单元格数据的 R 分量中。因为我们在着色器中处理转换为 0-1 值的字节，所以使用 `(byte)255` 表示可见。
+
+```c#
+	public void RefreshVisibility (HexCell cell) {
+		cellTextureData[cell.Index].r = cell.IsVisible ? (byte)255 : (byte)0;
+		enabled = true;
+	}
+```
+
+当单元格的可见性在 0 和 1 之间变化时，无论是增加还是减少，都调用此方法。
+
+```c#
+	public void IncreaseVisibility () {
+		visibility += 1;
+		if (visibility == 1) {
+			ShaderData.RefreshVisibility(this);
+		}
+	}
+
+	public void DecreaseVisibility () {
+		visibility -= 1;
+		if (visibility == 0) {
+			ShaderData.RefreshVisibility(this);
+		}
+	}
+```
+
+### 2.3 为部队提供视野
+
+让我们让部队能够看到他们占用的单元格。这是通过在 `HexUnit.Location` 已设置时在单元的新位置调用 `IncreaseVisibility` 来实现的。如果有，还可以在旧位置调用 `DecreaseVisibility`。
+
+```c#
+	public HexCell Location {
+		get {
+			return location;
+		}
+		set {
+			if (location) {
+				location.DecreaseVisibility();
+				location.Unit = null;
+			}
+			location = value;
+			value.Unit = this;
+			value.IncreaseVisibility();
+			transform.localPosition = value.Position;
+		}
+	}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-20/visibility/units-see-where-they-are.png)
+
+*单位可以看到他们在哪里。*
+
+我们第一次看到能见度在发挥作用！单位添加到地图时，其位置可见。当他们旅行时，他们的视线也会传送到新的位置。但他们的视线在从地图上移除后仍然活跃。要解决这个问题，请在它们死亡时降低其位置的可见性。
+
+```c#
+	public void Die () {
+		if (location) {
+			location.DecreaseVisibility();
+		}
+		location.Unit = null;
+		Destroy(gameObject);
+	}
+```
+
+### 2.4 视野范围
+
+只看到你所在的单元格是相当有限的。至少，你应该也能看到相邻的单元格。一般来说，单位可以看到一定距离内的所有单元格，这可能因单位而异。
+
+让我们在 `HexGrid` 中添加一个方法，在给定视觉范围的情况下，找到一个单元格中可见的所有单元格。我们可以通过复制和修改 `Search` 来创建此方法。更改其参数，并使其返回一个单元格列表，为此可以使用列表池。
+
+每次迭代，当前单元格都会添加到列表中。不再有目标单元格，因此搜索在到达该单元格时永远不会结束。还要摆脱回合和移动成本逻辑。确保不再设置 `PathFrom` 属性，因为我们不需要它们，也不想干扰网格的路径。
+
+每走一步，距离只会增加 1。如果超出范围，跳过该单元格。我们不需要搜索启发式，所以将其初始化为 0。所以我们实际上回到了 Dijkstra 的算法。
+
+```c#
+	List<HexCell> GetVisibleCells (HexCell fromCell, int range) {
+		List<HexCell> visibleCells = ListPool<HexCell>.Get();
+
+		searchFrontierPhase += 2;
+		if (searchFrontier == null) {
+			searchFrontier = new HexCellPriorityQueue();
+		}
+		else {
+			searchFrontier.Clear();
+		}
+
+		fromCell.SearchPhase = searchFrontierPhase;
+		fromCell.Distance = 0;
+		searchFrontier.Enqueue(fromCell);
+		while (searchFrontier.Count > 0) {
+			HexCell current = searchFrontier.Dequeue();
+			current.SearchPhase += 1;
+			visibleCells.Add(current);
+//			if (current == toCell) {
+//				return true;
+//			}
+
+//			int currentTurn = (current.Distance - 1) / speed;
+
+			for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++) {
+				HexCell neighbor = current.GetNeighbor(d);
+				if (
+					neighbor == null ||
+					neighbor.SearchPhase > searchFrontierPhase
+				) {
+					continue;
+				}
+//				…
+//				int moveCost;
+//				…
+
+				int distance = current.Distance + 1;
+				if (distance > range) {
+					continue;
+				}
+//				int turn = (distance - 1) / speed;
+//				if (turn > currentTurn) {
+//					distance = turn * speed + moveCost;
+//				}
+
+				if (neighbor.SearchPhase < searchFrontierPhase) {
+					neighbor.SearchPhase = searchFrontierPhase;
+					neighbor.Distance = distance;
+//					neighbor.PathFrom = current;
+					neighbor.SearchHeuristic = 0;
+					searchFrontier.Enqueue(neighbor);
+				}
+				else if (distance < neighbor.Distance) {
+					int oldPriority = neighbor.SearchPriority;
+					neighbor.Distance = distance;
+//					neighbor.PathFrom = current;
+					searchFrontier.Change(neighbor, oldPriority);
+				}
+			}
+		}
+		return visibleCells;
+	}
+```
+
+> **我们不能用一个更简单的算法来找到范围内的所有单元格吗？**
+>
+> 我们可以，但这种方法允许我们支持更复杂的视觉算法，我们将在未来的教程中介绍。
+
+现在还给 `HexGrid` 一种 `IncreaseVisibility` 和 `DecreaseVisibility` 的方法。它们获取一个单元格和范围，获取相关的单元格列表，并适当地增加或减少其可见性。完成后，他们应该把名单放回它的池中。
+
+```c#
+	public void IncreaseVisibility (HexCell fromCell, int range) {
+		List<HexCell> cells = GetVisibleCells(fromCell, range);
+		for (int i = 0; i < cells.Count; i++) {
+			cells[i].IncreaseVisibility();
+		}
+		ListPool<HexCell>.Add(cells);
+	}
+
+	public void DecreaseVisibility (HexCell fromCell, int range) {
+		List<HexCell> cells = GetVisibleCells(fromCell, range);
+		for (int i = 0; i < cells.Count; i++) {
+			cells[i].DecreaseVisibility();
+		}
+		ListPool<HexCell>.Add(cells);
+	}
+```
+
+`HexUnit` 需要访问网格才能使用这些方法，因此向其添加 `grid` 属性。
+
+```c#
+	public HexGrid Grid { get; set; }
+```
+
+在 `HexGrid.AddUnit` 中向网格添加单位时，将网格分配给此属性。
+
+```c#
+	public void AddUnit (HexUnit unit, HexCell location, float orientation) {
+		units.Add(unit);
+		unit.Grid = this;
+		unit.transform.SetParent(transform, false);
+		unit.Location = location;
+		unit.Orientation = orientation;
+	}
+```
+
+三个单元格的视觉范围就足够了。为此在 `HexUnit` 中添加一个常量，该常量在未来始终可能变为变量。然后确保该单元调用网格的 `IncreaseVisibility` 和 `DecreaseVisibility` 方法，而不是直接转到其位置，也传递其范围。
+
+```c#
+	const int visionRange = 3;
+
+	…
+
+	public HexCell Location {
+		get {
+			return location;
+		}
+		set {
+			if (location) {
+//				location.DecreaseVisibility();
+				Grid.DecreaseVisibility(location, visionRange);
+				location.Unit = null;
+			}
+			location = value;
+			value.Unit = this;
+//			value.IncreaseVisibility();
+			Grid.IncreaseVisibility(value, visionRange);
+			transform.localPosition = value.Position;
+		}
+	}
+
+	…
+
+	public void Die () {
+		if (location) {
+//			location.DecreaseVisibility();
+			Grid.DecreaseVisibility(location, visionRange);
+		}
+		location.Unit = null;
+		Destroy(gameObject);
+	}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-20/visibility/vsion-range.png)
+
+*具有可视范围的单元，可以重叠。*
+
+### 2.5 旅行时的视野
+
+目前，当一个单位被命令移动时，它的视觉会直接传送到目的地。如果这个单位和它的愿景结合在一起，看起来会更好。完成此工作的第一步不再是在 `HexUnit.Travel` 中设置 `Location` 属性。相反，直接更改 `location` 字段，避免使用属性的代码。因此，手动清理旧位置并配置新位置。保持视野不变。
+
+```c#
+	public void Travel (List<HexCell> path) {
+//		Location = path[path.Count - 1];
+		location.Unit = null;
+		location = path[path.Count - 1];
+		location.Unit = this;
+		pathToTravel = path;
+		StopAllCoroutines();
+		StartCoroutine(TravelPath());
+	}
+```
+
+在 `TravelPath` 协程中，只有在 `LookAt` 完成后，才能降低第一个单元格的可见性。之后，在移动到新单元格之前，增加该单元格的可见性。完成后，再次降低能见度。最后，增加最后一个单元格的可见性。
+
+```c#
+	IEnumerator TravelPath () {
+		Vector3 a, b, c = pathToTravel[0].Position;
+//		transform.localPosition = c;
+		yield return LookAt(pathToTravel[1].Position);
+		Grid.DecreaseVisibility(pathToTravel[0], visionRange);
+
+		float t = Time.deltaTime * travelSpeed;
+		for (int i = 1; i < pathToTravel.Count; i++) {
+			a = c;
+			b = pathToTravel[i - 1].Position;
+			c = (b + pathToTravel[i].Position) * 0.5f;
+			Grid.IncreaseVisibility(pathToTravel[i], visionRange);
+			for (; t < 1f; t += Time.deltaTime * travelSpeed) {
+				…
+			}
+			Grid.DecreaseVisibility(pathToTravel[i], visionRange);
+			t -= 1f;
+		}
+
+		a = c;
+		b = location.Position; // We can simply use the destination here.
+		c = b;
+		Grid.IncreaseVisibility(location, visionRange);
+		for (; t < 1f; t += Time.deltaTime * travelSpeed) {
+			…
+		}
+
+		…
+	}
+```
+
+*旅行时的视野。*
+
+这是有效的，除非在单位仍在运行时发出新的移动命令。这会触发传送，这也应该适用于视野。为了支持这一点，我们必须在旅行时跟踪该部队的当前位置。
+
+```c#
+	HexCell location, currentTravelLocation;
+```
+
+每次旅行时输入新单元格时更新此位置，直到输入最后一个单元格。那么，它应该被清除。
+
+```c#
+	IEnumerator TravelPath () {
+		…
+		
+		for (int i = 1; i < pathToTravel.Count; i++) {
+			currentTravelLocation = pathToTravel[i];
+			a = c;
+			b = pathToTravel[i - 1].Position;
+			c = (b + currentTravelLocation.Position) * 0.5f;
+			Grid.IncreaseVisibility(pathToTravel[i], visionRange);
+			for (; t < 1f; t += Time.deltaTime * travelSpeed) {
+				transform.localPosition = Bezier.GetPoint(a, b, c, t);
+				Vector3 d = Bezier.GetDerivative(a, b, c, t);
+				d.y = 0f;
+				transform.localRotation = Quaternion.LookRotation(d);
+				yield return null;
+			}
+			Grid.DecreaseVisibility(pathToTravel[i], visionRange);
+			t -= 1f;
+		}
+		currentTravelLocation = null;
+		
+		…
+	}
+```
+
+现在，在 `TravelPath` 中完成旋转后，我们可以检查是否知道旧的中间旅行位置。如果是这样，我们应该降低该单元格的可见性，而不是路径的起点。
+
+```c#
+	IEnumerator TravelPath () {
+		Vector3 a, b, c = pathToTravel[0].Position;
+		yield return LookAt(pathToTravel[1].Position);
+		Grid.DecreaseVisibility(
+			currentTravelLocation ? currentTravelLocation : pathToTravel[0],
+			visionRange
+		);
+
+		…
+	}
+```
+
+我们还必须在单位运行时重新编译后修复可见性。如果仍然知道中间位置，则降低其可见性，增加目的地的可见性，然后清除中间位置。
+
+```c#
+	void OnEnable () {
+		if (location) {
+			transform.localPosition = location.Position;
+			if (currentTravelLocation) {
+				Grid.IncreaseVisibility(location, visionRange);
+				Grid.DecreaseVisibility(currentTravelLocation, visionRange);
+				currentTravelLocation = null;
+			}
+		}
+	}
+```
+
+[unitypackage](https://catlikecoding.com/unity/tutorials/hex-map/part-20/visibility/visibility.unitypackage)
+
+## 3 道路和水的能见度
+
+虽然地形会根据能见度改变颜色，但道路和水不会受到影响。对于看不见的单元格来说，它们看起来太亮了。为了将可见性应用于道路和水，我们还必须在网格数据中添加单元格索引和混合权重。因此，请检查块预制件的***河流***、***道路***、***水域***、***水岸***和***河口***子节点的“***使用单元格数据***”。
+
+### 3.1 道路
+
+我们从道路开始。 `HexGridChunk.TriangulateRoadEdge` 方法用于在单元格中心创建一小部分道路，因此需要一个单元格索引。为它添加一个参数，并为三角形生成单元格数据。
+
+```c#
+	void TriangulateRoadEdge (
+		Vector3 center, Vector3 mL, Vector3 mR, float index
+	) {
+		roads.AddTriangle(center, mL, mR);
+		roads.AddTriangleUV(
+			new Vector2(1f, 0f), new Vector2(0f, 0f), new Vector2(0f, 0f)
+		);
+		Vector3 indices;
+		indices.x = indices.y = indices.z = index;
+		roads.AddTriangleCellData(indices, weights1);
+	}
+```
+
+另一种基本的道路创建方法是 `TriangulateLoadSegment`。它既用于单元格内部，也用于单元格之间，因此需要使用两个不同的索引。索引向量参数对此很方便。由于路段可能是梯田的一部分，因此权重也必须通过参数提供。
+
+```c#
+	void TriangulateRoadSegment (
+		Vector3 v1, Vector3 v2, Vector3 v3,
+		Vector3 v4, Vector3 v5, Vector3 v6,
+		Color w1, Color w2, Vector3 indices
+	) {
+		roads.AddQuad(v1, v2, v4, v5);
+		roads.AddQuad(v2, v3, v5, v6);
+		roads.AddQuadUV(0f, 1f, 0f, 0f);
+		roads.AddQuadUV(1f, 0f, 0f, 0f);
+		roads.AddQuadCellData(indices, w1, w2);
+		roads.AddQuadCellData(indices, w1, w2);
+	}
+```
+
+接下来是 `TriangulateLoad`，它在单元格内创建道路。它还需要一个索引参数。它将此数据传递给它调用的道路方法，并将其添加到它自己创建的三角形中。
+
+```c#
+	void TriangulateRoad (
+		Vector3 center, Vector3 mL, Vector3 mR,
+		EdgeVertices e, bool hasRoadThroughCellEdge, float index
+	) {
+		if (hasRoadThroughCellEdge) {
+			Vector3 indices;
+			indices.x = indices.y = indices.z = index;
+			Vector3 mC = Vector3.Lerp(mL, mR, 0.5f);
+			TriangulateRoadSegment(
+				mL, mC, mR, e.v2, e.v3, e.v4,
+				weights1, weights1, indices
+			);
+			roads.AddTriangle(center, mL, mC);
+			roads.AddTriangle(center, mC, mR);
+			roads.AddTriangleUV(
+				new Vector2(1f, 0f), new Vector2(0f, 0f), new Vector2(1f, 0f)
+			);
+			roads.AddTriangleUV(
+				new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(0f, 0f)
+			);
+			roads.AddTriangleCellData(indices, weights1);
+			roads.AddTriangleCellData(indices, weights1);
+		}
+		else {
+			TriangulateRoadEdge(center, mL, mR, index);
+		}
+	}
+```
+
+剩下的就是向 `TriangulateLoad`、`TriangulateLoadEdge` 和 `TriangulateRoadSegment` 添加所需的方法参数，直到所有编译器错误都得到修复。
+
+```c#
+	void TriangulateWithoutRiver (
+		HexDirection direction, HexCell cell, Vector3 center, EdgeVertices e
+	) {
+		TriangulateEdgeFan(center, e, cell.Index);
+
+		if (cell.HasRoads) {
+			Vector2 interpolators = GetRoadInterpolators(direction, cell);
+			TriangulateRoad(
+				center,
+				Vector3.Lerp(center, e.v1, interpolators.x),
+				Vector3.Lerp(center, e.v5, interpolators.y),
+				e, cell.HasRoadThroughEdge(direction), cell.Index
+			);
+		}
+	}
+	
+	…
+	
+	void TriangulateRoadAdjacentToRiver (
+		HexDirection direction, HexCell cell, Vector3 center, EdgeVertices e
+	) {
+		…
+		TriangulateRoad(roadCenter, mL, mR, e, hasRoadThroughEdge, cell.Index);
+		if (previousHasRiver) {
+			TriangulateRoadEdge(roadCenter, center, mL, cell.Index);
+		}
+		if (nextHasRiver) {
+			TriangulateRoadEdge(roadCenter, mR, center, cell.Index);
+		}
+	}
+	
+	…
+	
+	void TriangulateEdgeStrip (
+		…
+	) {
+		…
+
+		if (hasRoad) {
+			TriangulateRoadSegment(
+				e1.v2, e1.v3, e1.v4, e2.v2, e2.v3, e2.v4, w1, w2, indices
+			);
+		}
+	}
+```
+
+现在网格数据是正确的，我们继续使用 ***Road*** 着色器。它需要一个顶点程序，并且必须包含 ***HexCellData***。
+
+```glsl
+		#pragma surface surf Standard fullforwardshadows decal:blend vertex:vert
+		#pragma target 3.0
+
+		#include "HexCellData.cginc"
+```
+
+因为我们没有混合多种材料，所以只需向片段程序传递一个可见性因子就足够了。
+
+```glsl
+		struct Input {
+			float2 uv_MainTex;
+			float3 worldPos;
+			float visibility;
+		};
+```
+
+新的顶点程序只需检索两个单元格的数据。我们立即混合它们的可见性，调整它，并将其添加到输出数据中。
+
+```glsl
+		void vert (inout appdata_full v, out Input data) {
+			UNITY_INITIALIZE_OUTPUT(Input, data);
+
+			float4 cell0 = GetCellData(v, 0);
+			float4 cell1 = GetCellData(v, 1);
+
+			data.visibility = cell0.x * v.color.x + cell1.x * v.color.y;
+			data.visibility = lerp(0.25, 1, data.visibility);
+		}
+```
+
+在片段程序中，我们所要做的就是考虑颜色的可见性。
+
+```glsl
+		void surf (Input IN, inout SurfaceOutputStandard o) {
+			float4 noise = tex2D(_MainTex, IN.worldPos.xz * 0.025);
+			fixed4 c = _Color * ((noise.y * 0.75 + 0.25) * IN.visibility);
+			…
+		}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-20/visibility-of-roads-and-water/road-visibility.png)
+
+*有能见度的道路。*
+
+### 3.2 开阔水域
+
+看起来水似乎已经受到能见度的影响，但这只是它下面的淹没地形表面。让我们从将能见度应用于开阔水域开始。这需要调整 `HexGridChunk.TriangulateOpenWater`。
+
+```c#
+	void TriangulateOpenWater (
+		HexDirection direction, HexCell cell, HexCell neighbor, Vector3 center
+	) {
+		…
+
+		water.AddTriangle(center, c1, c2);
+		Vector3 indices;
+		indices.x = indices.y = indices.z = cell.Index;
+		water.AddTriangleCellData(indices, weights1);
+
+		if (direction <= HexDirection.SE && neighbor != null) {
+			…
+
+			water.AddQuad(c1, c2, e1, e2);
+			indices.y = neighbor.Index;
+			water.AddQuadCellData(indices, weights1, weights2);
+
+			if (direction <= HexDirection.E) {
+				…
+				water.AddTriangle(
+					c2, e2, c2 + HexMetrics.GetWaterBridge(direction.Next())
+				);
+				indices.z = nextNeighbor.Index;
+				water.AddTriangleCellData(
+					indices, weights1, weights2, weights3
+				);
+			}
+		}
+	}
+```
+
+我们还必须将单元格数据添加到水岸旁边的三角形扇形区域。
+
+```c#
+	void TriangulateWaterShore (
+		HexDirection direction, HexCell cell, HexCell neighbor, Vector3 center
+	) {
+		…
+		water.AddTriangle(center, e1.v1, e1.v2);
+		water.AddTriangle(center, e1.v2, e1.v3);
+		water.AddTriangle(center, e1.v3, e1.v4);
+		water.AddTriangle(center, e1.v4, e1.v5);
+		Vector3 indices;
+		indices.x = indices.y = indices.z = cell.Index;
+		water.AddTriangleCellData(indices, weights1);
+		water.AddTriangleCellData(indices, weights1);
+		water.AddTriangleCellData(indices, weights1);
+		water.AddTriangleCellData(indices, weights1);
+		
+		…
+	}
+```
+
+***Water*** 着色器必须按照与道路着色器相同的方式进行更改，除了它需要组合三个单元格的可见性，而不仅仅是两个单元格。
+
+```glsl
+		#pragma surface surf Standard alpha vertex:vert
+		#pragma target 3.0
+
+		#include "Water.cginc"
+		#include "HexCellData.cginc"
+
+		sampler2D _MainTex;
+
+		struct Input {
+			float2 uv_MainTex;
+			float3 worldPos;
+			float visibility;
+		};
+
+		…
+
+		void vert (inout appdata_full v, out Input data) {
+			UNITY_INITIALIZE_OUTPUT(Input, data);
+
+			float4 cell0 = GetCellData(v, 0);
+			float4 cell1 = GetCellData(v, 1);
+			float4 cell2 = GetCellData(v, 2);
+
+			data.visibility =
+				cell0.x * v.color.x + cell1.x * v.color.y + cell2.x * v.color.z;
+			data.visibility = lerp(0.25, 1, data.visibility);
+		}
+
+		void surf (Input IN, inout SurfaceOutputStandard o) {
+			float waves = Waves(IN.worldPos.xz, _MainTex);
+
+			fixed4 c = saturate(_Color + waves);
+			o.Albedo = c.rgb * IN.visibility;
+			…
+		}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-20/visibility-of-roads-and-water/water-visibility.png)
+
+*有能见度的开阔水域。*
+
+### 3.3 水岸和河口
+
+为了支持水岸，我们必须再次调整 `HexGridChunk.TriangulateWaterShore`。我们已经创建了一个索引向量，但只对开阔水域使用了单个单元格索引。海岸也需要邻居索引，所以改变这一点。
+
+```c#
+		Vector3 indices;
+//		indices.x = indices.y = indices.z = cell.Index;
+		indices.x = indices.z = cell.Index;
+		indices.y = neighbor.Index;
+```
+
+将单元格数据添加到岸四边形和三角形中。在调用 `TriangulateStudary` 时也传递索引。
+
+```c#
+		if (cell.HasRiverThroughEdge(direction)) {
+			TriangulateEstuary(
+				e1, e2, cell.IncomingRiver == direction, indices
+			);
+		}
+		else {
+			…
+			waterShore.AddQuadUV(0f, 0f, 0f, 1f);
+			waterShore.AddQuadCellData(indices, weights1, weights2);
+			waterShore.AddQuadCellData(indices, weights1, weights2);
+			waterShore.AddQuadCellData(indices, weights1, weights2);
+			waterShore.AddQuadCellData(indices, weights1, weights2);
+		}
+
+		HexCell nextNeighbor = cell.GetNeighbor(direction.Next());
+		if (nextNeighbor != null) {
+			…
+			waterShore.AddTriangleUV(
+				…
+			);
+			indices.z = nextNeighbor.Index;
+			waterShore.AddTriangleCellData(
+				indices, weights1, weights2, weights3
+			);
+		}
+```
+
+将所需参数添加到 `TriangulateEstudary` 中，并处理海岸和河口的单元格数据。记住，河口是由一个梯形组成的，两侧是两个岸边三角形。确保权重按正确顺序提供。
+
+```c#
+	void TriangulateEstuary (
+		EdgeVertices e1, EdgeVertices e2, bool incomingRiver, Vector3 indices
+	) {
+		waterShore.AddTriangle(e2.v1, e1.v2, e1.v1);
+		waterShore.AddTriangle(e2.v5, e1.v5, e1.v4);
+		waterShore.AddTriangleUV(
+			new Vector2(0f, 1f), new Vector2(0f, 0f), new Vector2(0f, 0f)
+		);
+		waterShore.AddTriangleUV(
+			new Vector2(0f, 1f), new Vector2(0f, 0f), new Vector2(0f, 0f)
+		);
+		waterShore.AddTriangleCellData(indices, weights2, weights1, weights1);
+		waterShore.AddTriangleCellData(indices, weights2, weights1, weights1);
+
+		estuaries.AddQuad(e2.v1, e1.v2, e2.v2, e1.v3);
+		estuaries.AddTriangle(e1.v3, e2.v2, e2.v4);
+		estuaries.AddQuad(e1.v3, e1.v4, e2.v4, e2.v5);
+
+		estuaries.AddQuadUV(
+			new Vector2(0f, 1f), new Vector2(0f, 0f),
+			new Vector2(1f, 1f), new Vector2(0f, 0f)
+		);
+		estuaries.AddTriangleUV(
+			new Vector2(0f, 0f), new Vector2(1f, 1f), new Vector2(1f, 1f)
+		);
+		estuaries.AddQuadUV(
+			new Vector2(0f, 0f), new Vector2(0f, 0f),
+			new Vector2(1f, 1f), new Vector2(0f, 1f)
+		);
+		estuaries.AddQuadCellData(
+			indices, weights2, weights1, weights2, weights1
+		);
+		estuaries.AddTriangleCellData(indices, weights1, weights2, weights2);
+		estuaries.AddQuadCellData(indices, weights1, weights2);
+		
+		…
+	}
+```
+
+***WaterShore*** 着色器需要与 ***Water*** 着色器相同的更改，混合三个单元格的可见性。
+
+```glsl
+		#pragma surface surf Standard alpha vertex:vert
+		#pragma target 3.0
+
+		#include "Water.cginc"
+		#include "HexCellData.cginc"
+
+		sampler2D _MainTex;
+
+		struct Input {
+			float2 uv_MainTex;
+			float3 worldPos;
+			float visibility;
+		};
+
+		…
+
+		void vert (inout appdata_full v, out Input data) {
+			UNITY_INITIALIZE_OUTPUT(Input, data);
+
+			float4 cell0 = GetCellData(v, 0);
+			float4 cell1 = GetCellData(v, 1);
+			float4 cell2 = GetCellData(v, 2);
+
+			data.visibility =
+				cell0.x * v.color.x + cell1.x * v.color.y + cell2.x * v.color.z;
+			data.visibility = lerp(0.25, 1, data.visibility);
+		}
+
+		void surf (Input IN, inout SurfaceOutputStandard o) {
+			…
+
+			fixed4 c = saturate(_Color + max(foam, waves));
+			o.Albedo = c.rgb * IN.visibility;
+			…
+		}
+```
+
+***Estuary*** 着色器混合了两个单元格的可见性，就像 ***Road*** 着色器一样。它已经有一个顶点程序，因为我们需要它通过河流的 UV 坐标。
+
+```glsl
+		#include "Water.cginc"
+		#include "HexCellData.cginc"
+
+		sampler2D _MainTex;
+
+		struct Input {
+			float2 uv_MainTex;
+			float2 riverUV;
+			float3 worldPos;
+			float visibility;
+		};
+
+		half _Glossiness;
+		half _Metallic;
+		fixed4 _Color;
+
+		void vert (inout appdata_full v, out Input o) {
+			UNITY_INITIALIZE_OUTPUT(Input, o);
+			o.riverUV = v.texcoord1.xy;
+
+			float4 cell0 = GetCellData(v, 0);
+			float4 cell1 = GetCellData(v, 1);
+
+			o.visibility = cell0.x * v.color.x + cell1.x * v.color.y;
+			o.visibility = lerp(0.25, 1, o.visibility);
+		}
+
+		void surf (Input IN, inout SurfaceOutputStandard o) {
+			…
+
+			fixed4 c = saturate(_Color + water);
+			o.Albedo = c.rgb * IN.visibility;
+			…
+		}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-20/visibility-of-roads-and-water/shore-visibility.png)
+
+*有能见度的水岸和河口。*
+
+### 3.4 河流
+
+最后要处理的水域是河流。向 `HexGridChunk.TriangulateRiverQuad` 添加索引向量参数，并将其添加到网格中，以便它可以支持两个单元格的可见性。
+
+```c#
+	void TriangulateRiverQuad (
+		Vector3 v1, Vector3 v2, Vector3 v3, Vector3 v4,
+		float y, float v, bool reversed, Vector3 indices
+	) {
+		TriangulateRiverQuad(v1, v2, v3, v4, y, y, v, reversed, indices);
+	}
+
+	void TriangulateRiverQuad (
+		Vector3 v1, Vector3 v2, Vector3 v3, Vector3 v4,
+		float y1, float y2, float v, bool reversed, Vector3 indices
+	) {
+		…
+		rivers.AddQuadCellData(indices, weights1, weights2);
+	}
+```
+
+`TriangulateWithRiverBeginOrEnd` 创建河流的端点，在单元格的中心有一个四边形和一个三角形。为此添加所需的单元格数据。
+
+```c#
+	void TriangulateWithRiverBeginOrEnd (
+		HexDirection direction, HexCell cell, Vector3 center, EdgeVertices e
+	) {
+		…
+
+		if (!cell.IsUnderwater) {
+			bool reversed = cell.HasIncomingRiver;
+			Vector3 indices;
+			indices.x = indices.y = indices.z = cell.Index;
+			TriangulateRiverQuad(
+				m.v2, m.v4, e.v2, e.v4,
+				cell.RiverSurfaceY, 0.6f, reversed, indices
+			);
+			center.y = m.v2.y = m.v4.y = cell.RiverSurfaceY;
+			rivers.AddTriangle(center, m.v2, m.v4);
+			…
+			rivers.AddTriangleCellData(indices, weights1);
+		}
+	}
+```
+
+我们已经在 `TriangulateWithRiver` 中有了单元格索引，所以在调用 `TriangulateRiverQuad` 时只需传递它们即可。
+
+```c#
+	void TriangulateWithRiver (
+		HexDirection direction, HexCell cell, Vector3 center, EdgeVertices e
+	) {
+		…
+
+		if (!cell.IsUnderwater) {
+			bool reversed = cell.IncomingRiver == direction;
+			TriangulateRiverQuad(
+				centerL, centerR, m.v2, m.v4,
+				cell.RiverSurfaceY, 0.4f, reversed, indices
+			);
+			TriangulateRiverQuad(
+				m.v2, m.v4, e.v2, e.v4,
+				cell.RiverSurfaceY, 0.6f, reversed, indices
+			);
+		}
+	}
+```
+
+还为坠入深水的瀑布索引提供支持。
+
+```c#
+	void TriangulateWaterfallInWater (
+		Vector3 v1, Vector3 v2, Vector3 v3, Vector3 v4,
+		float y1, float y2, float waterY, Vector3 indices
+	) {
+		…
+		rivers.AddQuadCellData(indices, weights1, weights2);
+	}
+```
+
+最后，更新 `TriangulateConnection`，使其为河流和瀑布方法提供所需的索引。
+
+```c#
+	void TriangulateConnection (
+		HexDirection direction, HexCell cell, EdgeVertices e1
+	) {
+		…
+
+		if (hasRiver) {
+			e2.v3.y = neighbor.StreamBedY;
+			Vector3 indices;
+			indices.x = indices.z = cell.Index;
+			indices.y = neighbor.Index;
+
+			if (!cell.IsUnderwater) {
+				if (!neighbor.IsUnderwater) {
+					TriangulateRiverQuad(
+						e1.v2, e1.v4, e2.v2, e2.v4,
+						cell.RiverSurfaceY, neighbor.RiverSurfaceY, 0.8f,
+						cell.HasIncomingRiver && cell.IncomingRiver == direction,
+						indices
+					);
+				}
+				else if (cell.Elevation > neighbor.WaterLevel) {
+					TriangulateWaterfallInWater(
+						e1.v2, e1.v4, e2.v2, e2.v4,
+						cell.RiverSurfaceY, neighbor.RiverSurfaceY,
+						neighbor.WaterSurfaceY, indices
+					);
+				}
+			}
+			else if (
+				!neighbor.IsUnderwater &&
+				neighbor.Elevation > cell.WaterLevel
+			) {
+				TriangulateWaterfallInWater(
+					e2.v4, e2.v2, e1.v4, e1.v2,
+					neighbor.RiverSurfaceY, cell.RiverSurfaceY,
+					cell.WaterSurfaceY, indices
+				);
+			}
+		}
+
+		…
+	}
+```
+
+***River*** 着色器需要与 ***Road*** 着色器相同的更改。
+
+```glsl
+		#pragma surface surf Standard alpha vertex:vert
+		#pragma target 3.0
+
+		#include "Water.cginc"
+		#include "HexCellData.cginc"
+
+		sampler2D _MainTex;
+
+		struct Input {
+			float2 uv_MainTex;
+			float visibility;
+		};
+
+		…
+
+		void vert (inout appdata_full v, out Input data) {
+			UNITY_INITIALIZE_OUTPUT(Input, data);
+
+			float4 cell0 = GetCellData(v, 0);
+			float4 cell1 = GetCellData(v, 1);
+
+			data.visibility = cell0.x * v.color.x + cell1.x * v.color.y;
+			data.visibility = lerp(0.25, 1, data.visibility);
+		}
+
+		void surf (Input IN, inout SurfaceOutputStandard o) {
+			float river = River(IN.uv_MainTex, _MainTex);
+			
+			fixed4 c = saturate(_Color + river);
+			o.Albedo = c.rgb * IN.visibility;
+			…
+		}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-20/visibility-of-roads-and-water/rivers-visibility.png)
+
+*有能见度的河流。*
+
+[unitypackage](https://catlikecoding.com/unity/tutorials/hex-map/part-20/visibility-of-roads-and-water/visibility-of-roads-and-water.unitypackage)
+
+## 4 特征和可见性
+
+可见性现在适用于程序生成的地形，但地形特征仍不受其影响。建筑物、农场和树木是通过实例化预制件而不是程序几何体制成的。因此，我们无法为单元格的顶点添加索引和混合权重。由于这些特征每个都属于一个单元格，我们必须弄清楚它们属于哪个单元格。如果我们能做到这一点，我们就可以访问相关的单元格数据并应用可见性。
+
+我们已经可以将世界 XZ 位置转换为单元格索引。我们使用它来编辑地形和操纵单位。然而，相关代码并非微不足道。它依赖于整数运算，需要逻辑来处理边缘情况。这在着色器中是不切实际的。相反，我们可以在纹理中烘焙大部分逻辑并使用它。
+
+我们已经使用具有六边形图案的纹理将网格投影到地形顶部。该纹理定义了一个 2×2 的单元格区域。因此，很容易找出我们所在的区域。然后，我们可以使用一个包含该区域中单元格的 X 和 Z 偏移的纹理，并使用它来精确定位我们所在的单元格。
+
+这就是这样的纹理。X 偏移存储在红色通道中，Z 偏移存储在绿色通道中。由于它覆盖了 2×2 的单元格区域，我们需要 0 到 2 之间的偏移量。这不能存储在颜色通道中，因此偏移量减半。我们不需要清晰的单元格边缘，所以一个小的纹理就足够了。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-20/features/hex-grid-coordinates.png)
+
+*网格坐标纹理。*
+
+将纹理添加到项目中。确保其“***包裹模式***”设置为“***重复***”，就像其他网格纹理一样。我们不希望进行任何混合，因此将其“***混合模式***”设置为“***点***”。同时禁用***压缩***，这样数据就不会被弄乱。禁用 ***sRGB*** 模式，以确保在线性模式下渲染时不进行颜色空间转换。最后，我们不需要 mipmaps。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-20/features/texture-import-inspector.png)
+
+*纹理导入设置。*
+
+### 4.1 具有可见性的特征着色器
+
+创建新的 ***Feature*** 着色器，为特征添加可见性支持。这是一个简单的表面着色器，带有顶点程序。像往常一样，包括 ***HexCellData*** 并将可见性因子传递给片段程序，并将其因子化为颜色。不同的是，我们无法使用 `GetCellData`，因为缺少所需的网格数据。相反，我们将利用世界位置。但就目前而言，将能见度保持在 1。
+
+```glsl
+Shader "Custom/Feature" {
+	Properties {
+		_Color ("Color", Color) = (1,1,1,1)
+		_MainTex ("Albedo (RGB)", 2D) = "white" {}
+		_Glossiness ("Smoothness", Range(0,1)) = 0.5
+		_Metallic ("Metallic", Range(0,1)) = 0.0
+		[NoTilingOffset] _GridCoordinates ("Grid Coordinates", 2D) = "white" {}
+	}
+	SubShader {
+		Tags { "RenderType"="Opaque" }
+		LOD 200
+		
+		CGPROGRAM
+		#pragma surface surf Standard fullforwardshadows vertex:vert
+		#pragma target 3.0
+
+		#include "../HexCellData.cginc"
+
+		sampler2D _MainTex, _GridCoordinates;
+
+		half _Glossiness;
+		half _Metallic;
+		fixed4 _Color;
+
+		struct Input {
+			float2 uv_MainTex;
+			float visibility;
+		};
+
+		void vert (inout appdata_full v, out Input data) {
+			UNITY_INITIALIZE_OUTPUT(Input, data);
+			float3 pos = mul(unity_ObjectToWorld, v.vertex);
+
+			data.visibility = 1;
+		}
+
+		void surf (Input IN, inout SurfaceOutputStandard o) {
+			fixed4 c = tex2D (_MainTex, IN.uv_MainTex) * _Color;
+			o.Albedo = c.rgb * IN.visibility;
+			o.Metallic = _Metallic;
+			o.Smoothness = _Glossiness;
+			o.Alpha = c.a;
+		}
+		ENDCG
+	}
+	FallBack "Diffuse"
+}
+```
+
+更改所有特征材质，使其使用新着色器，并为其指定网格坐标纹理。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-20/features/urban-material.png)
+
+*具有网格纹理的城市材质。*
+
+### 4.2 访问单元格数据
+
+为了在顶点程序中对网格坐标纹理进行采样，我们再次需要使用带有四分量纹理坐标向量的 `tex2Dlod`。前两个坐标是世界 XZ 位置。另外两个是零，和以前一样。
+
+```glsl
+		void vert (inout appdata_full v, out Input data) {
+			UNITY_INITIALIZE_OUTPUT(Input, data);
+			float3 pos = mul(unity_ObjectToWorld, v.vertex);
+
+			float4 gridUV = float4(pos.xz, 0, 0);
+
+			data.visibility = 1;
+		}
+```
+
+与 ***Terrain*** 着色器中一样，拉伸 UV 坐标，使纹理具有适当的纵横比，与实际的六边形网格相匹配。
+
+```glsl
+			float4 gridUV = float4(pos.xz, 0, 0);
+			gridUV.x *= 1 / (4 * 8.66025404);
+			gridUV.y *= 1 / (2 * 15.0);
+```
+
+通过获取 UV 坐标的底图，我们可以找到我们所在的 2×2 单元格补丁。这构成了我们单元格坐标的基。
+
+```c#
+			float4 gridUV = float4(pos.xz, 0, 0);
+			gridUV.x *= 1 / (4 * 8.66025404);
+			gridUV.y *= 1 / (2 * 15.0);
+			float2 cellDataCoordinates = floor(gridUV.xy);
+```
+
+要找到我们所在单元格的坐标，请添加纹理中存储的偏移量。
+
+```c#
+			float2 cellDataCoordinates =
+				floor(gridUV.xy) + tex2Dlod(_GridCoordinates, gridUV).rg;
+```
+
+因为网格块是 2×2，偏移量减半，所以我们必须将结果加倍才能得到最终坐标。
+
+```c#
+			float2 cellDataCoordinates =
+				floor(gridUV.xy) + tex2Dlod(_GridCoordinates, gridUV).rg;
+			cellDataCoordinates *= 2;
+```
+
+我们现在有 XZ 单元网格坐标，必须将其转换为单元数据 UV 坐标。这是通过简单地移动到像素中心，然后除以纹理大小来实现的。让我们在 ***HexCellData*** 包含文件中添加一个函数，也负责采样。
+
+```glsl
+float4 GetCellData (float2 cellDataCoordinates) {
+	float2 uv = cellDataCoordinates + 0.5;
+	uv.x *= _HexCellData_TexelSize.x;
+	uv.y *= _HexCellData_TexelSize.y;
+	return tex2Dlod(_HexCellData, float4(uv, 0, 0));
+}
+```
+
+现在我们可以在 ***Feature*** 着色器的顶点程序中使用此函数。
+
+```glsl
+			cellDataCoordinates *= 2;
+
+			data.visibility = GetCellData(cellDataCoordinates).x;
+			data.visibility = lerp(0.25, 1, data.visibility);
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-20/features/features-visibility.png)
+
+*具有可见性的特征。*
+
+最后，除了始终可见的单位外，所有东西都受到可见性的影响。因为我们正在确定每个顶点的特征可见性，所以穿过单元格边界的特征最终会在它所覆盖的单元格的可见性之间混合。这个想法是，特征足够小，即使考虑到位置扰动，它们也总是留在单元格内。但有些最终可能会在另一个单元格中有几个顶点。所以我们的方法很便宜，但并不完美。对于墙壁来说，这一点最为明显，墙壁最终可能会在它们所处的单元格的可见度之间振荡。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-20/features/walls-visibility.png)
+
+*能见度不同的墙壁。*
+
+由于墙段是按程序生成的，我们可以将单元数据添加到它们的网格中，并切换到我们用于地形的方法。不幸的是，墙塔是预制的，所以我们仍然会有这些不一致之处。一般来说，当前的方法对于我们在本教程中使用的简单几何体来说已经足够好了。
+
+下一个教程是[探索](https://catlikecoding.com/unity/tutorials/hex-map/part-21/)。
+
+[unitypackage](https://catlikecoding.com/unity/tutorials/hex-map/part-20/features/features.unitypackage)
+
+[PDF](https://catlikecoding.com/unity/tutorials/hex-map/part-20/Hex-Map-20.pdf)
+
+# Hex Map 21：探索
+
+发布于 2017-09-21
+
+https://catlikecoding.com/unity/tutorials/hex-map/part-21/
+
+*编辑时查看所有内容。*
+*跟踪探索过的单元格。*
+*隐藏未知的东西。*
+*让部队避开未探索的地区。*
+
+这是关于[六边形地图](https://catlikecoding.com/unity/tutorials/hex-map/)的系列教程的第 21 部分。上一部分添加了战争迷雾，我们现在将升级以支持探索。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-21/tutorial-image.jpg)
+
+*我们还有一些探索要做。*
+
+## 1 在编辑模式下查看所有内容
+
+探索的想法是，尚未被发现的单元格是未知的，因此是不可见的。与其让这些单元格变暗，它们根本不应该被显示出来。但是很难编辑不可见的单元格。因此，在我们添加对探索的支持之前，我们将在编辑模式下禁用可见性。
+
+### 1.1 切换可见性
+
+我们可以控制着色器是否通过关键字应用可见性，就像我们对网格覆盖所做的那样。让我们使用 ***HEX_MAP_EDIT_MODE*** 关键字来指示我们是否处于编辑模式。因为多个着色器需要知道这个关键字，所以我们将通过静态 `Shader.EnableKeyWord` 和 `Shader.DisableKeyword` 方法全局定义它。在 `HexGameUI.SetEditMode` 中更改编辑模式时调用相应的选项。
+
+```c#
+	public void SetEditMode (bool toggle) {
+		enabled = !toggle;
+		grid.ShowUI(!toggle);
+		grid.ClearPath();
+		if (toggle) {
+			Shader.EnableKeyword("HEX_MAP_EDIT_MODE");
+		}
+		else {
+			Shader.DisableKeyword("HEX_MAP_EDIT_MODE");
+		}
+	}
+```
+
+### 1.2 编辑模式着色器
+
+定义 ***HEX_MAP_EDIT_MODE*** 时，着色器应忽略可见性。这归结为始终将单元格的可见性视为 1。让我们在 ***HexCellData*** 包含文件的顶部添加一个函数，根据关键字过滤单元格数据。
+
+```glsl
+sampler2D _HexCellData;
+float4 _HexCellData_TexelSize;
+
+float4 FilterCellData (float4 data) {
+	#if defined(HEX_MAP_EDIT_MODE)
+		data.x = 1;
+	#endif
+	return data;
+}
+```
+
+在返回之前，通过此函数传递两个 `GetCellData` 函数的结果。
+
+```glsl
+float4 GetCellData (appdata_full v, int index) {
+	…
+	return FilterCellData(data);
+}
+
+float4 GetCellData (float2 cellDataCoordinates) {
+	…
+	return FilterCellData(tex2Dlod(_HexCellData, float4(uv, 0, 0)));
+}
+```
+
+为了实现这一点，所有相关的着色器都应该获得一个多编译指令，以便在定义 ***HEX_MAP_EDIT_MODE*** 关键字时创建变体。将以下线条添加到目标指令和第一个包含指令之间的***河口***、***特征***、***河流***、***道路***、***地形***、***水***和***水岸***着色器中。
+
+```glsl
+		#pragma multi_compile _ HEX_MAP_EDIT_MODE
+```
+
+现在，当我们切换到地图编辑模式时，战争的迷雾将消失。
+
+[unitypackage](https://catlikecoding.com/unity/tutorials/hex-map/part-21/seeing-everything-in-edit-mode/seeing-everything-in-edit-mode.unitypackage)
+
+## 2 探索单元格
+
+默认情况下，应不探索单元格。一旦单位看到它们，它们就会被探索。从那时起，无论一个单位是否能看到它们，它们都会被探索。
+
+### 2.1 追踪探索
+
+为了支持跟踪探索状态，请向 `HexCell` 添加一个公共 `IsExplored` 属性。
+
+```c#
+	public bool IsExplored { get; set; }
+```
+
+一个单元格是否被探索是由单元格本身决定的。因此，只有HexCell应该能够设置此属性。要执行此操作，请将setter设置为私有。
+
+```c#
+	public bool IsExplored { get; private set; }
+```
+
+当一个单元格的可见性首次超过零时，该单元格将被探索，因此 `IsExplored` 应设置为 `true`。实际上，只要可见性增加到 1，我们就可以简单地将单元格标记为已探索。这应该在调用 `RefreshVisibility` 之前完成。
+
+```c#
+	public void IncreaseVisibility () {
+		visibility += 1;
+		if (visibility == 1) {
+			IsExplored = true;
+			ShaderData.RefreshVisibility(this);
+		}
+	}
+```
+
+### 2.2 将探索传递给着色器
+
+与单元格的可见性一样，我们可以通过着色器数据将其探索状态发送到着色器。毕竟，这是另一种可见性。`HexCellShaderData.RefreshVisibility` 将可见性状态存储在数据的 R 通道中。让我们将探索状态存储在数据的 G 通道中。
+
+```c#
+	public void RefreshVisibility (HexCell cell) {
+		int index = cell.Index;
+		cellTextureData[index].r = cell.IsVisible ? (byte)255 : (byte)0;
+		cellTextureData[index].g = cell.IsExplored ? (byte)255 : (byte)0;
+		enabled = true;
+	}
+```
+
+### 2.3 未开发的黑色地形
+
+现在我们可以使用着色器来可视化单元格的探索状态。为了验证它是否按预期工作，我们只需将未探索的地形设置为黑色。但首先，为了保持编辑模式的功能，调整 `FilterCellData`，使其也过滤勘探数据。
+
+```glsl
+float4 FilterCellData (float4 data) {
+	#if defined(HEX_MAP_EDIT_MODE)
+		data.xy = 1;
+	#endif
+	return data;
+}
+```
+
+***Terrain*** 着色器将所有三个潜在单元格的可见性数据发送到片段程序。在探索状态的情况下，我们将在顶点程序中组合它们，并向片段程序发送一个值。在 `visibility` 输入数据中添加第四个组件，为其腾出空间。
+
+```glsl
+		struct Input {
+			float4 color : COLOR;
+			float3 worldPos;
+			float3 terrain;
+			float4 visibility;
+		};
+```
+
+在顶点程序中，我们现在必须在调整可见性因子时显式访问 `data.visibility.xyz`。
+
+```glsl
+		void vert (inout appdata_full v, out Input data) {
+			…
+			data.visibility.xyz = lerp(0.25, 1, data.visibility.xyz);
+		}
+```
+
+之后，组合探索状态并将结果放入 `data.visibility.w` 中。这类似于组合其他着色器中的可见性，但使用单元格数据的 Y 分量。
+
+```glsl
+			data.visibility.xyz = lerp(0.25, 1, data.visibility.xyz);
+			data.visibility.w =
+				cell0.y * v.color.x + cell1.y * v.color.y + cell2.y * v.color.z;
+```
+
+在碎片程序中，探索状态现在可以通过 `In.visibility.w` 获得。将其纳入反照率。
+
+```glsl
+		void surf (Input IN, inout SurfaceOutputStandard o) {
+			…
+
+			float explored = IN.visibility.w;
+			o.Albedo = c.rgb * grid * _Color * explored;
+			o.Metallic = _Metallic;
+			o.Smoothness = _Glossiness;
+			o.Alpha = c.a;
+		}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-21/exploring-cells/black-unexplored.png)
+
+*未开发的地形是黑色的。*
+
+未经探索的单元格的地形现在变成了黑色。特征、道路和水尚未受到影响。这足以证明探索是有效的。
+
+### 2.4 保存和加载探索
+
+既然我们支持探索，我们还应该确保在保存和加载地图时包含单元格的探索状态。因此，我们必须将地图文件版本增加到 3。为了使这些更改更方便，让我们在 `SaveLoadMenu` 中为此添加一个常量。
+
+```c#
+	const int mapFileVersion = 3;
+```
+
+在 `Save` 中写入文件版本时使用此常量，并检查 `Load` 中是否支持文件。
+
+```c#
+	void Save (string path) {
+		using (
+			BinaryWriter writer =
+			new BinaryWriter(File.Open(path, FileMode.Create))
+		) {
+			writer.Write(mapFileVersion);
+			hexGrid.Save(writer);
+		}
+	}
+
+	void Load (string path) {
+		if (!File.Exists(path)) {
+			Debug.LogError("File does not exist " + path);
+			return;
+		}
+		using (BinaryReader reader = new BinaryReader(File.OpenRead(path))) {
+			int header = reader.ReadInt32();
+			if (header <= mapFileVersion) {
+				hexGrid.Load(reader, header);
+				HexMapCamera.ValidatePosition();
+			}
+			else {
+				Debug.LogWarning("Unknown map format " + header);
+			}
+		}
+	}
+```
+
+在 `HexCell.Save`，我们将把探索状态作为最后一步。
+
+```c#
+	public void Save (BinaryWriter writer) {
+		…
+		writer.Write(IsExplored);
+	}
+```
+
+并在 `Load` 的末尾读。之后，如果探索状态现在与以前不同，请调用 `RefreshVisibility`。
+
+```c#
+	public void Load (BinaryReader reader) {
+		…
+
+		IsExplored = reader.ReadBoolean();
+		ShaderData.RefreshVisibility(this);
+	}
+```
+
+为了保持与旧保存文件的向后兼容，当文件版本小于 3 时，我们应该跳过读取探索状态。在这种情况下，让我们默认为未探索。为了能够做到这一点，我们必须将标头数据作为参数添加到 `Load` 中。
+
+```c#
+	public void Load (BinaryReader reader, int header) {
+		…
+
+		IsExplored = header >= 3 ? reader.ReadBoolean() : false;
+		ShaderData.RefreshVisibility(this);
+	}
+```
+
+从现在开始，`HexGrid.Load` 必须将标头数据传递给 `HexCell.Load`。
+
+```c#
+	public void Load (BinaryReader reader, int header) {
+		…
+
+		for (int i = 0; i < cells.Length; i++) {
+			cells[i].Load(reader, header);
+		}
+		…
+	}
+```
+
+保存和加载地图时，现在包括是否探索单元格。
+
+[unitypackage](https://catlikecoding.com/unity/tutorials/hex-map/part-21/exploring-cells/exploring-cells.unitypackage)
+
+## 3 隐藏未知单元格
+
+目前，未探索的单元格通过给它们一个坚实的黑色地形进行视觉指示。我们真正想要的是这些单元格不可见，因为它们是未知的。可以将通常不透明的几何体设置为透明，使其不再可见。然而，我们使用的是 Unity 的表面着色器框架，该框架的设计没有考虑到这种效果。我们将调整着色器以匹配背景，而不是追求实际的透明度，这样它们也不会被注意到。
+
+### 3.1 让地形真正变黑
+
+尽管未探索的地形是纯黑色的，但我们仍然可以确定它的特征，因为它仍然有镜面照明。为了去除高光，我们必须把它做成完美的哑光（matte）黑色。要做到这一点而不干扰其他曲面属性，最简单的方法是将镜面反射颜色淡化为黑色。当使用具有镜面反射工作流的表面着色器时，这是可能的，但我们目前使用的是默认的金属工作流。因此，让我们从将地形着色器切换到镜面反射工作流开始。
+
+将 ***_Metallic*** 属性替换为 ***_Speculal*** 颜色属性。其默认颜色值应为（0.2，0.2，0.2）。这确保了它与金属版本的外观相匹配。
+
+```glsl
+	Properties {
+		_Color ("Color", Color) = (1,1,1,1)
+		_MainTex ("Terrain Texture Array", 2DArray) = "white" {}
+		_GridTex ("Grid Texture", 2D) = "white" {}
+		_Glossiness ("Smoothness", Range(0,1)) = 0.5
+//		_Metallic ("Metallic", Range(0,1)) = 0.0
+		_Specular ("Specular", Color) = (0.2, 0.2, 0.2)
+	}
+```
+
+同时更改相应的着色器变量。表面着色器的镜面反射颜色被定义为 `fixed3`，所以让我们也使用它。
+
+```glsl
+		half _Glossiness;
+//		half _Metallic;
+		fixed3 _Specular;
+		fixed4 _Color;
+```
+
+将表面粗糙度从“***标准***”更改为“***标准镜面反射***”。这将导致 Unity 使用镜面反射工作流生成着色器。
+
+```glsl
+		#pragma surface surf StandardSpecular fullforwardshadows vertex:vert
+```
+
+`surf` 函数现在要求其第二个参数的类型为 `SurfaceOutputStandardSpecular`。此外，我们应该指定 `o.Specular` 而不是 `o.Metallic`。
+
+```glsl
+		void surf (Input IN, inout SurfaceOutputStandardSpecular o) {
+			…
+
+			float explored = IN.visibility.w;
+			o.Albedo = c.rgb * grid * _Color * explored;
+//			o.Metallic = _Metallic;
+			o.Specular = _Specular;
+			o.Smoothness = _Glossiness;
+			o.Alpha = c.a;
+		}
+```
+
+现在，我们可以通过将 `explored` 因素纳入镜面颜色来淡化高光。
+
+```glsl
+			o.Specular = _Specular * explored;
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-21/hiding-unknown-cells/without-specular.png)
+
+*未经镜面照明的探索。*
+
+从上面看，未勘探的地形现在呈现出哑光黑色。然而，当从掠射角度观察时，表面会变成镜子，这会导致地形反射环境，即天空盒（skybox）。
+
+> **为什么表面会变成镜子？**
+>
+> 这被称为菲涅耳效应。有关详细信息，请参见“[渲染](https://catlikecoding.com/unity/tutorials/rendering/part-1/)”系列。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-21/hiding-unknown-cells/with-reflections.png)
+
+*未探索仍然反射了环境。*
+
+要消除这些反射，请将未探索的地形视为完全遮挡。这是通过使用 `explored` 作为遮挡值来实现的，该值充当反射的遮罩。
+
+```glsl
+			float explored = IN.visibility.w;
+			o.Albedo = c.rgb * grid * _Color * explored;
+			o.Specular = _Specular * explored;
+			o.Smoothness = _Glossiness;
+			o.Occlusion = explored;
+			o.Alpha = c.a;
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-21/hiding-unknown-cells/without-reflections.png)
+
+*未经探索，没有反射。*
+
+### 3.2 匹配背景
+
+现在，未探索的地形忽略了所有照明，下一步是使其与背景相匹配。由于我们的相机总是从上面看，背景总是灰色的。要告诉 ***Terrain*** 着色器使用哪种颜色，请向其添加 ***_BackgroundColor*** 属性，默认为黑色。
+
+```glsl
+	Properties {
+		…
+		_BackgroundColor ("Background Color", Color) = (0,0,0)
+	}
+	
+	…
+	
+		half _Glossiness;
+		fixed3 _Specular;
+		fixed4 _Color;
+		half3 _BackgroundColor;
+```
+
+为了使用这种颜色，我们将其添加为发射光。这是通过将背景颜色乘以一减去探索值赋值给 `o.Emission` 来实现的。
+
+```glsl
+			o.Occlusion = explored;
+			o.Emission = _BackgroundColor * (1 -  explored);
+```
+
+因为我们使用的是默认的天空盒，所以可见的背景颜色实际上并不均匀。总体而言，最好的颜色是微红灰色。调整地形材质时，可以使用***十六进制颜色***代码 68615BFF。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-21/hiding-unknown-cells/terrain-background-color.png)
+
+*灰色背景的地形材质。*
+
+这基本上是有效的，尽管如果你知道去哪里看，你仍然可以看到非常微弱的轮廓。为了确保玩家无法做到这一点，您可以调整相机，使用 68615BFF 作为其纯色背景色，而不是天空盒。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-21/hiding-unknown-cells/camera.png)
+
+*具有纯色背景的相机。*
+
+> **为什么不拆下天空盒？**
+>
+> 您可以这样做，但请记住，它用于地图的环境照明。如果将其切换为纯色，地图的照明也会发生变化。
+
+现在我们不再能够区分背景和未探索的单元格。当使用低相机角度时，高未勘探地形仍然有可能遮挡低勘探地形。此外，未探索的部分仍然在探索的部分上投下阴影。这些最小的线索很好。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-21/hiding-unknown-cells/invisible-unexplored.png)
+
+*未探索的单元格不再可见。*
+
+> **如果我没有使用纯色背景怎么办？**
+>
+> 您可以创建自己的着色器，使地形透明，同时仍写入深度缓冲区，这可能需要一些着色器队列技巧。如果你使用的是屏幕空间纹理，你可以简单地对这个纹理进行采样，而不是使用背景颜色。如果你在世界空间中使用纹理，在地形下方，你必须使用一些数学方法，根据视角和片段的世界位置，找出要使用的纹理 UV 坐标。
+
+### 3.3 隐藏特征
+
+此时，只有地形网格被隐藏。其他一切仍然不受探索状态的影响。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-21/hiding-unknown-cells/only-terrain-hidden.png)
+
+*到目前为止，只有地形是隐藏的。*
+
+接下来，让我们调整 ***Feature*** 着色器，它是一个类似 ***Terrain*** 的不透明着色器。将其转换为镜面着色器并为其添加背景颜色。首先，属性。
+
+```glsl
+	Properties {
+		_Color ("Color", Color) = (1,1,1,1)
+		_MainTex ("Albedo (RGB)", 2D) = "white" {}
+		_Glossiness ("Smoothness", Range(0,1)) = 0.5
+//		_Metallic ("Metallic", Range(0,1)) = 0.0
+		_Specular ("Specular", Color) = (0.2, 0.2, 0.2)
+		_BackgroundColor ("Background Color", Color) = (0,0,0)
+		[NoScaleOffset] _GridCoordinates ("Grid Coordinates", 2D) = "white" {}
+	}
+```
+
+接下来，与之前一样，讨论表面 pragma 和变量。
+
+```glsl
+		#pragma surface surf StandardSpecular fullforwardshadows vertex:vert
+			
+		…
+
+		half _Glossiness;
+//		half _Metallic;
+		fixed3 _Specular;
+		fixed4 _Color;
+		half3 _BackgroundColor;
+```
+
+同样，`visibility` 需要另一个组件。因为 ***Feature*** 结合了每个顶点的可见性，所以它只需要一个浮点数。现在我们需要两个。
+
+```glsl
+		struct Input {
+			float2 uv_MainTex;
+			float2 visibility;
+		};
+```
+
+调整 `vert`，使其明确使用 `data.visibility.x` 作为可见性数据，然后将勘探数据分配给 `data.visibility.y`。
+
+```glsl
+		void vert (inout appdata_full v, out Input data) {
+			…
+
+			float4 cellData = GetCellData(cellDataCoordinates);
+			data.visibility.x = cellData.x;
+			data.visibility.x = lerp(0.25, 1, data.visibility.x);
+			data.visibility.y = cellData.y;
+		}
+```
+
+调整 `surf`，使其使用新数据，如 ***Terrain***。
+
+```glsl
+		void surf (Input IN, inout SurfaceOutputStandardSpecular o) {
+			fixed4 c = tex2D (_MainTex, IN.uv_MainTex) * _Color;
+			float explored = IN.visibility.y;
+			o.Albedo = c.rgb * (IN.visibility.x * explored);
+//			o.Metallic = _Metallic;
+			o.Specular = _Specular * explored;
+			o.Smoothness = _Glossiness;
+			o.Occlusion = explored;
+			o.Emission = _BackgroundColor * (1 -  explored);
+			o.Alpha = c.a;
+		}
+```
+
+调整特征，使其使用具有适当设置的材质。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-21/hiding-unknown-cells/hidden-features.png)
+
+*隐藏的特征。*
+
+### 3.4 隐藏的水
+
+接下来是 ***Water*** 和 ***Water Shore*** 着色器。首先将它们转换为镜面着色器，以保持一致。但是，它们不需要背景颜色，因为它们是透明着色器。
+
+转换后，将另一个组件添加到 `visibility` 中，并相应地调整 `vert`。两个着色器都组合了三个单元格的数据。
+
+```glsl
+		struct Input {
+			…
+			float2 visibility;
+		};
+
+		…
+
+		void vert (inout appdata_full v, out Input data) {
+			…
+
+			data.visibility.x =
+				cell0.x * v.color.x + cell1.x * v.color.y + cell2.x * v.color.z;
+			data.visibility.x = lerp(0.25, 1, data.visibility.x);
+			data.visibility.y =
+				cell0.y * v.color.x + cell1.y * v.color.y + cell2.y * v.color.z;
+		}
+```
+
+***Water*** 和 ***Water Shore*** 在 `surf` 中的作用不同，但它们以相同的方式设置表面属性。因为它们是透明的，所以因子化 `explore` 到阿尔法，而不是设置发光（emission）。
+
+```glsl
+		void surf (Input IN, inout SurfaceOutputStandardSpecular o) {
+			…
+
+			float explored = IN.visibility.y;
+			o.Albedo = c.rgb * IN.visibility.x;
+			o.Specular = _Specular * explored;
+			o.Smoothness = _Glossiness;
+			o.Occlusion = explored;
+			o.Alpha = c.a * explored;
+		}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-21/hiding-unknown-cells/hidden-water.png)
+
+*隐藏的水。*
+
+### 3.5 隐藏河口、河流和道路
+
+剩下的着色器是***河口***、***河流***和***道路***。这三个都是透明着色器，组合了两个单元格的数据。将它们全部切换到镜像工作流。然后将探索的数据添加到 `visibility` 中。
+
+```glsl
+		struct Input {
+			…
+			float2 visibility;
+		};
+
+		…
+		
+		void vert (inout appdata_full v, out Input data) {
+			…
+
+			data.visibility.x = cell0.x * v.color.x + cell1.x * v.color.y;
+			data.visibility.x = lerp(0.25, 1, data.visibility.x);
+			data.visibility.y = cell0.y * v.color.x + cell1.y * v.color.y;
+		}
+```
+
+调整***河口***和***河流***着色器的 `surf` 函数，使其使用新数据。两者都需要同样的改变。
+
+```glsl
+		void surf (Input IN, inout SurfaceOutputStandardSpecular o) {
+			…
+
+			float explored = IN.visibility.y;
+			fixed4 c = saturate(_Color + water);
+			o.Albedo = c.rgb * IN.visibility.x;
+			o.Specular = _Specular * explored;
+			o.Smoothness = _Glossiness;
+			o.Occlusion = explored;
+			o.Alpha = c.a * explored;
+		}
+```
+
+***道路***着色器略有不同，因为它使用了额外的混合因子。
+
+```glsl
+		void surf (Input IN, inout SurfaceOutputStandardSpecular o) {
+			float4 noise = tex2D(_MainTex, IN.worldPos.xz * 0.025);
+			fixed4 c = _Color * ((noise.y * 0.75 + 0.25) * IN.visibility.x);
+			float blend = IN.uv_MainTex.x;
+			blend *= noise.x + 0.5;
+			blend = smoothstep(0.4, 0.7, blend);
+
+			float explored = IN.visibility.y;
+			o.Albedo = c.rgb;
+			o.Specular = _Specular * explored;
+			o.Smoothness = _Glossiness;
+			o.Occlusion = explored;
+			o.Alpha = blend * explored;
+		}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-21/hiding-unknown-cells/hidden-everything.png)
+
+*一切被隐藏*
+
+[unitypackage](https://catlikecoding.com/unity/tutorials/hex-map/part-21/hiding-unknown-cells/hiding-unknown-cells.unitypackage)
+
+## 4 避免未探索的细胞
+
+尽管所有未知的东西在视觉上都是隐藏的，但寻路还没有考虑到探索状态。因此，可以命令单位进入或穿过未探索的单元格，神奇地知道该走哪条路。我们应该强迫部队避开未经探索的细胞。
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-21/avoiding-unexplored-cells/moving-through-unexplored-cells.png)
+
+*在未探索的单元格中移动。*
+
+### 4.1 单位决定移动成本
+
+在处理未探索的单元格之前，让我们将决定移动成本的代码从 `HexGrid` 迁移到 `HexUnit`。这使得在未来更容易支持具有不同运动规则的部队。
+
+在 `HexUnit` 中添加一个公共 `GetMoveCost` 方法来确定移动成本。它需要知道运动在哪些单元格之间以及方向。从 `HexGrid.Search` 复制相关的移动成本代码到此方法并调整变量名称。
+
+```c#
+	public int GetMoveCost (
+		HexCell fromCell, HexCell toCell, HexDirection direction)
+	{
+		HexEdgeType edgeType = fromCell.GetEdgeType(toCell);
+		if (edgeType == HexEdgeType.Cliff) {
+			continue;
+		}
+		int moveCost;
+		if (fromCell.HasRoadThroughEdge(direction)) {
+			moveCost = 1;
+		}
+		else if (fromCell.Walled != toCell.Walled) {
+			continue;
+		}
+		else {
+			moveCost = edgeType == HexEdgeType.Flat ? 5 : 10;
+			moveCost +=
+				toCell.UrbanLevel + toCell.FarmLevel + toCell.PlantLevel;
+		}
+	}
+```
+
+该方法应返回移动成本。虽然旧代码使用 `continue` 跳过无效的移动，但我们不能在这里使用这种方法。相反，我们将返回一个负的移动成本，以表明移动是不可能的。
+
+```c#
+	public int GetMoveCost (
+		HexCell fromCell, HexCell toCell, HexDirection direction)
+	{
+		HexEdgeType edgeType = fromCell.GetEdgeType(toCell);
+		if (edgeType == HexEdgeType.Cliff) {
+			return -1;
+		}
+		int moveCost;
+		if (fromCell.HasRoadThroughEdge(direction)) {
+			moveCost = 1;
+		}
+		else if (fromCell.Walled != toCell.Walled) {
+			return -1;
+		}
+		else {
+			moveCost = edgeType == HexEdgeType.Flat ? 5 : 10;
+			moveCost +=
+				toCell.UrbanLevel + toCell.FarmLevel + toCell.PlantLevel;
+		}
+		return moveCost;
+	}
+```
+
+现在，在寻找路径时，我们需要知道所选的单位，而不仅仅是速度。相应地调整 `HexGameUI.DoPathFinding`。
+
+```c#
+	void DoPathfinding () {
+		if (UpdateCurrentCell()) {
+			if (currentCell && selectedUnit.IsValidDestination(currentCell)) {
+				grid.FindPath(selectedUnit.Location, currentCell, selectedUnit);
+			}
+			else {
+				grid.ClearPath();
+			}
+		}
+	}
+```
+
+由于我们仍然需要访问该单位的速度，请向 `HexUnit` 添加一个 `Speed` 属性。现在它只返回常量值 24。
+
+```c#
+	public int Speed {
+		get {
+			return 24;
+		}
+	}
+```
+
+在 `HexGrid` 中，调整 `FindPath` 和 `Search`，使其使用新方法。
+
+```c#
+	public void FindPath (HexCell fromCell, HexCell toCell, HexUnit unit) {
+		ClearPath();
+		currentPathFrom = fromCell;
+		currentPathTo = toCell;
+		currentPathExists = Search(fromCell, toCell, unit);
+		ShowPath(unit.Speed);
+	}
+	
+	bool Search (HexCell fromCell, HexCell toCell, HexUnit unit) {
+		int speed = unit.Speed;
+		…
+	}
+```
+
+最后，删除 `Search` 中确定是否可以移动到邻居以及移动成本的旧代码。相反，调用 `HexUnit.IsValidDestination` 和 `HexUnit.GetMoveCost`。如果移动成本最终为负，则跳过该单元格。
+
+```c#
+			for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++) {
+				HexCell neighbor = current.GetNeighbor(d);
+				if (
+					neighbor == null ||
+					neighbor.SearchPhase > searchFrontierPhase
+				) {
+					continue;
+				}
+//				if (neighbor.IsUnderwater || neighbor.Unit) {
+//					continue;
+//				}
+//				HexEdgeType edgeType = current.GetEdgeType(neighbor);
+//				if (edgeType == HexEdgeType.Cliff) {
+//					continue;
+//				}
+//				int moveCost;
+//				if (current.HasRoadThroughEdge(d)) {
+//					moveCost = 1;
+//				}
+//				else if (current.Walled != neighbor.Walled) {
+//					continue;
+//				}
+//				else {
+//					moveCost = edgeType == HexEdgeType.Flat ? 5 : 10;
+//					moveCost += neighbor.UrbanLevel + neighbor.FarmLevel +
+//						neighbor.PlantLevel;
+//				}
+				if (!unit.IsValidDestination(neighbor)) {
+					continue;
+				}
+				int moveCost = unit.GetMoveCost(current, neighbor, d);
+				if (moveCost < 0) {
+					continue;
+				}
+
+				int distance = current.Distance + moveCost;
+				int turn = (distance - 1) / speed;
+				if (turn > currentTurn) {
+					distance = turn * speed + moveCost;
+				}
+
+				…
+			}
+```
+
+### 4.2 在未开发区域周围移动
+
+为了避免未探索的细胞，我们只需要制造 `HexUnit.IsValidDestination` 检查单元格是否已被探索。
+
+```c#
+	public bool IsValidDestination (HexCell cell) {
+		return cell.IsExplored && !cell.IsUnderwater && !cell.Unit;
+	}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/hex-map/part-21/avoiding-unexplored-cells/avoiding-unexplored-cells.png)
+
+*单位不能再进入未探索的单元格。*
+
+由于未探索的单元格不再是有效的目的地，单位在移动到目的地时会避开它们。因此，未开发的地区会成为障碍，这可能会使道路更长甚至不可能。你必须将部队移动到未知地形附近，才能首先探索该地区。
+
+> **如果在移动过程中有更短的路径可用怎么办？**
+>
+> 我们的方法决定了一次要走的路，旅行时不会偏离它。你可以将其更改为在每一步后寻找新的路径，但这可能会使单位移动变得不可预测和不稳定。最好坚持选择的道路，而不是试图变得聪明。
+>
+> 话虽如此，当严格执行单回合运动时，有必要为长途旅行的每个回合找到一条新的路径。在这种情况下，如果有可用的路径，部队将在下一个回合时切换到较短的路径。
+
+下一个教程是[高级视野](https://catlikecoding.com/unity/tutorials/hex-map/part-22/)。
+
+[unitypackage](https://catlikecoding.com/unity/tutorials/hex-map/part-21/avoiding-unexplored-cells/avoiding-unexplored-cells.unitypackage)
+
+[PDF](https://catlikecoding.com/unity/tutorials/hex-map/part-21/Hex-Map-21.pdf)
+
+
+
+# [跳转系列独立 Markdown 22 ~ 27](./CatlikeCoding网站翻译-六边形地图22~27.md)
