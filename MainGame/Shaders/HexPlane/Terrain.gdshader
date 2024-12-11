@@ -13,25 +13,37 @@ uniform sampler2D grid_tex: source_color;
 uniform float glossiness: hint_range(0.0, 1.0) = 0.3;
 uniform float metallic: hint_range(0.0, 1.0) = 0.0;
 
+#include "HexCellData.gdshaderinc"
+
 varying vec3 terrain; // 用 varying 在 vertex 和 fragment 间传递数据
+varying vec3 visibility;
 
 void vertex() {
-	terrain = CUSTOM0.xyz;
+	vec4 cell0 = GetCellData(CUSTOM0, 0);
+	vec4 cell1 = GetCellData(CUSTOM0, 1);
+	vec4 cell2 = GetCellData(CUSTOM0, 2);
+	terrain.x = cell0.w;
+	terrain.y = cell1.w;
+	terrain.z = cell2.w;
+	visibility.x = cell0.x;
+	visibility.y = cell1.x;
+	visibility.z = cell2.x;
+	visibility = mix(vec3(0.25), vec3(1.0), visibility);
 }
 
-vec4 GetTerrainColor(vec3 world_pos, int index, vec4 inColor) {
+vec4 GetTerrainColor(vec3 world_pos, int index, vec4 inColor, vec3 inVisibility) {
 	vec3 uvw = vec3(world_pos.xz * 0.02, terrain[index]);
 	vec4 c = texture(main_tex, uvw);
-	return c * inColor[index];
+	return c * (inColor[index] * inVisibility[index]);
 }
 
 void fragment() {
 	// 获取世界坐标
 	vec3 world_pos = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	vec4 inColor = COLOR;
-	vec4 c = GetTerrainColor(world_pos, 0, inColor) +
-		GetTerrainColor(world_pos, 1, inColor) +
-		GetTerrainColor(world_pos, 2, inColor);
+	vec4 c = GetTerrainColor(world_pos, 0, inColor, visibility) +
+		GetTerrainColor(world_pos, 1, inColor, visibility) +
+		GetTerrainColor(world_pos, 2, inColor, visibility);
 	// 渲染六边形网格
 	vec4 grid = vec4(1.0);
 	if (grid_on) {

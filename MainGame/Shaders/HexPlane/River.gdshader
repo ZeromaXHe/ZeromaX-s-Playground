@@ -8,6 +8,15 @@ uniform float glossiness: hint_range(0.0, 1.0) = 0.5;
 uniform float metallic: hint_range(0.0, 1.0) = 0.0;
 
 #include "Water.gdshaderinc"
+#include "HexCellData.gdshaderinc"
+varying float visibility;
+
+void vertex() {
+	vec4 cell0 = GetCellData(CUSTOM0, 0);
+	vec4 cell1 = GetCellData(CUSTOM0, 1);
+	visibility = cell0.x * COLOR.x + cell1.x * COLOR.y;
+	visibility = mix(0.25, 1, visibility);
+}
 
 void fragment() {
     float river = River(UV, main_tex);
@@ -15,7 +24,7 @@ void fragment() {
     vec4 c = clamp(color + river, 0.0, 1.0);
 
     // 设置漫反射颜色
-    ALBEDO = c.rgb;
+    ALBEDO = c.rgb * visibility;
     // 设置金属度
     METALLIC = metallic;
     // 设置光滑度

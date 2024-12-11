@@ -9,6 +9,15 @@ uniform float metallic: hint_range(0.0, 1.0) = 0.0;
 
 // #include 和 gdshaderinc 在官方文档“着色器预处理器”讲的
 #include "Water.gdshaderinc"
+#include "HexCellData.gdshaderinc"
+varying float visibility;
+
+void vertex() {
+	vec4 cell0 = GetCellData(CUSTOM0, 0);
+	vec4 cell1 = GetCellData(CUSTOM0, 1);
+	visibility = cell0.x * COLOR.x + cell1.x * COLOR.y;
+	visibility = mix(0.25, 1, visibility);
+}
 
 void fragment() {
 	// 获取世界坐标
@@ -24,7 +33,7 @@ void fragment() {
 	vec4 c = clamp(color + water, 0.0, 1.0);
 
 	// 设置输出
-	ALBEDO = c.rgb;
+	ALBEDO = c.rgb * visibility;
 	METALLIC = metallic;
 	ROUGHNESS = 1.0 - glossiness;
 	ALPHA = c.a;

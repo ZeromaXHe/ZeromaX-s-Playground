@@ -8,9 +8,17 @@ uniform sampler2D main_tex: filter_linear_mipmap, repeat_enable;
 uniform float glossiness: hint_range(0.0, 1.0) = 0.5;
 uniform float metallic: hint_range(0.0, 1.0) = 0.0;
 
+#include "HexCellData.gdshaderinc"
+varying float visibility;
+
 // 设置深度偏移
 void vertex() {
 	VERTEX.y += 0.1;
+
+	vec4 cell0 = GetCellData(CUSTOM0, 0);
+	vec4 cell1 = GetCellData(CUSTOM0, 1);
+	visibility = cell0.x * COLOR.x + cell1.x * COLOR.y;
+	visibility = mix(0.25, 1, visibility);
 }
 
 void fragment() {
@@ -20,7 +28,7 @@ void fragment() {
 	vec3 world_pos = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
 
 	vec4 noise = texture(main_tex, world_pos.xz * 0.025);
-	vec4 c = color * (noise.y * 0.75 + 0.25);
+	vec4 c = color * (noise.y * 0.75 + 0.25) * visibility;
 	float blend = uv.x;
 	blend *= noise.x + 0.5;
 	blend = smoothstep(0.4, 0.7, blend);

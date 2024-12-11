@@ -2,7 +2,6 @@ namespace FrontEndToolFS.Tool
 
 open System
 open System.IO
-open System.Reactive
 open FrontEndToolFS.HexPlane
 open FrontEndToolFS.HexPlane.HexDirection
 open Godot
@@ -10,6 +9,7 @@ open Godot
 type IChunk =
     interface
         abstract member Refresh: unit -> unit
+        abstract member UpdateHexCellData: Image -> unit
     end
 
 type IUnit =
@@ -20,6 +20,11 @@ type IUnit =
 
 type HexCellFS() as this =
     inherit Node3D()
+
+    interface ICell with
+        override this.Index = this.Index
+        override this.TerrainTypeIndex = this.TerrainTypeIndex
+        override this.IsVisible = this.IsVisible
 
     [<DefaultValue>]
     val mutable Coordinates: HexCoordinates
@@ -61,7 +66,7 @@ type HexCellFS() as this =
         and set value =
             if terrainTypeIndex <> value then
                 terrainTypeIndex <- value
-                refresh ()
+                this.ShaderData.RefreshTerrain this
 
     /// 高度
     let mutable elevation: int = Int32.MinValue
@@ -342,6 +347,7 @@ type HexCellFS() as this =
 
     member this.Load(reader: BinaryReader) =
         terrainTypeIndex <- int <| reader.ReadByte()
+        this.ShaderData.RefreshTerrain this
         elevation <- int <| reader.ReadByte()
         refreshPosition ()
         waterLevel <- int <| reader.ReadByte()
@@ -397,3 +403,20 @@ type HexCellFS() as this =
     member val SearchPhase = 0 with get, set
     // 单位
     member val Unit: IUnit option = None with get, set
+    // 单元格着色器数据
+    [<DefaultValue>]
+    val mutable ShaderData: HexCellShaderData
+    // 索引
+    [<DefaultValue>]
+    val mutable Index: int
+    // 可见性
+    let mutable visibility = 0
+    member this.IsVisible = visibility > 0
+    member this.IncreaseVisibility() =
+        visibility <- visibility + 1
+        if visibility = 1 then
+            this.ShaderData.RefreshVisibility this
+    member this.DecreaseVisibility() =
+        visibility <- visibility - 1
+        if visibility = 0 then
+            this.ShaderData.RefreshVisibility this

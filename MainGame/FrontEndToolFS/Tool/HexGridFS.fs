@@ -84,7 +84,7 @@ type HexGridFS() as this =
     let mutable _chunks: HexGridChunkFS array = null
     let units = List<HexUnitFS>()
 
-    let createChunks () =
+    let createChunks (shaderData: HexCellShaderData) =
         _chunks <- Array.init (chunkCountX * chunkCountZ) (fun _ -> this.chunkPrefab.Instantiate<HexGridChunkFS>())
 
         _chunks
@@ -93,6 +93,9 @@ type HexGridFS() as this =
             let z = i / chunkCountX
             c.Name <- $"Chunk{x}_{z}"
             this.AddChild c)
+        // 修改第一个地形材质 Shader 参数即可引用到全部
+        shaderData.HexCellDataUpdater <- _chunks[0].UpdateHexCellData
+        _chunks[0].InitHexCellData shaderData
 
     let addCellToChunk x z cell =
         let chunkX = x / HexMetrics.chunkSizeX
@@ -111,6 +114,8 @@ type HexGridFS() as this =
             let cell = _cells[i]
             cell.Name <- $"Cell{x}_{z}"
             cell.Coordinates <- HexCoordinates.FromOffsetCoordinates x z
+            cell.Index <- i
+            cell.ShaderData <- this.cellShaderData
 
             if x > 0 then
                 cell.SetNeighbor HexDirection.W (Some _cells[i - 1])
@@ -214,6 +219,39 @@ type HexGridFS() as this =
 
         breakLoop
 
+    let getVisibleCells (fromCell: HexCellFS) range =
+        let visibleCells = List<HexCellFS>()
+        searchFrontierPhase <- 2 + searchFrontierPhase
+        searchFrontier.Clear()
+        fromCell.SearchPhase <- searchFrontierPhase
+        fromCell.Distance <- 0
+        searchFrontier.Enqueue fromCell
+
+        while searchFrontier.Count > 0 do
+            let current = searchFrontier.Dequeue().Value
+            current.SearchPhase <- 1 + current.SearchPhase
+
+            visibleCells.Add current
+
+            for d in HexDirection.allHexDirs () do
+                match current.GetNeighbor d with
+                | Some neighbor when neighbor.SearchPhase <= searchFrontierPhase ->
+                    let distance = current.Distance + 1
+
+                    if distance <= range then
+                        if neighbor.SearchPhase < searchFrontierPhase then
+                            neighbor.SearchPhase <- searchFrontierPhase
+                            neighbor.Distance <- distance
+                            neighbor.SearchHeuristic <- 0
+                            searchFrontier.Enqueue neighbor
+                        elif distance < neighbor.Distance then
+                            let oldPriority = neighbor.SearchPriority
+                            neighbor.Distance <- distance
+                            searchFrontier.Change neighbor oldPriority
+                | _ -> ()
+
+        visibleCells
+
     let showPath speed =
         if currentPathExists then
             let mutable current = currentPathTo.Value
@@ -239,6 +277,9 @@ type HexGridFS() as this =
 
     [<DefaultValue>]
     val mutable unitPrefab: PackedScene
+
+    [<DefaultValue>]
+    val mutable cellShaderData: HexCellShaderData
 
     member this.CameraRayCastToMouse() =
         let spaceState = this.GetWorld3D().DirectSpaceState
@@ -312,8 +353,8 @@ type HexGridFS() as this =
             this.cellCountZ <- z
             chunkCountX <- this.cellCountX / HexMetrics.chunkSizeX
             chunkCountZ <- this.cellCountZ / HexMetrics.chunkSizeZ
-
-            createChunks ()
+            this.cellShaderData.Initialize this.cellCountX this.cellCountZ
+            createChunks this.cellShaderData
             createCells ()
             true
 
@@ -378,9 +419,12 @@ type HexGridFS() as this =
                 this.AddUnit unit cell orientation)
 
         override this.GetCell coordinates = this.GetCell coordinates
+        override this.IncreaseVisibility cell range = this.IncreaseVisibility cell range
+        override this.DecreaseVisibility cell range = this.DecreaseVisibility cell range
 
     member this.AddUnit (unit: HexUnitFS) (location: HexCellFS) orientation =
         units.Add unit
+        unit.Grid <- this
         unit.Location <- Some location
         unit.Orientation <- orientation
         this.AddChild unit
@@ -388,6 +432,12 @@ type HexGridFS() as this =
     member this.RemoveUnit(unit: HexUnitFS) =
         units.Remove unit |> ignore
         unit.Die()
+
+    member this.IncreaseVisibility (fromCell: HexCellFS) range =
+        getVisibleCells fromCell range |> Seq.iter _.IncreaseVisibility()
+
+    member this.DecreaseVisibility (fromCell: HexCellFS) range =
+        getVisibleCells fromCell range |> Seq.iter _.DecreaseVisibility()
 
     member this.GetRayCell() =
         let result = this.CameraRayCastToMouse()
@@ -409,6 +459,7 @@ type HexGridFS() as this =
         HexMetrics.noiseSource <- this._noiseSource.GetImage()
         HexMetrics.initializeHashGrid <| uint64 this.seed
         HexUnitFS.unitPrefab <- this.unitPrefab
+        this.cellShaderData <- HexCellShaderData()
         this.CreateMap this.cellCountX this.cellCountZ |> ignore
         // 编辑器里显示随机颜色和随机高度的单元格
         if Engine.IsEditorHint() then

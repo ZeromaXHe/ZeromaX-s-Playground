@@ -14,10 +14,10 @@ public partial class HexMesh : HexMeshFS
     }
 
     [Export]
-    public bool UseColor
+    public bool UseCellData
     {
-        get => useColor;
-        set => useColor = value;
+        get => useCellData;
+        set => useCellData = value;
     }
 
     [Export]
@@ -32,13 +32,6 @@ public partial class HexMesh : HexMeshFS
     {
         get => useUv2Coordinates;
         set => useUv2Coordinates = value;
-    }
-
-    [Export]
-    public bool UseTerrainTypes
-    {
-        get => useTerrainTypes;
-        set => useTerrainTypes = value;
     }
 
     // 请忽略 IDE 冗余提示，需要保留此处和 partial
