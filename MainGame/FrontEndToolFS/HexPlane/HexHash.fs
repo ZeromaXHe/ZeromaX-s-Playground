@@ -12,13 +12,13 @@ type HexHash =
 
         new(a, b, c, d, e) = { a = a; b = b; c = c; d = d; e = e }
 
-        static member Create() =
+        static member Create(random: RandomNumberGenerator) =
             // GD.Randf 的范围是 [0f, 1f]，会取到 1f
             HexHash(
-                GD.Randf() * 0.999f,
-                GD.Randf() * 0.999f,
-                GD.Randf() * 0.999f,
-                GD.Randf() * 0.999f,
-                GD.Randf() * 0.999f
+                random.Randf() * 0.999f,
+                random.Randf() * 0.999f,
+                random.Randf() * 0.999f,
+                random.Randf() * 0.999f,
+                random.Randf() * 0.999f
             )
     end

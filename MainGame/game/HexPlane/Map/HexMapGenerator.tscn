@@ -13,3 +13,7 @@ HighRiseProbability = 0.25
 SinkProbability = 0.2
 ElevationMinimum = -2
 ElevationMaximum = 8
+MapBorderX = 5
+MapBorderZ = 5
+RegionBorder = 5
+ErosionPercentage = 50

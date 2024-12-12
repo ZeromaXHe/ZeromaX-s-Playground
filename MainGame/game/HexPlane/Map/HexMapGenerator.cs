@@ -76,6 +76,41 @@ public partial class HexMapGenerator : HexMapGeneratorFS
         set => elevationMaximum = value;
     }
 
+    [Export(PropertyHint.Range, "0, 10")]
+    public int MapBorderX
+    {
+        get => mapBorderX;
+        set => mapBorderX = value;
+    }
+
+    [Export(PropertyHint.Range, "0, 10")]
+    public int MapBorderZ
+    {
+        get => mapBorderZ;
+        set => mapBorderZ = value;
+    }
+
+    [Export(PropertyHint.Range, "0, 10")]
+    public int RegionBorder
+    {
+        get => regionBorder;
+        set => regionBorder = value;
+    }
+
+    [Export(PropertyHint.Range, "1, 4")]
+    public int RegionCount
+    {
+        get => regionCount;
+        set => regionCount = value;
+    }
+
+    [Export(PropertyHint.Range, "0, 100")]
+    public int ErosionPercentage
+    {
+        get => erosionPercentage;
+        set => erosionPercentage = value;
+    }
+
     [Export]
     public bool UseFixedSeed
     {

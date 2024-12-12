@@ -32,7 +32,6 @@ type NewMapMenuFS() as this =
 
     let createMap x z =
         if generateMaps then
-            GD.Print "Generating map..."
             this.mapGenerator.GenerateMap x z
         else
             this.hexGrid.CreateMap x z |> ignore

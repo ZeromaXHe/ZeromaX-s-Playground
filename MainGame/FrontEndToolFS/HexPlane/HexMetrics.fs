@@ -112,11 +112,11 @@ module HexMetrics =
     let random = new RandomNumberGenerator()
 
     let initializeHashGrid seed =
-        random.Seed <- seed
         let initState = random.State
+        random.Seed <- seed
 
         for i in 0 .. hashGrid.Length - 1 do
-            hashGrid[i] <- HexHash.Create()
+            hashGrid[i] <- HexHash.Create random
 
         random.State <- initState
 
