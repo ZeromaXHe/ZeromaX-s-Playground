@@ -19,18 +19,18 @@ void vertex() {
 }
 
 void fragment() {
-    float river = River(UV, main_tex);
-    // 计算最终颜色
-    vec4 c = clamp(color + river, 0.0, 1.0);
+	float river = River(UV, main_tex);
+	// 计算最终颜色
+	vec4 c = clamp(color + river, 0.0, 1.0);
 
-    // 设置漫反射颜色
-    ALBEDO = c.rgb * visibility;
-    // 设置金属度
-    METALLIC = metallic;
-    // 设置光滑度
-    ROUGHNESS = 1.0 - glossiness;
-    // 设置透明度
-    ALPHA = c.a;
+	// 设置漫反射颜色
+	ALBEDO = c.rgb * visibility;
+	// 设置金属度
+	METALLIC = metallic;
+	// 设置光滑度
+	ROUGHNESS = 1.0 - glossiness;
+	// 设置透明度
+	ALPHA = c.a;
 }
 // Unity Shader 代码原文：
 

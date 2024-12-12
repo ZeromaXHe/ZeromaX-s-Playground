@@ -822,7 +822,6 @@ type HexGridChunkFS() as this =
 
     interface IChunk with
         override this.Refresh() = this.Refresh()
-        override this.UpdateHexCellData img = this.UpdateHexCellData img
 
     // F# 接口方法只能通过接口调用，通过这样把普通对象的 Refresh() 暴露直接使用
     member this.Refresh() =
@@ -839,33 +838,6 @@ type HexGridChunkFS() as this =
     member this.ShowGrid(visible: bool) =
         (this.terrain.MaterialOverride :?> ShaderMaterial)
             .SetShaderParameter("grid_on", visible)
-
-    member this.InitHexCellData(shaderData: HexCellShaderData) =
-        let initData (mesh: HexMeshFS) (hexCellData: Variant) =
-            let shaderMeterial = mesh.MaterialOverride :?> ShaderMaterial
-            shaderMeterial.SetShaderParameter("hex_cell_data", hexCellData)
-            shaderMeterial.SetShaderParameter("hex_cell_data_texel_size", shaderData.HexCellDataTexelSize)
-
-        let data = Variant.CreateFrom(ImageTexture.CreateFromImage shaderData.HexCellData)
-        initData this.terrain data
-        initData this.roads data
-        initData this.water data
-        initData this.waterShore data
-        initData this.estuaries data
-        initData this.rivers data
-
-    member this.UpdateHexCellData(img: Image) =
-        let updateData (mesh: HexMeshFS) =
-            let shaderMaterial = mesh.MaterialOverride :?> ShaderMaterial
-            let hexCellData = shaderMaterial.GetShaderParameter "hex_cell_data"
-            hexCellData.As<ImageTexture>().Update(img)
-
-        updateData this.terrain
-        updateData this.roads
-        updateData this.water
-        updateData this.waterShore
-        updateData this.estuaries
-        updateData this.rivers
 
     member this.ShowUI visible = _gridCanvas.Value.Visible <- visible
 

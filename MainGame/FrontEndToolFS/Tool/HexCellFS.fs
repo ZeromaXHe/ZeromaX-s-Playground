@@ -9,7 +9,6 @@ open Godot
 type IChunk =
     interface
         abstract member Refresh: unit -> unit
-        abstract member UpdateHexCellData: Image -> unit
     end
 
 type IUnit =

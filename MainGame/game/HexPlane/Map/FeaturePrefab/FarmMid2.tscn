@@ -1,8 +1,20 @@
-[gd_scene load_steps=2 format=3 uid="uid://cmriqr5c41g5a"]
+[gd_scene load_steps=5 format=3 uid="uid://cmriqr5c41g5a"]
+
+[ext_resource type="Shader" path="res://Shaders/HexPlane/Feature.gdshader" id="1_oswmr"]
+[ext_resource type="Texture2D" uid="uid://cqbjppa7iu5ce" path="res://resources/CatlikeCoding/HexMap/hex-grid-coordinates.png" id="2_ctqx4"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ghs6w"]
+render_priority = 0
+shader = ExtResource("1_oswmr")
+shader_parameter/color = Color(0.67451, 0.866667, 0.12549, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/metallic = 0.0
+shader_parameter/grid_coordinates = ExtResource("2_ctqx4")
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l1f6h"]
 albedo_color = Color(0.67451, 0.866667, 0.12549, 1)
 
 [node name="FarmMid2" type="CSGBox3D"]
+material_override = SubResource("ShaderMaterial_ghs6w")
 size = Vector3(2.5, 0.1, 1.25)
 material = SubResource("StandardMaterial3D_l1f6h")

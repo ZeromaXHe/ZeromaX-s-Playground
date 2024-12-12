@@ -1,8 +1,20 @@
-[gd_scene load_steps=2 format=3 uid="uid://py2ds280wvgt"]
+[gd_scene load_steps=5 format=3 uid="uid://py2ds280wvgt"]
+
+[ext_resource type="Shader" path="res://Shaders/HexPlane/Feature.gdshader" id="1_qyy11"]
+[ext_resource type="Texture2D" uid="uid://cqbjppa7iu5ce" path="res://resources/CatlikeCoding/HexMap/hex-grid-coordinates.png" id="2_36qc0"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_eisvb"]
+render_priority = 0
+shader = ExtResource("1_qyy11")
+shader_parameter/color = Color(0.168627, 0.552941, 0.12549, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/metallic = 0.0
+shader_parameter/grid_coordinates = ExtResource("2_36qc0")
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l1f6h"]
 albedo_color = Color(0.168627, 0.552941, 0.12549, 1)
 
 [node name="PlantMid1" type="CSGBox3D"]
+material_override = SubResource("ShaderMaterial_eisvb")
 size = Vector3(0.75, 3, 0.75)
 material = SubResource("StandardMaterial3D_l1f6h")

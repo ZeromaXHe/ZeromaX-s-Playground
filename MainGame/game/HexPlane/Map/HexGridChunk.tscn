@@ -12,18 +12,8 @@
 [ext_resource type="Shader" path="res://Shaders/HexPlane/WaterShore.gdshader" id="7_2qm6b"]
 [ext_resource type="Shader" path="res://Shaders/HexPlane/Estuary.gdshader" id="8_ojdmq"]
 [ext_resource type="PackedScene" uid="uid://cd1u7jnyttt7c" path="res://game/HexPlane/Map/HexFeatureManager.tscn" id="9_buywg"]
-
-[sub_resource type="Image" id="Image_jn2iu"]
-data = {
-"data": PackedByteArray(0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0, 4, 0, 0, 0, 4, 0, 0, 0, 4, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 4, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 4, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0, 4, 0, 0, 0, 4, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 0, 4, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 4, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 0),
-"format": "RGBA8",
-"height": 15,
-"mipmaps": false,
-"width": 20
-}
-
-[sub_resource type="ImageTexture" id="ImageTexture_uj1cj"]
-image = SubResource("Image_jn2iu")
+[ext_resource type="Shader" path="res://Shaders/HexPlane/Feature.gdshader" id="13_v8umm"]
+[ext_resource type="Texture2D" uid="uid://cqbjppa7iu5ce" path="res://resources/CatlikeCoding/HexMap/hex-grid-coordinates.png" id="14_d7ebb"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ldbv3"]
 render_priority = 0
@@ -32,10 +22,8 @@ shader_parameter/color = Color(1, 1, 1, 1)
 shader_parameter/grid_on = true
 shader_parameter/glossiness = 0.3
 shader_parameter/metallic = 0.0
-shader_parameter/hex_cell_data_texel_size = Vector4(0.05, 0.0666667, 20, 15)
 shader_parameter/main_tex = ExtResource("4_nj5s3")
 shader_parameter/grid_tex = ExtResource("4_xe7nb")
-shader_parameter/hex_cell_data = SubResource("ImageTexture_uj1cj")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_7x664"]
 render_priority = 1
@@ -43,9 +31,7 @@ shader = ExtResource("3_l5ass")
 shader_parameter/color = Color(0.25098, 0.411765, 1, 0.196078)
 shader_parameter/glossiness = 0.5
 shader_parameter/metallic = 0.0
-shader_parameter/hex_cell_data_texel_size = Vector4(0.05, 0.0666667, 20, 15)
 shader_parameter/main_tex = ExtResource("4_tcvt3")
-shader_parameter/hex_cell_data = SubResource("ImageTexture_uj1cj")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_sy07w"]
 render_priority = 1
@@ -53,9 +39,7 @@ shader = ExtResource("5_p5rjp")
 shader_parameter/color = Color(0.831373, 0, 0, 1)
 shader_parameter/glossiness = 0.5
 shader_parameter/metallic = 0.0
-shader_parameter/hex_cell_data_texel_size = Vector4(0.05, 0.0666667, 20, 15)
 shader_parameter/main_tex = ExtResource("4_tcvt3")
-shader_parameter/hex_cell_data = SubResource("ImageTexture_uj1cj")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_pidn7"]
 render_priority = 1
@@ -63,9 +47,7 @@ shader = ExtResource("6_b0n41")
 shader_parameter/color = Color(0.25098, 0.411765, 1, 0.196078)
 shader_parameter/glossiness = 0.5
 shader_parameter/metallic = 0.0
-shader_parameter/hex_cell_data_texel_size = Vector4(0.05, 0.0666667, 20, 15)
 shader_parameter/main_tex = ExtResource("4_tcvt3")
-shader_parameter/hex_cell_data = SubResource("ImageTexture_uj1cj")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_7meiv"]
 render_priority = 1
@@ -73,9 +55,7 @@ shader = ExtResource("7_2qm6b")
 shader_parameter/color = Color(0.25098, 0.411765, 1, 0.196078)
 shader_parameter/glossiness = 0.5
 shader_parameter/metallic = 0.0
-shader_parameter/hex_cell_data_texel_size = Vector4(0.05, 0.0666667, 20, 15)
 shader_parameter/main_tex = ExtResource("4_tcvt3")
-shader_parameter/hex_cell_data = SubResource("ImageTexture_uj1cj")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_dwtbc"]
 render_priority = 1
@@ -83,13 +63,15 @@ shader = ExtResource("8_ojdmq")
 shader_parameter/color = Color(0.25098, 0.411765, 1, 0.196078)
 shader_parameter/glossiness = 0.5
 shader_parameter/metallic = 0.0
-shader_parameter/hex_cell_data_texel_size = Vector4(0.05, 0.0666667, 20, 15)
 shader_parameter/main_tex = ExtResource("4_tcvt3")
-shader_parameter/hex_cell_data = SubResource("ImageTexture_uj1cj")
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_uo7eu"]
-albedo_color = Color(0.831373, 0, 0, 1)
-roughness = 0.5
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_rirqs"]
+render_priority = 0
+shader = ExtResource("13_v8umm")
+shader_parameter/color = Color(1, 0, 0, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/metallic = 0.0
+shader_parameter/grid_coordinates = ExtResource("14_d7ebb")
 
 [node name="HexGridChunk" type="Node3D" node_paths=PackedStringArray("Terrain", "Rivers", "Roads", "Water", "WaterShore", "Estuaries", "Features")]
 script = ExtResource("1_y4c6g")
@@ -137,4 +119,4 @@ UseUv2Coordinates = true
 Walls = NodePath("../Walls")
 
 [node name="Walls" parent="." instance=ExtResource("1_ohi0j")]
-material_override = SubResource("StandardMaterial3D_uo7eu")
+material_override = SubResource("ShaderMaterial_rirqs")

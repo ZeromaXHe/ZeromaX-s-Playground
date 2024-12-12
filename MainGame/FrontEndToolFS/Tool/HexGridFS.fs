@@ -93,9 +93,6 @@ type HexGridFS() as this =
             let z = i / chunkCountX
             c.Name <- $"Chunk{x}_{z}"
             this.AddChild c)
-        // 修改第一个地形材质 Shader 参数即可引用到全部
-        shaderData.HexCellDataUpdater <- _chunks[0].UpdateHexCellData
-        _chunks[0].InitHexCellData shaderData
 
     let addCellToChunk x z cell =
         let chunkX = x / HexMetrics.chunkSizeX

@@ -1,8 +1,20 @@
-[gd_scene load_steps=2 format=3 uid="uid://dgoo7mhyk8i2g"]
+[gd_scene load_steps=5 format=3 uid="uid://dgoo7mhyk8i2g"]
+
+[ext_resource type="Shader" path="res://Shaders/HexPlane/Feature.gdshader" id="1_wr1m0"]
+[ext_resource type="Texture2D" uid="uid://cqbjppa7iu5ce" path="res://resources/CatlikeCoding/HexMap/hex-grid-coordinates.png" id="2_yletp"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_tpoch"]
+render_priority = 0
+shader = ExtResource("1_wr1m0")
+shader_parameter/color = Color(1, 0, 0, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/metallic = 0.0
+shader_parameter/grid_coordinates = ExtResource("2_yletp")
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l1f6h"]
 albedo_color = Color(1, 0, 0, 1)
 
 [node name="UrbanHigh2" type="CSGBox3D"]
+material_override = SubResource("ShaderMaterial_tpoch")
 size = Vector3(3.5, 3, 2)
 material = SubResource("StandardMaterial3D_l1f6h")

@@ -10,25 +10,23 @@ type ICell =
 type HexCellShaderData() =
     let mutable cellTexture: Image = null
     let mutable cellTextureData: Color array = null
-
-    member this.HexCellData = cellTexture
-
-    [<DefaultValue>]
-    val mutable HexCellDataTexelSize: Vector4
-
-    [<DefaultValue>]
-    val mutable HexCellDataUpdater: Image -> unit
+    let mutable hexCellData: ImageTexture = null
 
     member this.Initialize x z =
         if cellTexture <> null then
             cellTexture.Resize(x, z)
         else
-            // 没有 Unity 类似的 API：Shader.SetGlobalTexture("_HexCellData", cellTexture);
             cellTexture <- Image.CreateEmpty(x, z, false, Image.Format.Rgba8)
 
-        // 没有 Unity 类似的 API：Shader.SetGlobalVector("_HexCellData_TexelSize", new Vector4(1f / x, 1f / z, x, z));
-        // 需要在外面调用处（HexGrid）来修改 Shader uniform 变量（hex_cell_data 和 hex_cell_data_texel_size）
-        this.HexCellDataTexelSize <- Vector4(1f / float32 x, 1f / float32 z, float32 x, float32 z)
+        // hexCellData.SetSizeOverride <| cellTexture.GetSize() 这个好像也是没卵用，只能重新赋值
+        hexCellData <- ImageTexture.CreateFromImage cellTexture
+        // 对应：Shader.SetGlobalTexture("_HexCellData", cellTexture);
+        RenderingServer.GlobalShaderParameterSet("hex_cell_data", Variant.CreateFrom(hexCellData))
+        // 对应：Shader.SetGlobalVector("_HexCellData_TexelSize", new Vector4(1f / x, 1f / z, x, z));
+        RenderingServer.GlobalShaderParameterSet(
+            "hex_cell_data_texel_size",
+            Vector4(1f / float32 x, 1f / float32 z, float32 x, float32 z)
+        )
 
         if cellTextureData = null || cellTextureData.Length <> x * z then
             cellTextureData <- Array.zeroCreate <| x * z
@@ -40,7 +38,7 @@ type HexCellShaderData() =
         cellTextureData[cell.Index].A8 <- cell.TerrainTypeIndex
         this.EnableUpdate cell
 
-    member this.RefreshVisibility (cell: ICell) =
+    member this.RefreshVisibility(cell: ICell) =
         cellTextureData[cell.Index].R8 <- if cell.IsVisible then 255 else 0
         this.EnableUpdate cell
 
@@ -50,5 +48,10 @@ type HexCellShaderData() =
             cell.Index / cellTexture.GetWidth(),
             cellTextureData[cell.Index]
         )
-        // 更新外界 Shader uniform 变量（hex_cell_data）
-        this.HexCellDataUpdater cellTexture
+        // 更新 Shader global uniform 变量（hex_cell_data）
+        // 不能用这里的方法：RenderingServer.global_shader_parameter_get() 就没法在游戏循环里用
+        // RenderingServer
+        //     .GlobalShaderParameterGet("hex_cell_data")
+        //     .As<ImageTexture>()
+        //     .Update(cellTexture)
+        hexCellData.Update(cellTexture)
