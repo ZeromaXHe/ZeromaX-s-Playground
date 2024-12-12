@@ -87,7 +87,12 @@ type HexCellFS() as this =
             if elevation = value then
                 ()
             else
+                let originalViewElevation = this.ViewElevation
                 elevation <- value
+
+                if this.ViewElevation <> originalViewElevation then
+                    this.ShaderData.ViewElevationChanged()
+
                 refreshPosition ()
                 this.ValidateRivers()
 
@@ -239,7 +244,12 @@ type HexCellFS() as this =
             if waterLevel = value then
                 ()
             else
+                let originalViewElevation = this.ViewElevation
                 waterLevel <- value
+
+                if this.ViewElevation <> originalViewElevation then
+                    this.ShaderData.ViewElevationChanged()
+
                 this.ValidateRivers()
                 refresh ()
 
@@ -416,7 +426,7 @@ type HexCellFS() as this =
     val mutable Index: int
     // 可见性
     let mutable visibility = 0
-    member this.IsVisible = visibility > 0
+    member this.IsVisible = visibility > 0 && this.Explorable
 
     member this.IncreaseVisibility() =
         visibility <- visibility + 1
@@ -432,4 +442,12 @@ type HexCellFS() as this =
             this.ShaderData.RefreshVisibility this
     // 探索
     let mutable explored = false
-    member this.IsExplored = explored
+    member this.IsExplored = explored && this.Explorable
+    member val Explorable = false with get, set
+    // 视野高度
+    member this.ViewElevation = if elevation >= waterLevel then elevation else waterLevel
+
+    member this.ResetVisibility() =
+        if visibility > 0 then
+            visibility <- 0
+            this.ShaderData.RefreshVisibility this

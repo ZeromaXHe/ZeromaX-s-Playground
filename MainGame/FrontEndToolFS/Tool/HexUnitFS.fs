@@ -75,18 +75,18 @@ type HexUnitFS() as this =
         this.LookAt point
         orientation <- this.RotationDegrees.Y
 
-    let visionRange = 3
+    member this.VisionRange = 3
 
     member this.Location
         with get () = location
         and set value =
             if location.IsSome then
-                this.Grid.DecreaseVisibility location.Value visionRange
+                this.Grid.DecreaseVisibility location.Value this.VisionRange
                 location.Value.Unit <- None
 
             location <- value
             value.Value.Unit <- Some this
-            this.Grid.IncreaseVisibility location.Value visionRange
+            this.Grid.IncreaseVisibility location.Value this.VisionRange
             this.Position <- value.Value.Position
 
     member this.Orientation
@@ -107,7 +107,7 @@ type HexUnitFS() as this =
 
     member this.Die() =
         if location.IsSome then
-            this.Grid.DecreaseVisibility location.Value visionRange
+            this.Grid.DecreaseVisibility location.Value this.VisionRange
 
         location.Value.Unit <- None
         this.QueueFree()
@@ -168,7 +168,7 @@ type HexUnitFS() as this =
                     iTravel <- iTravel + 1
                     // 移除前一格可见性
                     if iTravel < pathToTravel.Value.Count then
-                        this.Grid.DecreaseVisibility pathToTravel.Value[iTravel - 1] visionRange
+                        this.Grid.DecreaseVisibility pathToTravel.Value[iTravel - 1] this.VisionRange
                     // 确保最后一定停在准确位置
                     if iTravel = pathToTravel.Value.Count then
                         this.Position <- pathToTravel.Value[iTravel - 1].Position
@@ -178,11 +178,11 @@ type HexUnitFS() as this =
                 if tTravel = 0.0 && pathToTravel.IsSome then
                     if iTravel = 1 then
                         let decrCell = currentTravelLocation |> Option.defaultValue pathToTravel.Value[0]
-                        this.Grid.DecreaseVisibility decrCell visionRange
+                        this.Grid.DecreaseVisibility decrCell this.VisionRange
 
                     if iTravel < pathToTravel.Value.Count then
                         currentTravelLocation <- Some pathToTravel.Value[iTravel]
-                        this.Grid.IncreaseVisibility pathToTravel.Value[iTravel] visionRange
+                        this.Grid.IncreaseVisibility pathToTravel.Value[iTravel] this.VisionRange
                     else
                         currentTravelLocation <- None
 

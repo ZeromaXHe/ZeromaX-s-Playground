@@ -68,6 +68,21 @@ type HexCellPriorityQueue() =
 type HexGridFS() as this =
     inherit Node3D()
 
+    interface IGrid with
+        // 感觉 Catlike Coding 这部分的逻辑写的一坨……
+        override this.AddUnit prefab cellOpt orientation =
+            cellOpt
+            |> Option.iter (fun cell ->
+                let unit = prefab.Instantiate<HexUnitFS>()
+                this.AddUnit unit cell orientation)
+
+        override this.GetCell coordinates = this.GetCell coordinates
+        override this.IncreaseVisibility cell range = this.IncreaseVisibility cell range
+        override this.DecreaseVisibility cell range = this.DecreaseVisibility cell range
+
+    interface IGridVis with
+        override this.ResetVisibility() = this.ResetVisibility()
+
     [<DefaultValue>]
     val mutable cellPrefab: PackedScene
 
@@ -113,6 +128,7 @@ type HexGridFS() as this =
             cell.Coordinates <- HexCoordinates.FromOffsetCoordinates x z
             cell.Index <- i
             cell.ShaderData <- this.cellShaderData
+            cell.Explorable <- x > 0 && z > 0 && x < this.cellCountX - 1 && z < this.cellCountZ - 1
 
             if x > 0 then
                 cell.SetNeighbor HexDirection.W (Some _cells[i - 1])
@@ -173,10 +189,10 @@ type HexGridFS() as this =
                 for d in HexDirection.allHexDirs () do
                     match current.GetNeighbor d with
                     | Some neighbor when
-                        neighbor.SearchPhase <= searchFrontierPhase
-                        && unit.IsValidDestination(neighbor)
+                        neighbor.SearchPhase <= searchFrontierPhase && unit.IsValidDestination(neighbor)
                         ->
                         let moveCost = unit.GetMoveCost current neighbor d
+
                         if moveCost >= 0 then
                             let distance = current.Distance + moveCost
                             let turn = (distance - 1) / speed
@@ -206,9 +222,11 @@ type HexGridFS() as this =
         let visibleCells = List<HexCellFS>()
         searchFrontierPhase <- 2 + searchFrontierPhase
         searchFrontier.Clear()
+        let range = range + fromCell.ViewElevation
         fromCell.SearchPhase <- searchFrontierPhase
         fromCell.Distance <- 0
         searchFrontier.Enqueue fromCell
+        let fromCoordinates = fromCell.Coordinates
 
         while searchFrontier.Count > 0 do
             let current = searchFrontier.Dequeue().Value
@@ -218,10 +236,13 @@ type HexGridFS() as this =
 
             for d in HexDirection.allHexDirs () do
                 match current.GetNeighbor d with
-                | Some neighbor when neighbor.SearchPhase <= searchFrontierPhase ->
+                | Some neighbor when neighbor.SearchPhase <= searchFrontierPhase && neighbor.Explorable ->
                     let distance = current.Distance + 1
 
-                    if distance <= range then
+                    if
+                        distance + neighbor.ViewElevation <= range
+                        && distance <= fromCoordinates.DistanceTo neighbor.Coordinates
+                    then
                         if neighbor.SearchPhase < searchFrontierPhase then
                             neighbor.SearchPhase <- searchFrontierPhase
                             neighbor.Distance <- distance
@@ -263,6 +284,8 @@ type HexGridFS() as this =
 
     [<DefaultValue>]
     val mutable cellShaderData: HexCellShaderData
+
+    let mutable dataReady = false
 
     member this.CameraRayCastToMouse() =
         let spaceState = this.GetWorld3D().DirectSpaceState
@@ -307,14 +330,18 @@ type HexGridFS() as this =
         let z = if header >= 1 then reader.ReadInt32() else 15
 
         if (x = this.cellCountX && z = this.cellCountZ) || this.CreateMap x z then
+            let originalImmediateMode = this.cellShaderData.ImmediateMode
+            this.cellShaderData.ImmediateMode <- true
             _cells |> Array.iter (fun c -> c.Load reader header)
             _chunks |> Array.iter _.Refresh()
 
-        if header >= 2 then
-            let unitCount = reader.ReadInt32()
+            if header >= 2 then
+                let unitCount = reader.ReadInt32()
 
-            for i in 0 .. unitCount - 1 do
-                HexUnitFS.Load reader this
+                for i in 0 .. unitCount - 1 do
+                    HexUnitFS.Load reader this
+
+            this.cellShaderData.ImmediateMode <- originalImmediateMode
 
     member this.CreateMap x z =
         if
@@ -393,18 +420,6 @@ type HexGridFS() as this =
         else
             null
 
-    interface IGrid with
-        // 感觉 Catlike Coding 这部分的逻辑写的一坨……
-        override this.AddUnit prefab cellOpt orientation =
-            cellOpt
-            |> Option.iter (fun cell ->
-                let unit = prefab.Instantiate<HexUnitFS>()
-                this.AddUnit unit cell orientation)
-
-        override this.GetCell coordinates = this.GetCell coordinates
-        override this.IncreaseVisibility cell range = this.IncreaseVisibility cell range
-        override this.DecreaseVisibility cell range = this.DecreaseVisibility cell range
-
     member this.AddUnit (unit: HexUnitFS) (location: HexCellFS) orientation =
         units.Add unit
         unit.Grid <- this
@@ -421,6 +436,12 @@ type HexGridFS() as this =
 
     member this.DecreaseVisibility (fromCell: HexCellFS) range =
         getVisibleCells fromCell range |> Seq.iter _.DecreaseVisibility()
+
+    member this.ResetVisibility() =
+        _cells |> Array.iter _.ResetVisibility()
+
+        units
+        |> Seq.iter (fun u -> this.IncreaseVisibility u.Location.Value u.VisionRange)
 
     member this.GetRayCell() =
         let result = this.CameraRayCastToMouse()
@@ -443,6 +464,8 @@ type HexGridFS() as this =
         HexMetrics.initializeHashGrid <| uint64 this.seed
         HexUnitFS.unitPrefab <- this.unitPrefab
         this.cellShaderData <- HexCellShaderData()
+        this.cellShaderData.Grid <- this
+        dataReady <- true
         this.CreateMap this.cellCountX this.cellCountZ |> ignore
         // 编辑器里显示随机颜色和随机高度的单元格
         if Engine.IsEditorHint() then
@@ -464,3 +487,9 @@ type HexGridFS() as this =
                     cell.SetOutgoingRiver(rand.Next(0, 6) |> enum<HexDirection>)
                     cell.SetRoad <| rand.Next(0, 6) <| true
                     cell.SetRoad <| rand.Next(0, 6) <| true
+
+    override this._Process delta =
+        // if this.IsNodeReady() then
+        // 还真是奇了怪了，必须按下面 dataReady 这样写才行…… 不然 this.cellShaderData 是空引用
+        if dataReady then
+            this.cellShaderData.UpdateData delta
