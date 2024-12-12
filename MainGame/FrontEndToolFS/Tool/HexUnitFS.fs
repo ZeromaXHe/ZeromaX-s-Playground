@@ -124,7 +124,7 @@ type HexUnitFS() as this =
         grid.AddUnit <| HexUnitFS.unitPrefab <| grid.GetCell coordinates <| orientation
 
     member this.IsValidDestination(cell: HexCellFS) =
-        not cell.IsUnderWater && cell.Unit.IsNone
+        cell.IsExplored && not cell.IsUnderWater && cell.Unit.IsNone
 
     member this.Travel(path: HexCellFS List) =
         location.Value.Unit <- None
@@ -221,5 +221,22 @@ type HexUnitFS() as this =
                         this.LookAt(this.Position + d, useModelFront = true)
 
                     tTravel <- tTravel + delta * travelSpeed
+
+    member this.GetMoveCost (fromCell: HexCellFS) (toCell: HexCellFS) direction =
+        let edgeType = fromCell.GetEdgeType toCell
+
+        if edgeType = HexEdgeType.Cliff then
+            -1
+        elif fromCell.HasRoadThroughEdge direction then
+            1
+        elif fromCell.Walled <> toCell.Walled then
+            -1 // 被墙阻挡就得直接跳出逻辑
+        else
+            if edgeType = HexEdgeType.Flat then 5 else 10
+            + toCell.UrbanLevel
+            + toCell.FarmLevel
+            + toCell.PlantLevel
+
+    member this.Speed = 24
 
     override this._Process(delta) = this.TravelPath delta

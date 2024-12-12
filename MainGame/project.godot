@@ -87,3 +87,7 @@ hex_cell_data_texel_size={
 "type": "vec4",
 "value": Vector4(0, 0, 0, 0)
 }
+hex_map_edit_mode={
+"type": "bool",
+"value": false
+}

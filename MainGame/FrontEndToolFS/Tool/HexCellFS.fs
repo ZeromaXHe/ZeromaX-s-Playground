@@ -24,6 +24,7 @@ type HexCellFS() as this =
         override this.Index = this.Index
         override this.TerrainTypeIndex = this.TerrainTypeIndex
         override this.IsVisible = this.IsVisible
+        override this.IsExplored = this.IsExplored
 
     [<DefaultValue>]
     val mutable Coordinates: HexCoordinates
@@ -344,7 +345,9 @@ type HexCellFS() as this =
             |> snd
         )
 
-    member this.Load(reader: BinaryReader) =
+        writer.Write explored
+
+    member this.Load (reader: BinaryReader) header =
         terrainTypeIndex <- int <| reader.ReadByte()
         this.ShaderData.RefreshTerrain this
         elevation <- int <| reader.ReadByte()
@@ -372,6 +375,9 @@ type HexCellFS() as this =
 
         this.roads
         |> Array.iteri (fun i _ -> this.roads[i] <- (roadFlags &&& (1uy <<< i)) <> 0uy)
+
+        explored <- if header >= 3 then reader.ReadBoolean() else false
+        this.ShaderData.RefreshVisibility this
     // 距离
     let mutable distance = 0
 
@@ -411,11 +417,19 @@ type HexCellFS() as this =
     // 可见性
     let mutable visibility = 0
     member this.IsVisible = visibility > 0
+
     member this.IncreaseVisibility() =
         visibility <- visibility + 1
+
         if visibility = 1 then
+            explored <- true
             this.ShaderData.RefreshVisibility this
+
     member this.DecreaseVisibility() =
         visibility <- visibility - 1
+
         if visibility = 0 then
             this.ShaderData.RefreshVisibility this
+    // 探索
+    let mutable explored = false
+    member this.IsExplored = explored

@@ -31,7 +31,7 @@ type HexGameUiFS() as this =
     let doPathfinding () =
         if updateCurrentCell () then
             if currentCell.IsSome && selectedUnit.Value.IsValidDestination currentCell.Value then
-                this.grid.FindPath selectedUnit.Value.Location.Value currentCell.Value 24
+                this.grid.FindPath selectedUnit.Value.Location.Value currentCell.Value selectedUnit.Value
             else
                 this.grid.ClearPath()
 

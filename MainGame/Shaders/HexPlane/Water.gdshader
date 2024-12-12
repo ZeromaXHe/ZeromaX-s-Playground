@@ -5,19 +5,20 @@ shader_type spatial;
 uniform vec4 color: source_color = vec4(1.0, 1.0, 1.0, 1.0);
 uniform sampler2D main_tex: source_color, filter_linear_mipmap, repeat_enable;
 uniform float glossiness: hint_range(0.0, 1.0) = 0.5;
-uniform float metallic: hint_range(0.0, 1.0) = 0.0;
+uniform float specular = 0.2;
 
 // #include 和 gdshaderinc 在官方文档“着色器预处理器”讲的
 #include "Water.gdshaderinc"
 #include "HexCellData.gdshaderinc"
-varying float visibility;
+varying vec2 visibility;
 
 void vertex() {
 	vec4 cell0 = GetCellData(CUSTOM0, 0);
 	vec4 cell1 = GetCellData(CUSTOM0, 1);
 	vec4 cell2 = GetCellData(CUSTOM0, 2);
-	visibility = cell0.x * COLOR.x + cell1.x * COLOR.y + cell2.x * COLOR.z;
-	visibility = mix(0.25, 1, visibility);
+	visibility.x = cell0.x * COLOR.x + cell1.x * COLOR.y + cell2.x * COLOR.z;
+	visibility.x = mix(0.25, 1, visibility.x);
+	visibility.y = cell0.y * COLOR.x + cell1.y * COLOR.y + cell2.y * COLOR.z;
 }
 
 void fragment() {
@@ -26,12 +27,13 @@ void fragment() {
 	float waves = Waves(world_pos.xz, main_tex);
 	// 计算最终颜色
 	vec4 c = clamp(color + waves, 0.0, 1.0);
-
+	float explored = visibility.y;
 	// 设置输出
-	ALBEDO = c.rgb * visibility;
-	METALLIC = metallic;
+	ALBEDO = c.rgb * visibility.x;
+	SPECULAR = specular * explored;
+	AO = explored;
 	ROUGHNESS = 1.0 - glossiness;
-	ALPHA = c.a;
+	ALPHA = c.a * explored;
 }
 // Unity Shader 代码原文：
 

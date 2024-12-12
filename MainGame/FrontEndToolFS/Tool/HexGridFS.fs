@@ -151,7 +151,8 @@ type HexGridFS() as this =
     let mutable currentPathExists = false
     member this.HasPath = currentPathExists
 
-    let search (fromCell: HexCellFS) (toCell: HexCellFS) speed =
+    let search (fromCell: HexCellFS) (toCell: HexCellFS) (unit: HexUnitFS) =
+        let speed = unit.Speed
         searchFrontierPhase <- 2 + searchFrontierPhase
         searchFrontier.Clear()
         fromCell.SearchPhase <- searchFrontierPhase
@@ -173,25 +174,10 @@ type HexGridFS() as this =
                     match current.GetNeighbor d with
                     | Some neighbor when
                         neighbor.SearchPhase <= searchFrontierPhase
-                        && not neighbor.IsUnderWater
-                        && neighbor.Unit.IsNone
-                        && current.GetEdgeType neighbor <> HexEdgeType.Cliff
+                        && unit.IsValidDestination(neighbor)
                         ->
-                        let moveCost =
-                            if current.HasRoadThroughEdge d then
-                                1
-                            elif current.Walled <> neighbor.Walled then
-                                Int32.MinValue // 被墙阻挡就得直接跳出逻辑
-                            else
-                                if current.GetEdgeType neighbor = HexEdgeType.Flat then
-                                    5
-                                else
-                                    10
-                                + neighbor.UrbanLevel
-                                + neighbor.FarmLevel
-                                + neighbor.PlantLevel
-
-                        if moveCost <> Int32.MinValue then
+                        let moveCost = unit.GetMoveCost current neighbor d
+                        if moveCost >= 0 then
                             let distance = current.Distance + moveCost
                             let turn = (distance - 1) / speed
 
@@ -321,7 +307,7 @@ type HexGridFS() as this =
         let z = if header >= 1 then reader.ReadInt32() else 15
 
         if (x = this.cellCountX && z = this.cellCountZ) || this.CreateMap x z then
-            _cells |> Array.iter _.Load(reader)
+            _cells |> Array.iter (fun c -> c.Load reader header)
             _chunks |> Array.iter _.Refresh()
 
         if header >= 2 then
@@ -362,14 +348,14 @@ type HexGridFS() as this =
         // 同一个 Shader 的参数是共有的，改第一个 Chunk 就可以
         _chunks[0].ShowGrid visible
 
-    member this.FindPath (fromCell: HexCellFS) (toCell: HexCellFS) speed =
+    member this.FindPath (fromCell: HexCellFS) (toCell: HexCellFS) (unit: HexUnitFS) =
         let sw = Stopwatch()
         sw.Start()
         this.ClearPath()
         currentPathFrom <- Some fromCell
         currentPathTo <- Some toCell
-        currentPathExists <- search fromCell toCell speed
-        showPath speed
+        currentPathExists <- search fromCell toCell unit
+        showPath unit.Speed
         sw.Stop()
         // BUG: 现在一次点击会执行多次
         GD.Print $"FindPath search cost: {sw.ElapsedMilliseconds} ms"

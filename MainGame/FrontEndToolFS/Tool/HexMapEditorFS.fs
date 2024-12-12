@@ -203,15 +203,15 @@ type HexMapEditorFS() as this =
         |> Option.bind _.Unit
         |> Option.iter (fun u -> _hexGrid.Value.RemoveUnit(u :?> HexUnitFS))
 
-    member this.SetEditMode toggle = this.SetProcess toggle
+    member this.SetEditMode toggle =
+        this.SetProcess toggle
+        _gameUi.Value.SetEditMode toggle
+        RenderingServer.GlobalShaderParameterSet("hex_map_edit_mode", toggle)
 
     override this._Ready() =
-        _tabContainer.Value.add_TabChanged (fun tab ->
-            let editMode = int tab = 0
-            this.SetEditMode editMode
-            _gameUi.Value.SetEditMode editMode)
-
+        _tabContainer.Value.add_TabChanged (fun tab -> this.SetEditMode(int tab = 0))
         _tabContainer.Value.CurrentTab <- 0
+        this.SetEditMode true // 修改 CurrentTab 不会触发 TabChanged 事件，所以需要手动设置
         // 编辑界面
         _terrainModeOptionButton.Value.Selected <- activeTerrainTypeIndex
         _elevationSlider.Value.Value <- activeElevation

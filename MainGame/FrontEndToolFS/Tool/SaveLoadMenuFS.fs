@@ -31,12 +31,12 @@ type SaveLoadMenuFS() as this =
 
     let mutable saveMode = false
     let mutable gridVisible = true
-
     let saveDirPath = ProjectSettings.GlobalizePath "res://save"
-
+    let mapFileVersion = 3
+    
     let save path =
         use writer = new BinaryWriter(File.Open(path, FileMode.Create))
-        writer.Write 2 // 版本号
+        writer.Write mapFileVersion // 版本号
         this.hexGrid.Save writer
         GD.Print "Saved!"
 
@@ -47,7 +47,7 @@ type SaveLoadMenuFS() as this =
             use reader = new BinaryReader(File.OpenRead path)
             let header = reader.ReadInt32()
 
-            if header <= 2 then
+            if header <= mapFileVersion then
                 this.hexGrid.Load reader header
                 this.hexGrid.ShowGrid gridVisible // 刷新显示网格与否
                 HexMapCameraFS.ValidatePosition()

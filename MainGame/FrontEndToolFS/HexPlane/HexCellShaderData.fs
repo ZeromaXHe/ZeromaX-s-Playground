@@ -6,6 +6,7 @@ type ICell =
     abstract member Index: int
     abstract member TerrainTypeIndex: int
     abstract member IsVisible: bool
+    abstract member IsExplored: bool
 
 type HexCellShaderData() =
     let mutable cellTexture: Image = null
@@ -39,7 +40,9 @@ type HexCellShaderData() =
         this.EnableUpdate cell
 
     member this.RefreshVisibility(cell: ICell) =
-        cellTextureData[cell.Index].R8 <- if cell.IsVisible then 255 else 0
+        let index = cell.Index
+        cellTextureData[index].R8 <- if cell.IsVisible then 255 else 0
+        cellTextureData[index].G8 <- if cell.IsExplored then 255 else 0
         this.EnableUpdate cell
 
     member private this.EnableUpdate(cell: ICell) =
