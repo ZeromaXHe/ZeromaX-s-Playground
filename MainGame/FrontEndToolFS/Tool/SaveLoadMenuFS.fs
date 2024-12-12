@@ -32,7 +32,7 @@ type SaveLoadMenuFS() as this =
     let mutable saveMode = false
     let mutable gridVisible = true
     let saveDirPath = ProjectSettings.GlobalizePath "res://save"
-    let mapFileVersion = 3
+    let mapFileVersion = 4
     
     let save path =
         use writer = new BinaryWriter(File.Open(path, FileMode.Create))

@@ -1,9 +1,10 @@
-[gd_scene load_steps=7 format=3 uid="uid://bv4ennj4u5ap7"]
+[gd_scene load_steps=8 format=3 uid="uid://bv4ennj4u5ap7"]
 
 [ext_resource type="Script" path="res://game/HexPlane/Menu/HexMapEditor.cs" id="1_pjtj7"]
 [ext_resource type="PackedScene" uid="uid://ctsv3hyrh2w4j" path="res://game/HexPlane/Map/HexGrid.tscn" id="2_g6vaw"]
 [ext_resource type="PackedScene" uid="uid://dolya8qm0l4jk" path="res://game/HexPlane/Menu/NewMapMenu.tscn" id="3_rt4n2"]
 [ext_resource type="PackedScene" uid="uid://b13t7sj6f2ei6" path="res://game/HexPlane/Map/HexMapCamera.tscn" id="3_tv3uy"]
+[ext_resource type="PackedScene" uid="uid://dj6rme0sox13y" path="res://game/HexPlane/Map/HexMapGenerator.tscn" id="4_3mhss"]
 [ext_resource type="PackedScene" uid="uid://bq8kkm70fsidi" path="res://game/HexPlane/Menu/HexGameUi.tscn" id="4_of2k3"]
 [ext_resource type="PackedScene" uid="uid://br6a86xflw0sy" path="res://game/HexPlane/Menu/SaveLoadMenu.tscn" id="5_qwppy"]
 
@@ -37,6 +38,9 @@ render_target_update_mode = 4
 
 [node name="HexMapCamera2" parent="SubViewportContainer/SubViewport/HexGrid" node_paths=PackedStringArray("Grid") instance=ExtResource("3_tv3uy")]
 Grid = NodePath("..")
+
+[node name="HexMapGenerator" parent="SubViewportContainer/SubViewport" node_paths=PackedStringArray("Grid") instance=ExtResource("4_3mhss")]
+Grid = NodePath("../HexGrid")
 
 [node name="TabC" type="TabContainer" parent="."]
 layout_mode = 1
@@ -270,10 +274,11 @@ visible = false
 layout_mode = 2
 Grid = NodePath("../../SubViewportContainer/SubViewport/HexGrid")
 
-[node name="NewMapMenu" parent="." node_paths=PackedStringArray("HexGrid") instance=ExtResource("3_rt4n2")]
+[node name="NewMapMenu" parent="." node_paths=PackedStringArray("HexGrid", "MapGenerator") instance=ExtResource("3_rt4n2")]
 visible = false
 layout_mode = 1
 HexGrid = NodePath("../SubViewportContainer/SubViewport/HexGrid")
+MapGenerator = NodePath("../SubViewportContainer/SubViewport/HexMapGenerator")
 
 [node name="SaveLoadMenu" parent="." node_paths=PackedStringArray("HexGrid") instance=ExtResource("5_qwppy")]
 layout_mode = 1

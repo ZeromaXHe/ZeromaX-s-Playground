@@ -52,10 +52,10 @@ type HexCellShaderData() =
         stillUpdating
 
     member this.Initialize x z =
-        if cellTexture <> null then
-            cellTexture.Resize(x, z)
-        else
-            cellTexture <- Image.CreateEmpty(x, z, false, Image.Format.Rgba8)
+        // if cellTexture <> null then
+        //     cellTexture.Resize(x, z)
+        // else
+        cellTexture <- Image.CreateEmpty(x, z, false, Image.Format.Rgba8)
 
         // hexCellData.SetSizeOverride <| cellTexture.GetSize() 这个好像也是没卵用，只能重新赋值
         hexCellData <- ImageTexture.CreateFromImage cellTexture
@@ -78,6 +78,7 @@ type HexCellShaderData() =
 
     member this.RefreshTerrain(cell: ICell) =
         cellTextureData[cell.Index].A8 <- cell.TerrainTypeIndex
+        changeCellPixel cell cellTextureData[cell.Index]
         enabled <- true
 
     member this.RefreshVisibility(cell: ICell) =

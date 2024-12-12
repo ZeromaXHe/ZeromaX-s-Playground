@@ -312,6 +312,11 @@ type HexGridFS() as this =
             else
                 Some _cells[x + z * this.cellCountX]
 
+    member this.GetCell(xOffset, zOffset) =
+        _cells[xOffset + zOffset * this.cellCountX]
+
+    member this.GetCell cellIndex = _cells[cellIndex]
+
     member this.GetCell(pos: Vector3) =
         let coordinates = HexCoordinates.FromPosition pos
         this.GetCell coordinates

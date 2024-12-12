@@ -1,0 +1,15 @@
+[gd_scene load_steps=2 format=3 uid="uid://dj6rme0sox13y"]
+
+[ext_resource type="Script" path="res://game/HexPlane/Map/HexMapGenerator.cs" id="1_6moic"]
+
+[node name="HexMapGenerator" type="Node3D"]
+script = ExtResource("1_6moic")
+JitterProbability = 0.25
+ChunkSizeMin = 30
+ChunkSizeMax = 100
+LandPercentage = 50
+WaterLevel = 3
+HighRiseProbability = 0.25
+SinkProbability = 0.2
+ElevationMinimum = -2
+ElevationMaximum = 8

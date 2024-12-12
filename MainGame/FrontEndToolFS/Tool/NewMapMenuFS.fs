@@ -6,6 +6,9 @@ open Godot
 type NewMapMenuFS() as this =
     inherit PanelContainer()
 
+    let _generateCheckBox =
+        lazy this.GetNode<CheckBox> "CenterC/MenuPanel/MarginC/VBox/GenerateCheckBox"
+
     let _smallButton =
         lazy this.GetNode<Button> "CenterC/MenuPanel/MarginC/VBox/SmallButton"
 
@@ -19,12 +22,21 @@ type NewMapMenuFS() as this =
         lazy this.GetNode<Button> "CenterC/MenuPanel/MarginC/VBox/CancelButton"
 
     let mutable gridVisible = false
+    let mutable generateMaps = true
 
     [<DefaultValue>]
     val mutable hexGrid: HexGridFS
 
+    [<DefaultValue>]
+    val mutable mapGenerator: HexMapGeneratorFS
+
     let createMap x z =
-        this.hexGrid.CreateMap x z |> ignore
+        if generateMaps then
+            GD.Print "Generating map..."
+            this.mapGenerator.GenerateMap x z
+        else
+            this.hexGrid.CreateMap x z |> ignore
+
         this.hexGrid.ShowGrid gridVisible // 刷新显示网格与否
         HexMapCameraFS.ValidatePosition()
         this.Close()
@@ -39,6 +51,9 @@ type NewMapMenuFS() as this =
         HexMapCameraFS.Locked <- false
 
     override this._Ready() =
+        _generateCheckBox.Value.ButtonPressed <- generateMaps
+
+        _generateCheckBox.Value.add_Toggled (fun toggle -> generateMaps <- toggle)
         _smallButton.Value.add_Pressed (fun () -> createMap 20 15)
         _midButton.Value.add_Pressed (fun () -> createMap 40 30)
         _largeButton.Value.add_Pressed (fun () -> createMap 80 60)

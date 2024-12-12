@@ -339,7 +339,7 @@ type HexCellFS() as this =
     // 保存和加载
     member this.Save(writer: BinaryWriter) =
         writer.Write(byte terrainTypeIndex)
-        writer.Write(byte elevation)
+        writer.Write(byte <| elevation + 127)
         writer.Write(byte waterLevel)
         writer.Write(byte urbanLevel)
         writer.Write(byte farmLevel)
@@ -361,6 +361,10 @@ type HexCellFS() as this =
         terrainTypeIndex <- int <| reader.ReadByte()
         this.ShaderData.RefreshTerrain this
         elevation <- int <| reader.ReadByte()
+
+        if header >= 4 then
+            elevation <- elevation - 127
+
         refreshPosition ()
         waterLevel <- int <| reader.ReadByte()
         urbanLevel <- int <| reader.ReadByte()

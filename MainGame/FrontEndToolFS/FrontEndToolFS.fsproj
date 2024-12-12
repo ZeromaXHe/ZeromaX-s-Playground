@@ -26,6 +26,7 @@
         <Compile Include="Tool\HexFeatureManagerFS.fs" />
         <Compile Include="Tool\HexGridChunkFS.fs" />
         <Compile Include="Tool\HexGridFS.fs" />
+        <Compile Include="Tool\HexMapGeneratorFS.fs" />
         <Compile Include="Tool\HexMapCameraFS.fs" />
         <Compile Include="Tool\SaveLoadItemFS.fs" />
         <Compile Include="Tool\SaveLoadMenuFS.fs" />
