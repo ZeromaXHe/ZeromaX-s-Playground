@@ -70,6 +70,9 @@ type HexMapEditorFS() as this =
     let _showGridCheckButton =
         lazy this.GetNode<CheckButton> "TabC/Editor/ScrollC/CellVBox/ShowGrid"
 
+    let _showMapDataCheckButton =
+        lazy this.GetNode<CheckButton> "TabC/Editor/ScrollC/CellVBox/ShowMapData"
+
     let _wireframeCheckButton =
         lazy this.GetNode<CheckButton> "TabC/Editor/ScrollC/CellVBox/Wireframe"
 
@@ -253,6 +256,8 @@ type HexMapEditorFS() as this =
             changeSpecial <- int index <> 0)
 
         _showGridCheckButton.Value.add_Toggled showGrid
+        _showMapDataCheckButton.Value.add_Toggled (fun toggle ->
+            RenderingServer.GlobalShaderParameterSet("show_map_data", toggle))
 
         _wireframeCheckButton.Value.add_Toggled (fun toggle ->
             if toggle then
@@ -267,6 +272,7 @@ type HexMapEditorFS() as this =
         _newMapButton.Value.add_Pressed (fun _ -> _newMapMenu.Value.Open _showGridCheckButton.Value.ButtonPressed)
         // 默认显示网格，放在最后是为了触发事件调用 showGrid
         _showGridCheckButton.Value.ButtonPressed <- true
+        _showMapDataCheckButton.Value.ButtonPressed <- false
 
     override this._Process _ =
         if inDragProcess && previousCell.IsSome then

@@ -248,6 +248,10 @@ layout_mode = 2
 button_pressed = true
 text = "Show Grid"
 
+[node name="ShowMapData" type="CheckButton" parent="TabC/Editor/ScrollC/CellVBox"]
+layout_mode = 2
+text = "Show Map Data"
+
 [node name="Wireframe" type="CheckButton" parent="TabC/Editor/ScrollC/CellVBox"]
 layout_mode = 2
 text = "Wireframe"

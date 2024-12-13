@@ -2,6 +2,7 @@ namespace FrontEndToolFS.Tool
 
 open System
 open System.Collections.Generic
+open FrontEndToolFS.HexPlane.HexDirection
 open FrontEndToolFS.HexPlane
 open Godot
 
@@ -11,6 +12,12 @@ type MapRegion =
         val mutable xMax: int
         val mutable zMin: int
         val mutable zMax: int
+    end
+
+type ClimateData =
+    struct
+        val mutable clouds: float32
+        val mutable moisture: float32
     end
 
 type HexMapGeneratorFS() as this =
@@ -33,6 +40,13 @@ type HexMapGeneratorFS() as this =
     member val regionBorder = 5 with get, set
     member val regionCount = 1 with get, set
     member val erosionPercentage = 50 with get, set
+    member val evaporationFactor = 0.5f with get, set
+    member val precipitationFactor = 0.25f with get, set
+    member val runoffFactor = 0.25f with get, set
+    member val seepageFactor = 0.125f with get, set
+    member val windDirection: HexDirection = HexDirection.NW with get, set
+    member val windStrength = 4f with get, set
+    member val startingMoisture = 0.1f with get, set
     member val useFixedSeed = false with get, set
     member val seed = 0 with get, set
     let mutable cellCount = 0
@@ -40,6 +54,8 @@ type HexMapGeneratorFS() as this =
     let mutable searchFrontierPhase = 0
     let random = new RandomNumberGenerator()
     let regions = List<MapRegion>()
+    let mutable climate = List<ClimateData>()
+    let mutable nextClimate = List<ClimateData>()
 
     let getRandomCell (region: MapRegion) =
         this.grid.GetCell(
@@ -80,7 +96,7 @@ type HexMapGeneratorFS() as this =
                     if not breakLoop then
                         size <- size + 1
 
-                        for d in HexDirection.allHexDirs () do
+                        for d in allHexDirs () do
                             match current.GetNeighbor d with
                             | Some neighbor when neighbor.SearchPhase < searchFrontierPhase ->
                                 neighbor.SearchPhase <- searchFrontierPhase
@@ -121,7 +137,7 @@ type HexMapGeneratorFS() as this =
 
                     size <- size + 1
 
-                    for d in HexDirection.allHexDirs () do
+                    for d in allHexDirs () do
                         match current.GetNeighbor d with
                         | Some neighbor when neighbor.SearchPhase < searchFrontierPhase ->
                             neighbor.SearchPhase <- searchFrontierPhase
@@ -163,9 +179,20 @@ type HexMapGeneratorFS() as this =
     let setTerrainType () =
         for i in 0 .. cellCount - 1 do
             let cell = this.grid.GetCell(i)
+            let moisture = climate[i].moisture
 
             if not cell.IsUnderWater then
-                cell.TerrainTypeIndex <- cell.Elevation - cell.WaterLevel
+                cell.TerrainTypeIndex <-
+                    match moisture with
+                    | x when x < 0.05f -> 4
+                    | x when x < 0.12f -> 0
+                    | x when x < 0.28f -> 3
+                    | x when x < 0.85f -> 1
+                    | _ -> 2
+            else
+                cell.TerrainTypeIndex <- 2
+
+            cell.SetMapData <| moisture
 
     let createRegions () =
         regions.Clear()
@@ -232,7 +259,7 @@ type HexMapGeneratorFS() as this =
     let isErodible (cell: HexCellFS) =
         let erodibleElevation = cell.Elevation - 2
 
-        HexDirection.allHexDirs ()
+        allHexDirs ()
         |> List.tryFind (fun d ->
             let neighborOpt = cell.GetNeighbor d
             neighborOpt.IsSome && neighborOpt.Value.Elevation <= erodibleElevation)
@@ -242,7 +269,7 @@ type HexMapGeneratorFS() as this =
         let candidates = List<HexCellFS>()
         let erodibleElevation = cell.Elevation - 2
 
-        for d in HexDirection.allHexDirs () do
+        for d in allHexDirs () do
             let neighborOpt = cell.GetNeighbor d
 
             if neighborOpt.IsSome && neighborOpt.Value.Elevation <= erodibleElevation then
@@ -275,7 +302,7 @@ type HexMapGeneratorFS() as this =
                 erodibleCells[index] <- erodibleCells[erodibleCells.Count - 1]
                 erodibleCells.RemoveAt <| erodibleCells.Count - 1
 
-            for d in HexDirection.allHexDirs () do
+            for d in allHexDirs () do
                 match cell.GetNeighbor d with
                 | Some neighbor when
                     neighbor.Elevation = cell.Elevation + 2
@@ -287,7 +314,7 @@ type HexMapGeneratorFS() as this =
             if isErodible targetCell && not <| erodibleCells.Contains targetCell then
                 erodibleCells.Add targetCell
 
-            for d in HexDirection.allHexDirs () do
+            for d in allHexDirs () do
                 match targetCell.GetNeighbor d with
                 | Some neighbor when
                     neighbor <> cell
@@ -296,6 +323,85 @@ type HexMapGeneratorFS() as this =
                     ->
                     erodibleCells.Remove neighbor |> ignore
                 | _ -> ()
+
+    let evolveClimate (cellIndex: int) =
+        let cell = this.grid.GetCell cellIndex
+        let mutable cellClimate = climate[cellIndex]
+
+        if cell.IsUnderWater then
+            cellClimate.moisture <- 1f
+            cellClimate.clouds <- cellClimate.clouds + this.evaporationFactor
+        else
+            let evaporation = cellClimate.moisture * this.evaporationFactor
+            cellClimate.moisture <- cellClimate.moisture - evaporation
+            cellClimate.clouds <- cellClimate.clouds + evaporation
+
+        let precipitation = cellClimate.clouds * this.precipitationFactor
+        cellClimate.clouds <- cellClimate.clouds - precipitation
+        cellClimate.moisture <- cellClimate.moisture + precipitation
+
+        let cloudMaximum =
+            1f - float32 cell.ViewElevation / (float32 this.elevationMaximum + 1f)
+
+        if cellClimate.clouds > cloudMaximum then
+            cellClimate.moisture <- cellClimate.moisture + cellClimate.clouds - cloudMaximum
+            cellClimate.clouds <- cloudMaximum
+
+        let mainDispersalDirection = this.windDirection.Opposite()
+        let cloudDispersal = cellClimate.clouds * (1f / (5f + this.windStrength))
+        let runoff = cellClimate.moisture * this.runoffFactor * (1f / 6f)
+        let seepage = cellClimate.moisture * this.seepageFactor * (1f / 6f)
+
+        for d in allHexDirs () do
+            match cell.GetNeighbor d with
+            | Some neighbor ->
+                let mutable neighborClimate = nextClimate[neighbor.Index]
+
+                if d = mainDispersalDirection then
+                    neighborClimate.clouds <- neighborClimate.clouds + cloudDispersal * this.windStrength
+                else
+                    neighborClimate.clouds <- neighborClimate.clouds + cloudDispersal
+
+                let elevationDelta = neighbor.ViewElevation - cell.ViewElevation
+
+                if elevationDelta < 0 then
+                    cellClimate.moisture <- cellClimate.moisture - runoff
+                    neighborClimate.moisture <- neighborClimate.moisture + runoff
+                elif elevationDelta = 0 then
+                    cellClimate.moisture <- cellClimate.moisture - seepage
+                    neighborClimate.moisture <- neighborClimate.moisture + seepage
+
+                nextClimate[neighbor.Index] <- neighborClimate
+            | _ -> ()
+
+        let mutable nextCellClimate = nextClimate[cellIndex]
+        nextCellClimate.moisture <- nextCellClimate.moisture + cellClimate.moisture
+
+        if nextCellClimate.moisture > 1f then
+            nextCellClimate.moisture <- 1f
+
+        nextClimate[cellIndex] <- nextCellClimate
+        climate[cellIndex] <- ClimateData()
+
+    let createClimate () =
+        climate.Clear()
+        nextClimate.Clear()
+
+        let mutable initialData = ClimateData()
+        initialData.moisture <- this.startingMoisture
+        let clearData = ClimateData()
+
+        for i in 0 .. cellCount - 1 do
+            climate.Add <| initialData
+            nextClimate.Add <| clearData
+
+        for cycle in 1..40 do
+            for i in 0 .. cellCount - 1 do
+                evolveClimate i
+
+            let swap = climate
+            climate <- nextClimate
+            nextClimate <- swap
 
     member this.GenerateMap x z =
         let initState = random.State
@@ -320,6 +426,7 @@ type HexMapGeneratorFS() as this =
         createRegions ()
         createLand ()
         erodeLand ()
+        createClimate ()
         setTerrainType ()
 
         for i in 0 .. cellCount - 1 do

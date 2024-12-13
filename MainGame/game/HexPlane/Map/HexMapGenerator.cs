@@ -1,4 +1,5 @@
 using System;
+using FrontEndToolFS.HexPlane;
 using FrontEndToolFS.Tool;
 using Godot;
 
@@ -109,6 +110,55 @@ public partial class HexMapGenerator : HexMapGeneratorFS
     {
         get => erosionPercentage;
         set => erosionPercentage = value;
+    }
+
+    [Export(PropertyHint.Range, "0.0, 1.0")]
+    public float EvaporationFactor
+    {
+        get => evaporationFactor;
+        set => evaporationFactor = value;
+    }
+
+    [Export(PropertyHint.Range, "0.0, 1.0")]
+    public float PrecipitationFactor
+    {
+        get => precipitationFactor;
+        set => precipitationFactor = value;
+    }
+
+    [Export(PropertyHint.Range, "0.0, 1.0")]
+    public float RunoffFactor
+    {
+        get => runoffFactor;
+        set => runoffFactor = value;
+    }
+
+    [Export(PropertyHint.Range, "0.0, 1.0")]
+    public float SeepageFactor
+    {
+        get => seepageFactor;
+        set => seepageFactor = value;
+    }
+
+    [Export]
+    public HexDirection WindDirection
+    {
+        get => windDirection;
+        set => windDirection = value;
+    }
+
+    [Export(PropertyHint.Range, "1.0, 10.0")]
+    public float WindStrength
+    {
+        get => windStrength;
+        set => windStrength = value;
+    }
+
+    [Export(PropertyHint.Range, "0.0, 1.0")]
+    public float StartingMoisture
+    {
+        get => startingMoisture;
+        set => startingMoisture = value;
     }
 
     [Export]

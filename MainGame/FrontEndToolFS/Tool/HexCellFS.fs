@@ -455,3 +455,7 @@ type HexCellFS() as this =
         if visibility > 0 then
             visibility <- 0
             this.ShaderData.RefreshVisibility this
+
+    member this.SetMapData data =
+        // GD.Print $"Setting {this.Coordinates} map data {data}"
+        this.ShaderData.SetMapData this data

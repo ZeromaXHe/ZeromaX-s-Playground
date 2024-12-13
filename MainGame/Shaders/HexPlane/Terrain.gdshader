@@ -13,12 +13,13 @@ uniform sampler2D grid_tex: source_color;
 uniform float glossiness: hint_range(0.0, 1.0) = 0.3;
 uniform float specular = 0.2;
 uniform vec3 background_color: source_color = vec3(0.2, 0.169, 0.133);
-
+global uniform bool show_map_data = false;
 
 #include "HexCellData.gdshaderinc"
 
 varying vec3 terrain; // 用 varying 在 vertex 和 fragment 间传递数据
 varying vec4 visibility;
+varying float map_data;
 
 void vertex() {
 	vec4 cell0 = GetCellData(CUSTOM0, 0);
@@ -32,6 +33,9 @@ void vertex() {
 	visibility.z = cell2.x;
 	visibility.xyz = mix(vec3(0.25), vec3(1.0), visibility.xyz);
 	visibility.w = cell0.y * COLOR.x + cell1.y * COLOR.y + cell2.y * COLOR.z;
+	if (show_map_data) {
+		map_data = cell0.z * COLOR.x + cell1.z * COLOR.y + cell2.z * COLOR.z;
+	}
 }
 
 vec4 GetTerrainColor(vec3 world_pos, int index, vec4 inColor, vec4 inVisibility) {
@@ -58,6 +62,9 @@ void fragment() {
 	float explored = visibility.w;
 	// 设置漫反射颜色
 	ALBEDO = c.rgb * grid.rgb * color.rgb * explored;
+	if (show_map_data) {
+		ALBEDO = map_data * grid.rgb;
+	}
 	SPECULAR = specular * explored;
 	AO = explored;
 	EMISSION = background_color * (1.0 - explored);

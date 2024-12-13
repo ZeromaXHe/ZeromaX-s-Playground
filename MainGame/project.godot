@@ -91,3 +91,7 @@ hex_map_edit_mode={
 "type": "bool",
 "value": false
 }
+show_map_data={
+"type": "bool",
+"value": false
+}
