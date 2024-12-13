@@ -20,6 +20,18 @@ type ClimateData =
         val mutable moisture: float32
     end
 
+type HemisphereMode =
+    | Both = 0
+    | North = 1
+    | South = 2
+
+type Biome =
+    struct
+        val mutable terrain: int
+        val mutable plant: int
+        public new(terrain, plant) = { terrain = terrain; plant = plant }
+    end
+
 type HexMapGeneratorFS() as this =
     inherit Node3D()
 
@@ -47,15 +59,46 @@ type HexMapGeneratorFS() as this =
     member val windDirection: HexDirection = HexDirection.NW with get, set
     member val windStrength = 4f with get, set
     member val startingMoisture = 0.1f with get, set
+    member val riverPercentage = 10f with get, set
+    member val extraLakeProbability = 0.25f with get, set
+    member val lowTemperature = 0f with get, set
+    member val highTemperature = 1f with get, set
+    member val hemisphere: HemisphereMode = HemisphereMode.Both with get, set
+    member val temperatureJitter = 0.1f with get, set
     member val useFixedSeed = false with get, set
     member val seed = 0 with get, set
     let mutable cellCount = 0
+    let mutable landCells = 0
     let searchFrontier = HexCellPriorityQueue()
     let mutable searchFrontierPhase = 0
     let random = new RandomNumberGenerator()
     let regions = List<MapRegion>()
     let mutable climate = List<ClimateData>()
     let mutable nextClimate = List<ClimateData>()
+    let mutable temperatureJitterChannel = 0
+    let temperatureBands = [| 0.1f; 0.3f; 0.6f |]
+    let moistureBands = [| 0.12f; 0.28f; 0.85f |]
+
+    let biomes =
+        [| Biome(0, 0)
+           Biome(4, 0)
+           Biome(4, 0)
+           Biome(4, 0)
+           //
+           Biome(0, 0)
+           Biome(2, 0)
+           Biome(2, 1)
+           Biome(2, 2)
+           //
+           Biome(0, 0)
+           Biome(1, 0)
+           Biome(1, 1)
+           Biome(1, 2)
+           //
+           Biome(0, 0)
+           Biome(1, 1)
+           Biome(1, 2)
+           Biome(1, 3) |]
 
     let getRandomCell (region: MapRegion) =
         this.grid.GetCell(
@@ -152,6 +195,8 @@ type HexMapGeneratorFS() as this =
     let createLand () =
         let mutable landBudget =
             Mathf.RoundToInt(float32 (cellCount * this.landPercentage) * 0.01f)
+
+        landCells <- landBudget
         // 防止无限循环的守卫值
         let mutable guard = 0
 
@@ -174,25 +219,248 @@ type HexMapGeneratorFS() as this =
             | None -> guard <- guard + 1
 
         if landBudget > 0 then
+            landCells <- landCells - landBudget
             GD.PrintErr $"Failed to use up {landBudget} land budget."
 
+    let determineTemperature (cell: HexCellFS) =
+        let mutable latitude = float32 cell.Coordinates.Z / float32 this.grid.cellCountZ
+
+        if this.hemisphere = HemisphereMode.Both then
+            latitude <- latitude * 2f
+
+            if latitude > 1f then
+                latitude <- 2f - latitude
+        elif this.hemisphere = HemisphereMode.North then
+            latitude <- 1f - latitude
+
+        let mutable temperature =
+            Mathf.Lerp(this.lowTemperature, this.highTemperature, latitude)
+
+        temperature <-
+            temperature
+            * (1f
+               - float32 (cell.ViewElevation - this.waterLevel)
+                 / (float32 this.elevationMaximum - float32 this.waterLevel + 1f))
+
+        let jitter = HexMetrics.sampleNoise(cell.Position * 0.1f)[temperatureJitterChannel]
+        temperature + (jitter * 2f - 1f) * this.temperatureJitter
+
     let setTerrainType () =
+        temperatureJitterChannel <- random.RandiRange(0, 3)
+
+        let rockDesertElevation =
+            this.elevationMaximum - (this.elevationMaximum - this.waterLevel) / 2
+
         for i in 0 .. cellCount - 1 do
             let cell = this.grid.GetCell(i)
+            let temperature = determineTemperature cell
+            // 显示温度
+            // cell.SetMapData temperature
             let moisture = climate[i].moisture
+            // 显示湿度
+            // cell.SetMapData moisture
 
             if not cell.IsUnderWater then
-                cell.TerrainTypeIndex <-
-                    match moisture with
-                    | x when x < 0.05f -> 4
-                    | x when x < 0.12f -> 0
-                    | x when x < 0.28f -> 3
-                    | x when x < 0.85f -> 1
-                    | _ -> 2
-            else
-                cell.TerrainTypeIndex <- 2
+                let t =
+                    temperatureBands
+                    |> Array.tryFindIndex (fun t -> temperature < t)
+                    |> Option.defaultValue temperatureBands.Length
 
-            cell.SetMapData <| moisture
+                let m =
+                    moistureBands
+                    |> Array.tryFindIndex (fun m -> moisture < m)
+                    |> Option.defaultValue moistureBands.Length
+
+                let mutable cellBiome = biomes[t * 4 + m]
+
+                if cellBiome.terrain = 0 then
+                    if cell.Elevation >= rockDesertElevation then
+                        // 假设如果一个单元格的高度比水位更接近最高高度，沙子就会变成岩石。这是岩石沙漠高程线
+                        cellBiome.terrain <- 3
+                elif cell.Elevation = this.elevationMaximum then
+                    // 强制处于最高海拔的单元格变成雪盖，无论它们有多暖和，只要它们不太干燥
+                    cellBiome.terrain <- 4
+
+                if cellBiome.terrain = 4 then
+                    // 确保植物不会出现在雪地上
+                    cellBiome.plant <- 0
+                elif cellBiome.plant < 3 && cell.HasRiver then
+                    // 如果等级还没有达到最高点，让我们也增加河流沿岸的植物等级
+                    cellBiome.plant <- cellBiome.plant + 1
+
+                cell.TerrainTypeIndex <- cellBiome.terrain
+                cell.PlantLevel <- cellBiome.plant
+            else
+                let terrain =
+                    match cell.Elevation with
+                    | e when e = this.waterLevel - 1 ->
+                        let cliffs, slopes =
+                            allHexDirs ()
+                            |> List.fold
+                                (fun (c, s) d ->
+                                    match cell.GetNeighbor d with
+                                    | Some neighbor ->
+                                        let delta = neighbor.Elevation - cell.WaterLevel
+
+                                        if delta = 0 then c, s + 1
+                                        elif delta > 0 then c + 1, s
+                                        else c, s
+                                    | _ -> c, s)
+                                (0, 0)
+
+                        if cliffs + slopes > 3 then 1
+                        elif cliffs > 0 then 3
+                        elif slopes > 0 then 0
+                        else 1
+                    | e when e >= this.waterLevel -> 1 // 用草来建造比水位更高的单元格，这些是由河流形成的湖泊
+                    | e when e < 0 -> 3 // 负海拔的单元格位于深处，让我们用岩石来做
+                    | _ -> 2
+
+                let terrain =
+                    if terrain = 1 && temperature < temperatureBands[0] then
+                        // 确保在最冷的温度带内不会出现绿色的水下单元格。用泥代替这些单元格
+                        2
+                    else
+                        terrain
+
+                cell.TerrainTypeIndex <- terrain
+
+            let riverOriginData =
+                match
+                    moisture * float32 (cell.Elevation - this.waterLevel)
+                    / float32 (this.elevationMaximum - this.waterLevel)
+                with
+                | d when d > 0.75f -> 1f
+                | d when d > 0.5f -> 0.5f
+                | d when d > 0.25f -> 0.25f
+                | _ -> 0f
+            // 显示河流源头判定
+            cell.SetMapData <| riverOriginData
+
+    let flowDirections = List<HexDirection>()
+
+    let createRiverAt (origin: HexCellFS) =
+        let mutable length = 1
+        let mutable cell = origin
+        let mutable direction = HexDirection.NE
+        let mutable directReturn = Int32.MinValue
+
+        while not cell.IsUnderWater && directReturn = Int32.MinValue do
+            let mutable minNeighborElevation = Int32.MaxValue
+            flowDirections.Clear()
+
+            for d in allHexDirs () do
+                if directReturn = Int32.MinValue then
+                    match cell.GetNeighbor d with
+                    | Some neighbor ->
+                        if neighbor.Elevation < minNeighborElevation then
+                            minNeighborElevation <- neighbor.Elevation
+
+                        if neighbor = origin || neighbor.IncomingRiver.IsSome then
+                            ()
+                        else
+                            let delta = neighbor.Elevation - cell.Elevation
+
+                            if delta > 0 then
+                                ()
+                            elif neighbor.OutgoingRiver.IsSome then
+                                cell.SetOutgoingRiver d
+                                directReturn <- length
+                            else
+                                if delta < 0 then
+                                    flowDirections.Add d
+                                    flowDirections.Add d
+                                    flowDirections.Add d
+
+                                if length = 1 || (d <> direction.Next2() && d <> direction.Previous2()) then
+                                    flowDirections.Add d
+
+                                flowDirections.Add d
+                    | _ -> ()
+
+            if directReturn <> Int32.MinValue then
+                ()
+            elif flowDirections.Count = 0 then
+                if length = 1 then
+                    directReturn <- 0
+                else
+                    if minNeighborElevation >= cell.Elevation then
+                        cell.WaterLevel <- minNeighborElevation
+
+                        if minNeighborElevation = cell.Elevation then
+                            cell.Elevation <- minNeighborElevation - 1
+
+                    directReturn <- length
+            else
+                direction <- flowDirections[random.RandiRange(0, flowDirections.Count - 1)]
+                cell.SetOutgoingRiver direction
+                length <- length + 1
+
+                if
+                    minNeighborElevation >= cell.Elevation
+                    && random.Randf() < this.extraLakeProbability
+                then
+                    cell.WaterLevel <- cell.Elevation
+                    cell.Elevation <- cell.Elevation - 1
+
+                cell <- (cell.GetNeighbor direction).Value
+
+        if directReturn <> Int32.MinValue then
+            directReturn
+        else
+            length
+
+    let createRiver () =
+        let riverOrigins = List<HexCellFS>()
+
+        for i in 0 .. cellCount - 1 do
+            let cell = this.grid.GetCell i
+
+            if cell.IsUnderWater then
+                ()
+            else
+                let data = climate[i]
+
+                let weight =
+                    data.moisture * float32 (cell.Elevation - this.waterLevel)
+                    / float32 (this.elevationMaximum - this.waterLevel)
+
+                if weight > 0.75f then
+                    riverOrigins.Add cell
+                    riverOrigins.Add cell
+
+                if weight > 0.5f then
+                    riverOrigins.Add cell
+
+                if weight > 0.25f then
+                    riverOrigins.Add cell
+
+        let mutable riverBudget =
+            Mathf.RoundToInt(float32 landCells * this.riverPercentage * 0.01f)
+
+        GD.Print $"{riverOrigins.Count} river origins with river budget {riverBudget}"
+
+        while riverBudget > 0 && riverOrigins.Count > 0 do
+            let lastIndex = riverOrigins.Count - 1
+            let index = random.RandiRange(0, lastIndex)
+            let origin = riverOrigins[index]
+            riverOrigins[index] <- riverOrigins[lastIndex]
+            riverOrigins.RemoveAt lastIndex
+
+            if not origin.HasRiver then
+                let isValidOrigin =
+                    allHexDirs ()
+                    |> List.exists (fun d ->
+                        match origin.GetNeighbor d with
+                        | Some neighbor when neighbor.HasRiver || neighbor.IsUnderWater -> true
+                        | _ -> false)
+                    |> not
+
+                if isValidOrigin then
+                    riverBudget <- riverBudget - createRiverAt origin
+
+        if riverBudget > 0 then
+            GD.PrintErr $"Failed to use up river budget {riverBudget}"
 
     let createRegions () =
         regions.Clear()
@@ -260,10 +528,9 @@ type HexMapGeneratorFS() as this =
         let erodibleElevation = cell.Elevation - 2
 
         allHexDirs ()
-        |> List.tryFind (fun d ->
+        |> List.exists (fun d ->
             let neighborOpt = cell.GetNeighbor d
             neighborOpt.IsSome && neighborOpt.Value.Elevation <= erodibleElevation)
-        |> Option.isSome
 
     let getErosionTarget (cell: HexCellFS) =
         let candidates = List<HexCellFS>()
@@ -427,6 +694,7 @@ type HexMapGeneratorFS() as this =
         createLand ()
         erodeLand ()
         createClimate ()
+        createRiver ()
         setTerrainType ()
 
         for i in 0 .. cellCount - 1 do

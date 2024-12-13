@@ -8,7 +8,8 @@ render_priority = 0
 shader = ExtResource("1_mwhwa")
 shader_parameter/color = Color(0.67451, 0.866667, 0.12549, 1)
 shader_parameter/glossiness = 0.5
-shader_parameter/metallic = 0.0
+shader_parameter/specular = 0.2
+shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
 shader_parameter/grid_coordinates = ExtResource("2_7ukfw")
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l1f6h"]

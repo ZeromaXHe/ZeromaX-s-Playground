@@ -6,13 +6,14 @@
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_0wadb"]
 render_priority = 0
 shader = ExtResource("1_pw50d")
-shader_parameter/color = Color(0.168627, 0.552941, 0.12549, 1)
+shader_parameter/color = Color(0.0509804, 0.447059, 0, 1)
 shader_parameter/glossiness = 0.5
-shader_parameter/metallic = 0.0
+shader_parameter/specular = 0.2
+shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
 shader_parameter/grid_coordinates = ExtResource("2_kyl7y")
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l1f6h"]
-albedo_color = Color(0.168627, 0.552941, 0.12549, 1)
+albedo_color = Color(0.0509804, 0.447059, 0, 1)
 
 [node name="PlantLow2" type="CSGBox3D"]
 material_override = SubResource("ShaderMaterial_0wadb")

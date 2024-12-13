@@ -24,3 +24,7 @@ SeepageFactor = 0.125
 WindDirection = 5
 WindStrength = 4.0
 StartingMoisture = 0.1
+RiverPercentage = 10.0
+ExtraLakeProbability = 0.25
+HighTemperature = 1.0
+TemperatureJitter = 0.1

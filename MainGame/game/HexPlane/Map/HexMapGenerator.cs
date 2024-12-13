@@ -161,6 +161,48 @@ public partial class HexMapGenerator : HexMapGeneratorFS
         set => startingMoisture = value;
     }
 
+    [Export(PropertyHint.Range, "0, 20")]
+    public float RiverPercentage
+    {
+        get => riverPercentage;
+        set => riverPercentage = value;
+    }
+
+    [Export(PropertyHint.Range, "0.0, 1.0")]
+    public float ExtraLakeProbability
+    {
+        get => extraLakeProbability;
+        set => extraLakeProbability = value;
+    }
+
+    [Export(PropertyHint.Range, "0.0, 1.0")]
+    public float LowTemperature
+    {
+        get => lowTemperature;
+        set => lowTemperature = value;
+    }
+
+    [Export(PropertyHint.Range, "0.0, 1.0")]
+    public float HighTemperature
+    {
+        get => highTemperature;
+        set => highTemperature = value;
+    }
+
+    [Export]
+    public HemisphereMode Hemisphere
+    {
+        get => hemisphere;
+        set => hemisphere = value;
+    }
+
+    [Export(PropertyHint.Range, "0.0, 1.0")]
+    public float TemperatureJitter
+    {
+        get => temperatureJitter;
+        set => temperatureJitter = value;
+    }
+
     [Export]
     public bool UseFixedSeed
     {

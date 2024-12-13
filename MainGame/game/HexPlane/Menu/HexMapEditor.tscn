@@ -41,6 +41,7 @@ Grid = NodePath("..")
 
 [node name="HexMapGenerator" parent="SubViewportContainer/SubViewport" node_paths=PackedStringArray("Grid") instance=ExtResource("4_3mhss")]
 Grid = NodePath("../HexGrid")
+RegionCount = 4
 
 [node name="TabC" type="TabContainer" parent="."]
 layout_mode = 1
