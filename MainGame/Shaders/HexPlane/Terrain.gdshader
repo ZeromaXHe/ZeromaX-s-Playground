@@ -16,6 +16,7 @@ uniform vec3 background_color: source_color = vec3(0.2, 0.169, 0.133);
 global uniform bool show_map_data = false;
 
 #include "HexCellData.gdshaderinc"
+#include "HexMetrics.gdshaderinc"
 
 varying vec3 terrain; // 用 varying 在 vertex 和 fragment 间传递数据
 varying vec4 visibility;
@@ -39,7 +40,7 @@ void vertex() {
 }
 
 vec4 GetTerrainColor(vec3 world_pos, int index, vec4 inColor, vec4 inVisibility) {
-	vec3 uvw = vec3(world_pos.xz * 0.02, terrain[index]);
+	vec3 uvw = vec3(world_pos.xz * (2.0 * TILING_SCALE), terrain[index]);
 	vec4 c = texture(main_tex, uvw);
 	return c * (inColor[index] * inVisibility[index]);
 }

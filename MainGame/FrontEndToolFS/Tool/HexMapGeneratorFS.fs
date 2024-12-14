@@ -464,12 +464,22 @@ type HexMapGeneratorFS() as this =
 
     let createRegions () =
         regions.Clear()
+
+        let mutable borderX =
+            if this.grid.wrapping then
+                this.regionBorder
+            else
+                this.mapBorderX
+
         let mutable region = MapRegion()
 
         match this.regionCount with
         | 1 ->
-            region.xMin <- this.mapBorderX
-            region.xMax <- this.grid.cellCountX - this.mapBorderX
+            if this.grid.wrapping then
+                borderX <- 0
+
+            region.xMin <- borderX
+            region.xMax <- this.grid.cellCountX - borderX
             region.zMin <- this.mapBorderZ
             region.zMax <- this.grid.cellCountZ - this.mapBorderZ
             regions.Add region
@@ -478,18 +488,22 @@ type HexMapGeneratorFS() as this =
 
             if rand < 0.5f then
                 GD.Print $"Split map vertically {rand}"
-                region.xMin <- this.mapBorderX
+                region.xMin <- borderX
                 region.xMax <- this.grid.cellCountX / 2 - this.regionBorder
                 region.zMin <- this.mapBorderZ
                 region.zMax <- this.grid.cellCountZ - this.mapBorderZ
                 regions.Add region
                 region.xMin <- this.grid.cellCountX / 2 + this.regionBorder
-                region.xMax <- this.grid.cellCountX - this.mapBorderX
+                region.xMax <- this.grid.cellCountX - borderX
                 regions.Add region
             else
                 GD.Print $"Split map horizontally {rand}"
-                region.xMin <- this.mapBorderX
-                region.xMax <- this.grid.cellCountX - this.mapBorderX
+
+                if this.grid.wrapping then
+                    borderX <- 0
+
+                region.xMin <- borderX
+                region.xMax <- this.grid.cellCountX - borderX
                 region.zMin <- this.mapBorderZ
                 region.zMax <- this.grid.cellCountZ / 2 - this.regionBorder
                 regions.Add region
@@ -497,7 +511,7 @@ type HexMapGeneratorFS() as this =
                 region.zMax <- this.grid.cellCountZ - this.mapBorderZ
                 regions.Add region
         | 3 ->
-            region.xMin <- this.mapBorderX
+            region.xMin <- borderX
             region.xMax <- this.grid.cellCountX / 3 - this.regionBorder
             region.zMin <- this.mapBorderZ
             region.zMax <- this.grid.cellCountZ - this.mapBorderZ
@@ -506,21 +520,21 @@ type HexMapGeneratorFS() as this =
             region.xMax <- this.grid.cellCountX * 2 / 3 - this.regionBorder
             regions.Add region
             region.xMin <- this.grid.cellCountX * 2 / 3 + this.regionBorder
-            region.xMax <- this.grid.cellCountX - this.mapBorderX
+            region.xMax <- this.grid.cellCountX - borderX
             regions.Add region
         | _ ->
-            region.xMin <- this.mapBorderX
+            region.xMin <- borderX
             region.xMax <- this.grid.cellCountX / 2 - this.regionBorder
             region.zMin <- this.mapBorderZ
             region.zMax <- this.grid.cellCountZ / 2 - this.regionBorder
             regions.Add region
             region.xMin <- this.grid.cellCountX / 2 + this.regionBorder
-            region.xMax <- this.grid.cellCountX - this.mapBorderX
+            region.xMax <- this.grid.cellCountX - borderX
             regions.Add region
             region.zMin <- this.grid.cellCountZ / 2 + this.regionBorder
             region.zMax <- this.grid.cellCountZ - this.mapBorderZ
             regions.Add region
-            region.xMin <- this.mapBorderX
+            region.xMin <- borderX
             region.xMax <- this.grid.cellCountX / 2 - this.regionBorder
             regions.Add region
 
@@ -670,7 +684,7 @@ type HexMapGeneratorFS() as this =
             climate <- nextClimate
             nextClimate <- swap
 
-    member this.GenerateMap x z =
+    member this.GenerateMap x z wrapping =
         let initState = random.State
 
         if not this.useFixedSeed then
@@ -685,7 +699,7 @@ type HexMapGeneratorFS() as this =
         GD.Print $"Generating map with seed {this.seed}"
         random.Seed <- uint64 this.seed
         cellCount <- x * z
-        this.grid.CreateMap x z |> ignore
+        this.grid.CreateMap x z wrapping |> ignore
 
         for i in 0 .. cellCount - 1 do
             this.grid.GetCell(i).WaterLevel <- this.waterLevel

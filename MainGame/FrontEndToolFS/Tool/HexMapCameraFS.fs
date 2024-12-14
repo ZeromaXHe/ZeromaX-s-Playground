@@ -32,11 +32,26 @@ type HexMapCameraFS() as this =
         this.RotationDegrees <- Vector3(0.0f, degree, 0.0f)
 
     let clampPosition (pos: Vector3) =
-        let xMax = (float32 this._grid.cellCountX - 0.5f) * 2f * HexMetrics.innerRadius
+        let xMax = (float32 this._grid.cellCountX - 0.5f) * HexMetrics.innerDiameter
         let zMax = float32 (this._grid.cellCountZ - 1) * 1.5f * HexMetrics.outerRadius
         let x = Mathf.Clamp(pos.X, 0f, xMax)
         let z = Mathf.Clamp(pos.Z, 0f, zMax)
         Vector3(x, pos.Y, z)
+
+    let wrapPosition (pos: Vector3) =
+        let mutable pos = pos
+        let width = float32 this._grid.cellCountX * HexMetrics.innerDiameter
+
+        while pos.X < 0f do
+            pos.X <- pos.X + width
+
+        while pos.X > width do
+            pos.X <- pos.X - width
+
+        let zMax = float32 (this._grid.cellCountZ - 1) * 1.5f * HexMetrics.outerRadius
+        pos.Z <- Mathf.Clamp(pos.Z, 0f, zMax)
+        this._grid.CenterMap pos.X
+        pos
 
     // Unity 的 z 方向和 Godot 相反，所以这里都是正的
     member val _stickMinZoom = 250.0 with get, set
@@ -70,9 +85,18 @@ type HexMapCameraFS() as this =
             * damping
             * (float32 delta)
         // GD.Print $"移动摄像头 x:{xDelta}, z:{zDelta} delta:{delta}, distance:{distance}, damping:{damping}, direction:{direction}"
-        this.Position <- clampPosition this.Position + direction * distance
+        let position = this.Position + direction * distance
 
-    override this._Ready() = HexMapCameraFS.instance <- Some this
+        this.Position <-
+            if this._grid.wrapping then
+                wrapPosition position
+            else
+                clampPosition position
+
+    override this._Ready() =
+        HexMapCameraFS.instance <- Some this
+        // 需要保证 grid 初始化地图完毕后再调用
+        this._grid.add_Ready (fun _ -> HexMapCameraFS.ValidatePosition())
 
     override this._UnhandledInput e =
         match e with

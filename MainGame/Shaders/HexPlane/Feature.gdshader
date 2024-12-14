@@ -6,7 +6,7 @@ uniform sampler2D main_tex: hint_default_white;
 uniform float glossiness: hint_range(0.0, 1.0) = 0.5;
 uniform float specular = 0.2;
 uniform vec3 background_color: source_color = vec3(0.2, 0.169, 0.133);//vec3(0.033, 0.0245, 0.016);
-uniform sampler2D grid_coordinates: source_color, filter_linear, repeat_enable;
+uniform sampler2D grid_coordinates: source_color, filter_nearest, repeat_enable;
 
 #include "HexCellData.gdshaderinc"
 varying vec2 visibility;

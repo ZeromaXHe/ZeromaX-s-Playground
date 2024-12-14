@@ -9,6 +9,9 @@ type NewMapMenuFS() as this =
     let _generateCheckBox =
         lazy this.GetNode<CheckBox> "CenterC/MenuPanel/MarginC/VBox/GenerateCheckBox"
 
+    let _wrappingCheckBox =
+        lazy this.GetNode<CheckBox> "CenterC/MenuPanel/MarginC/VBox/WrappingCheckBox"
+
     let _smallButton =
         lazy this.GetNode<Button> "CenterC/MenuPanel/MarginC/VBox/SmallButton"
 
@@ -23,6 +26,7 @@ type NewMapMenuFS() as this =
 
     let mutable gridVisible = false
     let mutable generateMaps = true
+    let mutable wrapping = true
 
     [<DefaultValue>]
     val mutable hexGrid: HexGridFS
@@ -32,9 +36,9 @@ type NewMapMenuFS() as this =
 
     let createMap x z =
         if generateMaps then
-            this.mapGenerator.GenerateMap x z
+            this.mapGenerator.GenerateMap x z wrapping
         else
-            this.hexGrid.CreateMap x z |> ignore
+            this.hexGrid.CreateMap x z wrapping |> ignore
 
         this.hexGrid.ShowGrid gridVisible // 刷新显示网格与否
         HexMapCameraFS.ValidatePosition()
@@ -51,8 +55,10 @@ type NewMapMenuFS() as this =
 
     override this._Ready() =
         _generateCheckBox.Value.ButtonPressed <- generateMaps
+        _wrappingCheckBox.Value.ButtonPressed <- wrapping
 
         _generateCheckBox.Value.add_Toggled (fun toggle -> generateMaps <- toggle)
+        _wrappingCheckBox.Value.add_Toggled (fun toggle -> wrapping <- toggle)
         _smallButton.Value.add_Pressed (fun () -> createMap 20 15)
         _midButton.Value.add_Pressed (fun () -> createMap 40 30)
         _largeButton.Value.add_Pressed (fun () -> createMap 80 60)

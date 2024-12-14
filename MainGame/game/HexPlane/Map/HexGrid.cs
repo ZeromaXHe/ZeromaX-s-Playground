@@ -35,10 +35,10 @@ public partial class HexGrid : HexGridFS
     }
 
     [Export]
-    public int CellCountZ
+    public bool Wrapping
     {
-        get => cellCountZ;
-        set => cellCountZ = value;
+        get => wrapping;
+        set => wrapping = value;
     }
 
     [Export]

@@ -9,6 +9,7 @@ module HexMetrics =
     let innerToOuter = 1f / outerToInner
     let outerRadius = 10f
     let innerRadius = outerRadius * outerToInner
+    let innerDiameter = innerRadius * 2f
     // 混合颜色
     let solidFactor = 0.8f
     let blendFactor = 1f - solidFactor
@@ -60,6 +61,9 @@ module HexMetrics =
                 HexEdgeType.Slope
             else
                 HexEdgeType.Cliff
+    // 包覆
+    let mutable wrapSize = 0
+    let wrapping () = wrapSize > 0
     // 噪声采样
     let noiseScale = 0.003f
     // 模拟 Unity Texture2D.GetPixelBilinear API
@@ -73,7 +77,20 @@ module HexMetrics =
         Vector4(color.R, color.G, color.B, color.A)
 
     let sampleNoise (position: Vector3) =
-        mockUnityGetPixelBilinear noiseSource (position.X * noiseScale) (position.Z * noiseScale)
+        let sample =
+            mockUnityGetPixelBilinear noiseSource (position.X * noiseScale) (position.Z * noiseScale)
+
+        if wrapping () && position.X < innerDiameter * 1.5f then
+            let sample2 =
+                mockUnityGetPixelBilinear
+                    noiseSource
+                    ((position.X + float32 wrapSize * innerDiameter) * noiseScale)
+                    (position.Z * noiseScale)
+            // Unity 的 Lerp 是会 Clamp 的，和 Godot 不同，这里需要自己做 Clamp
+            // Godot 的 Lerp = Unity 的 LerpUnclamped
+            sample2.Lerp(sample, Mathf.Clamp(position.X * (1f / innerDiameter) - 0.5f, 0f, 1f))
+        else
+            sample
 
     // 扰动强度
     let cellPerturbStrength = 4f

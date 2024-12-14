@@ -1,4 +1,4 @@
-global uniform sampler2D hex_cell_data;
+global uniform sampler2D hex_cell_data: source_color, filter_nearest;
 global uniform vec4 hex_cell_data_texel_size;
 global uniform bool hex_map_edit_mode;
 

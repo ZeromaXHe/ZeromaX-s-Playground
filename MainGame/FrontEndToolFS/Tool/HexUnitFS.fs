@@ -9,6 +9,7 @@ open Microsoft.FSharp.Core
 
 type IGrid =
     interface
+        abstract member MakeChildOfColumn: Node -> int -> unit
         abstract member AddUnit: PackedScene -> HexCellFS option -> float32 -> unit
         abstract member GetCell: HexCoordinates -> HexCellFS option
         abstract member IncreaseVisibility: HexCellFS -> int -> unit
@@ -26,14 +27,9 @@ type HexUnitFS() as this =
     inherit CsgBox3D()
 
     let mutable location: HexCellFS option = None
-    let mutable currentTravelLocation: HexCellFS option = None
     let mutable orientation = 0f
-    let mutable pathToTravel: HexCellFS List option = None
     let travelSpeed = 4.0
     let rotationSpeed = 180.0f
-    let mutable iTravel = 1
-    let mutable tTravel = 0.0
-    let mutable angleT = 0f
 
     let onDrawGizmos () =
         // // 通过这个方式临时拿到父节点 HexGridFS 的 PathShower 子节点
@@ -70,11 +66,6 @@ type HexUnitFS() as this =
         //         drawSphere (Bezier.getPoint a b c t) 2f pathShower
         ()
 
-    let lookAt (point: Vector3) =
-        let point = Vector3Util.changeY point this.Position.Y
-        this.LookAt point
-        orientation <- this.RotationDegrees.Y
-
     member this.VisionRange = 3
 
     member this.Location
@@ -88,6 +79,7 @@ type HexUnitFS() as this =
             value.Value.Unit <- Some this
             this.Grid.IncreaseVisibility location.Value this.VisionRange
             this.Position <- value.Value.Position
+            this.Grid.MakeChildOfColumn this value.Value.ColumnIndex
 
     member this.Orientation
         with get () = orientation
@@ -126,6 +118,22 @@ type HexUnitFS() as this =
     member this.IsValidDestination(cell: HexCellFS) =
         cell.IsExplored && not cell.IsUnderWater && cell.Unit.IsNone
 
+    let mutable currentTravelLocation: HexCellFS option = None
+    let mutable currentColumn = -1
+    let mutable pathToTravel: HexCellFS List option = None
+    let mutable iTravel = 1
+    let mutable aTravel = Vector3.Zero
+    let mutable bTravel = Vector3.Zero
+    let mutable cTravel = Vector3.Zero
+    let mutable tTravel = 0.0
+    let mutable angleT = 0f
+
+    let lookAt (point: Vector3) =
+        let mutable point = point
+        point.Y <- this.Position.Y
+        this.LookAt(point, useModelFront = true)
+        orientation <- this.RotationDegrees.Y
+
     member this.Travel(path: HexCellFS List) =
         location.Value.Unit <- None
         location <- Some path[path.Count - 1]
@@ -135,17 +143,24 @@ type HexUnitFS() as this =
         // 替代以下逻辑：
         // StopAllCoroutines();
         // StartCoroutine(TravelPath());
-        this.Position <- pathToTravel.Value[0].Position
+        this.Position <- path[0].Position
         iTravel <- 1
         tTravel <- 0.0 // this.GetProcessDeltaTime() * travelSpeed
+        aTravel <- path[0].Position
+        bTravel <- path[0].Position
+        cTravel <- path[0].Position
+        let mutable point = pathToTravel.Value[1].Position
+        point.Y <- this.Position.Y
 
-        angleT <-
-            Mathf.RadToDeg(
-                this.Basis.Z.SignedAngleTo(
-                    pathToTravel.Value[0].Position.DirectionTo pathToTravel.Value[1].Position,
-                    Vector3.Up
-                )
-            )
+        if HexMetrics.wrapping () then
+            let xDistance = point.X - this.Position.X
+
+            if xDistance < -HexMetrics.innerRadius * float32 HexMetrics.wrapSize then
+                point.X <- point.X + HexMetrics.innerDiameter * float32 HexMetrics.wrapSize
+            elif xDistance > HexMetrics.innerRadius * float32 HexMetrics.wrapSize then
+                point.X <- point.X - HexMetrics.innerDiameter * float32 HexMetrics.wrapSize
+
+        angleT <- Mathf.RadToDeg(this.Basis.Z.SignedAngleTo(path[0].Position.DirectionTo point, Vector3.Up))
 
     // TODO: 现在这里因为没有 Unity 的协程，直接用 _Process 做的，代码丑的一比
     member this.TravelPath delta =
@@ -174,51 +189,50 @@ type HexUnitFS() as this =
                         this.Position <- pathToTravel.Value[iTravel - 1].Position
                         this.Orientation <- this.RotationDegrees.Y
                         pathToTravel <- None
-                // 修改可见性
+                // 每个循环的数据初始化：可见性、a、b、c
                 if tTravel = 0.0 && pathToTravel.IsSome then
                     if iTravel = 1 then
-                        let decrCell = currentTravelLocation |> Option.defaultValue pathToTravel.Value[0]
-                        this.Grid.DecreaseVisibility decrCell this.VisionRange
+                        if currentTravelLocation.IsNone then
+                            currentTravelLocation <- Some pathToTravel.Value[0]
+
+                        this.Grid.DecreaseVisibility currentTravelLocation.Value this.VisionRange
+                        currentColumn <- currentTravelLocation.Value.ColumnIndex
 
                     if iTravel < pathToTravel.Value.Count then
                         currentTravelLocation <- Some pathToTravel.Value[iTravel]
+                        aTravel <- cTravel
+                        bTravel <- pathToTravel.Value[iTravel - 1].Position
+                        let nextColumn = currentTravelLocation.Value.ColumnIndex
+
+                        if currentColumn <> nextColumn then
+                            if nextColumn < currentColumn - 1 then
+                                aTravel.X <- aTravel.X - HexMetrics.innerDiameter * float32 HexMetrics.wrapSize
+                                bTravel.X <- bTravel.X - HexMetrics.innerDiameter * float32 HexMetrics.wrapSize
+                            elif nextColumn > currentColumn + 1 then
+                                aTravel.X <- aTravel.X + HexMetrics.innerDiameter * float32 HexMetrics.wrapSize
+                                bTravel.X <- bTravel.X + HexMetrics.innerDiameter * float32 HexMetrics.wrapSize
+
+                            this.Grid.MakeChildOfColumn this nextColumn
+                            currentColumn <- nextColumn
+
+                        cTravel <- (bTravel + currentTravelLocation.Value.Position) * 0.5f
                         this.Grid.IncreaseVisibility pathToTravel.Value[iTravel] this.VisionRange
                     else
                         currentTravelLocation <- None
+                        aTravel <- cTravel
+                        bTravel <- location.Value.Position
+                        cTravel <- bTravel
+                        this.Grid.IncreaseVisibility location.Value this.VisionRange
 
                 if pathToTravel.IsNone then
                     ()
-                elif iTravel < pathToTravel.Value.Count then
-                    let a =
-                        if iTravel = 1 then
-                            pathToTravel.Value[0].Position
-                        else
-                            (pathToTravel.Value[iTravel - 2].Position
-                             + pathToTravel.Value[iTravel - 1].Position)
-                            * 0.5f
-
-                    let b = pathToTravel.Value[iTravel - 1].Position
-                    let c = (b + currentTravelLocation.Value.Position) * 0.5f
-                    this.Position <- Bezier.getPoint a b c (float32 tTravel)
-                    let d = Bezier.getDerivative a b c (float32 tTravel)
+                else
+                    this.Position <- Bezier.getPoint aTravel bTravel cTravel (float32 tTravel)
+                    let d = Bezier.getDerivative aTravel bTravel cTravel (float32 tTravel)
 
                     if not <| d.IsZeroApprox() then
-                        this.LookAt(this.Position + d, useModelFront = true)
-
-                    tTravel <- tTravel + delta * travelSpeed
-                elif iTravel = pathToTravel.Value.Count then
-                    let a =
-                        (pathToTravel.Value[iTravel - 2].Position
-                         + pathToTravel.Value[iTravel - 1].Position)
-                        * 0.5f
-
-                    let b = location.Value.Position
-                    let c = b
-                    this.Position <- Bezier.getPoint a b c (float32 tTravel)
-                    let d = Bezier.getDerivative a b c (float32 tTravel)
-
-                    if not <| d.IsZeroApprox() then
-                        this.LookAt(this.Position + d, useModelFront = true)
+                         // 让 d 大一点是因为在块列 0 向左边界上会转向错误，我猜是 d 太小导致的
+                        lookAt <| this.Position + d * 1000f
 
                     tTravel <- tTravel + delta * travelSpeed
 

@@ -47,6 +47,12 @@ size_flags_horizontal = 4
 button_pressed = true
 text = "Generate"
 
+[node name="WrappingCheckBox" type="CheckBox" parent="CenterC/MenuPanel/MarginC/VBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+button_pressed = true
+text = "Wrapping"
+
 [node name="SmallButton" type="Button" parent="CenterC/MenuPanel/MarginC/VBox"]
 layout_mode = 2
 text = "Small"

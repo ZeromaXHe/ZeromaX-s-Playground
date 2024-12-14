@@ -658,7 +658,13 @@ type HexGridChunkFS() as this =
         this.water.AddTriangle([| center; e1.v2; e1.v3 |], tri1Arr weights1, ci = indices)
         this.water.AddTriangle([| center; e1.v3; e1.v4 |], tri1Arr weights1, ci = indices)
         this.water.AddTriangle([| center; e1.v4; e1.v5 |], tri1Arr weights1, ci = indices)
-        let center2 = Vector3Util.changeY neighbor.Position center.Y
+        let mutable center2 = neighbor.Position
+        center2.Y <- center.Y
+
+        if neighbor.ColumnIndex < cell.ColumnIndex - 1 then
+            center2.X <- center2.X + float32 HexMetrics.wrapSize * HexMetrics.innerDiameter
+        elif neighbor.ColumnIndex > cell.ColumnIndex + 1 then
+            center2.X <- center2.X - float32 HexMetrics.wrapSize * HexMetrics.innerDiameter
 
         let e2 =
             EdgeVertices(
@@ -699,14 +705,21 @@ type HexGridChunkFS() as this =
 
         match cell.GetNeighbor <| dir.Next() with
         | Some nextNeighbor ->
-            let v3 =
-                nextNeighbor.Position
+            let mutable center3 = nextNeighbor.Position
+
+            if nextNeighbor.ColumnIndex < cell.ColumnIndex - 1 then
+                center3.X <- center3.X + float32 HexMetrics.wrapSize * HexMetrics.innerDiameter
+            elif nextNeighbor.ColumnIndex > cell.ColumnIndex + 1 then
+                center3.X <- center3.X - float32 HexMetrics.wrapSize * HexMetrics.innerDiameter
+
+            let mutable v3 =
+                center3
                 + if nextNeighbor.IsUnderWater then
                       HexMetrics.getFirstWaterCorner <| dir.Previous()
                   else
                       HexMetrics.getFirstSolidCorner <| dir.Previous()
 
-            let v3 = Vector3Util.changeY v3 center.Y
+            v3.Y <- center.Y
             let indices = Vector3(indices.X, indices.Y, float32 nextNeighbor.Index)
 
             this.waterShore.AddTriangle(

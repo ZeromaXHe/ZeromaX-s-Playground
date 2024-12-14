@@ -1,3 +1,5 @@
+#include "HexMetrics.gdshaderinc"
+
 float River (vec2 riverUV, sampler2D noiseTex) {
 	vec2 uv = riverUV;
 	// 第一次采样
@@ -17,7 +19,7 @@ float Foam (float shore, vec2 worldXZ, sampler2D noiseTex) {
 	shore = sqrt(shore) * 0.9;
 	// 扰动泡沫
 	vec2 noiseUV = worldXZ + TIME * 0.25;
-	vec4 noise = texture(noiseTex, noiseUV * 0.015);
+	vec4 noise = texture(noiseTex, noiseUV * (2.0 * TILING_SCALE));
 
 	float distortion1 = noise.x * (1.0 - shore);
 	// sin 形成周期波浪
@@ -36,11 +38,11 @@ float Waves (vec2 worldXZ, sampler2D noiseTex) {
 	// 计算两个不同的 UV 坐标
 	vec2 uv1 = worldXZ;
 	uv1.y += TIME;
-	vec4 noise1 = texture(noiseTex, uv1 * 0.025);
+	vec4 noise1 = texture(noiseTex, uv1 * (3.0 * TILING_SCALE));
 
 	vec2 uv2 = worldXZ;
 	uv2.x += TIME;
-	vec4 noise2 = texture(noiseTex, uv2 * 0.025);
+	vec4 noise2 = texture(noiseTex, uv2 * (3.0 * TILING_SCALE));
 
 	// 计算波浪效果
 	float blendWave = sin(

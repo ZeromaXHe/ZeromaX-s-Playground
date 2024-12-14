@@ -5,16 +5,28 @@ open Godot
 
 type HexCoordinates =
     struct
-        val X: int
-        val Z: int
-        new(x, z) = { X = x; Z = z }
+        val mutable X: int
+        val mutable Z: int
+
+        new(x, z) =
+            let x =
+                if HexMetrics.wrapping () then
+                    let oX = x + z / 2
+
+                    if oX < 0 then x + HexMetrics.wrapSize
+                    elif oX >= HexMetrics.wrapSize then x - HexMetrics.wrapSize
+                    else x
+                else
+                    x
+
+            { X = x; Z = z }
 
         member this.Y = -this.X - this.Z
 
         static member FromOffsetCoordinates x z = HexCoordinates(x - z / 2, z)
 
         static member FromPosition(position: Vector3) =
-            let x = position.X / (HexMetrics.innerRadius * 2f)
+            let x = position.X / HexMetrics.innerDiameter
             let y = -x
             let offset = position.Z / (HexMetrics.outerRadius * 3f)
             let x = x - offset
@@ -40,10 +52,23 @@ type HexCoordinates =
         member this.ToStringOnSeparateLines() = $"{this.X}\n{this.Y}\n{this.Z}"
 
         member this.DistanceTo(other: HexCoordinates) =
-            ((abs <| this.X - other.X)
-             + (abs <| this.Y - other.Y)
-             + (abs <| this.Z - other.Z))
-            / 2
+            let xy = (abs <| this.X - other.X) + (abs <| this.Y - other.Y)
+
+            let xy' =
+                if HexMetrics.wrapping () then
+                    let plusX = other.X + HexMetrics.wrapSize
+                    let xyWrappedPlus = (abs <| this.X - plusX) + (abs <| this.Y - other.Y)
+
+                    if xyWrappedPlus < xy then
+                        xyWrappedPlus
+                    else
+                        let minusX = other.X - HexMetrics.wrapSize
+                        let xyWrappedMinus = (abs <| this.X - minusX) + (abs <| this.Y - other.Y)
+                        if xyWrappedMinus < xy then xyWrappedMinus else xy
+                else
+                    xy
+
+            (xy' + (abs <| this.Z - other.Z)) / 2
 
         member this.Save(writer: BinaryWriter) =
             writer.Write this.X

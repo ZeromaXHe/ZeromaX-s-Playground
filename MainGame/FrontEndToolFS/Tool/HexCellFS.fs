@@ -459,3 +459,5 @@ type HexCellFS() as this =
     member this.SetMapData data =
         // GD.Print $"Setting {this.Coordinates} map data {data}"
         this.ShaderData.SetMapData this data
+    // 包覆
+    member val ColumnIndex = 0 with get, set
