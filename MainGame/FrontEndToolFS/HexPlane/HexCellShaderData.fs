@@ -56,7 +56,7 @@ type HexCellShaderData() =
         //     cellTexture.Resize(x, z)
         // else
         cellTexture <- Image.CreateEmpty(x, z, false, Image.Format.Rgba8)
-
+        // BUG: 纹理上下会相接，所以上面的视野会被地图下面触发。而且纹理貌似是模糊的，会获取到附近地块可见性。
         // hexCellData.SetSizeOverride <| cellTexture.GetSize() 这个好像也是没卵用，只能重新赋值
         hexCellData <- ImageTexture.CreateFromImage cellTexture
         // 对应：Shader.SetGlobalTexture("_HexCellData", cellTexture);

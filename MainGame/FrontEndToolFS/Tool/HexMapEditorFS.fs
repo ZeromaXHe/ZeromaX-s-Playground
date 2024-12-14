@@ -294,6 +294,8 @@ type HexMapEditorFS() as this =
                     if inDragProcess then
                         handleCurrentCell cell
                 | None -> inDragProcess <- false
-            | :? InputEventKey as k when k.Keycode = Key.U && k.Pressed && k.ShiftPressed -> destroyUnit ()
+            | :? InputEventKey as k when k.Keycode = Key.U && k.Pressed && k.ShiftPressed ->
+                // BUG: 没有反应
+                destroyUnit ()
             | :? InputEventKey as k when k.Keycode = Key.U && k.Pressed -> createUnit ()
             | _ -> ()

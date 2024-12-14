@@ -366,7 +366,7 @@ type HexGridFS() as this =
 
         if
             (x = this.cellCountX && z = this.cellCountZ && this.wrapping = wrapping)
-            || this.CreateMap x z this.wrapping
+            || this.CreateMap x z wrapping
         then
             let originalImmediateMode = this.cellShaderData.ImmediateMode
             this.cellShaderData.ImmediateMode <- true
