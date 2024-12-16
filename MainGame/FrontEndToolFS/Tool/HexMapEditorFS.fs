@@ -202,7 +202,7 @@ type HexMapEditorFS() as this =
 
     let destroyUnit () =
         getCellUnderCursor ()
-        |> Option.filter _.Unit.IsNone
+        |> Option.filter _.Unit.IsSome
         |> Option.bind _.Unit
         |> Option.iter (fun u -> _hexGrid.Value.RemoveUnit(u :?> HexUnitFS))
 
@@ -295,7 +295,6 @@ type HexMapEditorFS() as this =
                         handleCurrentCell cell
                 | None -> inDragProcess <- false
             | :? InputEventKey as k when k.Keycode = Key.U && k.Pressed && k.ShiftPressed ->
-                // BUG: 没有反应
                 destroyUnit ()
             | :? InputEventKey as k when k.Keycode = Key.U && k.Pressed -> createUnit ()
             | _ -> ()
