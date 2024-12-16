@@ -302,7 +302,7 @@ type HexGridFS() as this =
 
     member val cellCountX: int = 20 with get, set
     member val cellCountZ: int = 15 with get, set
-    member val wrapping: bool = true with get, set
+    member val wrapping: bool = false with get, set
     // 其实这里可以直接导入 Image, 在导入界面选择导入类型。但是导入 Image 的场景 tscn 文件会大得吓人……（等于直接按像素写一遍）
     member val _noiseSource: Texture2D = null with get, set
     member val seed = 1234 with get, set

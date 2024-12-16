@@ -26,7 +26,6 @@ CellPrefab = ExtResource("2_ix3y3")
 CellLabelPrefab = ExtResource("3_habid")
 ChunkPrefab = ExtResource("4_6xald")
 CellCountX = 20
-Wrapping = true
 NoiseSource = ExtResource("2_w2l35")
 Seed = 1234
 UnitPrefab = ExtResource("6_v6ltg")
