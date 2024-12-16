@@ -8,8 +8,8 @@ uniform float glossiness: hint_range(0.0, 1.0) = 0.5;
 uniform float specular = 0.2;
 
 // #include 和 gdshaderinc 在官方文档“着色器预处理器”讲的
-#include "Water.gdshaderinc"
 #include "HexCellData.gdshaderinc"
+#include "Water.gdshaderinc"
 varying vec2 visibility;
 
 void vertex() {

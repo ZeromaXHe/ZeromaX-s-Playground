@@ -14,12 +14,10 @@ varying vec2 visibility;
 void vertex() {
 	// in mat4 MODEL_MATRIX 模型空间到世界空间变换.
 	vec3 pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	vec2 gridUV = vec2(pos.xz);
-	gridUV.x *= 1.0 / (4.0 * 8.66025404);
-	gridUV.y *= 1.0 / (2.0  * 15.0);
-	vec2 cellDataCoordinates = floor(gridUV.xy) + textureLod(grid_coordinates, gridUV, 0.0).rg;
-	cellDataCoordinates *= 2.0;
-	vec4 cellData = GetCellData2(cellDataCoordinates);
+	HexGridData hgd = GetHexGridData(pos.xz);
+	// fwidth 无法在 vertex 中使用
+	//hgd.distanceSmoothing = fwidth(hgd.distanceToCenter);
+	vec4 cellData = GetCellData2(hgd.cellOffsetCoordinates);
 	visibility.x = cellData.x;
 	visibility.x = mix(0.25, 1.0, visibility.x);
 	visibility.y = cellData.y;

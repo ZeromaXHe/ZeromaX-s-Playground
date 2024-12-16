@@ -8,6 +8,8 @@ type ICell =
     abstract member TerrainTypeIndex: int
     abstract member IsVisible: bool
     abstract member IsExplored: bool
+    abstract member IsUnderWater: bool
+    abstract member WaterSurfaceY: float32
 
 type IGridVis =
     abstract member ResetVisibility: unit -> unit
@@ -20,6 +22,7 @@ type HexCellShaderData() =
     let transitioningCells = List<ICell>()
     let transitionSpeed = 255.0
     let mutable needsVisibilityReset = false
+    let mutable visibilityTransitions: bool array = null
 
     let changeCellPixel (cell: ICell) data =
         cellTexture.SetPixel(cell.Index % cellTexture.GetWidth(), cell.Index / cellTexture.GetWidth(), data)
@@ -45,7 +48,7 @@ type HexCellShaderData() =
             data.R8 <- if t <= 0 then 0 else t
 
         if not stillUpdating then
-            data.B8 <- 0
+            visibilityTransitions[index] <- false
 
         cellTextureData[index] <- data
         changeCellPixel cell data
@@ -56,7 +59,6 @@ type HexCellShaderData() =
         //     cellTexture.Resize(x, z)
         // else
         cellTexture <- Image.CreateEmpty(x, z, false, Image.Format.Rgba8)
-        // BUG: 纹理上下会相接，所以上面的视野会被地图下面触发。而且纹理貌似是模糊的，会获取到附近地块可见性。
         // hexCellData.SetSizeOverride <| cellTexture.GetSize() 这个好像也是没卵用，只能重新赋值
         hexCellData <- ImageTexture.CreateFromImage cellTexture
         // 对应：Shader.SetGlobalTexture("_HexCellData", cellTexture);
@@ -69,16 +71,28 @@ type HexCellShaderData() =
 
         if cellTextureData = null || cellTextureData.Length <> x * z then
             cellTextureData <- Array.zeroCreate <| x * z
+            visibilityTransitions <- Array.zeroCreate <| x * z
         else
             cellTextureData
-            |> Array.iteri (fun i _ -> cellTextureData[i] <- Color(0.0f, 0.0f, 0.0f, 0.0f))
+            |> Array.iteri (fun i _ ->
+                cellTextureData[i] <- Color(0.0f, 0.0f, 0.0f, 0.0f)
+                visibilityTransitions[i] <- false)
 
         transitioningCells.Clear()
         enabled <- true
 
     member this.RefreshTerrain(cell: ICell) =
-        cellTextureData[cell.Index].A8 <- cell.TerrainTypeIndex
-        changeCellPixel cell cellTextureData[cell.Index]
+        let mutable data = cellTextureData[cell.Index]
+
+        data.B8 <-
+            if cell.IsUnderWater then
+                int <| cell.WaterSurfaceY * (255f / 30f)
+            else
+                0
+
+        data.A8 <- int cell.TerrainTypeIndex
+        cellTextureData[cell.Index] <- data
+        changeCellPixel cell data
         enabled <- true
 
     member this.RefreshVisibility(cell: ICell) =
@@ -88,9 +102,8 @@ type HexCellShaderData() =
             cellTextureData[index].R8 <- if cell.IsVisible then 255 else 0
             cellTextureData[index].G8 <- if cell.IsExplored then 255 else 0
             changeCellPixel cell cellTextureData[index]
-        elif cellTextureData[index].B8 <> 255 then
-            // 使用一个尚未使用的数据通道来存储一个单元格是否处于转换状态，如 B 值
-            cellTextureData[index].B8 <- 255
+        elif not visibilityTransitions[index] then
+            visibilityTransitions[index] <- true
             transitioningCells.Add cell
 
         enabled <- true
@@ -122,7 +135,14 @@ type HexCellShaderData() =
 
     member val ImmediateMode = false with get, set
 
-    member this.ViewElevationChanged() =
+    member this.ViewElevationChanged(cell: ICell) =
+        cellTextureData[cell.Index].B8 <-
+            if cell.IsUnderWater then
+                int <| cell.WaterSurfaceY * (255f / 30f)
+            else
+                0
+
+        changeCellPixel cell cellTextureData[cell.Index]
         needsVisibilityReset <- true
         enabled <- true
 
@@ -132,8 +152,8 @@ type HexCellShaderData() =
     member this.SetMapData (cell: ICell) data =
         cellTextureData[cell.Index].B8 <-
             if data < 0f then 0
-            elif data < 1f then int <| data * 254f
-            else 254
+            elif data < 1f then int <| data * 255f
+            else 255
 
         changeCellPixel cell cellTextureData[cell.Index]
         enabled <- true

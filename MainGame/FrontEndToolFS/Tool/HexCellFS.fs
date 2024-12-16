@@ -25,6 +25,8 @@ type HexCellFS() as this =
         override this.TerrainTypeIndex = this.TerrainTypeIndex
         override this.IsVisible = this.IsVisible
         override this.IsExplored = this.IsExplored
+        override this.IsUnderWater = this.IsUnderWater
+        override this.WaterSurfaceY = this.WaterSurfaceY
 
     [<DefaultValue>]
     val mutable Coordinates: HexCoordinates
@@ -89,10 +91,7 @@ type HexCellFS() as this =
             else
                 let originalViewElevation = this.ViewElevation
                 elevation <- value
-
-                if this.ViewElevation <> originalViewElevation then
-                    this.ShaderData.ViewElevationChanged()
-
+                this.ShaderData.ViewElevationChanged this
                 refreshPosition ()
                 this.ValidateRivers()
 
@@ -246,10 +245,7 @@ type HexCellFS() as this =
             else
                 let originalViewElevation = this.ViewElevation
                 waterLevel <- value
-
-                if this.ViewElevation <> originalViewElevation then
-                    this.ShaderData.ViewElevationChanged()
-
+                this.ShaderData.ViewElevationChanged this
                 this.ValidateRivers()
                 refresh ()
 
@@ -359,7 +355,6 @@ type HexCellFS() as this =
 
     member this.Load (reader: BinaryReader) header =
         terrainTypeIndex <- int <| reader.ReadByte()
-        this.ShaderData.RefreshTerrain this
         elevation <- int <| reader.ReadByte()
 
         if header >= 4 then
@@ -391,6 +386,7 @@ type HexCellFS() as this =
         |> Array.iteri (fun i _ -> this.roads[i] <- (roadFlags &&& (1uy <<< i)) <> 0uy)
 
         explored <- if header >= 3 then reader.ReadBoolean() else false
+        this.ShaderData.RefreshTerrain this
         this.ShaderData.RefreshVisibility this
     // 距离
     let mutable distance = 0

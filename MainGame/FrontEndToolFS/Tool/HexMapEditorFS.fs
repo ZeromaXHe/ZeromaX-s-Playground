@@ -12,6 +12,9 @@ type OptionalToggle =
 type HexMapEditorFS() as this =
     inherit Control()
 
+    let _subViewportContainer =
+        lazy this.GetNode<SubViewportContainer> "SubViewportContainer"
+
     let _hexGrid =
         lazy this.GetNode<HexGridFS> "SubViewportContainer/SubViewport/HexGrid"
 
@@ -107,17 +110,15 @@ type HexMapEditorFS() as this =
     let mutable riverMode = OptionalToggle.Ignore
     let mutable roadMode = OptionalToggle.Ignore
     let mutable walledMode = OptionalToggle.Ignore
-    let mutable inDragProcess = false
+    let mutable isDrag = false
     // dragDirection 的有无对应教程中的 isDrag（即 isDrag 都替换为 dragDirection.IsSome）
     let mutable dragDirection: HexDirection option = None
     let mutable previousCell: HexCellFS option = None
 
     let validateDrag (cell: HexCellFS) =
-        if previousCell.IsNone || previousCell.Value = cell then
-            None
-        else
+        isDrag <-
             allHexDirs ()
-            |> List.tryFind (fun dir -> previousCell.IsSome && previousCell.Value.GetNeighbor dir = Some cell)
+            |> List.exists (fun dir -> previousCell.Value.GetNeighbor dir = Some cell)
 
     let editCell (cell: HexCellFS) =
         if activeTerrainTypeIndex > 0 then
@@ -187,11 +188,6 @@ type HexMapEditorFS() as this =
 
     let getCellUnderCursor () = _hexGrid.Value.GetRayCell()
 
-    let handleCurrentCell cell =
-        dragDirection <- validateDrag cell
-        editCells cell
-        previousCell <- Some cell
-
     let createUnit () =
         getCellUnderCursor ()
         |> Option.filter _.Unit.IsNone
@@ -205,6 +201,41 @@ type HexMapEditorFS() as this =
         |> Option.filter _.Unit.IsSome
         |> Option.bind _.Unit
         |> Option.iter (fun u -> _hexGrid.Value.RemoveUnit(u :?> HexUnitFS))
+
+    let clearCellHighlightData () =
+        RenderingServer.GlobalShaderParameterSet("cell_highlighting", Vector4(0f, 0f, -1f, 0f))
+
+    let updateCellHighlightData (cellOpt: HexCellFS option) =
+        if cellOpt.IsNone then
+            clearCellHighlightData ()
+        else
+            let cell = cellOpt.Value
+
+            RenderingServer.GlobalShaderParameterSet(
+                "cell_highlighting",
+                Vector4(
+                    cell.Coordinates.HexX,
+                    cell.Coordinates.HexZ,
+                    float32 brushSize * float32 brushSize + 0.5f,
+                    float32 HexMetrics.wrapSize
+                )
+            )
+
+    let handleInput () =
+        let cellOpt = getCellUnderCursor ()
+
+        match cellOpt with
+        | Some currentCell ->
+            if previousCell |> Option.exists (fun c -> c <> currentCell) then
+                validateDrag currentCell
+            else
+                isDrag <- false
+
+            editCells currentCell
+            previousCell <- Some currentCell
+        | None -> previousCell <- None
+
+        updateCellHighlightData cellOpt
 
     member this.SetEditMode toggle =
         this.SetProcess toggle
@@ -256,6 +287,7 @@ type HexMapEditorFS() as this =
             changeSpecial <- int index <> 0)
 
         _showGridCheckButton.Value.add_Toggled showGrid
+
         _showMapDataCheckButton.Value.add_Toggled (fun toggle ->
             RenderingServer.GlobalShaderParameterSet("show_map_data", toggle))
 
@@ -275,26 +307,24 @@ type HexMapEditorFS() as this =
         _showMapDataCheckButton.Value.ButtonPressed <- false
 
     override this._Process _ =
-        if inDragProcess && previousCell.IsSome then
-            match getCellUnderCursor () with
-            | Some cell -> handleCurrentCell cell
-            | None -> previousCell <- None
+        let mutable directReturn = false
 
-    override this._UnhandledInput e =
-        // 编辑模式
-        if _tabContainer.Value.CurrentTab = 0 then
-            match e with
-            | :? InputEventMouseButton as b when b.ButtonIndex = MouseButton.Left ->
-                match getCellUnderCursor () with
-                | Some cell ->
-                    // 仅当左键按下，且是在单元格上的时候，开启拖拽过程
-                    inDragProcess <- b.Pressed
-                    previousCell <- None
+        if this.GetViewport().GuiGetHoveredControl() = _subViewportContainer.Value then
+            if Input.IsMouseButtonPressed MouseButton.Left then
+                handleInput ()
+                directReturn <- true
+            else
+                updateCellHighlightData <| getCellUnderCursor ()
 
-                    if inDragProcess then
-                        handleCurrentCell cell
-                | None -> inDragProcess <- false
-            | :? InputEventKey as k when k.Keycode = Key.U && k.Pressed && k.ShiftPressed ->
-                destroyUnit ()
-            | :? InputEventKey as k when k.Keycode = Key.U && k.Pressed -> createUnit ()
-            | _ -> ()
+                if Input.IsKeyPressed Key.U then
+                    if Input.IsKeyPressed Key.Shift then
+                        destroyUnit ()
+                    else
+                        createUnit ()
+
+                    directReturn <- true
+        else
+            clearCellHighlightData ()
+
+        if not directReturn then
+            previousCell <- None

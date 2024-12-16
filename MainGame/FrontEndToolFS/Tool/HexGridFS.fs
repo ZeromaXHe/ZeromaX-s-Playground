@@ -549,6 +549,7 @@ type HexGridFS() as this =
                 cell.TerrainTypeIndex <- rand.Next(0, 5)
                 cell.Elevation <- rand.Next(0, 7)
                 cell.WaterLevel <- 3
+                cell.IncreaseVisibility()
 
                 if cell.Elevation > 3 then
                     cell.UrbanLevel <- rand.Next(0, 4)

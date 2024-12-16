@@ -94,3 +94,7 @@ show_map_data={
 "type": "bool",
 "value": false
 }
+cell_highlighting={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}

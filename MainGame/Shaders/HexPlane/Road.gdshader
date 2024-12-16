@@ -9,7 +9,7 @@ uniform float glossiness: hint_range(0.0, 1.0) = 0.5;
 uniform float specular = 0.2;
 
 #include "HexCellData.gdshaderinc"
-#include "HexMetrics.gdshaderinc"
+
 varying vec2 visibility;
 
 // 设置深度偏移

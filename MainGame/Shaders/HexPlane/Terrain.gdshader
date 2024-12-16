@@ -16,11 +16,18 @@ uniform vec3 background_color: source_color = vec3(0.2, 0.169, 0.133);
 global uniform bool show_map_data = false;
 
 #include "HexCellData.gdshaderinc"
-#include "HexMetrics.gdshaderinc"
 
-varying vec3 terrain; // 用 varying 在 vertex 和 fragment 间传递数据
+varying vec4 terrain; // 用 varying 在 vertex 和 fragment 间传递数据
 varying vec4 visibility;
 varying float map_data;
+
+vec3 ColorizeSubmergence(vec3 baseColor, float surfaceY, float waterY) {
+	float submergence = waterY - max(surfaceY, 0);
+	vec3 colorFilter = vec3(0.25, 0.25, 0.75);
+	float filterRange = 1.0 / 15.0;
+	return baseColor * mix(vec3(1.0), colorFilter,
+		clamp(submergence * filterRange, 0.0, 1.0));
+}
 
 void vertex() {
 	vec4 cell0 = GetCellData(CUSTOM0, 0);
@@ -29,6 +36,7 @@ void vertex() {
 	terrain.x = cell0.w;
 	terrain.y = cell1.w;
 	terrain.z = cell2.w;
+	terrain.w = max(max(cell0.b, cell1.b), cell2.b) * 30.0;
 	visibility.x = cell0.x;
 	visibility.y = cell1.x;
 	visibility.z = cell2.x;
@@ -39,10 +47,20 @@ void vertex() {
 	}
 }
 
-vec4 GetTerrainColor(vec3 world_pos, int index, vec4 inColor, vec4 inVisibility) {
+vec4 GetTerrainColor(vec3 world_pos, int index, vec4 weights, vec4 inVisibility) {
 	vec3 uvw = vec3(world_pos.xz * (2.0 * TILING_SCALE), terrain[index]);
 	vec4 c = texture(main_tex, uvw);
-	return c * (inColor[index] * inVisibility[index]);
+	return c * (weights[index] * inVisibility[index]);
+}
+
+// Apply an 80% darkening grid outline at hex center distance 0.965-1.
+vec3 ApplyGrid(vec3 baseColor, HexGridData h) {
+	return baseColor * (0.2 + 0.8 * Smoothstep10(h, 0.965));
+}
+
+// Apply a white outline at hex center distance 0.68-0.8.
+vec3 ApplyHighlight (vec3 baseColor, HexGridData h) {
+	return clamp(SmoothstepRange(h, 0.68, 0.8) + baseColor.rgb, 0.0, 1.0);
 }
 
 void fragment() {
@@ -52,19 +70,21 @@ void fragment() {
 	vec4 c = GetTerrainColor(world_pos, 0, inColor, visibility) +
 		GetTerrainColor(world_pos, 1, inColor, visibility) +
 		GetTerrainColor(world_pos, 2, inColor, visibility);
+	vec3 baseColor = ColorizeSubmergence(c.rgb, world_pos.y, terrain.w);
 	// 渲染六边形网格
-	vec4 grid = vec4(1.0);
+	HexGridData hgd = GetHexGridData(world_pos.xz);
+	hgd.distanceSmoothing = fwidth(hgd.distanceToCenter);
 	if (grid_on) {
-		vec2 gridUV = world_pos.xz;
-		gridUV.x *= 1.0 / (4.0 * 8.66025404);
-		gridUV.y *= 1.0 / (2.0 * 15.0);
-		grid = texture(grid_tex, gridUV);
+		baseColor = ApplyGrid(baseColor, hgd);
+	}
+	if (IsHighlighted(hgd)) {
+		baseColor = ApplyHighlight(baseColor, hgd);
 	}
 	float explored = visibility.w;
 	// 设置漫反射颜色
-	ALBEDO = c.rgb * grid.rgb * color.rgb * explored;
+	ALBEDO = baseColor * color.rgb * explored;
 	if (show_map_data) {
-		ALBEDO = map_data * grid.rgb;
+		ALBEDO = vec3(map_data);
 	}
 	SPECULAR = specular * explored;
 	AO = explored;

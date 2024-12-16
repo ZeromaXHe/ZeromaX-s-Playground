@@ -335,7 +335,8 @@ type HexMapGeneratorFS() as this =
                 | d when d > 0.25f -> 0.25f
                 | _ -> 0f
             // 显示河流源头判定
-            cell.SetMapData <| riverOriginData
+            // cell.SetMapData <| riverOriginData
+            ()
 
     let flowDirections = List<HexDirection>()
 
