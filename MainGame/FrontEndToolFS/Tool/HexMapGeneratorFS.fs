@@ -373,7 +373,7 @@ type HexMapGeneratorFS() as this =
                                     flowDirections.Add d
                                     flowDirections.Add d
 
-                                if length = 1 || (d <> direction.Next2() && d <> direction.Previous2()) then
+                                if length = 1 || (d <> direction.Next2 && d <> direction.Previous2) then
                                     flowDirections.Add d
 
                                 flowDirections.Add d
@@ -629,7 +629,7 @@ type HexMapGeneratorFS() as this =
             cellClimate.moisture <- cellClimate.moisture + cellClimate.clouds - cloudMaximum
             cellClimate.clouds <- cloudMaximum
 
-        let mainDispersalDirection = this.windDirection.Opposite()
+        let mainDispersalDirection = this.windDirection.Opposite
         let cloudDispersal = cellClimate.clouds * (1f / (5f + this.windStrength))
         let runoff = cellClimate.moisture * this.runoffFactor * (1f / 6f)
         let seepage = cellClimate.moisture * this.seepageFactor * (1f / 6f)

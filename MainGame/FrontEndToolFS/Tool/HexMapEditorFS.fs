@@ -110,15 +110,14 @@ type HexMapEditorFS() as this =
     let mutable riverMode = OptionalToggle.Ignore
     let mutable roadMode = OptionalToggle.Ignore
     let mutable walledMode = OptionalToggle.Ignore
-    let mutable isDrag = false
     // dragDirection 的有无对应教程中的 isDrag（即 isDrag 都替换为 dragDirection.IsSome）
     let mutable dragDirection: HexDirection option = None
     let mutable previousCell: HexCellFS option = None
 
     let validateDrag (cell: HexCellFS) =
-        isDrag <-
+        dragDirection <-
             allHexDirs ()
-            |> List.exists (fun dir -> previousCell.Value.GetNeighbor dir = Some cell)
+            |> List.tryFind (fun dir -> previousCell.Value.GetNeighbor dir = Some cell)
 
     let editCell (cell: HexCellFS) =
         if activeTerrainTypeIndex > 0 then
@@ -154,11 +153,11 @@ type HexMapEditorFS() as this =
 
         if dragDirection.IsSome then
             // dragDirection.IsSome 对应 isDrag
-            cell.GetNeighbor <| dragDirection.Value.Opposite()
+            cell.GetNeighbor dragDirection.Value.Opposite
             |> Option.iter (fun otherCell ->
                 if riverMode = OptionalToggle.Yes then
                     // GD.Print $"otherCell setRiver {dragDirection.Value}"
-                    otherCell.SetOutgoingRiver <| dragDirection.Value
+                    otherCell.SetOutgoingRiver dragDirection.Value
 
                 if roadMode = OptionalToggle.Yes then
                     otherCell.AddRoad dragDirection.Value)
@@ -229,7 +228,7 @@ type HexMapEditorFS() as this =
             if previousCell |> Option.exists (fun c -> c <> currentCell) then
                 validateDrag currentCell
             else
-                isDrag <- false
+                dragDirection <- None
 
             editCells currentCell
             previousCell <- Some currentCell

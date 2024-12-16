@@ -73,13 +73,9 @@ type HexGridChunkFS() as this =
         if cell.HasRoadThroughEdge dir then
             Vector2(0.5f, 0.5f)
         else
-            let x =
-                if cell.HasRoadThroughEdge(dir.Previous()) then
-                    0.5f
-                else
-                    0.25f
+            let x = if cell.HasRoadThroughEdge dir.Previous then 0.5f else 0.25f
 
-            let y = if cell.HasRoadThroughEdge(dir.Next()) then 0.5f else 0.25f
+            let y = if cell.HasRoadThroughEdge dir.Next then 0.5f else 0.25f
             Vector2(x, y)
 
     /// 三角形扇形
@@ -346,7 +342,7 @@ type HexGridChunkFS() as this =
                             cell.RiverSurfaceY
                             neighbor.RiverSurfaceY
                             0.8f
-                            (cell.IncomingRiver = Some dir)
+                            (cell.HasIncomingRiverThroughEdge dir)
                             indices
                     elif cell.Elevation > neighbor.WaterLevel then
                         triangulateWaterfallInWater
@@ -378,10 +374,10 @@ type HexGridChunkFS() as this =
             this.features.AddWall e1 cell e2 neighbor hasRiver hasRoad
             // 避免重复绘制
             if dir <= HexDirection.E then
-                match cell.GetNeighbor <| dir.Next() with
+                match cell.GetNeighbor dir.Next with
                 | None -> ()
                 | Some nextNeighbor ->
-                    let v5 = e1.v5 + (HexMetrics.getBridge <| dir.Next())
+                    let v5 = e1.v5 + (HexMetrics.getBridge dir.Next)
                     let v5 = Vector3Util.changeY v5 (float32 nextNeighbor.Position.Y)
                     // 连接角
                     if cell.Elevation <= neighbor.Elevation then
@@ -397,21 +393,20 @@ type HexGridChunkFS() as this =
     /// 处理河流
     let triangulateWithRiver (dir: HexDirection) (cell: HexCellFS) (center: Vector3) (e: EdgeVertices) =
         let centerL, centerR =
-            if cell.HasRiverThroughEdge <| dir.Opposite() then
-                center + 0.25f * HexMetrics.getFirstSolidCorner (dir.Previous()),
-                center + 0.25f * HexMetrics.getSecondSolidCorner (dir.Next())
-            elif cell.HasRiverThroughEdge <| dir.Next() then
+            if cell.HasRiverThroughEdge dir.Opposite then
+                center + 0.25f * HexMetrics.getFirstSolidCorner dir.Previous,
+                center + 0.25f * HexMetrics.getSecondSolidCorner dir.Next
+            elif cell.HasRiverThroughEdge dir.Next then
                 center, center.Lerp(e.v5, 2f / 3f)
-            elif cell.HasRiverThroughEdge <| dir.Previous() then
+            elif cell.HasRiverThroughEdge dir.Previous then
                 center.Lerp(e.v1, 2f / 3f), center
-            elif cell.HasRiverThroughEdge <| dir.Next2() then
+            elif cell.HasRiverThroughEdge dir.Next2 then
                 center,
                 center
-                + HexMetrics.getSolidEdgeMiddle (dir.Next()) * (0.5f * HexMetrics.innerToOuter)
+                + HexMetrics.getSolidEdgeMiddle dir.Next * (0.5f * HexMetrics.innerToOuter)
             else
                 center
-                + HexMetrics.getSolidEdgeMiddle (dir.Previous())
-                  * (0.5f * HexMetrics.innerToOuter),
+                + HexMetrics.getSolidEdgeMiddle dir.Previous * (0.5f * HexMetrics.innerToOuter),
                 center
 
         let center = centerL.Lerp(centerR, 0.5f)
@@ -432,7 +427,7 @@ type HexGridChunkFS() as this =
         this.terrain.AddTriangle([| centerR; m.v4; m.v5 |], tri1Arr weights1, ci = indices)
         // 河面绘制
         if not cell.IsUnderWater then
-            let reversed = cell.IncomingRiver = Some dir
+            let reversed = cell.HasIncomingRiverThroughEdge dir
             triangulateRiverQuadFlat centerL centerR m.v2 m.v4 cell.RiverSurfaceY 0.4f reversed indices
             triangulateRiverQuadFlat m.v2 m.v4 e.v2 e.v4 cell.RiverSurfaceY 0.6f reversed indices
 
@@ -471,26 +466,27 @@ type HexGridChunkFS() as this =
     /// 处理有道路的河流流域
     let triangulateRoadAdjacentToRiver (dir: HexDirection) (cell: HexCellFS) (center: Vector3) (e: EdgeVertices) =
         let hasRoadThroughEdge = cell.HasRoadThroughEdge dir
-        let previousHasRiver = cell.HasRiverThroughEdge <| dir.Previous()
-        let nextHasRiver = cell.HasRiverThroughEdge <| dir.Next()
+        let previousHasRiver = cell.HasRiverThroughEdge dir.Previous
+        let nextHasRiver = cell.HasRiverThroughEdge dir.Next
         let interpolator = getRoadInterpolator dir cell
+        let riverIn = cell.IncomingRiver
+        let riverOut = cell.OutgoingRiver
 
         let roadCenter, center, prune =
             if cell.HasRiverBeginOrEnd then
                 center
-                + HexMetrics.getSolidEdgeMiddle (cell.RiverBeginOrEndDirection.Opposite())
+                + HexMetrics.getSolidEdgeMiddle (if cell.HasIncomingRiver then riverIn else riverOut).Value.Opposite
                   * (1f / 3f),
                 center,
                 false
             // 前提保证了这里 IncomingRiver 和 OutgoingRiver 一定是 Some
-            elif cell.IncomingRiver.Value = cell.OutgoingRiver.Value.Opposite() then
+            elif riverIn.Value = riverOut.Value.Opposite then
                 let corner, prune =
                     if previousHasRiver then
-                        let prune = not hasRoadThroughEdge && not << cell.HasRoadThroughEdge <| dir.Next()
+                        let prune = not hasRoadThroughEdge && not <| cell.HasRoadThroughEdge dir.Next
                         HexMetrics.getSecondSolidCorner dir, prune
                     else
-                        let prune =
-                            not hasRoadThroughEdge && not << cell.HasRoadThroughEdge <| dir.Previous()
+                        let prune = not hasRoadThroughEdge && not <| cell.HasRoadThroughEdge dir.Previous
 
                         HexMetrics.getFirstSolidCorner dir, prune
 
@@ -498,35 +494,34 @@ type HexGridChunkFS() as this =
 
                 if
                     not prune
-                    && cell.IncomingRiver.Value = dir.Next()
-                    && (cell.HasRoadThroughEdge <| dir.Next2()
-                        || cell.HasRoadThroughEdge <| dir.Opposite())
+                    && riverIn.Value = dir.Next
+                    && (cell.HasRoadThroughEdge dir.Next2 || cell.HasRoadThroughEdge dir.Opposite)
                 then
                     this.features.AddBridge roadCenter <| center - corner * 0.5f
 
                 roadCenter, center + corner * 0.25f, prune
-            elif cell.IncomingRiver.Value = cell.OutgoingRiver.Value.Previous() then
-                center - HexMetrics.getSecondSolidCorner cell.IncomingRiver.Value * 0.2f, center, false
-            elif cell.IncomingRiver.Value = cell.OutgoingRiver.Value.Next() then
-                center - HexMetrics.getFirstSolidCorner cell.IncomingRiver.Value * 0.2f, center, false
+            elif riverIn.Value = riverOut.Value.Previous then
+                center - HexMetrics.getSecondSolidCorner riverIn.Value * 0.2f, center, false
+            elif riverIn.Value = riverOut.Value.Next then
+                center - HexMetrics.getFirstSolidCorner riverIn.Value * 0.2f, center, false
             elif previousHasRiver && nextHasRiver then
                 let offset = HexMetrics.getSolidEdgeMiddle dir * HexMetrics.innerToOuter
                 center + offset * 0.7f, center + offset * 0.5f, not hasRoadThroughEdge
             else
                 let middle =
-                    if previousHasRiver then dir.Next()
-                    elif nextHasRiver then dir.Previous()
+                    if previousHasRiver then dir.Next
+                    elif nextHasRiver then dir.Previous
                     else dir
 
                 let prune =
                     not <| cell.HasRoadThroughEdge middle
-                    && not << cell.HasRoadThroughEdge <| middle.Previous()
-                    && not << cell.HasRoadThroughEdge <| middle.Next()
+                    && not <| cell.HasRoadThroughEdge middle.Previous
+                    && not <| cell.HasRoadThroughEdge middle.Next
 
                 let offset = HexMetrics.getSolidEdgeMiddle middle
                 let roadCenter = if prune then center else center + offset * 0.25f
 
-                if not prune && dir = middle && cell.HasRoadThroughEdge <| dir.Opposite() then
+                if not prune && dir = middle && cell.HasRoadThroughEdge dir.Opposite then
                     this.features.AddBridge roadCenter
                     <| center - offset * HexMetrics.innerToOuter * 0.7f
 
@@ -549,17 +544,14 @@ type HexGridChunkFS() as this =
             triangulateRoadAdjacentToRiver dir cell center e
 
         let center =
-            if cell.HasRiverThroughEdge <| dir.Next() then
-                if cell.HasRiverThroughEdge <| dir.Previous() then
+            if cell.HasRiverThroughEdge dir.Next then
+                if cell.HasRiverThroughEdge dir.Previous then
                     center + HexMetrics.getSolidEdgeMiddle dir * (0.5f * HexMetrics.innerToOuter)
-                elif cell.HasRiverThroughEdge <| dir.Previous2() then
+                elif cell.HasRiverThroughEdge dir.Previous2 then
                     center + HexMetrics.getFirstSolidCorner dir * 0.25f
                 else
                     center
-            elif
-                cell.HasRiverThroughEdge <| dir.Previous()
-                && cell.HasRiverThroughEdge <| dir.Next2()
-            then
+            elif cell.HasRiverThroughEdge dir.Previous && cell.HasRiverThroughEdge dir.Next2 then
                 center + HexMetrics.getSecondSolidCorner dir * 0.25f
             else
                 center
@@ -668,12 +660,12 @@ type HexGridChunkFS() as this =
 
         let e2 =
             EdgeVertices(
-                center2 + (HexMetrics.getSecondSolidCorner <| dir.Opposite()),
-                center2 + (HexMetrics.getFirstSolidCorner <| dir.Opposite())
+                center2 + (HexMetrics.getSecondSolidCorner dir.Opposite),
+                center2 + (HexMetrics.getFirstSolidCorner dir.Opposite)
             )
 
         if cell.HasRiverThroughEdge dir then
-            triangulateEstuary e1 e2 (cell.IncomingRiver = Some dir) indices
+            triangulateEstuary e1 e2 (cell.HasIncomingRiverThroughEdge dir) indices
         else
             this.waterShore.AddQuad(
                 [| e1.v1; e1.v2; e2.v1; e2.v2 |],
@@ -703,7 +695,7 @@ type HexGridChunkFS() as this =
                 ci = indices
             )
 
-        match cell.GetNeighbor <| dir.Next() with
+        match cell.GetNeighbor dir.Next with
         | Some nextNeighbor ->
             let mutable center3 = nextNeighbor.Position
 
@@ -715,9 +707,9 @@ type HexGridChunkFS() as this =
             let mutable v3 =
                 center3
                 + if nextNeighbor.IsUnderWater then
-                      HexMetrics.getFirstWaterCorner <| dir.Previous()
+                      HexMetrics.getFirstWaterCorner dir.Previous
                   else
-                      HexMetrics.getFirstSolidCorner <| dir.Previous()
+                      HexMetrics.getFirstSolidCorner dir.Previous
 
             v3.Y <- center.Y
             let indices = Vector3(indices.X, indices.Y, float32 nextNeighbor.Index)
@@ -748,12 +740,12 @@ type HexGridChunkFS() as this =
             this.water.AddQuad([| c1; c2; e1; e2 |], quad2Arr weights1 weights2, ci = indices)
 
             if dir <= HexDirection.E then
-                match cell.GetNeighbor <| dir.Next() with
+                match cell.GetNeighbor dir.Next with
                 | Some nextNeighbor when nextNeighbor.IsUnderWater ->
                     let indices = Vector3(indices.X, indices.Y, float32 nextNeighbor.Index)
 
                     this.water.AddTriangle(
-                        [| c2; e2; c2 + (HexMetrics.getWaterBridge <| dir.Next()) |],
+                        [| c2; e2; c2 + (HexMetrics.getWaterBridge dir.Next) |],
                         [| weights1; weights2; weights3 |],
                         ci = indices
                     )
@@ -844,7 +836,7 @@ type HexGridChunkFS() as this =
     member this.AddCell index cell =
         anyCell <- true
         cells[index] <- cell
-        cell.Chunk <- this
+        cell.Chunk <- Some this
         this.AddChild cell
         _gridCanvas.Value.AddChild cell.uiRect
 

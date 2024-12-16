@@ -85,6 +85,8 @@ type HexGridFS() as this =
 
     interface IGridVis with
         override this.ResetVisibility() = this.ResetVisibility()
+    interface IGridForCell with
+        override this.GetCell coords = this.GetCell coords
 
     [<DefaultValue>]
     val mutable cellPrefab: PackedScene
@@ -141,6 +143,7 @@ type HexGridFS() as this =
             cell.Index <- i
             cell.ColumnIndex <- x / HexMetrics.chunkSizeX
             cell.ShaderData <- this.cellShaderData
+            cell.Grid <- this
 
             if this.wrapping then
                 cell.Explorable <- z > 0 && z < this.cellCountZ - 1
@@ -149,28 +152,6 @@ type HexGridFS() as this =
                     cell.TerrainTypeIndex <- 1
             else
                 cell.Explorable <- x > 0 && z > 0 && x < this.cellCountX - 1 && z < this.cellCountZ - 1
-
-            if x > 0 then
-                cell.SetNeighbor HexDirection.W (Some _cells[i - 1])
-
-                if this.wrapping && x = this.cellCountX - 1 then
-                    cell.SetNeighbor HexDirection.E (Some _cells[i - x])
-
-            if z > 0 then
-                if z &&& 1 = 0 then
-                    cell.SetNeighbor HexDirection.SE (Some _cells[i - this.cellCountX])
-
-                    if x > 0 then
-                        cell.SetNeighbor HexDirection.SW (Some _cells[i - this.cellCountX - 1])
-                    elif this.wrapping then
-                        cell.SetNeighbor HexDirection.SW (Some _cells[i - 1])
-                else
-                    cell.SetNeighbor HexDirection.SW (Some _cells[i - this.cellCountX])
-
-                    if x < this.cellCountX - 1 then
-                        cell.SetNeighbor HexDirection.SE (Some _cells[i - this.cellCountX + 1])
-                    elif this.wrapping then
-                        cell.SetNeighbor HexDirection.SE (Some _cells[i - this.cellCountX * 2 + 1])
 
             cell.Position <-
                 Vector3(
@@ -182,10 +163,10 @@ type HexGridFS() as this =
             let label = this.cellLabelPrefab.Instantiate<HexCellLabelFS>()
             label.Position <- cell.Position + Vector3.Up * 0.01f
             cell.uiRect <- label
-            // 得在 Elevation 前面。不然单元格的块还没赋值的话，setter 里面会有 refresh，需要刷新块，这时空引用会报错
-            addCellToChunk x z cell
             // 触发 setter 应用扰动 y
             cell.Elevation <- 0
+            // 得在 Elevation 前面。不然单元格的块还没赋值的话，setter 里面会有 refresh，需要刷新块，这时空引用会报错
+            addCellToChunk x z cell
 
     let searchFrontier = HexCellPriorityQueue()
     let mutable searchFrontierPhase = 0
@@ -329,16 +310,12 @@ type HexGridFS() as this =
 
     member this.GetCell(coordinates: HexCoordinates) =
         let z = coordinates.Z
+        let x = coordinates.X + z / 2
 
-        if z < 0 || z >= this.cellCountZ then
+        if z < 0 || z >= this.cellCountZ || x < 0 || x >= this.cellCountX then
             None
         else
-            let x = coordinates.X + z / 2
-
-            if x < 0 || x >= this.cellCountX then
-                None
-            else
-                Some _cells[x + z * this.cellCountX]
+            Some _cells[x + z * this.cellCountX]
 
     member this.GetCell(xOffset, zOffset) =
         _cells[xOffset + zOffset * this.cellCountX]
@@ -560,8 +537,8 @@ type HexGridFS() as this =
                         cell.Walled <- true
 
                     cell.SetOutgoingRiver(rand.Next(0, 6) |> enum<HexDirection>)
-                    cell.SetRoad <| rand.Next(0, 6) <| true
-                    cell.SetRoad <| rand.Next(0, 6) <| true
+                    cell.AddRoad << enum<HexDirection> <| rand.Next(0, 6)
+                    cell.AddRoad << enum<HexDirection> <| rand.Next(0, 6)
 
     override this._Process delta =
         // if this.IsNodeReady() then

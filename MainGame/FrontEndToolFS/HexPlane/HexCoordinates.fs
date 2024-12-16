@@ -75,6 +75,15 @@ type HexCoordinates =
 
             (xy' + (abs <| this.Z - other.Z)) / 2
 
+        member this.Step(direction: HexDirection) =
+            match direction with
+            | HexDirection.NE -> HexCoordinates(this.X, this.Z + 1)
+            | HexDirection.E -> HexCoordinates(this.X + 1, this.Z)
+            | HexDirection.SE -> HexCoordinates(this.X + 1, this.Z - 1)
+            | HexDirection.SW -> HexCoordinates(this.X, this.Z - 1)
+            | HexDirection.W -> HexCoordinates(this.X - 1, this.Z)
+            | _ -> HexCoordinates(this.X - 1, this.Z + 1)
+
         member this.Save(writer: BinaryWriter) =
             writer.Write this.X
             writer.Write this.Z
