@@ -7,13 +7,6 @@ namespace ZeromaXPlayground.game.HexPlane.Map;
 public partial class HexGrid : HexGridFS
 {
     [Export]
-    public PackedScene CellPrefab
-    {
-        get => cellPrefab;
-        set => cellPrefab = value;
-    }
-
-    [Export]
     public PackedScene CellLabelPrefab
     {
         get => cellLabelPrefab;

@@ -11,15 +11,16 @@ type ICell =
     abstract member IsUnderWater: bool
     abstract member WaterSurfaceY: float32
 
-type IGridVis =
+type IGridForShader =
     abstract member ResetVisibility: unit -> unit
+    abstract member GetCell: int -> ICell
 
-type HexCellShaderData() =
+type HexCellShaderData() as this =
     let mutable cellTexture: Image = null
     let mutable cellTextureData: Color array = null
     let mutable hexCellData: ImageTexture = null
     let mutable enabled = false
-    let transitioningCells = List<ICell>()
+    let transitioningCellIndices = List<int>()
     let transitionSpeed = 255.0
     let mutable needsVisibilityReset = false
     let mutable visibilityTransitions: bool array = null
@@ -27,8 +28,8 @@ type HexCellShaderData() =
     let changeCellPixel (cell: ICell) data =
         cellTexture.SetPixel(cell.Index % cellTexture.GetWidth(), cell.Index / cellTexture.GetWidth(), data)
 
-    let updateCellData (cell: ICell) delta =
-        let index = cell.Index
+    let updateCellData index delta =
+        let cell = this.Grid.GetCell index
         let mutable data = cellTextureData[index]
         let mutable stillUpdating = false
 
@@ -78,7 +79,7 @@ type HexCellShaderData() =
                 cellTextureData[i] <- Color(0.0f, 0.0f, 0.0f, 0.0f)
                 visibilityTransitions[i] <- false)
 
-        transitioningCells.Clear()
+        transitioningCellIndices.Clear()
         enabled <- true
 
     member this.RefreshTerrain(cell: ICell) =
@@ -104,7 +105,7 @@ type HexCellShaderData() =
             changeCellPixel cell cellTextureData[index]
         elif not visibilityTransitions[index] then
             visibilityTransitions[index] <- true
-            transitioningCells.Add cell
+            transitioningCellIndices.Add cell.Index
 
         enabled <- true
 
@@ -118,10 +119,10 @@ type HexCellShaderData() =
             let delta = if delta = 0 then 1 else delta
             let mutable i = 0
 
-            while i < transitioningCells.Count do
-                if not <| updateCellData transitioningCells[i] delta then
-                    transitioningCells[i] <- transitioningCells[transitioningCells.Count - 1]
-                    transitioningCells.RemoveAt <| transitioningCells.Count - 1
+            while i < transitioningCellIndices.Count do
+                if not <| updateCellData transitioningCellIndices[i] delta then
+                    transitioningCellIndices[i] <- transitioningCellIndices[transitioningCellIndices.Count - 1]
+                    transitioningCellIndices.RemoveAt <| transitioningCellIndices.Count - 1
                 else
                     i <- i + 1
             // 更新 Shader global uniform 变量（hex_cell_data）
@@ -131,7 +132,7 @@ type HexCellShaderData() =
             //     .As<ImageTexture>()
             //     .Update(cellTexture)
             hexCellData.Update(cellTexture)
-            enabled <- transitioningCells.Count > 0
+            enabled <- transitioningCellIndices.Count > 0
 
     member val ImmediateMode = false with get, set
 
@@ -147,7 +148,7 @@ type HexCellShaderData() =
         enabled <- true
 
     [<DefaultValue>]
-    val mutable Grid: IGridVis
+    val mutable Grid: IGridForShader
 
     member this.SetMapData (cell: ICell) data =
         cellTextureData[cell.Index].B8 <-

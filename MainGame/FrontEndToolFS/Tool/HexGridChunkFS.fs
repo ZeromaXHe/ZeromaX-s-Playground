@@ -5,12 +5,18 @@ open FrontEndToolFS.HexPlane
 open FrontEndToolFS.HexPlane.HexDirection
 open Godot
 
+type IGridForChunk =
+    abstract member GetCell: int -> HexCellFS
+
 type HexGridChunkFS() as this =
     inherit Node3D()
 
     let _gridCanvas = lazy this.GetNode<Node3D> "HexGridCanvas"
 
-    let mutable cells: HexCellFS array = null
+    [<DefaultValue>]
+    val mutable Grid: IGridForChunk
+
+    let mutable cellIndices: int array = null
     let mutable anyCell = false
     let weights1 = Colors.Red
     let weights2 = Colors.Green
@@ -432,7 +438,7 @@ type HexGridChunkFS() as this =
             triangulateRiverQuadFlat m.v2 m.v4 e.v2 e.v4 cell.RiverSurfaceY 0.6f reversed indices
 
     /// 处理河流开始和结束
-    let triangulateWithRiverBeginOrEnd (dir: HexDirection) (cell: HexCellFS) (center: Vector3) (e: EdgeVertices) =
+    let triangulateWithRiverBeginOrEnd (cell: HexCellFS) (center: Vector3) (e: EdgeVertices) =
         let mutable m = EdgeVertices(center.Lerp(e.v1, 0.5f), center.Lerp(e.v5, 0.5f))
         m <- m.ChangeV3 <| Vector3Util.changeY m.v3 e.v3.Y
         triangulateEdgeStripNoRoad m weights1 cell.Index e weights1 cell.Index
@@ -770,7 +776,7 @@ type HexGridChunkFS() as this =
                 e <- e.ChangeV3 <| Vector3(e.v3.X, cell.StreamBedY, e.v3.Z)
 
                 if cell.HasRiverBeginOrEnd then
-                    triangulateWithRiverBeginOrEnd dir cell center e
+                    triangulateWithRiverBeginOrEnd cell center e
                 else
                     triangulateWithRiver dir cell center e
             else
@@ -833,11 +839,10 @@ type HexGridChunkFS() as this =
         // GD.Print $"{this.Name} Refresh"
         this.SetProcess true
 
-    member this.AddCell index cell =
+    member this.AddCell index (cell: HexCellFS) =
         anyCell <- true
-        cells[index] <- cell
+        cellIndices[index] <- cell.Index
         cell.Chunk <- Some this
-        this.AddChild cell
         _gridCanvas.Value.AddChild cell.uiRect
 
     member this.ShowGrid(visible: bool) =
@@ -847,7 +852,7 @@ type HexGridChunkFS() as this =
     member this.ShowUI visible = _gridCanvas.Value.Visible <- visible
 
     override this._Ready() =
-        cells <- Array.zeroCreate <| HexMetrics.chunkSizeX * HexMetrics.chunkSizeZ
+        cellIndices <- Array.zeroCreate <| HexMetrics.chunkSizeX * HexMetrics.chunkSizeZ
 
     override this._Process _ =
         // 防止编辑器内循环报错，卡死
@@ -859,7 +864,7 @@ type HexGridChunkFS() as this =
             this.waterShore.Clear()
             this.estuaries.Clear()
             this.features.Clear()
-            cells |> Array.iter triangulate
+            cellIndices |> Array.map this.Grid.GetCell |> Array.iter triangulate
             this.terrain.Apply()
             this.rivers.Apply()
             this.roads.Apply()

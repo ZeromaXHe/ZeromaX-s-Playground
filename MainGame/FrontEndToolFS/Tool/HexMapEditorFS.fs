@@ -112,12 +112,12 @@ type HexMapEditorFS() as this =
     let mutable walledMode = OptionalToggle.Ignore
     // dragDirection 的有无对应教程中的 isDrag（即 isDrag 都替换为 dragDirection.IsSome）
     let mutable dragDirection: HexDirection option = None
-    let mutable previousCell: HexCellFS option = None
+    let mutable previousCellIndex = -1
 
     let validateDrag (cell: HexCellFS) =
         dragDirection <-
             allHexDirs ()
-            |> List.tryFind (fun dir -> previousCell.Value.GetNeighbor dir = Some cell)
+            |> List.tryFind (fun dir -> (_hexGrid.Value.GetCell previousCellIndex).GetNeighbor dir = Some cell)
 
     let editCell (cell: HexCellFS) =
         if activeTerrainTypeIndex > 0 then
@@ -225,14 +225,14 @@ type HexMapEditorFS() as this =
 
         match cellOpt with
         | Some currentCell ->
-            if previousCell |> Option.exists (fun c -> c <> currentCell) then
+            if previousCellIndex >= 0 && previousCellIndex <> currentCell.Index then
                 validateDrag currentCell
             else
                 dragDirection <- None
 
             editCells currentCell
-            previousCell <- Some currentCell
-        | None -> previousCell <- None
+            previousCellIndex <- currentCell.Index
+        | None -> previousCellIndex <- -1
 
         updateCellHighlightData cellOpt
 
@@ -240,6 +240,9 @@ type HexMapEditorFS() as this =
         this.SetProcess toggle
         _gameUi.Value.SetEditMode toggle
         RenderingServer.GlobalShaderParameterSet("hex_map_edit_mode", toggle)
+
+        if toggle then
+            _hexGrid.Value.PathShowerOn <- false
 
     override this._Ready() =
         _tabContainer.Value.add_TabChanged (fun tab -> this.SetEditMode(int tab = 0))
@@ -326,4 +329,4 @@ type HexMapEditorFS() as this =
             clearCellHighlightData ()
 
         if not directReturn then
-            previousCell <- None
+            previousCellIndex <- -1

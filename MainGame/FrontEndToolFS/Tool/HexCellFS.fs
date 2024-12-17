@@ -16,9 +16,9 @@ type IUnit =
 
 type IGridForCell =
     abstract member GetCell: HexCoordinates -> HexCellFS option
+    abstract member ShaderData: HexCellShaderData
 
 and HexCellFS() as this =
-    inherit Node3D()
 
     interface ICell with
         override this.Index = this.Index
@@ -31,6 +31,7 @@ and HexCellFS() as this =
     [<DefaultValue>]
     val mutable Coordinates: HexCoordinates
 
+    member val Position = Vector3.Zero with get, set
     member val Chunk: IChunk option = None with get, set
 
     [<DefaultValue>]
@@ -66,7 +67,7 @@ and HexCellFS() as this =
         and set value =
             if terrainTypeIndex <> value then
                 terrainTypeIndex <- value
-                this.ShaderData.RefreshTerrain this
+                this.Grid.ShaderData.RefreshTerrain this
 
     /// 高度
     let mutable elevation: int = Int32.MinValue
@@ -87,9 +88,8 @@ and HexCellFS() as this =
             if elevation = value then
                 ()
             else
-                let originalViewElevation = this.ViewElevation
                 elevation <- value
-                this.ShaderData.ViewElevationChanged this
+                this.Grid.ShaderData.ViewElevationChanged this
                 refreshPosition ()
                 this.ValidateRivers()
 
@@ -209,7 +209,10 @@ and HexCellFS() as this =
             && not <| this.HasRiverThroughEdge direction
             && not this.IsSpecial
             // AddRoad 的入口保证这里一定有邻居
-            && not <| (this.GetNeighbor direction).Value.IsSpecial
+            && (this.GetNeighbor direction)
+               |> Option.map _.IsSpecial
+               |> Option.defaultValue true
+               |> not
             && this.GetElevationDifference direction <= 1
         then
             this.flags <- this.flags.WithRoad direction
@@ -230,9 +233,8 @@ and HexCellFS() as this =
             if waterLevel = value then
                 ()
             else
-                let originalViewElevation = this.ViewElevation
                 waterLevel <- value
-                this.ShaderData.ViewElevationChanged this
+                this.Grid.ShaderData.ViewElevationChanged this
                 this.ValidateRivers()
                 refresh ()
 
@@ -366,8 +368,8 @@ and HexCellFS() as this =
 
         this.flags <- this.flags ||| enum<HexFlags> (int <| reader.ReadByte())
         setExplored <| if header >= 3 then reader.ReadBoolean() else false
-        this.ShaderData.RefreshTerrain this
-        this.ShaderData.RefreshVisibility this
+        this.Grid.ShaderData.RefreshTerrain this
+        this.Grid.ShaderData.RefreshVisibility this
     // 距离
     let mutable distance = 0
 
@@ -385,7 +387,7 @@ and HexCellFS() as this =
         highlight.Visible <- true
 
     [<DefaultValue>]
-    val mutable PathFrom: HexCellFS
+    val mutable PathFromIndex: int
 
     member val SearchHeuristic = 0 with get, set
     member this.SearchPriority = distance + this.SearchHeuristic
@@ -398,9 +400,6 @@ and HexCellFS() as this =
     member val SearchPhase = 0 with get, set
     // 单位
     member val Unit: IUnit option = None with get, set
-    // 单元格着色器数据
-    [<DefaultValue>]
-    val mutable ShaderData: HexCellShaderData
     // 索引
     [<DefaultValue>]
     val mutable Index: int
@@ -413,13 +412,13 @@ and HexCellFS() as this =
 
         if visibility = 1 then
             setExplored true
-            this.ShaderData.RefreshVisibility this
+            this.Grid.ShaderData.RefreshVisibility this
 
     member this.DecreaseVisibility() =
         visibility <- visibility - 1
 
         if visibility = 0 then
-            this.ShaderData.RefreshVisibility this
+            this.Grid.ShaderData.RefreshVisibility this
     // 探索
     member this.IsExplored: bool =
         this.flags.HasAll(HexFlags.Explored ||| HexFlags.Explorable)
@@ -445,10 +444,10 @@ and HexCellFS() as this =
     member this.ResetVisibility() =
         if visibility > 0 then
             visibility <- 0
-            this.ShaderData.RefreshVisibility this
+            this.Grid.ShaderData.RefreshVisibility this
 
     member this.SetMapData data =
         // GD.Print $"Setting {this.Coordinates} map data {data}"
-        this.ShaderData.SetMapData this data
+        this.Grid.ShaderData.SetMapData this data
     // 包覆
     member val ColumnIndex = 0 with get, set

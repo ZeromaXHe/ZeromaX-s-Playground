@@ -7,13 +7,16 @@ open FrontEndToolFS.HexPlane
 open Godot
 open Microsoft.FSharp.Core
 
-type IGrid =
+type IGridForUnit =
     interface
         abstract member MakeChildOfColumn: Node -> int -> unit
         abstract member AddUnit: PackedScene -> HexCellFS option -> float32 -> unit
         abstract member GetCell: HexCoordinates -> HexCellFS option
+        abstract member GetCell: int -> HexCellFS
         abstract member IncreaseVisibility: HexCellFS -> int -> unit
         abstract member DecreaseVisibility: HexCellFS -> int -> unit
+        abstract member GetPathShower: Node3D
+        abstract member PathShowerOn: bool
     end
 
 module Bezier =
@@ -26,60 +29,26 @@ module Bezier =
 type HexUnitFS() as this =
     inherit CsgBox3D()
 
-    let mutable location: HexCellFS option = None
+    let mutable locationCellIndex = -1
     let mutable orientation = 0f
     let travelSpeed = 4.0
     let rotationSpeed = 180.0f
 
-    let onDrawGizmos () =
-        // // 通过这个方式临时拿到父节点 HexGridFS 的 PathShower 子节点
-        // let pathShower = this.GetNode<Node3D> "../PathShower"
-        // pathShower.GetChildren() |> Seq.iter _.QueueFree()
-        //
-        // if pathToTravel.IsNone || pathToTravel.Value.Count = 0 then
-        //     ()
-        // else
-        //     let drawSphere (pos: Vector3) (r: float32) (pathShower: Node3D) =
-        //         let ins = new CsgSphere3D()
-        //         ins.Radius <- r
-        //         pathShower.AddChild ins
-        //         // GlobalPosition 只有在场景树内才能修改
-        //         ins.GlobalPosition <- pos
-        //
-        //     let mutable a = pathToTravel.Value[0].Position
-        //     let mutable b = a
-        //     let mutable c = a
-        //
-        //     for i in 1 .. pathToTravel.Value.Count - 1 do
-        //         a <- c
-        //         b <- pathToTravel.Value[i - 1].Position
-        //         c <- (b + pathToTravel.Value[i].Position) * 0.5f
-        //
-        //         for t in 0.0f..0.1f..0.9f do
-        //             drawSphere (Bezier.getPoint a b c t) 2f pathShower
-        //
-        //     a <- c
-        //     b <- pathToTravel.Value[pathToTravel.Value.Count - 1].Position
-        //     c <- b
-        //
-        //     for t in 0.0f..0.1f..0.9f do
-        //         drawSphere (Bezier.getPoint a b c t) 2f pathShower
-        ()
-
     member this.VisionRange = 3
 
     member this.Location
-        with get () = location
-        and set value =
-            if location.IsSome then
-                this.Grid.DecreaseVisibility location.Value this.VisionRange
-                location.Value.Unit <- None
+        with get () = this.Grid.GetCell locationCellIndex
+        and set (value: HexCellFS) =
+            if locationCellIndex >= 0 then
+                let location = this.Grid.GetCell locationCellIndex
+                this.Grid.DecreaseVisibility location this.VisionRange
+                location.Unit <- None
 
-            location <- value
-            value.Value.Unit <- Some this
-            this.Grid.IncreaseVisibility location.Value this.VisionRange
-            this.Position <- value.Value.Position
-            this.Grid.MakeChildOfColumn this value.Value.ColumnIndex
+            locationCellIndex <- value.Index
+            value.Unit <- Some this
+            this.Grid.IncreaseVisibility value this.VisionRange
+            this.Position <- value.Position
+            this.Grid.MakeChildOfColumn this value.ColumnIndex
 
     member this.Orientation
         with get () = orientation
@@ -92,25 +61,24 @@ type HexUnitFS() as this =
         override this.Die() = this.Die()
 
     [<DefaultValue>]
-    val mutable Grid: IGrid
+    val mutable Grid: IGridForUnit
 
     member this.ValidateLocation() =
-        this.Position <- location.Value.Position
+        this.Position <- (this.Grid.GetCell locationCellIndex).Position
 
     member this.Die() =
-        if location.IsSome then
-            this.Grid.DecreaseVisibility location.Value this.VisionRange
-
-        location.Value.Unit <- None
+        let location = this.Grid.GetCell locationCellIndex
+        this.Grid.DecreaseVisibility location this.VisionRange
+        location.Unit <- None
         this.QueueFree()
 
     member this.Save(writer: BinaryWriter) =
-        location.Value.Coordinates.Save writer
+        (this.Grid.GetCell locationCellIndex).Coordinates.Save writer
         writer.Write orientation
 
     static member val unitPrefab: PackedScene = null with get, set
 
-    static member Load (reader: BinaryReader) (grid: IGrid) =
+    static member Load (reader: BinaryReader) (grid: IGridForUnit) =
         let coordinates = HexCoordinates.Load reader
         let orientation = reader.ReadSingle()
         grid.AddUnit <| HexUnitFS.unitPrefab <| grid.GetCell coordinates <| orientation
@@ -119,8 +87,9 @@ type HexUnitFS() as this =
         cell.IsExplored && not cell.IsUnderWater && cell.Unit.IsNone
 
     let mutable currentTravelLocation: HexCellFS option = None
+    let mutable currentTravelLocationIndex = -1
     let mutable currentColumn = -1
-    let mutable pathToTravel: HexCellFS List option = None
+    let mutable pathToTravel: int List option = None
     let mutable iTravel = 1
     let mutable aTravel = Vector3.Zero
     let mutable bTravel = Vector3.Zero
@@ -134,22 +103,59 @@ type HexUnitFS() as this =
         this.LookAt(point, useModelFront = true)
         orientation <- this.RotationDegrees.Y
 
-    member this.Travel(path: HexCellFS List) =
-        location.Value.Unit <- None
-        location <- Some path[path.Count - 1]
-        location.Value.Unit <- Some this
+    let onDrawGizmos () =
+        if this.Grid.PathShowerOn then
+            let pathShower = this.Grid.GetPathShower
+            pathShower.GetChildren() |> Seq.iter _.QueueFree()
+
+            if pathToTravel.IsNone || pathToTravel.Value.Count = 0 then
+                ()
+            else
+                let drawSphere (pos: Vector3) (r: float32) (pathShower: Node3D) =
+                    let ins = new CsgSphere3D()
+                    ins.Radius <- r
+                    pathShower.AddChild ins
+                    // GlobalPosition 只有在场景树内才能修改
+                    ins.GlobalPosition <- pos
+
+                let mutable a = (this.Grid.GetCell pathToTravel.Value[0]).Position
+                let mutable b = a
+                let mutable c = a
+
+                for i in 1 .. pathToTravel.Value.Count - 1 do
+                    a <- c
+                    b <- (this.Grid.GetCell pathToTravel.Value[i - 1]).Position
+                    c <- (b + (this.Grid.GetCell pathToTravel.Value[i]).Position) * 0.5f
+
+                    for t in 0.0f..0.1f..0.9f do
+                        drawSphere (Bezier.getPoint a b c t) 2f pathShower
+
+                a <- c
+                b <- (this.Grid.GetCell pathToTravel.Value[pathToTravel.Value.Count - 1]).Position
+                c <- b
+
+                for t in 0.0f..0.1f..0.9f do
+                    drawSphere (Bezier.getPoint a b c t) 2f pathShower
+
+    member this.Travel(path: int List) =
+        let location = this.Grid.GetCell locationCellIndex
+        location.Unit <- None
+        let location = this.Grid.GetCell path[path.Count - 1]
+        locationCellIndex <- location.Index
+        location.Unit <- Some this
         pathToTravel <- Some path
         onDrawGizmos ()
         // 替代以下逻辑：
         // StopAllCoroutines();
         // StartCoroutine(TravelPath());
-        this.Position <- path[0].Position
+        let path0 = this.Grid.GetCell path[0]
+        this.Position <- path0.Position
         iTravel <- 1
         tTravel <- 0.0 // this.GetProcessDeltaTime() * travelSpeed
-        aTravel <- path[0].Position
-        bTravel <- path[0].Position
-        cTravel <- path[0].Position
-        let mutable point = pathToTravel.Value[1].Position
+        aTravel <- path0.Position
+        bTravel <- path0.Position
+        cTravel <- path0.Position
+        let mutable point = (this.Grid.GetCell pathToTravel.Value[1]).Position
         point.Y <- this.Position.Y
 
         if HexMetrics.wrapping () then
@@ -160,7 +166,7 @@ type HexUnitFS() as this =
             elif xDistance > HexMetrics.innerRadius * float32 HexMetrics.wrapSize then
                 point.X <- point.X - HexMetrics.innerDiameter * float32 HexMetrics.wrapSize
 
-        angleT <- Mathf.RadToDeg(this.Basis.Z.SignedAngleTo(path[0].Position.DirectionTo point, Vector3.Up))
+        angleT <- Mathf.RadToDeg(this.Basis.Z.SignedAngleTo(path0.Position.DirectionTo point, Vector3.Up))
 
     // TODO: 现在这里因为没有 Unity 的协程，直接用 _Process 做的，代码丑的一比
     member this.TravelPath delta =
@@ -183,25 +189,29 @@ type HexUnitFS() as this =
                     iTravel <- iTravel + 1
                     // 移除前一格可见性
                     if iTravel < pathToTravel.Value.Count then
-                        this.Grid.DecreaseVisibility pathToTravel.Value[iTravel - 1] this.VisionRange
+                        this.Grid.DecreaseVisibility
+                            (this.Grid.GetCell pathToTravel.Value[iTravel - 1])
+                            this.VisionRange
                     // 确保最后一定停在准确位置
                     if iTravel = pathToTravel.Value.Count then
-                        this.Position <- pathToTravel.Value[iTravel - 1].Position
+                        this.Position <- (this.Grid.GetCell pathToTravel.Value[iTravel - 1]).Position
                         this.Orientation <- this.RotationDegrees.Y
                         pathToTravel <- None
                 // 每个循环的数据初始化：可见性、a、b、c
                 if tTravel = 0.0 && pathToTravel.IsSome then
                     if iTravel = 1 then
-                        if currentTravelLocation.IsNone then
-                            currentTravelLocation <- Some pathToTravel.Value[0]
+                        if currentTravelLocationIndex < 0 then
+                            currentTravelLocationIndex <- pathToTravel.Value[0]
 
+                        currentTravelLocation <- Some <| this.Grid.GetCell currentTravelLocationIndex
                         this.Grid.DecreaseVisibility currentTravelLocation.Value this.VisionRange
                         currentColumn <- currentTravelLocation.Value.ColumnIndex
 
                     if iTravel < pathToTravel.Value.Count then
-                        currentTravelLocation <- Some pathToTravel.Value[iTravel]
+                        currentTravelLocation <- Some <| this.Grid.GetCell pathToTravel.Value[iTravel]
+                        currentTravelLocationIndex <- currentTravelLocation.Value.Index
                         aTravel <- cTravel
-                        bTravel <- pathToTravel.Value[iTravel - 1].Position
+                        bTravel <- (this.Grid.GetCell pathToTravel.Value[iTravel - 1]).Position
                         let nextColumn = currentTravelLocation.Value.ColumnIndex
 
                         if currentColumn <> nextColumn then
@@ -216,13 +226,14 @@ type HexUnitFS() as this =
                             currentColumn <- nextColumn
 
                         cTravel <- (bTravel + currentTravelLocation.Value.Position) * 0.5f
-                        this.Grid.IncreaseVisibility pathToTravel.Value[iTravel] this.VisionRange
+                        this.Grid.IncreaseVisibility (this.Grid.GetCell pathToTravel.Value[iTravel]) this.VisionRange
                     else
-                        currentTravelLocation <- None
+                        currentTravelLocationIndex <- -1
+                        let location = this.Grid.GetCell locationCellIndex
                         aTravel <- cTravel
-                        bTravel <- location.Value.Position
+                        bTravel <- location.Position
                         cTravel <- bTravel
-                        this.Grid.IncreaseVisibility location.Value this.VisionRange
+                        this.Grid.IncreaseVisibility location this.VisionRange
 
                 if pathToTravel.IsNone then
                     ()
@@ -231,7 +242,7 @@ type HexUnitFS() as this =
                     let d = Bezier.getDerivative aTravel bTravel cTravel (float32 tTravel)
 
                     if not <| d.IsZeroApprox() then
-                         // 让 d 大一点是因为在块列 0 向左边界上会转向错误，我猜是 d 太小导致的
+                        // 让 d 大一点是因为在块列 0 向左边界上会转向错误，我猜是 d 太小导致的
                         lookAt <| this.Position + d * 1000f
 
                     tTravel <- tTravel + delta * travelSpeed

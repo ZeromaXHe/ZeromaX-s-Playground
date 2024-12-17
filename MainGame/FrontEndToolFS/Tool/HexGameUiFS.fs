@@ -5,18 +5,21 @@ open Godot
 type HexGameUiFS() as this =
     inherit PanelContainer()
 
+    let showPathCheckButton = lazy this.GetNode<CheckButton> "ScrollC/VBox/ShowPath"
+
     [<DefaultValue>]
     val mutable grid: HexGridFS
 
     let mutable editMode = true
-    let mutable currentCell: HexCellFS option = None
+    let mutable currentCellIndex = -1
     let mutable selectedUnit: HexUnitFS option = None
 
     let updateCurrentCell () =
         let cell = this.grid.GetRayCell()
+        let index = cell |> Option.map _.Index |> Option.defaultValue -1
 
-        if cell <> currentCell then
-            currentCell <- cell
+        if index <> currentCellIndex then
+            currentCellIndex <- index
             true
         else
             false
@@ -25,13 +28,18 @@ type HexGameUiFS() as this =
         this.grid.ClearPath()
         updateCurrentCell () |> ignore
 
-        if currentCell.IsSome then
-            selectedUnit <- currentCell.Value.Unit |> Option.map (fun u -> u :?> HexUnitFS)
+        if currentCellIndex >= 0 then
+            selectedUnit <-
+                (this.grid.GetCell currentCellIndex).Unit
+                |> Option.map (fun u -> u :?> HexUnitFS)
 
     let doPathfinding () =
         if updateCurrentCell () then
-            if currentCell.IsSome && selectedUnit.Value.IsValidDestination currentCell.Value then
-                this.grid.FindPath selectedUnit.Value.Location.Value currentCell.Value selectedUnit.Value
+            if
+                currentCellIndex >= 0
+                && selectedUnit.Value.IsValidDestination <| this.grid.GetCell currentCellIndex
+            then
+                this.grid.FindPath selectedUnit.Value.Location (this.grid.GetCell currentCellIndex) selectedUnit.Value
             else
                 this.grid.ClearPath()
 
@@ -45,6 +53,13 @@ type HexGameUiFS() as this =
         editMode <- toggle
         this.SetProcess <| not toggle
         this.grid.ClearPath()
+
+        if not toggle then
+            this.grid.PathShowerOn <- showPathCheckButton.Value.ButtonPressed
+
+    override this._Ready() =
+        showPathCheckButton.Value.ButtonPressed <- false
+        showPathCheckButton.Value.add_Toggled (fun toggle -> this.grid.PathShowerOn <- toggle)
 
     override this._UnhandledInput e =
         if not editMode then

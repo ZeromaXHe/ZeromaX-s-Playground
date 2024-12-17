@@ -1,7 +1,6 @@
-[gd_scene load_steps=10 format=3 uid="uid://ctsv3hyrh2w4j"]
+[gd_scene load_steps=9 format=3 uid="uid://ctsv3hyrh2w4j"]
 
 [ext_resource type="Script" path="res://game/HexPlane/Map/HexGrid.cs" id="1_ncacf"]
-[ext_resource type="PackedScene" uid="uid://b2320yq2a2g7m" path="res://game/HexPlane/Map/HexCell.tscn" id="2_ix3y3"]
 [ext_resource type="Texture2D" uid="uid://cts1rn3gu83qb" path="res://resources/CatlikeCoding/HexMap/noise.png" id="2_w2l35"]
 [ext_resource type="PackedScene" uid="uid://opcnakxgnbbo" path="res://game/HexPlane/Map/HexCellLabel.tscn" id="3_habid"]
 [ext_resource type="PackedScene" uid="uid://btjayimhgt0pk" path="res://game/HexPlane/Map/HexGridChunk.tscn" id="4_6xald"]
@@ -22,7 +21,6 @@ glow_enabled = true
 
 [node name="HexGrid" type="Node3D"]
 script = ExtResource("1_ncacf")
-CellPrefab = ExtResource("2_ix3y3")
 CellLabelPrefab = ExtResource("3_habid")
 ChunkPrefab = ExtResource("4_6xald")
 CellCountX = 20

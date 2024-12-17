@@ -17,5 +17,6 @@ albedo_color = Color(0.67451, 0.866667, 0.12549, 1)
 
 [node name="FarmMid2" type="CSGBox3D"]
 material_override = SubResource("ShaderMaterial_ghs6w")
+cast_shadow = 0
 size = Vector3(2.5, 0.1, 1.25)
 material = SubResource("StandardMaterial3D_l1f6h")
