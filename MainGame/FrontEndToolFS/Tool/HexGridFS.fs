@@ -82,15 +82,19 @@ and HexGridFS() as this =
 
     interface IGridForShader with
         override this.ResetVisibility() = this.ResetVisibility()
-        override this.GetCell index = this.GetCell index
         override this.IsCellVisible cellIndex = this.IsCellVisible cellIndex
+        override this.CellData = this.CellData
 
     interface IGridForCell with
         override this.GetCell coords = this.GetCell coords
         override this.ShaderData = this.cellShaderData
+        override this.CellData = this.CellData
+        override this.CellPositions = this.CellPositions
 
     interface IGridForChunk with
-        override this.GetCell index = this.GetCell index
+        override this.GetCellIndex coords = this.GetCellIndex coords
+        override this.CellData = this.CellData
+        override this.CellPositions = this.CellPositions
 
     [<DefaultValue>]
     val mutable cellLabelPrefab: PackedScene
@@ -114,6 +118,17 @@ and HexGridFS() as this =
     member this.IsCellVisible cellIndex = cellVisibility[cellIndex] > 0
     let mutable chunkCountX = 4
     let mutable chunkCountZ = 3
+
+    let mutable cellData: HexCellData array = null
+    let mutable cellPositions: Vector3 array = null
+
+    member this.CellData
+        with get () = cellData
+        and set value = cellData <- value
+
+    member this.CellPositions
+        with get () = cellPositions
+        and set value = cellPositions <- value
 
     let mutable _cells: HexCellFS array = null
     let mutable _chunks: HexGridChunkFS array = null
@@ -139,16 +154,18 @@ and HexGridFS() as this =
                 chunk.Grid <- this
                 chunk)
 
-    let addCellToChunk x z cell =
+    let addCellToChunk x z (cell: HexCellFS) =
         let chunkX = x / HexMetrics.chunkSizeX
         let chunkZ = z / HexMetrics.chunkSizeZ
         let chunk = _chunks[chunkX + chunkZ * chunkCountX]
         let localX = x - chunkX * HexMetrics.chunkSizeX
         let localZ = z - chunkZ * HexMetrics.chunkSizeZ
-        chunk.AddCell (localX + localZ * HexMetrics.chunkSizeX) cell
+        chunk.AddCell (localX + localZ * HexMetrics.chunkSizeX) cell cell.Index cell.uiRect
 
     let createCells () =
         _cells <- Array.init (this.cellCountX * this.cellCountZ) (fun _ -> HexCellFS())
+        cellData <- Array.init _cells.Length (fun _ -> HexCellData())
+        cellPositions <- Array.zeroCreate _cells.Length
         searchData <- Array.init _cells.Length (fun _ -> HexCellSearchData())
         cellVisibility <- Array.zeroCreate _cells.Length
 
@@ -165,8 +182,8 @@ and HexGridFS() as this =
 
             let cell = _cells[i]
             cell.Grid <- this
-            cell.Position <- position
-            cell.Coordinates <- HexCoordinates.FromOffsetCoordinates x z
+            cellPositions[i] <- position
+            cellData[i].coordinates <- HexCoordinates.FromOffsetCoordinates x z
             cell.Index <- i
             cell.ColumnIndex <- x / HexMetrics.chunkSizeX
 
@@ -351,6 +368,17 @@ and HexGridFS() as this =
 
         spaceState.IntersectRay query
 
+    member this.GetCellIndex(coordinates: HexCoordinates) =
+        let z = coordinates.Z
+        let x = coordinates.X + z / 2
+
+        if z < 0 || z >= this.cellCountZ || x < 0 || x >= this.cellCountX then
+            -1
+        else
+            x + z * this.cellCountX
+
+    member this.GetCellIndex(xOffset, zOffset) = xOffset + zOffset * this.cellCountX
+
     member this.GetCell(coordinates: HexCoordinates) =
         let z = coordinates.Z
         let x = coordinates.X + z / 2
@@ -359,9 +387,6 @@ and HexGridFS() as this =
             None
         else
             Some _cells[x + z * this.cellCountX]
-
-    member this.GetCell(xOffset, zOffset) =
-        _cells[xOffset + zOffset * this.cellCountX]
 
     member this.GetCell cellIndex = _cells[cellIndex]
 
@@ -527,26 +552,28 @@ and HexGridFS() as this =
     member this.IncreaseVisibility (fromCell: HexCellFS) range =
         getVisibleCells fromCell range
         |> Seq.iter (fun c ->
-            cellVisibility[c.Index] <- cellVisibility[c.Index] + 1
+            let cellIndex = c.Index
+            cellVisibility[cellIndex] <- cellVisibility[cellIndex] + 1
 
-            if cellVisibility[c.Index] = 1 then
+            if cellVisibility[cellIndex] = 1 then
                 c.MarkAsExplored()
-                this.cellShaderData.RefreshVisibility c)
+                this.cellShaderData.RefreshVisibility cellIndex)
 
     member this.DecreaseVisibility (fromCell: HexCellFS) range =
         getVisibleCells fromCell range
         |> Seq.iter (fun c ->
-            cellVisibility[c.Index] <- cellVisibility[c.Index] - 1
+            let cellIndex = c.Index
+            cellVisibility[cellIndex] <- cellVisibility[cellIndex] - 1
 
-            if cellVisibility[c.Index] = 0 then
-                this.cellShaderData.RefreshVisibility c)
+            if cellVisibility[cellIndex] = 0 then
+                this.cellShaderData.RefreshVisibility cellIndex)
 
     member this.ResetVisibility() =
-        _cells
-        |> Array.filter (fun c -> cellVisibility[c.Index] > 0)
-        |> Array.iter (fun c ->
-            cellVisibility[c.Index] <- 0
-            this.cellShaderData.RefreshVisibility c)
+        { 0 .. _cells.Length - 1 }
+        |> Seq.filter (fun i -> cellVisibility[i] > 0)
+        |> Seq.iter (fun i ->
+            cellVisibility[i] <- 0
+            this.cellShaderData.RefreshVisibility i)
 
         units |> Seq.iter (fun u -> this.IncreaseVisibility u.Location u.VisionRange)
 

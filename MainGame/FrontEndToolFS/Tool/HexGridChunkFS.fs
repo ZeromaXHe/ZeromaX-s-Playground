@@ -6,7 +6,9 @@ open FrontEndToolFS.HexPlane.HexDirection
 open Godot
 
 type IGridForChunk =
-    abstract member GetCell: int -> HexCellFS
+    abstract member GetCellIndex: HexCoordinates -> int
+    abstract member CellData: HexCellData array
+    abstract member CellPositions: Vector3 array
 
 type HexGridChunkFS() as this =
     inherit Node3D()
@@ -75,7 +77,7 @@ type HexGridChunkFS() as this =
             triangulateRoadEdge center mL mR index
 
     /// 道路插值器
-    let getRoadInterpolator dir (cell: HexCellFS) =
+    let getRoadInterpolator dir (cell: HexCellData) =
         if cell.HasRoadThroughEdge dir then
             Vector2(0.5f, 0.5f)
         else
@@ -109,21 +111,14 @@ type HexGridChunkFS() as this =
         triangulateEdgeStrip e1 w1 index1 e2 w2 index2 false
 
     /// SSF 和双斜坡变体 SFS、FSS
-    let triangulateCornerTerraces
-        beginV
-        (beginCell: HexCellFS)
-        left
-        (leftCell: HexCellFS)
-        right
-        (rightCell: HexCellFS)
-        =
+    let triangulateCornerTerraces beginV beginCellIndex left leftCellIndex right rightCellIndex =
         let v3 = HexMetrics.terraceLerp beginV left 1
         let v4 = HexMetrics.terraceLerp beginV right 1
         let w3 = HexMetrics.terraceColorLerp weights1 weights2 1
         let w4 = HexMetrics.terraceColorLerp weights1 weights3 1
 
         let indices =
-            Vector3(float32 beginCell.Index, float32 leftCell.Index, float32 rightCell.Index)
+            Vector3(float32 beginCellIndex, float32 leftCellIndex, float32 rightCellIndex)
         // 第一个三角形
         this.terrain.AddTriangle([| beginV; v3; v4 |], [| weights1; w3; w4 |], ci = indices)
         // 中间的四边形
@@ -179,18 +174,21 @@ type HexGridChunkFS() as this =
     /// 处理 SCS 和 SCC
     let triangulateCornerTerracesCliff
         (beginV: Vector3)
-        (beginCell: HexCellFS)
+        beginCellIndex
+        (beginCell: HexCellData)
         left
-        (leftCell: HexCellFS)
+        leftCellIndex
+        (leftCell: HexCellData)
         right
-        (rightCell: HexCellFS)
+        rightCellIndex
+        (rightCell: HexCellData)
         =
         let b = 1f / float32 (rightCell.Elevation - beginCell.Elevation) |> Mathf.Abs
         let boundary = (HexMetrics.perturb beginV).Lerp(HexMetrics.perturb right, b)
         let boundaryWeights = weights1.Lerp(weights3, b)
 
         let indices =
-            Vector3(float32 beginCell.Index, float32 leftCell.Index, float32 rightCell.Index)
+            Vector3(float32 beginCellIndex, float32 leftCellIndex, float32 rightCellIndex)
         // 处理底部
         triangulateBoundaryTriangle beginV weights1 left weights2 boundary boundaryWeights indices
         // 处理顶部
@@ -206,18 +204,21 @@ type HexGridChunkFS() as this =
     /// 处理 CSS 和 CSC
     let triangulateCornerCliffTerraces
         (beginV: Vector3)
-        (beginCell: HexCellFS)
+        beginCellIndex
+        (beginCell: HexCellData)
         left
-        (leftCell: HexCellFS)
+        leftCellIndex
+        (leftCell: HexCellData)
         right
-        (rightCell: HexCellFS)
+        rightCellIndex
+        (rightCell: HexCellData)
         =
         let b = 1f / float32 (leftCell.Elevation - beginCell.Elevation) |> Mathf.Abs
         let boundary = (HexMetrics.perturb beginV).Lerp(HexMetrics.perturb left, b)
         let boundaryWeights = weights1.Lerp(weights2, b)
 
         let indices =
-            Vector3(float32 beginCell.Index, float32 leftCell.Index, float32 rightCell.Index)
+            Vector3(float32 beginCellIndex, float32 leftCellIndex, float32 rightCellIndex)
         // 处理底部
         triangulateBoundaryTriangle right weights3 beginV weights1 boundary boundaryWeights indices
         // 处理顶部
@@ -231,39 +232,87 @@ type HexGridChunkFS() as this =
             )
 
     /// 处理角
-    let triangulateCorner bottom (bottomCell: HexCellFS) left (leftCell: HexCellFS) right (rightCell: HexCellFS) =
+    let triangulateCorner
+        bottom
+        bottomCellIndex
+        (bottomCell: HexCellData)
+        left
+        leftCellIndex
+        (leftCell: HexCellData)
+        right
+        rightCellIndex
+        (rightCell: HexCellData)
+        =
         let leftEdgeType = bottomCell.GetEdgeType leftCell
         let rightEdgeType = bottomCell.GetEdgeType rightCell
 
         match leftEdgeType, rightEdgeType with
         | HexEdgeType.Slope, HexEdgeType.Slope ->
-            triangulateCornerTerraces bottom bottomCell left leftCell right rightCell
+            triangulateCornerTerraces bottom bottomCellIndex left leftCellIndex right rightCellIndex
         | HexEdgeType.Slope, HexEdgeType.Flat ->
-            triangulateCornerTerraces left leftCell right rightCell bottom bottomCell
-        | HexEdgeType.Slope, _ -> triangulateCornerTerracesCliff bottom bottomCell left leftCell right rightCell
+            triangulateCornerTerraces left leftCellIndex right rightCellIndex bottom bottomCellIndex
+        | HexEdgeType.Slope, _ ->
+            triangulateCornerTerracesCliff
+                bottom
+                bottomCellIndex
+                bottomCell
+                left
+                leftCellIndex
+                leftCell
+                right
+                rightCellIndex
+                rightCell
         | HexEdgeType.Flat, HexEdgeType.Slope ->
-            triangulateCornerTerraces right rightCell bottom bottomCell left leftCell
-        | _, HexEdgeType.Slope -> triangulateCornerCliffTerraces bottom bottomCell left leftCell right rightCell
+            triangulateCornerTerraces right rightCellIndex bottom bottomCellIndex left leftCellIndex
+        | _, HexEdgeType.Slope ->
+            triangulateCornerCliffTerraces
+                bottom
+                bottomCellIndex
+                bottomCell
+                left
+                leftCellIndex
+                leftCell
+                right
+                rightCellIndex
+                rightCell
         | _, _ when leftCell.GetEdgeType rightCell = HexEdgeType.Slope ->
             // CCS
             if leftCell.Elevation < rightCell.Elevation then
-                triangulateCornerCliffTerraces right rightCell bottom bottomCell left leftCell
+                triangulateCornerCliffTerraces
+                    right
+                    rightCellIndex
+                    rightCell
+                    bottom
+                    bottomCellIndex
+                    bottomCell
+                    left
+                    leftCellIndex
+                    leftCell
             else
-                triangulateCornerTerracesCliff left leftCell right rightCell bottom bottomCell
+                triangulateCornerTerracesCliff
+                    left
+                    leftCellIndex
+                    leftCell
+                    right
+                    rightCellIndex
+                    rightCell
+                    bottom
+                    bottomCellIndex
+                    bottomCell
         | _, _ ->
             let indices =
-                Vector3(float32 bottomCell.Index, float32 leftCell.Index, float32 rightCell.Index)
+                Vector3(float32 bottomCellIndex, float32 leftCellIndex, float32 rightCellIndex)
 
             this.terrain.AddTriangle([| bottom; left; right |], [| weights1; weights2; weights3 |], ci = indices)
 
         this.features.AddWall2 bottom bottomCell left leftCell right rightCell
 
     // 处理阶梯边
-    let triangulateEdgeTerraces beginE (beginCell: HexCellFS) endE (endCell: HexCellFS) hasRoad =
+    let triangulateEdgeTerraces beginE beginCellIndex endE endCellIndex hasRoad =
         let e2 = EdgeVertices.TerraceLerp beginE endE 1
         let w2 = HexMetrics.terraceColorLerp weights1 weights2 1
-        let i1 = beginCell.Index
-        let i2 = endCell.Index
+        let i1 = beginCellIndex
+        let i2 = endCellIndex
         // 第一个条
         triangulateEdgeStrip beginE weights1 i1 e2 w2 i2 hasRoad
         // 中间条
@@ -318,14 +367,16 @@ type HexGridChunkFS() as this =
         )
 
     /// 处理连接
-    let triangulateConnection (cell: HexCellFS) dir (e1: EdgeVertices) =
-        match cell.GetNeighbor dir with
-        | None -> ()
-        | Some neighbor ->
+    let triangulateConnection dir (cell: HexCellData) cellIndex centerY (e1: EdgeVertices) =
+        match this.Grid.GetCellIndex <| cell.coordinates.Step dir with
+        | -1 -> ()
+        | neighborIndex ->
+            let neighbor = this.Grid.CellData[neighborIndex]
             let bridge = HexMetrics.getBridge dir
 
             let bridge =
-                Vector3Util.changeY bridge <| float32 (neighbor.Position.Y - cell.Position.Y)
+                Vector3Util.changeY bridge
+                <| float32 (this.Grid.CellPositions[neighborIndex].Y - centerY)
 
             let mutable e2 = EdgeVertices(e1.v1 + bridge, e1.v5 + bridge)
 
@@ -335,8 +386,7 @@ type HexGridChunkFS() as this =
             if hasRiver then
                 e2 <- e2.ChangeV3 <| Vector3Util.changeY e2.v3 neighbor.StreamBedY
 
-                let indices =
-                    Vector3(float32 cell.Index, float32 neighbor.Index, float32 cell.Index)
+                let indices = Vector3(float32 cellIndex, float32 neighborIndex, float32 cellIndex)
 
                 if not cell.IsUnderWater then
                     if not neighbor.IsUnderWater then
@@ -373,31 +423,70 @@ type HexGridChunkFS() as this =
 
             // 连接条
             if cell.GetEdgeType neighbor = HexEdgeType.Slope then
-                triangulateEdgeTerraces e1 cell e2 neighbor hasRoad
+                triangulateEdgeTerraces e1 cellIndex e2 neighborIndex hasRoad
             else
-                triangulateEdgeStrip e1 weights1 cell.Index e2 weights2 neighbor.Index hasRoad
+                triangulateEdgeStrip e1 weights1 cellIndex e2 weights2 neighborIndex hasRoad
 
             this.features.AddWall e1 cell e2 neighbor hasRiver hasRoad
             // 避免重复绘制
             if dir <= HexDirection.E then
-                match cell.GetNeighbor dir.Next with
-                | None -> ()
-                | Some nextNeighbor ->
+                match this.Grid.GetCellIndex <| cell.coordinates.Step dir.Next with
+                | -1 -> ()
+                | nextNeighborIndex ->
+                    let nextNeighbor = this.Grid.CellData[nextNeighborIndex]
                     let v5 = e1.v5 + (HexMetrics.getBridge dir.Next)
-                    let v5 = Vector3Util.changeY v5 (float32 nextNeighbor.Position.Y)
+
+                    let v5 =
+                        Vector3Util.changeY v5 (float32 this.Grid.CellPositions[nextNeighborIndex].Y)
                     // 连接角
                     if cell.Elevation <= neighbor.Elevation then
                         if cell.Elevation <= nextNeighbor.Elevation then
-                            triangulateCorner e1.v5 cell e2.v5 neighbor v5 nextNeighbor
+                            triangulateCorner
+                                e1.v5
+                                cellIndex
+                                cell
+                                e2.v5
+                                neighborIndex
+                                neighbor
+                                v5
+                                nextNeighborIndex
+                                nextNeighbor
                         else
-                            triangulateCorner v5 nextNeighbor e1.v5 cell e2.v5 neighbor
+                            triangulateCorner
+                                v5
+                                nextNeighborIndex
+                                nextNeighbor
+                                e1.v5
+                                cellIndex
+                                cell
+                                e2.v5
+                                neighborIndex
+                                neighbor
                     elif neighbor.Elevation <= nextNeighbor.Elevation then
-                        triangulateCorner e2.v5 neighbor v5 nextNeighbor e1.v5 cell
+                        triangulateCorner
+                            e2.v5
+                            neighborIndex
+                            neighbor
+                            v5
+                            nextNeighborIndex
+                            nextNeighbor
+                            e1.v5
+                            cellIndex
+                            cell
                     else
-                        triangulateCorner v5 nextNeighbor e1.v5 cell e2.v5 neighbor
+                        triangulateCorner
+                            v5
+                            nextNeighborIndex
+                            nextNeighbor
+                            e1.v5
+                            cellIndex
+                            cell
+                            e2.v5
+                            neighborIndex
+                            neighbor
 
     /// 处理河流
-    let triangulateWithRiver (dir: HexDirection) (cell: HexCellFS) (center: Vector3) (e: EdgeVertices) =
+    let triangulateWithRiver (dir: HexDirection) (cell: HexCellData) cellIndex (center: Vector3) (e: EdgeVertices) =
         let centerL, centerR =
             if cell.HasRiverThroughEdge dir.Opposite then
                 center + 0.25f * HexMetrics.getFirstSolidCorner dir.Previous,
@@ -424,9 +513,9 @@ type HexGridChunkFS() as this =
         // Unity 的 Vector3 可以修改 x、y、z，但是 Godot 不行
         let center = Vector3Util.changeY center e.v3.Y
         // 边缘条
-        triangulateEdgeStripNoRoad m weights1 cell.Index e weights1 cell.Index
+        triangulateEdgeStripNoRoad m weights1 cellIndex e weights1 cellIndex
         // 两边两个三角形和中间两个四边形
-        let indices = Vector3.One * float32 cell.Index
+        let indices = Vector3.One * float32 cellIndex
         this.terrain.AddTriangle([| centerL; m.v1; m.v2 |], tri1Arr weights1, ci = indices)
         this.terrain.AddQuad([| centerL; center; m.v2; m.v3 |], quad1Arr weights1, ci = indices)
         this.terrain.AddQuad([| center; centerR; m.v3; m.v4 |], quad1Arr weights1, ci = indices)
@@ -438,15 +527,15 @@ type HexGridChunkFS() as this =
             triangulateRiverQuadFlat m.v2 m.v4 e.v2 e.v4 cell.RiverSurfaceY 0.6f reversed indices
 
     /// 处理河流开始和结束
-    let triangulateWithRiverBeginOrEnd (cell: HexCellFS) (center: Vector3) (e: EdgeVertices) =
+    let triangulateWithRiverBeginOrEnd (cell: HexCellData) cellIndex (center: Vector3) (e: EdgeVertices) =
         let mutable m = EdgeVertices(center.Lerp(e.v1, 0.5f), center.Lerp(e.v5, 0.5f))
         m <- m.ChangeV3 <| Vector3Util.changeY m.v3 e.v3.Y
-        triangulateEdgeStripNoRoad m weights1 cell.Index e weights1 cell.Index
-        triangulateEdgeFan center m cell.Index
+        triangulateEdgeStripNoRoad m weights1 cellIndex e weights1 cellIndex
+        triangulateEdgeFan center m cellIndex
         // 河面绘制
         if not cell.IsUnderWater then
             let reversed = cell.IncomingRiver.IsSome
-            let indices = Vector3.One * float32 cell.Index
+            let indices = Vector3.One * float32 cellIndex
             triangulateRiverQuadFlat m.v2 m.v4 e.v2 e.v4 cell.RiverSurfaceY 0.6f reversed indices
             let center = Vector3Util.changeY center cell.RiverSurfaceY
 
@@ -470,7 +559,13 @@ type HexGridChunkFS() as this =
             )
 
     /// 处理有道路的河流流域
-    let triangulateRoadAdjacentToRiver (dir: HexDirection) (cell: HexCellFS) (center: Vector3) (e: EdgeVertices) =
+    let triangulateRoadAdjacentToRiver
+        (dir: HexDirection)
+        (cell: HexCellData)
+        cellIndex
+        (center: Vector3)
+        (e: EdgeVertices)
+        =
         let hasRoadThroughEdge = cell.HasRoadThroughEdge dir
         let previousHasRiver = cell.HasRiverThroughEdge dir.Previous
         let nextHasRiver = cell.HasRiverThroughEdge dir.Next
@@ -536,18 +631,24 @@ type HexGridChunkFS() as this =
         if not prune then
             let mL = roadCenter.Lerp(e.v1, interpolator.X)
             let mR = roadCenter.Lerp(e.v5, interpolator.Y)
-            triangulateRoad roadCenter mL mR e hasRoadThroughEdge cell.Index
+            triangulateRoad roadCenter mL mR e hasRoadThroughEdge cellIndex
 
             if previousHasRiver then
-                triangulateRoadEdge roadCenter center mL cell.Index
+                triangulateRoadEdge roadCenter center mL cellIndex
 
             if nextHasRiver then
-                triangulateRoadEdge roadCenter mR center cell.Index
+                triangulateRoadEdge roadCenter mR center cellIndex
 
     /// 处理河流流域
-    let triangulateAdjacentToRiver (dir: HexDirection) (cell: HexCellFS) (center: Vector3) (e: EdgeVertices) =
+    let triangulateAdjacentToRiver
+        (dir: HexDirection)
+        (cell: HexCellData)
+        cellIndex
+        (center: Vector3)
+        (e: EdgeVertices)
+        =
         if cell.HasRoads then
-            triangulateRoadAdjacentToRiver dir cell center e
+            triangulateRoadAdjacentToRiver dir cell cellIndex center e
 
         let center =
             if cell.HasRiverThroughEdge dir.Next then
@@ -563,15 +664,15 @@ type HexGridChunkFS() as this =
                 center
 
         let m = EdgeVertices(center.Lerp(e.v1, 0.5f), center.Lerp(e.v5, 0.5f))
-        triangulateEdgeStripNoRoad m weights1 cell.Index e weights1 cell.Index
-        triangulateEdgeFan center m cell.Index
+        triangulateEdgeStripNoRoad m weights1 cellIndex e weights1 cellIndex
+        triangulateEdgeFan center m cellIndex
 
         if not cell.IsUnderWater && not <| cell.HasRoadThroughEdge dir then
             this.features.AddFeature cell <| (center + e.v1 + e.v5) * (1f / 3f)
 
     /// 处理没有河流的单元格
-    let triangulateWithoutRiver dir (cell: HexCellFS) center e =
-        triangulateEdgeFan center e cell.Index
+    let triangulateWithoutRiver dir (cell: HexCellData) cellIndex center e =
+        triangulateEdgeFan center e cellIndex
 
         if cell.HasRoads then
             let interpolator = getRoadInterpolator dir cell
@@ -581,7 +682,7 @@ type HexGridChunkFS() as this =
             <| center.Lerp(e.v5, interpolator.Y)
             <| e
             <| cell.HasRoadThroughEdge dir
-            <| cell.Index
+            <| cellIndex
 
     /// 处理河口
     let triangulateEstuary (e1: EdgeVertices) (e2: EdgeVertices) isIncomingRiver indices =
@@ -645,24 +746,25 @@ type HexGridChunkFS() as this =
         )
 
     /// 处理岸边水域
-    let triangulateWaterShore dir (cell: HexCellFS) (neighbor: HexCellFS) center =
+    let triangulateWaterShore dir (cell: HexCellData) cellIndex neighborIndex neighborColumnIndex center =
         let e1 =
             EdgeVertices(center + HexMetrics.getFirstWaterCorner dir, center + HexMetrics.getSecondWaterCorner dir)
 
-        let indices =
-            Vector3(float32 cell.Index, float32 neighbor.Index, float32 cell.Index)
+        let indices = Vector3(float32 cellIndex, float32 neighborIndex, float32 cellIndex)
 
         this.water.AddTriangle([| center; e1.v1; e1.v2 |], tri1Arr weights1, ci = indices)
         this.water.AddTriangle([| center; e1.v2; e1.v3 |], tri1Arr weights1, ci = indices)
         this.water.AddTriangle([| center; e1.v3; e1.v4 |], tri1Arr weights1, ci = indices)
         this.water.AddTriangle([| center; e1.v4; e1.v5 |], tri1Arr weights1, ci = indices)
-        let mutable center2 = neighbor.Position
-        center2.Y <- center.Y
+        let mutable center2 = this.Grid.CellPositions[neighborIndex]
+        let cellColumnIndex = cell.coordinates.ColumnIndex
 
-        if neighbor.ColumnIndex < cell.ColumnIndex - 1 then
+        if neighborColumnIndex < cellColumnIndex - 1 then
             center2.X <- center2.X + float32 HexMetrics.wrapSize * HexMetrics.innerDiameter
-        elif neighbor.ColumnIndex > cell.ColumnIndex + 1 then
+        elif neighborColumnIndex > cellColumnIndex + 1 then
             center2.X <- center2.X - float32 HexMetrics.wrapSize * HexMetrics.innerDiameter
+
+        center2.Y <- center.Y
 
         let e2 =
             EdgeVertices(
@@ -701,54 +803,64 @@ type HexGridChunkFS() as this =
                 ci = indices
             )
 
-        match cell.GetNeighbor dir.Next with
-        | Some nextNeighbor ->
-            let mutable center3 = nextNeighbor.Position
+        let nextNeighborCoordinates = cell.coordinates.Step dir.Next
 
-            if nextNeighbor.ColumnIndex < cell.ColumnIndex - 1 then
+        match this.Grid.GetCellIndex nextNeighborCoordinates with
+        | nextNeighborIndex when nextNeighborIndex >= 0 ->
+            let mutable center3 = this.Grid.CellPositions[nextNeighborIndex]
+
+            let nextNeighborIsUnderWater =
+                this.Grid.CellData[nextNeighborIndex].IsUnderWater
+
+            let nextNeighborColumnIndex = nextNeighborCoordinates.ColumnIndex
+
+            if nextNeighborColumnIndex < cellColumnIndex - 1 then
                 center3.X <- center3.X + float32 HexMetrics.wrapSize * HexMetrics.innerDiameter
-            elif nextNeighbor.ColumnIndex > cell.ColumnIndex + 1 then
+            elif nextNeighborColumnIndex > cellColumnIndex + 1 then
                 center3.X <- center3.X - float32 HexMetrics.wrapSize * HexMetrics.innerDiameter
 
             let mutable v3 =
                 center3
-                + if nextNeighbor.IsUnderWater then
+                + if nextNeighborIsUnderWater then
                       HexMetrics.getFirstWaterCorner dir.Previous
                   else
                       HexMetrics.getFirstSolidCorner dir.Previous
 
             v3.Y <- center.Y
-            let indices = Vector3(indices.X, indices.Y, float32 nextNeighbor.Index)
+            let indices = Vector3(indices.X, indices.Y, float32 nextNeighborIndex)
 
             this.waterShore.AddTriangle(
                 [| e1.v5; e2.v5; v3 |],
                 [| weights1; weights2; weights3 |],
                 [| Vector2(0f, 0f)
                    Vector2(0f, 1f)
-                   Vector2(0f, (if nextNeighbor.IsUnderWater then 0f else 1f)) |],
+                   Vector2(0f, (if nextNeighborIsUnderWater then 0f else 1f)) |],
                 ci = indices
             )
         | _ -> ()
 
 
     /// 处理开放水域
-    let triangulateOpenWater dir (cell: HexCellFS) (neighborOpt: HexCellFS option) center =
+    let triangulateOpenWater (coordinates: HexCoordinates) dir cellIndex neighborIndex center =
         let c1 = center + HexMetrics.getFirstWaterCorner dir
         let c2 = center + HexMetrics.getSecondWaterCorner dir
-        let indices = Vector3.One * float32 cell.Index
+        let indices = Vector3.One * float32 cellIndex
         this.water.AddTriangle([| center; c1; c2 |], tri1Arr weights1, ci = indices)
 
-        if dir <= HexDirection.SE && neighborOpt.IsSome then
+        if dir <= HexDirection.SE && neighborIndex <> -1 then
             let bridge = HexMetrics.getWaterBridge dir
             let e1 = c1 + bridge
             let e2 = c2 + bridge
-            let indices = Vector3Util.changeY indices <| float32 neighborOpt.Value.Index
+            let indices = Vector3Util.changeY indices <| float32 neighborIndex
             this.water.AddQuad([| c1; c2; e1; e2 |], quad2Arr weights1 weights2, ci = indices)
 
             if dir <= HexDirection.E then
-                match cell.GetNeighbor dir.Next with
-                | Some nextNeighbor when nextNeighbor.IsUnderWater ->
-                    let indices = Vector3(indices.X, indices.Y, float32 nextNeighbor.Index)
+                match this.Grid.GetCellIndex <| coordinates.Step dir.Next with
+                | nextNeighborIndex when
+                    nextNeighborIndex >= 0
+                    && this.Grid.CellData[nextNeighborIndex].IsUnderWater
+                    ->
+                    let indices = Vector3(indices.X, indices.Y, float32 nextNeighborIndex)
 
                     this.water.AddTriangle(
                         [| c2; e2; c2 + (HexMetrics.getWaterBridge dir.Next) |],
@@ -758,16 +870,16 @@ type HexGridChunkFS() as this =
                 | _ -> ()
 
     /// 处理水
-    let triangulateWater dir (cell: HexCellFS) center =
+    let triangulateWater dir (cell: HexCellData) cellIndex center =
         let center = Vector3Util.changeY center cell.WaterSurfaceY
+        let neighborCoordinates = cell.coordinates.Step dir
 
-        match cell.GetNeighbor dir with
-        | Some neighbor when not neighbor.IsUnderWater -> triangulateWaterShore dir cell neighbor center
-        | neighborOpt -> triangulateOpenWater dir cell neighborOpt center
+        match this.Grid.GetCellIndex neighborCoordinates with
+        | neighborIndex when neighborIndex >= 0 && not this.Grid.CellData[neighborIndex].IsUnderWater ->
+            triangulateWaterShore dir cell cellIndex neighborIndex neighborCoordinates.ColumnIndex center
+        | neighborIndex -> triangulateOpenWater cell.coordinates dir cellIndex neighborIndex center
 
-    let triangulateDir (cell: HexCellFS) dir =
-        let center = cell.Position
-
+    let triangulateDir (cell: HexCellData) cellIndex center dir =
         let mutable e =
             EdgeVertices(center + HexMetrics.getFirstSolidCorner dir, center + HexMetrics.getSecondSolidCorner dir)
 
@@ -776,32 +888,34 @@ type HexGridChunkFS() as this =
                 e <- e.ChangeV3 <| Vector3(e.v3.X, cell.StreamBedY, e.v3.Z)
 
                 if cell.HasRiverBeginOrEnd then
-                    triangulateWithRiverBeginOrEnd cell center e
+                    triangulateWithRiverBeginOrEnd cell cellIndex center e
                 else
-                    triangulateWithRiver dir cell center e
+                    triangulateWithRiver dir cell cellIndex center e
             else
-                triangulateAdjacentToRiver dir cell center e
+                triangulateAdjacentToRiver dir cell cellIndex center e
         else
-            triangulateWithoutRiver dir cell center e
+            triangulateWithoutRiver dir cell cellIndex center e
 
             if not cell.IsUnderWater && not <| cell.HasRoadThroughEdge dir then
                 this.features.AddFeature cell <| (center + e.v1 + e.v5) * (1f / 3f)
 
         if dir <= HexDirection.SE then
-            triangulateConnection cell dir e
+            triangulateConnection dir cell cellIndex center.Y e
 
         if cell.IsUnderWater then
-            triangulateWater dir cell center
+            triangulateWater dir cell cellIndex center
 
-    let triangulate (cell: HexCellFS) =
-        allHexDirs () |> List.iter (triangulateDir cell)
+    let triangulate cellIndex =
+        let cell = this.Grid.CellData[cellIndex]
+        let cellPosition = this.Grid.CellPositions[cellIndex]
+        allHexDirs () |> List.iter (triangulateDir cell cellIndex cellPosition)
 
         if not cell.IsUnderWater then
             if not cell.HasRiver && not cell.HasRoads then
-                this.features.AddFeature cell cell.Position
+                this.features.AddFeature cell cellPosition
 
             if cell.IsSpecial then
-                this.features.AddSpecialFeature cell cell.Position
+                this.features.AddSpecialFeature cell cellPosition
 
     /// 地形
     [<DefaultValue>]
@@ -839,11 +953,11 @@ type HexGridChunkFS() as this =
         // GD.Print $"{this.Name} Refresh"
         this.SetProcess true
 
-    member this.AddCell index (cell: HexCellFS) =
+    member this.AddCell index (cell: HexCellFS) cellIndex cellUI =
         anyCell <- true
-        cellIndices[index] <- cell.Index
         cell.Chunk <- Some this
-        _gridCanvas.Value.AddChild cell.uiRect
+        cellIndices[index] <- cellIndex
+        _gridCanvas.Value.AddChild cellUI
 
     member this.ShowGrid(visible: bool) =
         (this.terrain.MaterialOverride :?> ShaderMaterial)
@@ -864,7 +978,7 @@ type HexGridChunkFS() as this =
             this.waterShore.Clear()
             this.estuaries.Clear()
             this.features.Clear()
-            cellIndices |> Array.map this.Grid.GetCell |> Array.iter triangulate
+            cellIndices |> Array.iter triangulate
             this.terrain.Apply()
             this.rivers.Apply()
             this.roads.Apply()

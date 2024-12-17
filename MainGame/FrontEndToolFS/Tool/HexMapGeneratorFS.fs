@@ -3,6 +3,7 @@ namespace FrontEndToolFS.Tool
 open System
 open System.Collections.Generic
 open FrontEndToolFS.HexPlane.HexDirection
+open FrontEndToolFS.HexPlane.HexFlags
 open FrontEndToolFS.HexPlane
 open Godot
 
@@ -69,7 +70,7 @@ type HexMapGeneratorFS() as this =
     member val seed = 0 with get, set
     let mutable cellCount = 0
     let mutable landCells = 0
-    let searchFrontier = HexCellPriorityQueue(this.grid)
+    let searchFrontier = lazy HexCellPriorityQueue(this.grid) // lazy 时 grid 才非空
     let mutable searchFrontierPhase = 0
     let random = new RandomNumberGenerator()
     let regions = List<MapRegion>()
@@ -100,37 +101,37 @@ type HexMapGeneratorFS() as this =
            Biome(1, 2)
            Biome(1, 3) |]
 
-    let getRandomCell (region: MapRegion) =
-        this.grid.GetCell(
+    let getRandomCellIndex (region: MapRegion) =
+        this.grid.GetCellIndex(
             random.RandiRange(region.xMin, region.xMax - 1),
             random.RandiRange(region.zMin, region.zMax - 1)
         )
 
     let raiseTerrain chunkSize budget region =
         searchFrontierPhase <- 1 + searchFrontierPhase
-        let firstCell = getRandomCell region
-        this.grid.SearchData[firstCell.Index] <- HexCellSearchData(searchPhase = searchFrontierPhase)
-        searchFrontier.Enqueue firstCell.Index
-        let center = firstCell.Coordinates
+        let firstCellIndex = getRandomCellIndex region
+        this.grid.SearchData[firstCellIndex] <- HexCellSearchData(searchPhase = searchFrontierPhase)
+        searchFrontier.Value.Enqueue firstCellIndex
+        let center = this.grid.CellData[firstCellIndex].coordinates
         let rise = if random.Randf() < this.highRiseProbability then 2 else 1
         let mutable size = 0
         let mutable budget = budget
 
         let mutable index =
             if budget > 0 && size < chunkSize then
-                searchFrontier.Dequeue()
+                searchFrontier.Value.Dequeue()
             else
                 -1
 
         while budget > 0 && size < chunkSize && index >= 0 do
-            let current = this.grid.GetCell index
+            let current = this.grid.CellData[index]
             let originalElevation = current.Elevation
             let newElevation = originalElevation + rise
 
             if newElevation > this.elevationMaximum then
                 ()
             else
-                current.Elevation <- newElevation
+                this.grid.CellData[index].values <- current.values.WithElevation newElevation
 
                 let breakLoop =
                     if originalElevation < this.waterLevel && newElevation >= this.waterLevel then
@@ -143,48 +144,51 @@ type HexMapGeneratorFS() as this =
                     size <- size + 1
 
                     for d in allHexDirs () do
-                        match current.GetNeighbor d with
-                        | Some neighbor when this.grid.SearchData[neighbor.Index].searchPhase < searchFrontierPhase ->
-                            this.grid.SearchData[neighbor.Index] <-
+                        match this.grid.GetCellIndex <| current.coordinates.Step d with
+                        | neighborIndex when
+                            neighborIndex >= 0
+                            && this.grid.SearchData[neighborIndex].searchPhase < searchFrontierPhase
+                            ->
+                            this.grid.SearchData[neighborIndex] <-
                                 HexCellSearchData(
                                     searchPhase = searchFrontierPhase,
-                                    distance = neighbor.Coordinates.DistanceTo center,
+                                    distance = this.grid.CellData[neighborIndex].coordinates.DistanceTo center,
                                     heuristic = if random.Randf() < this.jitterProbability then 1 else 0
                                 )
 
-                            searchFrontier.Enqueue neighbor.Index
+                            searchFrontier.Value.Enqueue neighborIndex
                         | _ -> ()
 
             index <-
                 if budget > 0 && size < chunkSize then
-                    searchFrontier.Dequeue()
+                    searchFrontier.Value.Dequeue()
                 else
                     -1
 
-        searchFrontier.Clear()
+        searchFrontier.Value.Clear()
         budget
 
 
     let sinkTerrain chunkSize budget region =
         searchFrontierPhase <- 1 + searchFrontierPhase
-        let firstCell = getRandomCell region
-        this.grid.SearchData[firstCell.Index] <- HexCellSearchData(searchPhase = searchFrontierPhase)
-        searchFrontier.Enqueue firstCell.Index
-        let center = firstCell.Coordinates
+        let firstCellIndex = getRandomCellIndex region
+        this.grid.SearchData[firstCellIndex] <- HexCellSearchData(searchPhase = searchFrontierPhase)
+        searchFrontier.Value.Enqueue firstCellIndex
+        let center = this.grid.CellData[firstCellIndex].coordinates
         let sink = if random.Randf() < this.highRiseProbability then 2 else 1
         let mutable size = 0
         let mutable budget = budget
-        let mutable index = if size < chunkSize then searchFrontier.Dequeue() else -1
+        let mutable index = if size < chunkSize then searchFrontier.Value.Dequeue() else -1
 
         while size < chunkSize && index >= 0 do
-            let current = this.grid.GetCell index
+            let current = this.grid.CellData[index]
             let originalElevation = current.Elevation
             let newElevation = current.Elevation - sink
 
             if newElevation < this.elevationMinimum then
                 ()
             else
-                current.Elevation <- newElevation
+                this.grid.CellData[index].values <- current.values.WithElevation newElevation
 
                 if originalElevation >= this.waterLevel && newElevation < this.waterLevel then
                     budget <- budget + 1
@@ -192,21 +196,24 @@ type HexMapGeneratorFS() as this =
                 size <- size + 1
 
                 for d in allHexDirs () do
-                    match current.GetNeighbor d with
-                    | Some neighbor when this.grid.SearchData[neighbor.Index].searchPhase < searchFrontierPhase ->
-                        this.grid.SearchData[neighbor.Index] <-
+                    match this.grid.GetCellIndex <| current.coordinates.Step d with
+                    | neighborIndex when
+                        neighborIndex >= 0
+                        && this.grid.SearchData[neighborIndex].searchPhase < searchFrontierPhase
+                        ->
+                        this.grid.SearchData[neighborIndex] <-
                             HexCellSearchData(
                                 searchPhase = searchFrontierPhase,
-                                distance = neighbor.Coordinates.DistanceTo center,
+                                distance = this.grid.CellData[neighborIndex].coordinates.DistanceTo center,
                                 heuristic = if random.Randf() < this.jitterProbability then 1 else 0
                             )
 
-                        searchFrontier.Enqueue neighbor.Index
+                        searchFrontier.Value.Enqueue neighborIndex
                     | _ -> ()
 
-            index <- if size < chunkSize then searchFrontier.Dequeue() else -1
+            index <- if size < chunkSize then searchFrontier.Value.Dequeue() else -1
 
-        searchFrontier.Clear()
+        searchFrontier.Value.Clear()
         budget
 
     let createLand () =
@@ -239,8 +246,8 @@ type HexMapGeneratorFS() as this =
             landCells <- landCells - landBudget
             GD.PrintErr $"Failed to use up {landBudget} land budget."
 
-    let determineTemperature (cell: HexCellFS) =
-        let mutable latitude = float32 cell.Coordinates.Z / float32 this.grid.cellCountZ
+    let determineTemperature cellIndex (cell: HexCellData) =
+        let mutable latitude = float32 cell.coordinates.Z / float32 this.grid.cellCountZ
 
         if this.hemisphere = HemisphereMode.Both then
             latitude <- latitude * 2f
@@ -259,7 +266,9 @@ type HexMapGeneratorFS() as this =
                - float32 (cell.ViewElevation - this.waterLevel)
                  / (float32 this.elevationMaximum - float32 this.waterLevel + 1f))
 
-        let jitter = HexMetrics.sampleNoise(cell.Position * 0.1f)[temperatureJitterChannel]
+        let jitter =
+            HexMetrics.sampleNoise(this.grid.CellPositions[cellIndex] * 0.1f)[temperatureJitterChannel]
+
         temperature + (jitter * 2f - 1f) * this.temperatureJitter
 
     let setTerrainType () =
@@ -269,8 +278,8 @@ type HexMapGeneratorFS() as this =
             this.elevationMaximum - (this.elevationMaximum - this.waterLevel) / 2
 
         for i in 0 .. cellCount - 1 do
-            let cell = this.grid.GetCell(i)
-            let temperature = determineTemperature cell
+            let cell = this.grid.CellData[i]
+            let temperature = determineTemperature i cell
             // 显示温度
             // cell.SetMapData temperature
             let moisture = climate[i].moisture
@@ -305,8 +314,10 @@ type HexMapGeneratorFS() as this =
                     // 如果等级还没有达到最高点，让我们也增加河流沿岸的植物等级
                     cellBiome.plant <- cellBiome.plant + 1
 
-                cell.TerrainTypeIndex <- cellBiome.terrain
-                cell.PlantLevel <- cellBiome.plant
+                this.grid.CellData[i].values <-
+                    cell.values
+                        .WithTerrainTypeIndex(cellBiome.terrain)
+                        .WithPlantLevel(cellBiome.plant)
             else
                 let terrain =
                     match cell.Elevation with
@@ -315,9 +326,9 @@ type HexMapGeneratorFS() as this =
                             allHexDirs ()
                             |> List.fold
                                 (fun (c, s) d ->
-                                    match cell.GetNeighbor d with
-                                    | Some neighbor ->
-                                        let delta = neighbor.Elevation - cell.WaterLevel
+                                    match this.grid.GetCellIndex <| cell.coordinates.Step d with
+                                    | neighborIndex when neighborIndex >= 0 ->
+                                        let delta = this.grid.CellData[neighborIndex].Elevation - cell.WaterLevel
 
                                         if delta = 0 then c, s + 1
                                         elif delta > 0 then c + 1, s
@@ -340,7 +351,7 @@ type HexMapGeneratorFS() as this =
                     else
                         terrain
 
-                cell.TerrainTypeIndex <- terrain
+                this.grid.CellData[i].values <- cell.values.WithTerrainTypeIndex terrain
 
             let riverOriginData =
                 match
@@ -357,9 +368,10 @@ type HexMapGeneratorFS() as this =
 
     let flowDirections = List<HexDirection>()
 
-    let createRiverAt (origin: HexCellFS) =
+    let createRiverAt originIndex =
         let mutable length = 1
-        let mutable cell = origin
+        let mutable cellIndex = originIndex
+        let mutable cell = this.grid.CellData[cellIndex]
         let mutable direction = HexDirection.NE
         let mutable directReturn = Int32.MinValue
 
@@ -369,12 +381,14 @@ type HexMapGeneratorFS() as this =
 
             for d in allHexDirs () do
                 if directReturn = Int32.MinValue then
-                    match cell.GetNeighbor d with
-                    | Some neighbor ->
+                    match this.grid.GetCellIndex <| cell.coordinates.Step d with
+                    | neighborIndex when neighborIndex >= 0 ->
+                        let neighbor = this.grid.CellData[neighborIndex]
+
                         if neighbor.Elevation < minNeighborElevation then
                             minNeighborElevation <- neighbor.Elevation
 
-                        if neighbor = origin || neighbor.IncomingRiver.IsSome then
+                        if neighborIndex = originIndex || neighbor.IncomingRiver.IsSome then
                             ()
                         else
                             let delta = neighbor.Elevation - cell.Elevation
@@ -382,7 +396,8 @@ type HexMapGeneratorFS() as this =
                             if delta > 0 then
                                 ()
                             elif neighbor.OutgoingRiver.IsSome then
-                                cell.SetOutgoingRiver d
+                                this.grid.CellData[cellIndex].flags <- cell.flags.WithRiverOut d
+                                this.grid.CellData[neighborIndex].flags <- neighbor.flags.WithRiverIn d.Opposite
                                 directReturn <- length
                             else
                                 if delta < 0 then
@@ -403,25 +418,29 @@ type HexMapGeneratorFS() as this =
                     directReturn <- 0
                 else
                     if minNeighborElevation >= cell.Elevation then
-                        cell.WaterLevel <- minNeighborElevation
+                        cell.values <- cell.values.WithWaterLevel minNeighborElevation
 
                         if minNeighborElevation = cell.Elevation then
-                            cell.Elevation <- minNeighborElevation - 1
+                            cell.values <- cell.values.WithElevation <| minNeighborElevation - 1
 
                     directReturn <- length
             else
                 direction <- flowDirections[random.RandiRange(0, flowDirections.Count - 1)]
-                cell.SetOutgoingRiver direction
+                cell.flags <- cell.flags.WithRiverOut direction
+                let outIndex = this.grid.GetCellIndex <| cell.coordinates.Step direction
+                this.grid.CellData[outIndex].flags <- this.grid.CellData[outIndex].flags.WithRiverIn direction.Opposite
                 length <- length + 1
 
                 if
                     minNeighborElevation >= cell.Elevation
                     && random.Randf() < this.extraLakeProbability
                 then
-                    cell.WaterLevel <- cell.Elevation
-                    cell.Elevation <- cell.Elevation - 1
+                    cell.values <- cell.values.WithWaterLevel cell.Elevation
+                    cell.values <- cell.values.WithElevation <| cell.Elevation - 1
 
-                cell <- (cell.GetNeighbor direction).Value
+                this.grid.CellData[cellIndex] <- cell
+                cellIndex <- outIndex
+                cell <- this.grid.CellData[cellIndex]
 
         if directReturn <> Int32.MinValue then
             directReturn
@@ -429,10 +448,10 @@ type HexMapGeneratorFS() as this =
             length
 
     let createRiver () =
-        let riverOrigins = List<HexCellFS>()
+        let riverOrigins = List<int>()
 
         for i in 0 .. cellCount - 1 do
-            let cell = this.grid.GetCell i
+            let cell = this.grid.CellData[i]
 
             if cell.IsUnderWater then
                 ()
@@ -444,14 +463,14 @@ type HexMapGeneratorFS() as this =
                     / float32 (this.elevationMaximum - this.waterLevel)
 
                 if weight > 0.75f then
-                    riverOrigins.Add cell
-                    riverOrigins.Add cell
+                    riverOrigins.Add i
+                    riverOrigins.Add i
 
                 if weight > 0.5f then
-                    riverOrigins.Add cell
+                    riverOrigins.Add i
 
                 if weight > 0.25f then
-                    riverOrigins.Add cell
+                    riverOrigins.Add i
 
         let mutable riverBudget =
             Mathf.RoundToInt(float32 landCells * this.riverPercentage * 0.01f)
@@ -461,7 +480,8 @@ type HexMapGeneratorFS() as this =
         while riverBudget > 0 && riverOrigins.Count > 0 do
             let lastIndex = riverOrigins.Count - 1
             let index = random.RandiRange(0, lastIndex)
-            let origin = riverOrigins[index]
+            let originIndex = riverOrigins[index]
+            let origin = this.grid.CellData[originIndex]
             riverOrigins[index] <- riverOrigins[lastIndex]
             riverOrigins.RemoveAt lastIndex
 
@@ -469,13 +489,18 @@ type HexMapGeneratorFS() as this =
                 let isValidOrigin =
                     allHexDirs ()
                     |> List.exists (fun d ->
-                        match origin.GetNeighbor d with
-                        | Some neighbor when neighbor.HasRiver || neighbor.IsUnderWater -> true
+                        match this.grid.GetCellIndex <| origin.coordinates.Step d with
+                        | neighborIndex when
+                            neighborIndex >= 0
+                            && (this.grid.CellData[neighborIndex].HasRiver
+                                || this.grid.CellData[neighborIndex].IsUnderWater)
+                            ->
+                            true
                         | _ -> false)
                     |> not
 
                 if isValidOrigin then
-                    riverBudget <- riverBudget - createRiverAt origin
+                    riverBudget <- riverBudget - createRiverAt originIndex
 
         if riverBudget > 0 then
             GD.PrintErr $"Failed to use up river budget {riverBudget}"
@@ -556,75 +581,89 @@ type HexMapGeneratorFS() as this =
             region.xMax <- this.grid.cellCountX / 2 - this.regionBorder
             regions.Add region
 
-    let isErodible (cell: HexCellFS) =
-        let erodibleElevation = cell.Elevation - 2
+    let isErodible cellIndex cellElevation =
+        let erodibleElevation = cellElevation - 2
+        let coordinates = this.grid.CellData[cellIndex].coordinates
 
         allHexDirs ()
         |> List.exists (fun d ->
-            let neighborOpt = cell.GetNeighbor d
-            neighborOpt.IsSome && neighborOpt.Value.Elevation <= erodibleElevation)
+            let neighborIndex = this.grid.GetCellIndex <| coordinates.Step d
 
-    let getErosionTarget (cell: HexCellFS) =
-        let candidates = List<HexCellFS>()
-        let erodibleElevation = cell.Elevation - 2
+            neighborIndex >= 0
+            && this.grid.CellData[neighborIndex].Elevation <= erodibleElevation)
+
+    let getErosionTarget cellIndex cellElevation =
+        let candidates = List<int>()
+        let erodibleElevation = cellElevation - 2
+        let coordinates = this.grid.CellData[cellIndex].coordinates
 
         for d in allHexDirs () do
-            let neighborOpt = cell.GetNeighbor d
+            let neighborIndex = this.grid.GetCellIndex <| coordinates.Step d
 
-            if neighborOpt.IsSome && neighborOpt.Value.Elevation <= erodibleElevation then
-                candidates.Add neighborOpt.Value
+            if
+                neighborIndex >= 0
+                && this.grid.CellData[neighborIndex].Elevation <= erodibleElevation
+            then
+                candidates.Add neighborIndex
 
         candidates[random.RandiRange(0, candidates.Count - 1)]
 
     let erodeLand () =
-        let erodibleCells = List<HexCellFS>()
+        let erodibleIndices = List<int>()
 
         for i in 0 .. cellCount - 1 do
-            let cell = this.grid.GetCell(i)
+            if isErodible i this.grid.CellData[i].Elevation then
+                erodibleIndices.Add i
 
-            if isErodible cell then
-                erodibleCells.Add cell
-
-        GD.Print $"Eroding {erodibleCells.Count} cells."
+        GD.Print $"Eroding {erodibleIndices.Count} cells."
 
         let targetErodibleCount =
-            int <| float32 (erodibleCells.Count * (100 - this.erosionPercentage)) * 0.01f
+            int <| float32 (erodibleIndices.Count * (100 - this.erosionPercentage)) * 0.01f
 
-        while erodibleCells.Count > targetErodibleCount do
-            let index = random.RandiRange(0, erodibleCells.Count - 1)
-            let cell = erodibleCells[index]
-            let targetCell = getErosionTarget cell
-            cell.Elevation <- cell.Elevation - 1
-            targetCell.Elevation <- targetCell.Elevation + 1
+        while erodibleIndices.Count > targetErodibleCount do
+            let index = random.RandiRange(0, erodibleIndices.Count - 1)
+            let cellIndex = erodibleIndices[index]
+            let mutable cell = this.grid.CellData[cellIndex]
+            let targetCellIndex = getErosionTarget cellIndex cell.Elevation
+            cell.values <- cell.values.WithElevation <| cell.Elevation - 1
+            this.grid.CellData[cellIndex].values <- cell.values
+            let mutable targetCell = this.grid.CellData[targetCellIndex]
+            targetCell.values <- targetCell.values.WithElevation <| targetCell.Elevation + 1
+            this.grid.CellData[targetCellIndex].values <- targetCell.values
 
-            if not <| isErodible cell then
-                erodibleCells[index] <- erodibleCells[erodibleCells.Count - 1]
-                erodibleCells.RemoveAt <| erodibleCells.Count - 1
+            if not <| isErodible cellIndex cell.Elevation then
+                erodibleIndices[index] <- erodibleIndices[erodibleIndices.Count - 1]
+                erodibleIndices.RemoveAt <| erodibleIndices.Count - 1
 
             for d in allHexDirs () do
-                match cell.GetNeighbor d with
-                | Some neighbor when
-                    neighbor.Elevation = cell.Elevation + 2
-                    && not <| erodibleCells.Contains neighbor
+                match this.grid.GetCellIndex <| cell.coordinates.Step d with
+                | neighborIndex when
+                    neighborIndex >= 0
+                    && this.grid.CellData[neighborIndex].Elevation = cell.Elevation + 2
+                    && not <| erodibleIndices.Contains neighborIndex
                     ->
-                    erodibleCells.Add neighbor
+                    erodibleIndices.Add neighborIndex
                 | _ -> ()
 
-            if isErodible targetCell && not <| erodibleCells.Contains targetCell then
-                erodibleCells.Add targetCell
+            if
+                isErodible targetCellIndex targetCell.Elevation
+                && not <| erodibleIndices.Contains targetCellIndex
+            then
+                erodibleIndices.Add targetCellIndex
 
             for d in allHexDirs () do
-                match targetCell.GetNeighbor d with
-                | Some neighbor when
-                    neighbor <> cell
-                    && neighbor.Elevation = targetCell.Elevation + 1
-                    && not <| isErodible neighbor
+                match this.grid.GetCellIndex <| targetCell.coordinates.Step d with
+                | neighborIndex when
+                    neighborIndex >= 0
+                    && neighborIndex <> cellIndex
+                    && this.grid.CellData[neighborIndex].Elevation = targetCell.Elevation + 1
+                    && not <| isErodible neighborIndex this.grid.CellData[neighborIndex].Elevation
                     ->
-                    erodibleCells.Remove neighbor |> ignore
+                    erodibleIndices.Remove neighborIndex |> ignore
                 | _ -> ()
 
     let evolveClimate (cellIndex: int) =
-        let cell = this.grid.GetCell cellIndex
+        let cell = this.grid.CellData[cellIndex]
         let mutable cellClimate = climate[cellIndex]
 
         if cell.IsUnderWater then
@@ -652,16 +691,17 @@ type HexMapGeneratorFS() as this =
         let seepage = cellClimate.moisture * this.seepageFactor * (1f / 6f)
 
         for d in allHexDirs () do
-            match cell.GetNeighbor d with
-            | Some neighbor ->
-                let mutable neighborClimate = nextClimate[neighbor.Index]
+            match this.grid.GetCellIndex <| cell.coordinates.Step d with
+            | neighborIndex when neighborIndex >= 0 ->
+                let mutable neighborClimate = nextClimate[neighborIndex]
 
                 if d = mainDispersalDirection then
                     neighborClimate.clouds <- neighborClimate.clouds + cloudDispersal * this.windStrength
                 else
                     neighborClimate.clouds <- neighborClimate.clouds + cloudDispersal
 
-                let elevationDelta = neighbor.ViewElevation - cell.ViewElevation
+                let elevationDelta =
+                    this.grid.CellData[neighborIndex].ViewElevation - cell.ViewElevation
 
                 if elevationDelta < 0 then
                     cellClimate.moisture <- cellClimate.moisture - runoff
@@ -670,7 +710,7 @@ type HexMapGeneratorFS() as this =
                     cellClimate.moisture <- cellClimate.moisture - seepage
                     neighborClimate.moisture <- neighborClimate.moisture + seepage
 
-                nextClimate[neighbor.Index] <- neighborClimate
+                nextClimate[neighborIndex] <- neighborClimate
             | _ -> ()
 
         let mutable nextCellClimate = nextClimate[cellIndex]
@@ -720,7 +760,7 @@ type HexMapGeneratorFS() as this =
         this.grid.CreateMap x z wrapping |> ignore
 
         for i in 0 .. cellCount - 1 do
-            this.grid.GetCell(i).WaterLevel <- this.waterLevel
+            this.grid.CellData[i].values <- this.grid.CellData[i].values.WithWaterLevel this.waterLevel
 
         createRegions ()
         createLand ()
@@ -731,5 +771,6 @@ type HexMapGeneratorFS() as this =
 
         for i in 0 .. cellCount - 1 do
             this.grid.SearchData[i].searchPhase <- 0
+            (this.grid.GetCell i).RefreshAll()
 
         random.State <- initState

@@ -18,6 +18,7 @@
         <Compile Include="HexPlane\HexHash.fs" />
         <Compile Include="HexPlane\HexMetrics.fs" />
         <Compile Include="HexPlane\HexCoordinates.fs" />
+        <Compile Include="HexPlane\HexCellData.fs" />
         <Compile Include="HexPlane\EdgeVertices.fs" />
         <Compile Include="HexPlane\HexCellShaderData.fs" />
         <Compile Include="HexPlane\HexCellSearchData.fs" />

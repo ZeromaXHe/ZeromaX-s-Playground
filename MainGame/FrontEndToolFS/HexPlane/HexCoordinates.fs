@@ -27,7 +27,7 @@ type HexCoordinates =
             float32 (this.X + this.Z / 2) + if (this.Z &&& 1) = 0 then 0f else 0.5f
 
         member this.HexZ = float32 this.Z * HexMetrics.outerToInner
-
+        member this.ColumnIndex = (this.X + this.Z / 2) / HexMetrics.chunkSizeX
         static member FromOffsetCoordinates x z = HexCoordinates(x - z / 2, z)
 
         static member FromPosition(position: Vector3) =

@@ -8,12 +8,11 @@ type ICell =
     abstract member TerrainTypeIndex: int
     abstract member IsExplored: bool
     abstract member IsUnderWater: bool
-    abstract member WaterSurfaceY: float32
 
 type IGridForShader =
     abstract member ResetVisibility: unit -> unit
-    abstract member GetCell: int -> ICell
     abstract member IsCellVisible: int -> bool
+    abstract member CellData: HexCellData array
 
 type HexCellShaderData() as this =
     let mutable cellTexture: Image = null
@@ -25,20 +24,19 @@ type HexCellShaderData() as this =
     let mutable needsVisibilityReset = false
     let mutable visibilityTransitions: bool array = null
 
-    let changeCellPixel (cell: ICell) data =
-        cellTexture.SetPixel(cell.Index % cellTexture.GetWidth(), cell.Index / cellTexture.GetWidth(), data)
+    let changeCellPixel cellIndex data =
+        cellTexture.SetPixel(cellIndex % cellTexture.GetWidth(), cellIndex / cellTexture.GetWidth(), data)
 
     let updateCellData index delta =
-        let cell = this.Grid.GetCell index
         let mutable data = cellTextureData[index]
         let mutable stillUpdating = false
 
-        if cell.IsExplored && data.G8 < 255 then
+        if this.Grid.CellData[index].IsExplored && data.G8 < 255 then
             stillUpdating <- true
             let t = data.G8 + delta
             data.G8 <- if t >= 255 then 255 else t
 
-        if this.Grid.IsCellVisible cell.Index then
+        if this.Grid.IsCellVisible index then
             if data.R8 < 255 then
                 stillUpdating <- true
                 let t = data.R8 + delta
@@ -52,7 +50,7 @@ type HexCellShaderData() as this =
             visibilityTransitions[index] <- false
 
         cellTextureData[index] <- data
-        changeCellPixel cell data
+        changeCellPixel index data
         stillUpdating
 
     member this.Initialize x z =
@@ -82,8 +80,9 @@ type HexCellShaderData() as this =
         transitioningCellIndices.Clear()
         enabled <- true
 
-    member this.RefreshTerrain(cell: ICell) =
-        let mutable data = cellTextureData[cell.Index]
+    member this.RefreshTerrain cellIndex =
+        let cell = this.Grid.CellData[cellIndex]
+        let mutable data = cellTextureData[cellIndex]
 
         data.B8 <-
             if cell.IsUnderWater then
@@ -92,20 +91,18 @@ type HexCellShaderData() as this =
                 0
 
         data.A8 <- int cell.TerrainTypeIndex
-        cellTextureData[cell.Index] <- data
-        changeCellPixel cell data
+        cellTextureData[cellIndex] <- data
+        changeCellPixel cellIndex data
         enabled <- true
 
-    member this.RefreshVisibility(cell: ICell) =
-        let index = cell.Index
-
+    member this.RefreshVisibility cellIndex =
         if this.ImmediateMode then
-            cellTextureData[index].R8 <- if this.Grid.IsCellVisible cell.Index then 255 else 0
-            cellTextureData[index].G8 <- if cell.IsExplored then 255 else 0
-            changeCellPixel cell cellTextureData[index]
-        elif not visibilityTransitions[index] then
-            visibilityTransitions[index] <- true
-            transitioningCellIndices.Add cell.Index
+            cellTextureData[cellIndex].R8 <- if this.Grid.IsCellVisible cellIndex then 255 else 0
+            cellTextureData[cellIndex].G8 <- if this.Grid.CellData[cellIndex].IsExplored then 255 else 0
+            changeCellPixel cellIndex cellTextureData[cellIndex]
+        elif not visibilityTransitions[cellIndex] then
+            visibilityTransitions[cellIndex] <- true
+            transitioningCellIndices.Add cellIndex
 
         enabled <- true
 
@@ -136,14 +133,16 @@ type HexCellShaderData() as this =
 
     member val ImmediateMode = false with get, set
 
-    member this.ViewElevationChanged(cell: ICell) =
-        cellTextureData[cell.Index].B8 <-
+    member this.ViewElevationChanged cellIndex =
+        let cell = this.Grid.CellData[cellIndex]
+
+        cellTextureData[cellIndex].B8 <-
             if cell.IsUnderWater then
                 int <| cell.WaterSurfaceY * (255f / 30f)
             else
                 0
 
-        changeCellPixel cell cellTextureData[cell.Index]
+        changeCellPixel cellIndex cellTextureData[cellIndex]
         needsVisibilityReset <- true
         enabled <- true
 

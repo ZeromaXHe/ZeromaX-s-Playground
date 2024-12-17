@@ -110,7 +110,7 @@ type HexFeatureManagerFS() as this =
             tower.RotateY <| rightDirection.AngleTo Vector3.Right
             _container.AddChild tower
 
-    let addWallSegment2 pivot (pivotCell: HexCellFS) left (leftCell: HexCellFS) right (rightCell: HexCellFS) =
+    let addWallSegment2 pivot (pivotCell: HexCellData) left (leftCell: HexCellData) right (rightCell: HexCellData) =
         if not pivotCell.IsUnderWater then
             let hasLeftWall =
                 not leftCell.IsUnderWater && pivotCell.GetEdgeType leftCell <> HexEdgeType.Cliff
@@ -149,7 +149,7 @@ type HexFeatureManagerFS() as this =
 
     member this.Apply() = this.walls.Apply()
 
-    member this.AddFeature (cell: HexCellFS) (position: Vector3) =
+    member this.AddFeature (cell: HexCellData) (position: Vector3) =
         if not cell.IsSpecial then
             let hash = HexMetrics.sampleHashGrid position
 
@@ -182,9 +182,9 @@ type HexFeatureManagerFS() as this =
 
     member this.AddWall
         (near: EdgeVertices)
-        (nearCell: HexCellFS)
+        (nearCell: HexCellData)
         (far: EdgeVertices)
-        (farCell: HexCellFS)
+        (farCell: HexCellData)
         hasRiver
         hasRoad
         =
@@ -205,7 +205,7 @@ type HexFeatureManagerFS() as this =
 
             addWallSegment near.v4 far.v4 near.v5 far.v5 false
 
-    member this.AddWall2 c1 (cell1: HexCellFS) c2 (cell2: HexCellFS) c3 (cell3: HexCellFS) =
+    member this.AddWall2 c1 (cell1: HexCellData) c2 (cell2: HexCellData) c3 (cell3: HexCellData) =
         if cell1.Walled then
             if cell2.Walled then
                 if not cell3.Walled then
@@ -239,7 +239,7 @@ type HexFeatureManagerFS() as this =
         instance.RotateY <| Mathf.Pi / 2f
 
     /// 特殊特征
-    member this.AddSpecialFeature (cell: HexCellFS) position =
+    member this.AddSpecialFeature (cell: HexCellData) position =
         let instance = this.special[cell.SpecialIndex - 1].Instantiate<CsgBox3D>()
         instance.Position <- HexMetrics.perturb position + instance.Position
         let hash = HexMetrics.sampleHashGrid position
