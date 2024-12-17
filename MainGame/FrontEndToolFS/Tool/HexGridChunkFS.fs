@@ -366,8 +366,8 @@ type HexGridChunkFS() as this =
                         e2.v2
                         e1.v4
                         e1.v2
-                        neighbor.WaterSurfaceY
-                        cell.WaterSurfaceY
+                        neighbor.RiverSurfaceY
+                        cell.RiverSurfaceY
                         cell.WaterSurfaceY
                         indices
 
