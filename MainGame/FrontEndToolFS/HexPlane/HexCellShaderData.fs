@@ -6,7 +6,6 @@ open Godot
 type ICell =
     abstract member Index: int
     abstract member TerrainTypeIndex: int
-    abstract member IsVisible: bool
     abstract member IsExplored: bool
     abstract member IsUnderWater: bool
     abstract member WaterSurfaceY: float32
@@ -14,6 +13,7 @@ type ICell =
 type IGridForShader =
     abstract member ResetVisibility: unit -> unit
     abstract member GetCell: int -> ICell
+    abstract member IsCellVisible: int -> bool
 
 type HexCellShaderData() as this =
     let mutable cellTexture: Image = null
@@ -38,7 +38,7 @@ type HexCellShaderData() as this =
             let t = data.G8 + delta
             data.G8 <- if t >= 255 then 255 else t
 
-        if cell.IsVisible then
+        if this.Grid.IsCellVisible cell.Index then
             if data.R8 < 255 then
                 stillUpdating <- true
                 let t = data.R8 + delta
@@ -100,7 +100,7 @@ type HexCellShaderData() as this =
         let index = cell.Index
 
         if this.ImmediateMode then
-            cellTextureData[index].R8 <- if cell.IsVisible then 255 else 0
+            cellTextureData[index].R8 <- if this.Grid.IsCellVisible cell.Index then 255 else 0
             cellTextureData[index].G8 <- if cell.IsExplored then 255 else 0
             changeCellPixel cell cellTextureData[index]
         elif not visibilityTransitions[index] then

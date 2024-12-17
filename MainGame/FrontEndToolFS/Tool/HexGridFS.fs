@@ -7,65 +7,59 @@ open System.IO
 open FrontEndToolFS.HexPlane
 open Godot
 
-type HexCellPriorityQueue() =
-    let list = List<HexCellFS option>()
+type HexCellPriorityQueue(grid: HexGridFS) =
+    let list = List<int>()
 
     let mutable minimum = Int32.MaxValue
-    let mutable count = 0
-    member this.Count = count
 
-    member this.Enqueue(cell: HexCellFS) =
-        count <- count + 1
-        let priority = cell.SearchPriority
+    member this.Enqueue cellIndex =
+        let priority = grid.SearchData[cellIndex].SearchPriority
 
         if priority < minimum then
             minimum <- priority
 
         while priority >= list.Count do
-            list.Add None
+            list.Add -1
 
-        cell.NextWithSamePriority <- list[priority]
-        list[priority] <- Some cell
+        grid.SearchData[cellIndex].nextWithSamePriority <- list[priority]
+        list[priority] <- cellIndex
 
     member this.Dequeue() =
-        count <- count - 1
         let mutable breakLoop = false
-        let mutable result = None
+        let mutable result = -1
 
         while minimum < list.Count && not breakLoop do
-            let cellOpt = list[minimum]
+            let cellIndex = list[minimum]
 
-            if cellOpt.IsSome then
-                result <- cellOpt
-                list[minimum] <- cellOpt.Value.NextWithSamePriority
+            if cellIndex >= 0 then
+                result <- cellIndex
+                list[minimum] <- grid.SearchData[cellIndex].nextWithSamePriority
                 breakLoop <- true
             else
                 minimum <- minimum + 1
 
         result
 
-    member this.Change (cell: HexCellFS) oldPriority =
+    member this.Change cellIndex oldPriority =
         let mutable current = list[oldPriority]
-        let mutable next = current |> Option.bind _.NextWithSamePriority
+        let mutable next = grid.SearchData[current].nextWithSamePriority
 
-        if current = Some cell then
+        if current = cellIndex then
             list[oldPriority] <- next
         else
-            while next <> Some cell do
+            while next <> cellIndex do
                 current <- next
-                next <- current |> Option.bind _.NextWithSamePriority
+                next <- grid.SearchData[current].nextWithSamePriority
 
-            current.Value.NextWithSamePriority <- cell.NextWithSamePriority
+            grid.SearchData[current].nextWithSamePriority <- grid.SearchData[cellIndex].nextWithSamePriority
 
-        this.Enqueue cell
-        count <- count - 1 // 但我们实际上并没有添加新的单元格
+        this.Enqueue cellIndex
 
     member this.Clear() =
         list.Clear()
-        count <- 0
         minimum <- Int32.MaxValue
 
-type HexGridFS() as this =
+and HexGridFS() as this =
     inherit Node3D()
 
     interface IGridForUnit with
@@ -89,6 +83,7 @@ type HexGridFS() as this =
     interface IGridForShader with
         override this.ResetVisibility() = this.ResetVisibility()
         override this.GetCell index = this.GetCell index
+        override this.IsCellVisible cellIndex = this.IsCellVisible cellIndex
 
     interface IGridForCell with
         override this.GetCell coords = this.GetCell coords
@@ -113,6 +108,10 @@ type HexGridFS() as this =
             if not value then
                 (this.GetNode<Node3D> "PathShower").GetChildren() |> Seq.iter _.QueueFree()
 
+    let mutable searchData: HexCellSearchData array = null
+    member this.SearchData: HexCellSearchData array = searchData
+    let mutable cellVisibility: int array = null
+    member this.IsCellVisible cellIndex = cellVisibility[cellIndex] > 0
     let mutable chunkCountX = 4
     let mutable chunkCountZ = 3
 
@@ -150,6 +149,8 @@ type HexGridFS() as this =
 
     let createCells () =
         _cells <- Array.init (this.cellCountX * this.cellCountZ) (fun _ -> HexCellFS())
+        searchData <- Array.init _cells.Length (fun _ -> HexCellSearchData())
+        cellVisibility <- Array.zeroCreate _cells.Length
 
         for i in 0 .. _cells.Length - 1 do
             let z = i / this.cellCountX
@@ -184,7 +185,7 @@ type HexGridFS() as this =
             cell.Elevation <- 0
             addCellToChunk x z cell
 
-    let searchFrontier = HexCellPriorityQueue()
+    let searchFrontier = HexCellPriorityQueue this
     let mutable searchFrontierPhase = 0
     let mutable currentPathFromIndex = -1
     let mutable currentPathToIndex = -1
@@ -195,50 +196,62 @@ type HexGridFS() as this =
         let speed = unit.Speed
         searchFrontierPhase <- 2 + searchFrontierPhase
         searchFrontier.Clear()
-        fromCell.SearchPhase <- searchFrontierPhase
-        fromCell.Distance <- 0
-        searchFrontier.Enqueue fromCell
+        searchData[fromCell.Index] <- HexCellSearchData(searchPhase = searchFrontierPhase)
+        searchFrontier.Enqueue fromCell.Index
 
         let mutable breakLoop = false
+        let mutable currentIndex = searchFrontier.Dequeue()
 
-        while searchFrontier.Count > 0 && not breakLoop do
-            let current = searchFrontier.Dequeue().Value
-            current.SearchPhase <- 1 + current.SearchPhase
+        while currentIndex >= 0 && not breakLoop do
+            let current = _cells[currentIndex]
+            let currentDistance = searchData[currentIndex].distance
+            searchData[currentIndex].searchPhase <- 1 + searchData[currentIndex].searchPhase
 
             if current = toCell then
                 breakLoop <- true
             else
-                let currentTurn = (current.Distance - 1) / speed
+                let currentTurn = (currentDistance - 1) / speed
 
                 for d in HexDirection.allHexDirs () do
                     match current.GetNeighbor d with
-                    | Some neighbor when
-                        neighbor.SearchPhase <= searchFrontierPhase && unit.IsValidDestination(neighbor)
-                        ->
-                        let moveCost = unit.GetMoveCost current neighbor d
+                    | Some neighbor ->
+                        let neighborData = searchData[neighbor.Index]
 
-                        if moveCost >= 0 then
-                            let distance = current.Distance + moveCost
-                            let turn = (distance - 1) / speed
+                        if
+                            neighborData.searchPhase > searchFrontierPhase
+                            || not <| unit.IsValidDestination(neighbor)
+                        then
+                            ()
+                        else
+                            let moveCost = unit.GetMoveCost current neighbor d
 
-                            let distance =
-                                if turn > currentTurn then
-                                    turn * speed + moveCost
-                                else
-                                    distance
+                            if moveCost >= 0 then
+                                let distance = currentDistance + moveCost
+                                let turn = (distance - 1) / speed
 
-                            if neighbor.SearchPhase < searchFrontierPhase then
-                                neighbor.SearchPhase <- searchFrontierPhase
-                                neighbor.Distance <- distance
-                                neighbor.PathFromIndex <- current.Index
-                                neighbor.SearchHeuristic <- neighbor.Coordinates.DistanceTo toCell.Coordinates
-                                searchFrontier.Enqueue neighbor
-                            elif distance < neighbor.Distance then
-                                let oldPriority = neighbor.SearchPriority
-                                neighbor.Distance <- distance
-                                neighbor.PathFromIndex <- current.Index
-                                searchFrontier.Change neighbor oldPriority
+                                let distance =
+                                    if turn > currentTurn then
+                                        turn * speed + moveCost
+                                    else
+                                        distance
+
+                                if neighborData.searchPhase < searchFrontierPhase then
+                                    searchData[neighbor.Index] <-
+                                        HexCellSearchData(
+                                            searchPhase = searchFrontierPhase,
+                                            distance = distance,
+                                            pathFrom = currentIndex,
+                                            heuristic = neighbor.Coordinates.DistanceTo toCell.Coordinates
+                                        )
+
+                                    searchFrontier.Enqueue neighbor.Index
+                                elif distance < neighborData.distance then
+                                    searchData[neighbor.Index].distance <- distance
+                                    searchData[neighbor.Index].pathFrom <- currentIndex
+                                    searchFrontier.Change neighbor.Index neighborData.SearchPriority
                     | _ -> ()
+
+                currentIndex <- if breakLoop then -1 else searchFrontier.Dequeue()
 
         breakLoop
 
@@ -247,36 +260,50 @@ type HexGridFS() as this =
         searchFrontierPhase <- 2 + searchFrontierPhase
         searchFrontier.Clear()
         let range = range + fromCell.ViewElevation
-        fromCell.SearchPhase <- searchFrontierPhase
-        fromCell.Distance <- 0
-        searchFrontier.Enqueue fromCell
-        let fromCoordinates = fromCell.Coordinates
 
-        while searchFrontier.Count > 0 do
-            let current = searchFrontier.Dequeue().Value
-            current.SearchPhase <- 1 + current.SearchPhase
+        searchData[fromCell.Index] <-
+            HexCellSearchData(searchPhase = searchFrontierPhase, pathFrom = searchData[fromCell.Index].pathFrom)
+
+        searchFrontier.Enqueue fromCell.Index
+        let fromCoordinates = fromCell.Coordinates
+        let mutable currentIndex = searchFrontier.Dequeue()
+
+        while currentIndex >= 0 do
+            let current = _cells[currentIndex]
+            searchData[currentIndex].searchPhase <- 1 + searchData[currentIndex].searchPhase
 
             visibleCells.Add current
 
             for d in HexDirection.allHexDirs () do
                 match current.GetNeighbor d with
-                | Some neighbor when neighbor.SearchPhase <= searchFrontierPhase && neighbor.Explorable ->
-                    let distance = current.Distance + 1
+                | Some neighbor ->
+                    let neighborData = searchData[neighbor.Index]
 
-                    if
-                        distance + neighbor.ViewElevation <= range
-                        && distance <= fromCoordinates.DistanceTo neighbor.Coordinates
-                    then
-                        if neighbor.SearchPhase < searchFrontierPhase then
-                            neighbor.SearchPhase <- searchFrontierPhase
-                            neighbor.Distance <- distance
-                            neighbor.SearchHeuristic <- 0
-                            searchFrontier.Enqueue neighbor
-                        elif distance < neighbor.Distance then
-                            let oldPriority = neighbor.SearchPriority
-                            neighbor.Distance <- distance
-                            searchFrontier.Change neighbor oldPriority
+                    if neighborData.searchPhase > searchFrontierPhase || not neighbor.Explorable then
+                        ()
+                    else
+                        let distance = searchData[currentIndex].distance + 1
+
+                        if
+                            distance + neighbor.ViewElevation > range
+                            || distance > fromCoordinates.DistanceTo neighbor.Coordinates
+                        then
+                            ()
+                        elif neighborData.searchPhase < searchFrontierPhase then
+                            searchData[neighbor.Index] <-
+                                HexCellSearchData(
+                                    searchPhase = searchFrontierPhase,
+                                    distance = distance,
+                                    pathFrom = neighborData.pathFrom
+                                )
+
+                            searchFrontier.Enqueue neighbor.Index
+                        elif distance < searchData[neighbor.Index].distance then
+                            searchData[neighbor.Index].distance <- distance
+                            searchFrontier.Change neighbor.Index neighborData.SearchPriority
                 | _ -> ()
+
+            currentIndex <- searchFrontier.Dequeue()
 
         visibleCells
 
@@ -285,10 +312,10 @@ type HexGridFS() as this =
             let mutable current = _cells[currentPathToIndex]
 
             while current <> _cells[currentPathFromIndex] do
-                let turn = (current.Distance - 1) / speed
+                let turn = (searchData[current.Index].distance - 1) / speed
                 current.SetLabel <| string turn
                 current.EnableHighlight Colors.White
-                current <- _cells[current.PathFromIndex]
+                current <- _cells[searchData[current.Index].pathFrom]
 
         _cells[currentPathFromIndex].EnableHighlight Colors.Blue
         _cells[currentPathToIndex].EnableHighlight Colors.Red
@@ -453,7 +480,7 @@ type HexGridFS() as this =
             while current <> _cells[currentPathFromIndex] do
                 current.SetLabel ""
                 current.DisableHighlight()
-                current <- _cells[current.PathFromIndex]
+                current <- _cells[searchData[current.Index].pathFrom]
 
             current.DisableHighlight()
             currentPathExists <- false
@@ -467,11 +494,11 @@ type HexGridFS() as this =
     member this.GetPath() =
         if currentPathExists then
             let path = List<int>()
-            let mutable c = _cells[currentPathToIndex]
+            let mutable i = currentPathToIndex
 
-            while c <> _cells[currentPathFromIndex] do
-                path.Add c.Index
-                c <- _cells[c.PathFromIndex]
+            while i <> currentPathFromIndex do
+                path.Add i
+                i <- searchData[i].pathFrom
 
             path.Add currentPathFromIndex
             path.Reverse()
@@ -498,13 +525,28 @@ type HexGridFS() as this =
         unit.Die()
 
     member this.IncreaseVisibility (fromCell: HexCellFS) range =
-        getVisibleCells fromCell range |> Seq.iter _.IncreaseVisibility()
+        getVisibleCells fromCell range
+        |> Seq.iter (fun c ->
+            cellVisibility[c.Index] <- cellVisibility[c.Index] + 1
+
+            if cellVisibility[c.Index] = 1 then
+                c.MarkAsExplored()
+                this.cellShaderData.RefreshVisibility c)
 
     member this.DecreaseVisibility (fromCell: HexCellFS) range =
-        getVisibleCells fromCell range |> Seq.iter _.DecreaseVisibility()
+        getVisibleCells fromCell range
+        |> Seq.iter (fun c ->
+            cellVisibility[c.Index] <- cellVisibility[c.Index] - 1
+
+            if cellVisibility[c.Index] = 0 then
+                this.cellShaderData.RefreshVisibility c)
 
     member this.ResetVisibility() =
-        _cells |> Array.iter _.ResetVisibility()
+        _cells
+        |> Array.filter (fun c -> cellVisibility[c.Index] > 0)
+        |> Array.iter (fun c ->
+            cellVisibility[c.Index] <- 0
+            this.cellShaderData.RefreshVisibility c)
 
         units |> Seq.iter (fun u -> this.IncreaseVisibility u.Location u.VisionRange)
 
@@ -541,7 +583,7 @@ type HexGridFS() as this =
                 cell.TerrainTypeIndex <- rand.Next(0, 5)
                 cell.Elevation <- rand.Next(0, 7)
                 cell.WaterLevel <- 3
-                cell.IncreaseVisibility()
+                this.IncreaseVisibility cell 1
 
                 if cell.Elevation > 3 then
                     cell.UrbanLevel <- rand.Next(0, 4)

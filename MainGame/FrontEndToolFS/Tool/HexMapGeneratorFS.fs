@@ -69,7 +69,7 @@ type HexMapGeneratorFS() as this =
     member val seed = 0 with get, set
     let mutable cellCount = 0
     let mutable landCells = 0
-    let searchFrontier = HexCellPriorityQueue()
+    let searchFrontier = HexCellPriorityQueue(this.grid)
     let mutable searchFrontierPhase = 0
     let random = new RandomNumberGenerator()
     let regions = List<MapRegion>()
@@ -109,44 +109,57 @@ type HexMapGeneratorFS() as this =
     let raiseTerrain chunkSize budget region =
         searchFrontierPhase <- 1 + searchFrontierPhase
         let firstCell = getRandomCell region
-        firstCell.SearchPhase <- searchFrontierPhase
-        firstCell.Distance <- 0
-        firstCell.SearchHeuristic <- 0
-        searchFrontier.Enqueue firstCell
+        this.grid.SearchData[firstCell.Index] <- HexCellSearchData(searchPhase = searchFrontierPhase)
+        searchFrontier.Enqueue firstCell.Index
         let center = firstCell.Coordinates
         let rise = if random.Randf() < this.highRiseProbability then 2 else 1
         let mutable size = 0
         let mutable budget = budget
 
-        while budget > 0 && size < chunkSize && searchFrontier.Count > 0 do
-            searchFrontier.Dequeue()
-            |> Option.iter (fun current ->
-                let originalElevation = current.Elevation
-                let newElevation = originalElevation + rise
+        let mutable index =
+            if budget > 0 && size < chunkSize then
+                searchFrontier.Dequeue()
+            else
+                -1
 
-                if newElevation > this.elevationMaximum then
-                    ()
+        while budget > 0 && size < chunkSize && index >= 0 do
+            let current = this.grid.GetCell index
+            let originalElevation = current.Elevation
+            let newElevation = originalElevation + rise
+
+            if newElevation > this.elevationMaximum then
+                ()
+            else
+                current.Elevation <- newElevation
+
+                let breakLoop =
+                    if originalElevation < this.waterLevel && newElevation >= this.waterLevel then
+                        budget <- budget - 1
+                        budget = 0
+                    else
+                        false
+
+                if not breakLoop then
+                    size <- size + 1
+
+                    for d in allHexDirs () do
+                        match current.GetNeighbor d with
+                        | Some neighbor when this.grid.SearchData[neighbor.Index].searchPhase < searchFrontierPhase ->
+                            this.grid.SearchData[neighbor.Index] <-
+                                HexCellSearchData(
+                                    searchPhase = searchFrontierPhase,
+                                    distance = neighbor.Coordinates.DistanceTo center,
+                                    heuristic = if random.Randf() < this.jitterProbability then 1 else 0
+                                )
+
+                            searchFrontier.Enqueue neighbor.Index
+                        | _ -> ()
+
+            index <-
+                if budget > 0 && size < chunkSize then
+                    searchFrontier.Dequeue()
                 else
-                    current.Elevation <- newElevation
-
-                    let breakLoop =
-                        if originalElevation < this.waterLevel && newElevation >= this.waterLevel then
-                            budget <- budget - 1
-                            budget = 0
-                        else
-                            false
-
-                    if not breakLoop then
-                        size <- size + 1
-
-                        for d in allHexDirs () do
-                            match current.GetNeighbor d with
-                            | Some neighbor when neighbor.SearchPhase < searchFrontierPhase ->
-                                neighbor.SearchPhase <- searchFrontierPhase
-                                neighbor.Distance <- neighbor.Coordinates.DistanceTo center
-                                neighbor.SearchHeuristic <- if random.Randf() < this.jitterProbability then 1 else 0
-                                searchFrontier.Enqueue neighbor
-                            | _ -> ())
+                    -1
 
         searchFrontier.Clear()
         budget
@@ -155,39 +168,43 @@ type HexMapGeneratorFS() as this =
     let sinkTerrain chunkSize budget region =
         searchFrontierPhase <- 1 + searchFrontierPhase
         let firstCell = getRandomCell region
-        firstCell.SearchPhase <- searchFrontierPhase
-        firstCell.Distance <- 0
-        firstCell.SearchHeuristic <- 0
-        searchFrontier.Enqueue firstCell
+        this.grid.SearchData[firstCell.Index] <- HexCellSearchData(searchPhase = searchFrontierPhase)
+        searchFrontier.Enqueue firstCell.Index
         let center = firstCell.Coordinates
         let sink = if random.Randf() < this.highRiseProbability then 2 else 1
         let mutable size = 0
         let mutable budget = budget
+        let mutable index = if size < chunkSize then searchFrontier.Dequeue() else -1
 
-        while size < chunkSize && searchFrontier.Count > 0 do
-            searchFrontier.Dequeue()
-            |> Option.iter (fun current ->
-                let originalElevation = current.Elevation
-                let newElevation = current.Elevation - sink
+        while size < chunkSize && index >= 0 do
+            let current = this.grid.GetCell index
+            let originalElevation = current.Elevation
+            let newElevation = current.Elevation - sink
 
-                if newElevation < this.elevationMinimum then
-                    ()
-                else
-                    current.Elevation <- newElevation
+            if newElevation < this.elevationMinimum then
+                ()
+            else
+                current.Elevation <- newElevation
 
-                    if originalElevation >= this.waterLevel && newElevation < this.waterLevel then
-                        budget <- budget + 1
+                if originalElevation >= this.waterLevel && newElevation < this.waterLevel then
+                    budget <- budget + 1
 
-                    size <- size + 1
+                size <- size + 1
 
-                    for d in allHexDirs () do
-                        match current.GetNeighbor d with
-                        | Some neighbor when neighbor.SearchPhase < searchFrontierPhase ->
-                            neighbor.SearchPhase <- searchFrontierPhase
-                            neighbor.Distance <- neighbor.Coordinates.DistanceTo center
-                            neighbor.SearchHeuristic <- if random.Randf() < this.jitterProbability then 1 else 0
-                            searchFrontier.Enqueue neighbor
-                        | _ -> ())
+                for d in allHexDirs () do
+                    match current.GetNeighbor d with
+                    | Some neighbor when this.grid.SearchData[neighbor.Index].searchPhase < searchFrontierPhase ->
+                        this.grid.SearchData[neighbor.Index] <-
+                            HexCellSearchData(
+                                searchPhase = searchFrontierPhase,
+                                distance = neighbor.Coordinates.DistanceTo center,
+                                heuristic = if random.Randf() < this.jitterProbability then 1 else 0
+                            )
+
+                        searchFrontier.Enqueue neighbor.Index
+                    | _ -> ()
+
+            index <- if size < chunkSize then searchFrontier.Dequeue() else -1
 
         searchFrontier.Clear()
         budget
@@ -713,6 +730,6 @@ type HexMapGeneratorFS() as this =
         setTerrainType ()
 
         for i in 0 .. cellCount - 1 do
-            this.grid.GetCell(i).SearchPhase <- 0
+            this.grid.SearchData[i].searchPhase <- 0
 
         random.State <- initState

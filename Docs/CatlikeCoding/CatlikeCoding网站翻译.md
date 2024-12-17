@@ -333,7 +333,7 @@ https://catlikecoding.com/unity/hex-map/
 - [3.4.0 单元格结构](https://catlikecoding.com/unity/hex-map/3-4-0/)
 - [3.3.0 六边形单元格数据](https://catlikecoding.com/unity/hex-map/3-3-0/)
 - [3.2.0 分离搜索数据](https://catlikecoding.com/unity/hex-map/3-2-0/)
-- [3.1.0 冷凝六边形值](https://catlikecoding.com/unity/hex-map/3-1-0/)
+- [3.1.0 提取六边形值](https://catlikecoding.com/unity/hex-map/3-1-0/)
 - [3.0.0 不再有单元格游戏对象](https://catlikecoding.com/unity/hex-map/3-0-0/)
 - [2.3.0 精简单元格](https://catlikecoding.com/unity/hex-map/2-3-0/)
 - [2.2.0 单元格可视化升级](https://catlikecoding.com/unity/hex-map/2-2-0/)

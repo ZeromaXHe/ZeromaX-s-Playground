@@ -2380,7 +2380,7 @@ public class HexCell //: MonoBehaviour
 
 [PDF](https://catlikecoding.com/unity/hex-map/3-0-0/Hex-Map-3-0-0.pdf)
 
-# Hex Map 3.1.0：冷凝六边形值
+# Hex Map 3.1.0：提取六边形值
 
 发布于 2023-12-14
 

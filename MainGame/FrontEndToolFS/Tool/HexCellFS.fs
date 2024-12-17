@@ -23,7 +23,6 @@ and HexCellFS() as this =
     interface ICell with
         override this.Index = this.Index
         override this.TerrainTypeIndex = this.TerrainTypeIndex
-        override this.IsVisible = this.IsVisible
         override this.IsExplored = this.IsExplored
         override this.IsUnderWater = this.IsUnderWater
         override this.WaterSurfaceY = this.WaterSurfaceY
@@ -317,12 +316,6 @@ and HexCellFS() as this =
         refreshPosition ()
         this.Grid.ShaderData.RefreshTerrain this
         this.Grid.ShaderData.RefreshVisibility this
-    // 距离
-    let mutable distance = 0
-
-    member this.Distance
-        with get () = distance
-        and set value = distance <- value
     // 突出显示
     member this.DisableHighlight() =
         let highlight = this.uiRect.GetNode<Sprite3D> "Highlight"
@@ -332,43 +325,21 @@ and HexCellFS() as this =
         let highlight = this.uiRect.GetNode<Sprite3D> "Highlight"
         highlight.Modulate <- color
         highlight.Visible <- true
-
-    [<DefaultValue>]
-    val mutable PathFromIndex: int
-
-    member val SearchHeuristic = 0 with get, set
-    member this.SearchPriority = distance + this.SearchHeuristic
-    member val NextWithSamePriority: HexCellFS option = None with get, set
     // 修改标签
     member this.SetLabel text =
         let label = this.uiRect
         label.Text <- text
-    // 搜索阶段
-    member val SearchPhase = 0 with get, set
     // 单位
     member val Unit: IUnit option = None with get, set
     // 索引
     [<DefaultValue>]
     val mutable Index: int
-    // 可见性
-    let mutable visibility = 0
-    member this.IsVisible = visibility > 0 && this.Explorable
-
-    member this.IncreaseVisibility() =
-        visibility <- visibility + 1
-
-        if visibility = 1 then
-            this.flags <- this.flags.With HexFlags.Explored
-            this.Grid.ShaderData.RefreshVisibility this
-
-    member this.DecreaseVisibility() =
-        visibility <- visibility - 1
-
-        if visibility = 0 then
-            this.Grid.ShaderData.RefreshVisibility this
     // 探索
     member this.IsExplored: bool =
         this.flags.HasAll(HexFlags.Explored ||| HexFlags.Explorable)
+
+    member this.MarkAsExplored() =
+        this.flags <- this.flags.With HexFlags.Explored
 
     member this.Explorable
         with get () = this.flags.HasAny HexFlags.Explorable
@@ -384,11 +355,6 @@ and HexCellFS() as this =
             this.Elevation
         else
             this.WaterLevel
-
-    member this.ResetVisibility() =
-        if visibility > 0 then
-            visibility <- 0
-            this.Grid.ShaderData.RefreshVisibility this
 
     // member this.SetMapData data =
     //     // GD.Print $"Setting {this.Coordinates} map data {data}"
