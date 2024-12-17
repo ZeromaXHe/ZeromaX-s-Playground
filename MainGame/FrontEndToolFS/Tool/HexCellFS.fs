@@ -41,6 +41,8 @@ and HexCellFS() as this =
     val mutable Grid: IGridForCell
     // 标志
     member val flags: HexFlags = HexFlags.Empty with get, set
+    // 值
+    member val values = HexValues() with get, set
 
     member this.GetNeighbor(direction: HexDirection) =
         this.Grid.GetCell <| this.Coordinates.Step direction
@@ -56,25 +58,16 @@ and HexCellFS() as this =
 
             this.Unit |> Option.iter _.ValidateLocation()
 
-    member this.RefreshSelfOnly() =
-        this.Chunk |> Option.iter _.Refresh()
-        this.Unit |> Option.iter _.ValidateLocation()
-
-    let mutable terrainTypeIndex = 0
-
     member this.TerrainTypeIndex
-        with get () = terrainTypeIndex
+        with get () = this.values.TerrainTypeIndex
         and set value =
-            if terrainTypeIndex <> value then
-                terrainTypeIndex <- value
+            if this.values.TerrainTypeIndex <> value then
+                this.values <- this.values.WithTerrainTypeIndex value
                 this.Grid.ShaderData.RefreshTerrain this
-
-    /// 高度
-    let mutable elevation: int = Int32.MinValue
 
     let refreshPosition () =
         let pos = this.Position
-        let y = float32 elevation * HexMetrics.elevationStep
+        let y = float32 this.Elevation * HexMetrics.elevationStep
 
         let perturbY =
             ((HexMetrics.sampleNoise pos).Y * 2f - 1f) * HexMetrics.elevationPerturbStrength
@@ -82,35 +75,32 @@ and HexCellFS() as this =
         this.Position <- Vector3(pos.X, y + perturbY, pos.Z)
         this.uiRect.Position <- this.Position + Vector3.Up * 0.01f
 
+    /// 高度
     member this.Elevation
-        with get () = elevation
+        with get (): int = this.values.Elevation
         and set value =
-            if elevation = value then
+            if this.values.Elevation = value then
                 ()
             else
-                elevation <- value
+                this.values <- this.values.WithElevation value
                 this.Grid.ShaderData.ViewElevationChanged this
                 refreshPosition ()
                 this.ValidateRivers()
 
                 allHexDirs ()
-                |> List.filter (fun d -> this.flags.HasRoad d && this.GetElevationDifference d > 1)
+                |> List.filter (fun d -> this.flags.HasRoad d && getElevationDifference d > 1)
                 |> List.iter this.RemoveRoad
 
                 refresh ()
 
     /// 获取某个方向上的高度差
-    member this.GetElevationDifference(direction: HexDirection) =
+    let getElevationDifference (direction: HexDirection) =
         match this.GetNeighbor direction with
-        | Some n -> elevation - n.Elevation |> Mathf.Abs
+        | Some n -> this.Elevation - n.Elevation |> Mathf.Abs
         | None -> Int32.MaxValue
 
-    member this.GetEdgeType direction =
-        this.GetNeighbor direction
-        |> Option.map (fun n -> HexMetrics.getEdgeType elevation n.Elevation)
-
     member this.GetEdgeType(otherCell: HexCellFS) =
-        HexMetrics.getEdgeType elevation otherCell.Elevation
+        HexMetrics.getEdgeType this.Elevation otherCell.Elevation
 
     member this.IncomingRiver = this.flags.RiverInDirection
     member this.OutgoingRiver = this.flags.RiverOutDirection
@@ -120,11 +110,12 @@ and HexCellFS() as this =
     member this.HasRiverBeginOrEnd = this.HasIncomingRiver <> this.HasOutgoingRiver
 
     member this.StreamBedY =
-        (float32 elevation + HexMetrics.streamBedElevationOffset)
+        (float32 this.Elevation + HexMetrics.streamBedElevationOffset)
         * HexMetrics.elevationStep
 
     member this.RiverSurfaceY =
-        (float32 elevation + HexMetrics.waterElevationOffset) * HexMetrics.elevationStep
+        (float32 this.Elevation + HexMetrics.waterElevationOffset)
+        * HexMetrics.elevationStep
 
     member this.HasRiverThroughEdge(direction: HexDirection) =
         this.flags.HasRiverIn direction || this.flags.HasRiverOut direction
@@ -138,8 +129,8 @@ and HexCellFS() as this =
             | Some neighbor ->
                 this.flags <- this.flags.Without HexFlags.RiverOut
                 neighbor.flags <- neighbor.flags.Without HexFlags.RiverIn
-                neighbor.RefreshSelfOnly()
-                this.RefreshSelfOnly()
+                neighbor.Chunk |> Option.iter _.Refresh()
+                this.Chunk |> Option.iter _.Refresh()
             | None -> ()
 
     /// 移除流入河流
@@ -149,8 +140,8 @@ and HexCellFS() as this =
             | Some neighbor ->
                 this.flags <- this.flags.Without HexFlags.RiverIn
                 neighbor.flags <- neighbor.flags.Without HexFlags.RiverOut
-                neighbor.RefreshSelfOnly()
-                this.RefreshSelfOnly()
+                neighbor.Chunk |> Option.iter _.Refresh()
+                this.Chunk |> Option.iter _.Refresh()
             | None -> ()
 
     /// 移除河流
@@ -174,7 +165,7 @@ and HexCellFS() as this =
                     this.RemoveIncomingRiver()
 
                 this.flags <- this.flags.WithRiverOut direction
-                specialIndex <- 0
+                this.SpecialIndex <- 0
                 neighbor.RemoveIncomingRiver()
                 neighbor.flags <- neighbor.flags.WithRiverIn direction.Opposite
                 neighbor.SpecialIndex <- 0
@@ -194,8 +185,8 @@ and HexCellFS() as this =
         match this.GetNeighbor direction with
         | Some neighbor ->
             neighbor.flags <- neighbor.flags.WithoutRoad direction.Opposite
-            neighbor.RefreshSelfOnly()
-            this.RefreshSelfOnly()
+            neighbor.Chunk |> Option.iter _.Refresh()
+            this.Chunk |> Option.iter _.Refresh()
         | None -> ()
 
     /// 移除道路
@@ -213,43 +204,41 @@ and HexCellFS() as this =
                |> Option.map _.IsSpecial
                |> Option.defaultValue true
                |> not
-            && this.GetElevationDifference direction <= 1
+            && getElevationDifference direction <= 1
         then
             this.flags <- this.flags.WithRoad direction
 
             match this.GetNeighbor direction with
             | Some neighbor ->
                 neighbor.flags <- neighbor.flags.WithRoad direction.Opposite
-                neighbor.RefreshSelfOnly()
-                this.RefreshSelfOnly()
+                neighbor.Chunk |> Option.iter _.Refresh()
+                this.Chunk |> Option.iter _.Refresh()
             | None -> ()
 
     /// 水位
-    let mutable waterLevel = 0
-
     member this.WaterLevel
-        with get () = waterLevel
+        with get () = this.values.WaterLevel
         and set value =
-            if waterLevel = value then
+            if this.values.WaterLevel = value then
                 ()
             else
-                waterLevel <- value
+                this.values <- this.values.WithWaterLevel value
                 this.Grid.ShaderData.ViewElevationChanged this
                 this.ValidateRivers()
                 refresh ()
 
     /// 是否在水下
-    member this.IsUnderWater = waterLevel > elevation
+    member this.IsUnderWater = this.WaterLevel > this.Elevation
 
     member this.WaterSurfaceY =
-        (float32 waterLevel + HexMetrics.waterElevationOffset)
+        (float32 this.WaterLevel + HexMetrics.waterElevationOffset)
         * HexMetrics.elevationStep
 
     /// 判断某个邻居是否可以作为河流目的地
     member this.IsValidRiverDestination(neighborOpt: HexCellFS option) =
         neighborOpt.IsSome
-        && (elevation >= neighborOpt.Value.Elevation
-            || waterLevel = neighborOpt.Value.Elevation)
+        && (this.Elevation >= neighborOpt.Value.Elevation
+            || this.WaterLevel = neighborOpt.Value.Elevation)
 
     member this.ValidateRivers() =
         if
@@ -266,34 +255,28 @@ and HexCellFS() as this =
             this.RemoveIncomingRiver()
 
     // 城市级别
-    let mutable urbanLevel = 0
-
     member this.UrbanLevel
-        with get () = urbanLevel
+        with get () = this.values.UrbanLevel
         and set value =
-            if urbanLevel <> value then
-                urbanLevel <- value
-                this.RefreshSelfOnly()
+            if this.values.UrbanLevel <> value then
+                this.values <- this.values.WithUrbanLevel value
+                this.Chunk |> Option.iter _.Refresh()
 
     // 农场级别
-    let mutable farmLevel = 0
-
     member this.FarmLevel
-        with get () = farmLevel
+        with get () = this.values.FarmLevel
         and set value =
-            if farmLevel <> value then
-                farmLevel <- value
-                this.RefreshSelfOnly()
+            if this.values.FarmLevel <> value then
+                this.values <- this.values.WithFarmLevel value
+                this.Chunk |> Option.iter _.Refresh()
 
     // 植物级别
-    let mutable plantLevel = 0
-
     member this.PlantLevel
-        with get () = plantLevel
+        with get () = this.values.PlantLevel
         and set value =
-            if plantLevel <> value then
-                plantLevel <- value
-                this.RefreshSelfOnly()
+            if this.values.PlantLevel <> value then
+                this.values <- this.values.WithPlantLevel value
+                this.Chunk |> Option.iter _.Refresh()
 
     // 围墙
     member this.Walled
@@ -310,64 +293,28 @@ and HexCellFS() as this =
                 refresh ()
 
     // 特殊特征
-    let mutable specialIndex = 0
-
     member this.SpecialIndex
-        with get () = specialIndex
+        with get () = this.values.SpecialIndex
         and set value =
-            if specialIndex <> value && (not this.HasRiver || value = 0) then
-                specialIndex <- value
+            if this.values.SpecialIndex <> value && (not this.HasRiver || value = 0) then
+                this.values <- this.values.WithSpecialIndex value
 
                 if value <> 0 then
                     this.RemoveRoads()
 
-                this.RefreshSelfOnly()
+                this.Chunk |> Option.iter _.Refresh()
 
-    member this.IsSpecial = specialIndex > 0
+    member this.IsSpecial = this.SpecialIndex > 0
 
     // 保存和加载
     member this.Save(writer: BinaryWriter) =
-        writer.Write(byte terrainTypeIndex)
-        writer.Write(byte <| elevation + 127)
-        writer.Write(byte waterLevel)
-        writer.Write(byte urbanLevel)
-        writer.Write(byte farmLevel)
-        writer.Write(byte plantLevel)
-        writer.Write(byte specialIndex)
-        writer.Write this.Walled
-        writer.Write(this.IncomingRiver |> Option.map byte |> Option.defaultValue Byte.MaxValue)
-        writer.Write(this.OutgoingRiver |> Option.map byte |> Option.defaultValue Byte.MaxValue)
-        writer.Write(byte (this.flags &&& HexFlags.Roads))
-        writer.Write this.IsExplored
+        this.values.Save(writer)
+        this.flags.Save writer
 
     member this.Load (reader: BinaryReader) header =
-        this.flags <- this.flags &&& HexFlags.Explorable
-        terrainTypeIndex <- int <| reader.ReadByte()
-        elevation <- int <| reader.ReadByte()
-
-        if header >= 4 then
-            elevation <- elevation - 127
-
+        this.values <- HexValues.Load reader header
+        this.flags <- this.flags.Load reader header
         refreshPosition ()
-        waterLevel <- int <| reader.ReadByte()
-        urbanLevel <- int <| reader.ReadByte()
-        farmLevel <- int <| reader.ReadByte()
-        plantLevel <- int <| reader.ReadByte()
-        specialIndex <- int <| reader.ReadByte()
-
-        if reader.ReadBoolean() then
-            this.flags <- this.flags.With HexFlags.Walled
-
-        match reader.ReadByte() with
-        | Byte.MaxValue -> ()
-        | x -> this.flags <- int x |> enum<HexDirection> |> this.flags.WithRiverIn
-
-        match reader.ReadByte() with
-        | Byte.MaxValue -> ()
-        | x -> this.flags <- int x |> enum<HexDirection> |> this.flags.WithRiverOut
-
-        this.flags <- this.flags ||| enum<HexFlags> (int <| reader.ReadByte())
-        setExplored <| if header >= 3 then reader.ReadBoolean() else false
         this.Grid.ShaderData.RefreshTerrain this
         this.Grid.ShaderData.RefreshVisibility this
     // 距离
@@ -411,7 +358,7 @@ and HexCellFS() as this =
         visibility <- visibility + 1
 
         if visibility = 1 then
-            setExplored true
+            this.flags <- this.flags.With HexFlags.Explored
             this.Grid.ShaderData.RefreshVisibility this
 
     member this.DecreaseVisibility() =
@@ -423,13 +370,6 @@ and HexCellFS() as this =
     member this.IsExplored: bool =
         this.flags.HasAll(HexFlags.Explored ||| HexFlags.Explorable)
 
-    let setExplored v =
-        this.flags <-
-            if v then
-                this.flags.With HexFlags.Explored
-            else
-                this.flags.Without HexFlags.Explored
-
     member this.Explorable
         with get () = this.flags.HasAny HexFlags.Explorable
         and set value =
@@ -439,15 +379,19 @@ and HexCellFS() as this =
                 else
                     this.flags.Without HexFlags.Explorable
     // 视野高度
-    member this.ViewElevation = if elevation >= waterLevel then elevation else waterLevel
+    member this.ViewElevation =
+        if this.Elevation >= this.WaterLevel then
+            this.Elevation
+        else
+            this.WaterLevel
 
     member this.ResetVisibility() =
         if visibility > 0 then
             visibility <- 0
             this.Grid.ShaderData.RefreshVisibility this
 
-    member this.SetMapData data =
-        // GD.Print $"Setting {this.Coordinates} map data {data}"
-        this.Grid.ShaderData.SetMapData this data
+    // member this.SetMapData data =
+    //     // GD.Print $"Setting {this.Coordinates} map data {data}"
+    //     this.Grid.ShaderData.SetMapData this data
     // 包覆
     member val ColumnIndex = 0 with get, set

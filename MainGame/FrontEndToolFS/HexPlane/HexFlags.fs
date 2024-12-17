@@ -1,5 +1,8 @@
 namespace FrontEndToolFS.HexPlane
 
+open System
+open System.IO
+
 type HexFlags =
     | Empty = 0
     | RoadNE = 0b000001
@@ -81,3 +84,32 @@ module HexFlags =
 
         member this.RiverInDirection = this.ToDirection 6
         member this.RiverOutDirection = this.ToDirection 12
+
+        // 保存
+        member this.Save(writer: BinaryWriter) =
+            writer.Write(this.HasAny HexFlags.Walled)
+            writer.Write(this.RiverInDirection |> Option.map byte |> Option.defaultValue Byte.MaxValue)
+            writer.Write(this.RiverOutDirection |> Option.map byte |> Option.defaultValue Byte.MaxValue)
+            writer.Write(byte (this &&& HexFlags.Roads))
+            writer.Write(this.HasAll(HexFlags.Explored ||| HexFlags.Explorable))
+        // 加载
+        member this.Load (reader: BinaryReader) header =
+            let mutable flags = this &&& HexFlags.Explorable
+
+            if reader.ReadBoolean() then
+                flags <- flags.With HexFlags.Walled
+
+            match reader.ReadByte() with
+            | Byte.MaxValue -> ()
+            | x -> flags <- int x |> enum<HexDirection> |> flags.WithRiverIn
+
+            match reader.ReadByte() with
+            | Byte.MaxValue -> ()
+            | x -> flags <- int x |> enum<HexDirection> |> flags.WithRiverOut
+
+            flags <- flags ||| enum<HexFlags> (int <| reader.ReadByte())
+
+            if header >= 3 && reader.ReadBoolean() then
+                flags <- flags.With HexFlags.Explored
+
+            flags

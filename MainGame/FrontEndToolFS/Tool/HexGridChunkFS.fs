@@ -372,7 +372,7 @@ type HexGridChunkFS() as this =
                         indices
 
             // 连接条
-            if cell.GetEdgeType dir = Some HexEdgeType.Slope then
+            if cell.GetEdgeType neighbor = HexEdgeType.Slope then
                 triangulateEdgeTerraces e1 cell e2 neighbor hasRoad
             else
                 triangulateEdgeStrip e1 weights1 cell.Index e2 weights2 neighbor.Index hasRoad

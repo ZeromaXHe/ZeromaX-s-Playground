@@ -11,6 +11,7 @@
         <Compile Include="HexGlobal\Repository.fs" />
         <Compile Include="HexGlobal\Generator.fs" />
         <Compile Include="HexGlobal\HexEntry.fs" />
+        <Compile Include="HexPlane\HexValues.fs" />
         <Compile Include="HexPlane\HexDirection.fs" />
         <Compile Include="HexPlane\HexFlags.fs" />
         <Compile Include="HexPlane\HexEdgeType.fs" />

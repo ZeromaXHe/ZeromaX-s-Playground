@@ -150,11 +150,11 @@ type HexCellShaderData() as this =
     [<DefaultValue>]
     val mutable Grid: IGridForShader
 
-    member this.SetMapData (cell: ICell) data =
-        cellTextureData[cell.Index].B8 <-
-            if data < 0f then 0
-            elif data < 1f then int <| data * 255f
-            else 255
-
-        changeCellPixel cell cellTextureData[cell.Index]
-        enabled <- true
+// member this.SetMapData (cell: ICell) data =
+//     cellTextureData[cell.Index].B8 <-
+//         if data < 0f then 0
+//         elif data < 1f then int <| data * 255f
+//         else 255
+//
+//     changeCellPixel cell cellTextureData[cell.Index]
+//     enabled <- true
