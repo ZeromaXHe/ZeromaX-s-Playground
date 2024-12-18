@@ -5,6 +5,7 @@ open System.Collections.Generic
 open System.Diagnostics
 open System.IO
 open FrontEndToolFS.HexPlane
+open FrontEndToolFS.HexPlane.HexFlags
 open Godot
 
 type HexCellPriorityQueue(grid: HexGridFS) =
@@ -87,9 +88,21 @@ and HexGridFS() as this =
 
     interface IGridForCell with
         override this.GetCell coords = this.GetCell coords
+        override this.RefreshCell cellIndex = this.RefreshCell cellIndex
+        override this.RefreshCellPosition cellIndex = this.RefreshCellPosition cellIndex
+
+        override this.RefreshCellWithDependents cellIndex =
+            this.RefreshCellWithDependents cellIndex
+
         override this.ShaderData = this.cellShaderData
         override this.CellData = this.CellData
         override this.CellPositions = this.CellPositions
+
+        override this.SetCellUnits index unit =
+            this.CellUnits[index] <- unit |> Option.map (fun u -> u :?> HexUnitFS)
+
+        override this.GetCellUnits index =
+            this.CellUnits[index] |> Option.map (fun u -> u :> IUnit)
 
     interface IGridForChunk with
         override this.GetCellIndex coords = this.GetCellIndex coords
@@ -120,17 +133,13 @@ and HexGridFS() as this =
     let mutable chunkCountZ = 3
 
     let mutable cellData: HexCellData array = null
+    member this.CellData = cellData
     let mutable cellPositions: Vector3 array = null
-
-    member this.CellData
-        with get () = cellData
-        and set value = cellData <- value
-
-    member this.CellPositions
-        with get () = cellPositions
-        and set value = cellPositions <- value
-
-    let mutable _cells: HexCellFS array = null
+    member this.CellPositions = cellPositions
+    let mutable cellUnits: HexUnitFS option array = null
+    member this.CellUnits = cellUnits
+    let mutable cellGridChunks: HexGridChunkFS array = null
+    let mutable cellUiRects: HexCellLabelFS array = null
     let mutable _chunks: HexGridChunkFS array = null
     let units = List<HexUnitFS>()
     let mutable columns: Node3D array = null
@@ -154,22 +163,16 @@ and HexGridFS() as this =
                 chunk.Grid <- this
                 chunk)
 
-    let addCellToChunk x z (cell: HexCellFS) =
-        let chunkX = x / HexMetrics.chunkSizeX
-        let chunkZ = z / HexMetrics.chunkSizeZ
-        let chunk = _chunks[chunkX + chunkZ * chunkCountX]
-        let localX = x - chunkX * HexMetrics.chunkSizeX
-        let localZ = z - chunkZ * HexMetrics.chunkSizeZ
-        chunk.AddCell (localX + localZ * HexMetrics.chunkSizeX) cell cell.Index cell.uiRect
-
     let createCells () =
-        _cells <- Array.init (this.cellCountX * this.cellCountZ) (fun _ -> HexCellFS())
-        cellData <- Array.init _cells.Length (fun _ -> HexCellData())
-        cellPositions <- Array.zeroCreate _cells.Length
-        searchData <- Array.init _cells.Length (fun _ -> HexCellSearchData())
-        cellVisibility <- Array.zeroCreate _cells.Length
+        cellData <- Array.init (this.cellCountX * this.cellCountZ) (fun _ -> HexCellData())
+        cellPositions <- Array.zeroCreate cellData.Length
+        cellUiRects <- Array.zeroCreate cellData.Length
+        cellGridChunks <- Array.zeroCreate cellData.Length
+        cellUnits <- Array.zeroCreate cellData.Length
+        searchData <- Array.init cellData.Length (fun _ -> HexCellSearchData())
+        cellVisibility <- Array.zeroCreate cellData.Length
 
-        for i in 0 .. _cells.Length - 1 do
+        for i in 0 .. cellData.Length - 1 do
             let z = i / this.cellCountX
             let x = i % this.cellCountX
 
@@ -180,27 +183,83 @@ and HexGridFS() as this =
                     float32 z * HexMetrics.outerRadius * 1.5f
                 )
 
-            let cell = _cells[i]
-            cell.Grid <- this
+            let mutable cell = HexCellFS(i, this)
             cellPositions[i] <- position
             cellData[i].coordinates <- HexCoordinates.FromOffsetCoordinates x z
-            cell.Index <- i
-            cell.ColumnIndex <- x / HexMetrics.chunkSizeX
 
-            if this.wrapping then
-                cell.Explorable <- z > 0 && z < this.cellCountZ - 1
-                // 用于测试时区分每个块列的第一个单元格
-                if x % HexMetrics.chunkSizeX = 0 then
-                    cell.TerrainTypeIndex <- 1
-            else
-                cell.Explorable <- x > 0 && z > 0 && x < this.cellCountX - 1 && z < this.cellCountZ - 1
+            let explorable =
+                if this.wrapping then
+                    z > 0 && z < this.cellCountZ - 1
+                else
+                    x > 0 && z > 0 && x < this.cellCountX - 1 && z < this.cellCountZ - 1
+
+            cell.Flags <-
+                if explorable then
+                    cell.Flags.With HexFlags.Explorable
+                else
+                    cell.Flags.Without HexFlags.Explorable
 
             let label = this.cellLabelPrefab.Instantiate<HexCellLabelFS>()
             label.Position <- cell.Position + Vector3.Up * 0.01f
-            cell.uiRect <- label
-            // 触发 setter 应用扰动 y
-            cell.Elevation <- 0
-            addCellToChunk x z cell
+            cellUiRects[i] <- label
+            cell.Values <- cell.Values.WithElevation 0
+            this.RefreshCellPosition i
+            let chunkX = x / HexMetrics.chunkSizeX
+            let chunkZ = z / HexMetrics.chunkSizeZ
+            let chunk = _chunks[chunkX + chunkZ * chunkCountX]
+            let localX = x - chunkX * HexMetrics.chunkSizeX
+            let localZ = z - chunkZ * HexMetrics.chunkSizeZ
+            cellGridChunks[i] <- chunk
+            chunk.AddCell (localX + localZ * HexMetrics.chunkSizeX) i label
+
+    let setLabel cellIndex text = cellUiRects[cellIndex].Text <- text
+
+    let disableHighlight cellIndex =
+        (cellUiRects[cellIndex].GetNode<Sprite3D> "Highlight").Visible <- false
+
+    let enableHighlight cellIndex color =
+        let highlight = cellUiRects[cellIndex].GetNode<Sprite3D> "Highlight"
+        highlight.Modulate <- color
+        highlight.Visible <- true
+
+    member this.RefreshCellPosition cellIndex =
+        let mutable position = cellPositions[cellIndex]
+        position.Y <- float32 cellData[cellIndex].Elevation * HexMetrics.elevationStep
+
+        position.Y <-
+            position.Y
+            + ((HexMetrics.sampleNoise position).Y * 2f - 1f)
+              * HexMetrics.elevationPerturbStrength
+
+        cellPositions[cellIndex] <- position
+        let label = cellUiRects[cellIndex]
+        label.Position <- position + Vector3.Up * 0.01f
+
+    member this.RefreshCell cellIndex = cellGridChunks[cellIndex].Refresh()
+
+    member this.RefreshCellWithDependents cellIndex =
+        let chunk = cellGridChunks[cellIndex]
+        chunk.Refresh()
+        let coordinates = cellData[cellIndex].coordinates
+
+        for d in HexDirection.allHexDirs () do
+            match this.GetCellIndex <| coordinates.Step d with
+            | neighborIndex when neighborIndex >= 0 ->
+                let neighborChunk = cellGridChunks[neighborIndex]
+
+                if neighborChunk <> chunk then
+                    neighborChunk.Refresh()
+            | _ -> ()
+
+        let unit = cellUnits[cellIndex]
+        unit |> Option.iter _.ValidateLocation()
+
+    member this.RefreshAllCells() =
+        for i in 0 .. cellData.Length - 1 do
+            searchData[i].searchPhase <- 0
+            this.RefreshCellPosition i
+            this.cellShaderData.RefreshTerrain i
+            this.cellShaderData.RefreshVisibility i
 
     let searchFrontier = HexCellPriorityQueue this
     let mutable searchFrontierPhase = 0
@@ -220,7 +279,7 @@ and HexGridFS() as this =
         let mutable currentIndex = searchFrontier.Dequeue()
 
         while currentIndex >= 0 && not breakLoop do
-            let current = _cells[currentIndex]
+            let current = HexCellFS(currentIndex, this)
             let currentDistance = searchData[currentIndex].distance
             searchData[currentIndex].searchPhase <- 1 + searchData[currentIndex].searchPhase
 
@@ -242,7 +301,9 @@ and HexGridFS() as this =
                         else
                             let moveCost = unit.GetMoveCost current neighbor d
 
-                            if moveCost >= 0 then
+                            if moveCost < 0 then
+                                ()
+                            else
                                 let distance = currentDistance + moveCost
                                 let turn = (distance - 1) / speed
 
@@ -268,7 +329,7 @@ and HexGridFS() as this =
                                     searchFrontier.Change neighbor.Index neighborData.SearchPriority
                     | _ -> ()
 
-                currentIndex <- if breakLoop then -1 else searchFrontier.Dequeue()
+            currentIndex <- if breakLoop then -1 else searchFrontier.Dequeue()
 
         breakLoop
 
@@ -276,7 +337,7 @@ and HexGridFS() as this =
         let visibleCells = List<HexCellFS>()
         searchFrontierPhase <- 2 + searchFrontierPhase
         searchFrontier.Clear()
-        let range = range + fromCell.ViewElevation
+        let range = range + fromCell.Values.ViewElevation
 
         searchData[fromCell.Index] <-
             HexCellSearchData(searchPhase = searchFrontierPhase, pathFrom = searchData[fromCell.Index].pathFrom)
@@ -286,7 +347,7 @@ and HexGridFS() as this =
         let mutable currentIndex = searchFrontier.Dequeue()
 
         while currentIndex >= 0 do
-            let current = _cells[currentIndex]
+            let current = HexCellFS(currentIndex, this)
             searchData[currentIndex].searchPhase <- 1 + searchData[currentIndex].searchPhase
 
             visibleCells.Add current
@@ -296,13 +357,16 @@ and HexGridFS() as this =
                 | Some neighbor ->
                     let neighborData = searchData[neighbor.Index]
 
-                    if neighborData.searchPhase > searchFrontierPhase || not neighbor.Explorable then
+                    if
+                        neighborData.searchPhase > searchFrontierPhase
+                        || neighbor.Flags.HasNone HexFlags.Explorable
+                    then
                         ()
                     else
                         let distance = searchData[currentIndex].distance + 1
 
                         if
-                            distance + neighbor.ViewElevation > range
+                            distance + neighbor.Values.ViewElevation > range
                             || distance > fromCoordinates.DistanceTo neighbor.Coordinates
                         then
                             ()
@@ -326,16 +390,16 @@ and HexGridFS() as this =
 
     let showPath speed =
         if currentPathExists then
-            let mutable current = _cells[currentPathToIndex]
+            let mutable currentIndex = currentPathToIndex
 
-            while current <> _cells[currentPathFromIndex] do
-                let turn = (searchData[current.Index].distance - 1) / speed
-                current.SetLabel <| string turn
-                current.EnableHighlight Colors.White
-                current <- _cells[searchData[current.Index].pathFrom]
+            while currentIndex <> currentPathFromIndex do
+                let turn = (searchData[currentIndex].distance - 1) / speed
+                setLabel currentIndex <| string turn
+                enableHighlight currentIndex Colors.White
+                currentIndex <- searchData[currentIndex].pathFrom
 
-        _cells[currentPathFromIndex].EnableHighlight Colors.Blue
-        _cells[currentPathToIndex].EnableHighlight Colors.Red
+        enableHighlight currentPathFromIndex Colors.Blue
+        enableHighlight currentPathToIndex Colors.Red
 
     let clearUnits () =
         units |> Seq.iter _.Die()
@@ -386,9 +450,9 @@ and HexGridFS() as this =
         if z < 0 || z >= this.cellCountZ || x < 0 || x >= this.cellCountX then
             None
         else
-            Some _cells[x + z * this.cellCountX]
+            Some <| HexCellFS(x + z * this.cellCountX, this)
 
-    member this.GetCell cellIndex = _cells[cellIndex]
+    member this.GetCell cellIndex = HexCellFS(cellIndex, this)
 
     member this.GetCell(pos: Vector3) =
         let coordinates = HexCoordinates.FromPosition pos
@@ -398,7 +462,12 @@ and HexGridFS() as this =
         writer.Write this.cellCountX
         writer.Write this.cellCountZ
         writer.Write this.wrapping
-        _cells |> Array.iter _.Save(writer)
+
+        cellData
+        |> Array.iter (fun c ->
+            c.values.Save(writer)
+            c.flags.Save(writer))
+
         writer.Write units.Count
         units |> Seq.iter _.Save(writer)
 
@@ -415,7 +484,17 @@ and HexGridFS() as this =
         then
             let originalImmediateMode = this.cellShaderData.ImmediateMode
             this.cellShaderData.ImmediateMode <- true
-            _cells |> Array.iter (fun c -> c.Load reader header)
+
+            cellData
+            |> Array.iteri (fun i c ->
+                let mutable data = c
+                data.values <- HexValues.Load reader header
+                data.flags <- c.flags.Load reader header
+                cellData[i] <- data
+                this.RefreshCellPosition i
+                this.cellShaderData.RefreshTerrain i
+                this.cellShaderData.RefreshVisibility i)
+
             _chunks |> Array.iter _.Refresh()
 
             if header >= 2 then
@@ -500,18 +579,18 @@ and HexGridFS() as this =
 
     member this.ClearPath() =
         if currentPathExists then
-            let mutable current = _cells[currentPathToIndex]
+            let mutable currentIndex = currentPathToIndex
 
-            while current <> _cells[currentPathFromIndex] do
-                current.SetLabel ""
-                current.DisableHighlight()
-                current <- _cells[searchData[current.Index].pathFrom]
+            while currentIndex <> currentPathFromIndex do
+                setLabel currentIndex ""
+                disableHighlight currentIndex
+                currentIndex <- searchData[currentIndex].pathFrom
 
-            current.DisableHighlight()
+            disableHighlight currentIndex
             currentPathExists <- false
         elif currentPathFromIndex >= 0 then
-            _cells[currentPathFromIndex].DisableHighlight()
-            _cells[currentPathToIndex].DisableHighlight()
+            disableHighlight currentPathFromIndex
+            disableHighlight currentPathToIndex
 
         currentPathFromIndex <- -1
         currentPathToIndex <- -1
@@ -556,7 +635,8 @@ and HexGridFS() as this =
             cellVisibility[cellIndex] <- cellVisibility[cellIndex] + 1
 
             if cellVisibility[cellIndex] = 1 then
-                c.MarkAsExplored()
+                let mutable c = c
+                c.Flags <- c.Flags.With HexFlags.Explored
                 this.cellShaderData.RefreshVisibility cellIndex)
 
     member this.DecreaseVisibility (fromCell: HexCellFS) range =
@@ -569,7 +649,7 @@ and HexGridFS() as this =
                 this.cellShaderData.RefreshVisibility cellIndex)
 
     member this.ResetVisibility() =
-        { 0 .. _cells.Length - 1 }
+        { 0 .. cellVisibility.Length - 1 }
         |> Seq.filter (fun i -> cellVisibility[i] > 0)
         |> Seq.iter (fun i ->
             cellVisibility[i] <- 0
@@ -606,23 +686,24 @@ and HexGridFS() as this =
         if Engine.IsEditorHint() then
             let rand = Random()
 
-            for cell in _cells do
-                cell.TerrainTypeIndex <- rand.Next(0, 5)
-                cell.Elevation <- rand.Next(0, 7)
-                cell.WaterLevel <- 3
-                this.IncreaseVisibility cell 1
+            for i in 0 .. cellData.Length - 1 do
+                let c = this.GetCell i
+                c.SetTerrainTypeIndex <| rand.Next(0, 5)
+                c.SetElevation <| rand.Next(0, 7)
+                c.SetWaterLevel 3
+                this.IncreaseVisibility c 1
 
-                if cell.Elevation > 3 then
-                    cell.UrbanLevel <- rand.Next(0, 4)
-                    cell.FarmLevel <- rand.Next(0, 4)
-                    cell.PlantLevel <- rand.Next(0, 4)
+                if c.Values.Elevation > 3 then
+                    c.SetUrbanLevel <| rand.Next(0, 4)
+                    c.SetFarmLevel <| rand.Next(0, 4)
+                    c.SetPlantLevel <| rand.Next(0, 4)
 
-                    if cell.UrbanLevel = 3 then
-                        cell.Walled <- true
+                    if c.Values.UrbanLevel = 3 then
+                        c.SetWalled true
 
-                    cell.SetOutgoingRiver(rand.Next(0, 6) |> enum<HexDirection>)
-                    cell.AddRoad << enum<HexDirection> <| rand.Next(0, 6)
-                    cell.AddRoad << enum<HexDirection> <| rand.Next(0, 6)
+                    c.SetOutgoingRiver(rand.Next(0, 6) |> enum<HexDirection>)
+                    c.AddRoad << enum<HexDirection> <| rand.Next(0, 6)
+                    c.AddRoad << enum<HexDirection> <| rand.Next(0, 6)
 
     override this._Process delta =
         // if this.IsNodeReady() then

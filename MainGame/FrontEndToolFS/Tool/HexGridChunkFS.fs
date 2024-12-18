@@ -953,9 +953,8 @@ type HexGridChunkFS() as this =
         // GD.Print $"{this.Name} Refresh"
         this.SetProcess true
 
-    member this.AddCell index (cell: HexCellFS) cellIndex cellUI =
+    member this.AddCell index cellIndex cellUI =
         anyCell <- true
-        cell.Chunk <- Some this
         cellIndices[index] <- cellIndex
         _gridCanvas.Value.AddChild cellUI
 

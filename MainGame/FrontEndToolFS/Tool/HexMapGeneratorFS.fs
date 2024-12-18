@@ -768,9 +768,5 @@ type HexMapGeneratorFS() as this =
         createClimate ()
         createRiver ()
         setTerrainType ()
-
-        for i in 0 .. cellCount - 1 do
-            this.grid.SearchData[i].searchPhase <- 0
-            (this.grid.GetCell i).RefreshAll()
-
+        this.grid.RefreshAllCells()
         random.State <- initState

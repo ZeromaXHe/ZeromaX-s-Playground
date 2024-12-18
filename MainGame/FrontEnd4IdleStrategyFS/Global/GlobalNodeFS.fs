@@ -18,6 +18,10 @@ type GlobalNodeFS() =
         this.GetTree().ChangeSceneToFile "res://game/HexGlobal/Menu/HexGlobalMenu.tscn"
         |> ignore
 
+    member this.ChangeToHexPlaneScene() =
+        this.GetTree().ChangeSceneToFile "res://game/HexPlane/Menu/HexMapEditor.tscn"
+        |> ignore
+
     member this.InitIdleStrategyGame (baseTerrain: TileMapLayer) playerCount =
         this.IdleStrategyEntry <-
             Entry(

@@ -121,25 +121,25 @@ type HexMapEditorFS() as this =
 
     let editCell (cell: HexCellFS) =
         if activeTerrainTypeIndex > 0 then
-            cell.TerrainTypeIndex <- activeTerrainTypeIndex - 1
+            cell.SetTerrainTypeIndex <| activeTerrainTypeIndex - 1
 
         if changeElevation then
-            cell.Elevation <- activeElevation
+            cell.SetElevation activeElevation
 
         if changeWaterLevel then
-            cell.WaterLevel <- activeWaterLevel
+            cell.SetWaterLevel activeWaterLevel
 
         if changeSpecial then
-            cell.SpecialIndex <- activeSpecial
+            cell.SetSpecialIndex activeSpecial
 
         if changeUrbanLevel then
-            cell.UrbanLevel <- activeUrbanLevel
+            cell.SetUrbanLevel activeUrbanLevel
 
         if changeFarmLevel then
-            cell.FarmLevel <- activeFarmLevel
+            cell.SetFarmLevel activeFarmLevel
 
         if changePlantLevel then
-            cell.PlantLevel <- activePlantLevel
+            cell.SetPlantLevel activePlantLevel
 
         if riverMode = OptionalToggle.No then
             // GD.Print $"cell removeRiver"
@@ -149,7 +149,7 @@ type HexMapEditorFS() as this =
             cell.RemoveRoads()
 
         if walledMode <> OptionalToggle.Ignore then
-            cell.Walled <- (walledMode = OptionalToggle.Yes)
+            cell.SetWalled <| (walledMode = OptionalToggle.Yes)
 
         if dragDirection.IsSome then
             // dragDirection.IsSome 对应 isDrag

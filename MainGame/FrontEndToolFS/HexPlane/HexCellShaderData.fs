@@ -3,12 +3,6 @@ namespace FrontEndToolFS.HexPlane
 open System.Collections.Generic
 open Godot
 
-type ICell =
-    abstract member Index: int
-    abstract member TerrainTypeIndex: int
-    abstract member IsExplored: bool
-    abstract member IsUnderWater: bool
-
 type IGridForShader =
     abstract member ResetVisibility: unit -> unit
     abstract member IsCellVisible: int -> bool

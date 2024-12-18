@@ -4,6 +4,7 @@ open System.Collections.Generic
 open System.IO
 open FrontEndCommonFS.Util
 open FrontEndToolFS.HexPlane
+open FrontEndToolFS.HexPlane.HexFlags
 open Godot
 open Microsoft.FSharp.Core
 
@@ -40,15 +41,16 @@ type HexUnitFS() as this =
         with get () = this.Grid.GetCell locationCellIndex
         and set (value: HexCellFS) =
             if locationCellIndex >= 0 then
-                let location = this.Grid.GetCell locationCellIndex
+                let mutable location = this.Grid.GetCell locationCellIndex
                 this.Grid.DecreaseVisibility location this.VisionRange
                 location.Unit <- None
 
             locationCellIndex <- value.Index
+            let mutable value = value
             value.Unit <- Some this
             this.Grid.IncreaseVisibility value this.VisionRange
             this.Position <- value.Position
-            this.Grid.MakeChildOfColumn this value.ColumnIndex
+            this.Grid.MakeChildOfColumn this value.Coordinates.ColumnIndex
 
     member this.Orientation
         with get () = orientation
@@ -67,7 +69,7 @@ type HexUnitFS() as this =
         this.Position <- (this.Grid.GetCell locationCellIndex).Position
 
     member this.Die() =
-        let location = this.Grid.GetCell locationCellIndex
+        let mutable location = this.Grid.GetCell locationCellIndex
         this.Grid.DecreaseVisibility location this.VisionRange
         location.Unit <- None
         this.QueueFree()
@@ -84,7 +86,9 @@ type HexUnitFS() as this =
         grid.AddUnit <| HexUnitFS.unitPrefab <| grid.GetCell coordinates <| orientation
 
     member this.IsValidDestination(cell: HexCellFS) =
-        cell.IsExplored && not cell.IsUnderWater && cell.Unit.IsNone
+        cell.Flags.HasAll(HexFlags.Explored ||| HexFlags.Explorable)
+        && not cell.Values.IsUnderwater
+        && cell.Unit.IsNone
 
     let mutable currentTravelLocation: HexCellFS option = None
     let mutable currentTravelLocationIndex = -1
@@ -138,9 +142,9 @@ type HexUnitFS() as this =
                     drawSphere (Bezier.getPoint a b c t) 2f pathShower
 
     member this.Travel(path: int List) =
-        let location = this.Grid.GetCell locationCellIndex
+        let mutable location = this.Grid.GetCell locationCellIndex
         location.Unit <- None
-        let location = this.Grid.GetCell path[path.Count - 1]
+        let mutable location = this.Grid.GetCell path[path.Count - 1]
         locationCellIndex <- location.Index
         location.Unit <- Some this
         pathToTravel <- Some path
@@ -205,14 +209,14 @@ type HexUnitFS() as this =
 
                         currentTravelLocation <- Some <| this.Grid.GetCell currentTravelLocationIndex
                         this.Grid.DecreaseVisibility currentTravelLocation.Value this.VisionRange
-                        currentColumn <- currentTravelLocation.Value.ColumnIndex
+                        currentColumn <- currentTravelLocation.Value.Coordinates.ColumnIndex
 
                     if iTravel < pathToTravel.Value.Count then
                         currentTravelLocation <- Some <| this.Grid.GetCell pathToTravel.Value[iTravel]
                         currentTravelLocationIndex <- currentTravelLocation.Value.Index
                         aTravel <- cTravel
                         bTravel <- (this.Grid.GetCell pathToTravel.Value[iTravel - 1]).Position
-                        let nextColumn = currentTravelLocation.Value.ColumnIndex
+                        let nextColumn = currentTravelLocation.Value.Coordinates.ColumnIndex
 
                         if currentColumn <> nextColumn then
                             if nextColumn < currentColumn - 1 then
@@ -248,19 +252,22 @@ type HexUnitFS() as this =
                     tTravel <- tTravel + delta * travelSpeed
 
     member this.GetMoveCost (fromCell: HexCellFS) (toCell: HexCellFS) direction =
-        let edgeType = fromCell.GetEdgeType toCell
+        let edgeType =
+            HexMetrics.getEdgeType fromCell.Values.Elevation toCell.Values.Elevation
 
         if edgeType = HexEdgeType.Cliff then
             -1
-        elif fromCell.HasRoadThroughEdge direction then
+        elif fromCell.Flags.HasRoad direction then
             1
-        elif fromCell.Walled <> toCell.Walled then
+        elif fromCell.Flags.HasAny HexFlags.Walled <> toCell.Flags.HasAny HexFlags.Walled then
             -1 // 被墙阻挡就得直接跳出逻辑
         else
-            if edgeType = HexEdgeType.Flat then 5 else 10
-            + toCell.UrbanLevel
-            + toCell.FarmLevel
-            + toCell.PlantLevel
+            let v = toCell.Values
+
+            (if edgeType = HexEdgeType.Flat then 5 else 10)
+            + v.UrbanLevel
+            + v.FarmLevel
+            + v.PlantLevel
 
     member this.Speed = 24
 

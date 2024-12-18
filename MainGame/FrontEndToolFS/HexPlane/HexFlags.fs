@@ -72,6 +72,9 @@ module HexFlags =
         member this.WithoutRiverOut(direction: HexDirection) =
             this.Without(HexFlags.RiverOutNE, direction)
 
+        member this.HasRiver(direction: HexDirection) =
+            this.HasRiverIn direction || this.HasRiverOut direction
+
         member this.ToDirection shift =
             match (int this >>> shift) &&& 0b111111 with
             | 0b000001 -> Some HexDirection.NE

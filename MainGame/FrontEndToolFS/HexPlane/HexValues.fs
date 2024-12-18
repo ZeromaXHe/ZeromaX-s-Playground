@@ -27,6 +27,8 @@ type HexValues =
         member this.WithSpecialIndex index = this.With index 255 16
         member this.TerrainTypeIndex = this.Get 255 24
         member this.WithTerrainTypeIndex index = this.With index 255 24
+        member this.ViewElevation = max this.Elevation this.WaterLevel
+        member this.IsUnderwater = this.WaterLevel > this.Elevation
 
         member this.Save(writer: BinaryWriter) =
             writer.Write(byte this.TerrainTypeIndex)

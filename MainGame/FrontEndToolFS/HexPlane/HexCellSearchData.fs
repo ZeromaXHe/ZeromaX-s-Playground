@@ -12,7 +12,7 @@ type HexCellSearchData =
 
         public new(?distance, ?nextWithSamePriority, ?pathFrom, ?heuristic, ?searchPhase) =
             { distance = defaultArg distance 0
-              nextWithSamePriority = defaultArg nextWithSamePriority -1
+              nextWithSamePriority = defaultArg nextWithSamePriority 0
               pathFrom = defaultArg pathFrom -1
               heuristic = defaultArg heuristic 0
               searchPhase = defaultArg searchPhase 0 }

@@ -19,6 +19,9 @@ type MainMenuFS() as this =
     let _hexGlobalButton =
         lazy this.GetNode<Button> "CenterContainer/VBox/ButtonVBox/HexGlobalButton"
 
+    let _hexPlaneButton =
+        lazy this.GetNode<Button> "CenterContainer/VBox/ButtonVBox/HexPlaneButton"
+
     let _bilibiliButton =
         lazy this.GetNode<Button> "LbMarginContainer/VBox/BilibiliButton"
 
@@ -48,6 +51,7 @@ type MainMenuFS() as this =
         _startButton.Value.add_Pressed (fun _ -> _globalNode.Value.ChangeToIdleStrategyScene())
         _quitButton.Value.add_Pressed onQuitButtonPressed
         _hexGlobalButton.Value.add_Pressed (fun _ -> _globalNode.Value.ChangeToHexGlobalScene())
+        _hexPlaneButton.Value.add_Pressed (fun _ -> _globalNode.Value.ChangeToHexPlaneScene())
         _bilibiliButton.Value.add_Pressed onBilibiliButtonPressed
         _gitHubButton.Value.add_Pressed onGitHubButtonPressed
         setDefaultLocale ()
