@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3 uid="uid://cm83etahap45y"]
+
+[ext_resource type="Script" path="res://game/SebastianPlanet/Planet.cs" id="1_7tjws"]
+
+[node name="Planet" type="Node3D"]
+script = ExtResource("1_7tjws")
+Generate = true
+AutoUpdate = true
+Resolution = 10
+PlanetColor = Color(0.667875, 0.975, 0.591094, 1)
+PlanetRadius = 2.0

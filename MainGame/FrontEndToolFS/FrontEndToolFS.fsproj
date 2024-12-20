@@ -37,6 +37,11 @@
         <Compile Include="Tool\NewMapMenuFS.fs" />
         <Compile Include="Tool\HexGameUiFS.fs" />
         <Compile Include="Tool\HexMapEditorFS.fs" />
+        <Compile Include="SebatianPlanet\ColorSettings.fs" />
+        <Compile Include="SebatianPlanet\ShapeSettings.fs" />
+        <Compile Include="SebatianPlanet\ShapeGenerator.fs" />
+        <Compile Include="SebatianPlanet\TerrainFace.fs" />
+        <Compile Include="SebatianPlanet\PlanetFS.fs" />
     </ItemGroup>
 
     <ItemGroup>
