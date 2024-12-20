@@ -1,0 +1,12 @@
+[gd_scene load_steps=2 format=3 uid="uid://boghml1xeiqn6"]
+
+[ext_resource type="Script" path="res://game/SebastianPlanet/PropertyListToolTest.cs" id="1_2lq65"]
+
+[node name="PropertyListToolTest" type="Node3D"]
+script = ExtResource("1_2lq65")
+numbers_0 = 0
+numbers_1 = 1
+numbers_2 = 2
+numbers_3 = 3
+numbers_4 = 4
+NumberCount = 5
