@@ -41,12 +41,23 @@ public partial class Planet : PlanetFS
 
     [ExportGroup("Color")]
     [Export]
-    public Color PlanetColor
+    public Gradient Gradient
     {
-        get => colorSettings.planetColor;
+        get => colorSettings.gradient;
         set
         {
-            colorSettings.planetColor = value;
+            colorSettings.gradient = value;
+            OnColorSettingsUpdated();
+        }
+    }
+
+    [Export]
+    public ShaderMaterial PlanetMaterial
+    {
+        get => colorSettings.planetMaterial;
+        set
+        {
+            colorSettings.planetMaterial = value;
             OnColorSettingsUpdated();
         }
     }

@@ -1,0 +1,121 @@
+[gd_resource type="VisualShader" load_steps=12 format=3 uid="uid://bsnsin0mvmvmk"]
+
+[sub_resource type="VisualShaderNodeTransformVecMult" id="VisualShaderNodeTransformVecMult_y4inn"]
+
+[sub_resource type="VisualShaderNodeVectorLen" id="VisualShaderNodeVectorLen_oh3is"]
+
+[sub_resource type="VisualShaderNodeMix" id="VisualShaderNodeMix_52lck"]
+
+[sub_resource type="VisualShaderNodeFloatOp" id="VisualShaderNodeFloatOp_8r4vw"]
+operator = 1
+
+[sub_resource type="VisualShaderNodeFloatOp" id="VisualShaderNodeFloatOp_qtxq3"]
+operator = 3
+
+[sub_resource type="VisualShaderNodeFloatOp" id="VisualShaderNodeFloatOp_g4jgi"]
+operator = 1
+
+[sub_resource type="VisualShaderNodeTexture2DParameter" id="VisualShaderNodeTexture2DParameter_s34sl"]
+parameter_name = "planet_texture"
+texture_repeat = 2
+
+[sub_resource type="VisualShaderNodeTexture" id="VisualShaderNodeTexture_bvl8i"]
+source = 5
+
+[sub_resource type="VisualShaderNodeVec2Parameter" id="VisualShaderNodeVec2Parameter_3xrq0"]
+expanded_output_ports = [0]
+parameter_name = "elevation_min_max"
+qualifier = 1
+
+[sub_resource type="VisualShaderNodeInput" id="VisualShaderNodeInput_fqsjs"]
+input_name = "inv_view_matrix"
+
+[sub_resource type="VisualShaderNodeInput" id="VisualShaderNodeInput_751kn"]
+expanded_output_ports = [0]
+input_name = "vertex"
+
+[resource]
+code = "shader_type spatial;
+render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_lambert, specular_schlick_ggx;
+
+global uniform vec2 elevation_min_max;
+uniform sampler2D planet_texture : repeat_disable;
+
+
+
+void fragment() {
+// Vector2Parameter:2
+	vec2 n_out2p0 = elevation_min_max;
+	float n_out2p1 = n_out2p0.r;
+	float n_out2p2 = n_out2p0.g;
+
+
+// FloatOp:17
+	float n_out17p0 = n_out2p1 - n_out2p2;
+
+
+// Input:5
+	mat4 n_out5p0 = INV_VIEW_MATRIX;
+
+
+// Input:7
+	vec3 n_out7p0 = VERTEX;
+
+
+// TransformVectorMult:12
+	vec3 n_out12p0 = (n_out5p0 * vec4(n_out7p0, 1.0)).xyz;
+
+
+// VectorLen:13
+	float n_out13p0 = length(n_out12p0);
+
+
+// FloatOp:15
+	float n_out15p0 = n_out13p0 - n_out2p1;
+
+
+// FloatOp:16
+	float n_out16p0 = n_out15p0 / n_out17p0;
+
+
+// Mix:14
+	float n_in14p0 = 0.00000;
+	float n_out14p0 = mix(n_in14p0, n_out17p0, n_out16p0);
+
+
+	vec4 n_out19p0;
+// Texture2D:19
+	n_out19p0 = texture(planet_texture, vec2(n_out14p0));
+
+
+// Output:0
+	ALBEDO = vec3(n_out19p0.xyz);
+
+
+}
+"
+graph_offset = Vector2(155.972, 254.828)
+nodes/fragment/0/position = Vector2(1100, 540)
+nodes/fragment/2/node = SubResource("VisualShaderNodeVec2Parameter_3xrq0")
+nodes/fragment/2/position = Vector2(-1160, 1100)
+nodes/fragment/5/node = SubResource("VisualShaderNodeInput_fqsjs")
+nodes/fragment/5/position = Vector2(-1200, 620)
+nodes/fragment/7/node = SubResource("VisualShaderNodeInput_751kn")
+nodes/fragment/7/position = Vector2(-1200, 820)
+nodes/fragment/12/node = SubResource("VisualShaderNodeTransformVecMult_y4inn")
+nodes/fragment/12/position = Vector2(-740, 580)
+nodes/fragment/13/node = SubResource("VisualShaderNodeVectorLen_oh3is")
+nodes/fragment/13/position = Vector2(-440, 580)
+nodes/fragment/14/node = SubResource("VisualShaderNodeMix_52lck")
+nodes/fragment/14/position = Vector2(480, 680)
+nodes/fragment/15/node = SubResource("VisualShaderNodeFloatOp_8r4vw")
+nodes/fragment/15/position = Vector2(-120, 580)
+nodes/fragment/16/node = SubResource("VisualShaderNodeFloatOp_qtxq3")
+nodes/fragment/16/position = Vector2(180, 580)
+nodes/fragment/17/node = SubResource("VisualShaderNodeFloatOp_g4jgi")
+nodes/fragment/17/position = Vector2(-300, 1100)
+nodes/fragment/18/node = SubResource("VisualShaderNodeTexture2DParameter_s34sl")
+nodes/fragment/18/position = Vector2(320, 1100)
+nodes/fragment/19/node = SubResource("VisualShaderNodeTexture_bvl8i")
+nodes/fragment/19/position = Vector2(800, 780)
+nodes/fragment/connections = PackedInt32Array(5, 0, 12, 0, 12, 0, 13, 0, 7, 0, 12, 1, 13, 0, 15, 0, 2, 1, 15, 1, 15, 0, 16, 0, 2, 1, 17, 0, 2, 2, 17, 1, 17, 0, 16, 1, 16, 0, 14, 2, 17, 0, 14, 1, 18, 0, 19, 2, 14, 0, 19, 0, 19, 0, 0, 0)

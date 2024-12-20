@@ -1,14 +1,27 @@
-[gd_scene load_steps=2 format=3 uid="uid://cm83etahap45y"]
+[gd_scene load_steps=6 format=3 uid="uid://cm83etahap45y"]
 
 [ext_resource type="Script" path="res://game/SebastianPlanet/Planet.cs" id="1_7tjws"]
+[ext_resource type="Shader" uid="uid://bsnsin0mvmvmk" path="res://Shaders/SebastianPlanet/Planet.tres" id="2_137oc"]
+
+[sub_resource type="Gradient" id="Gradient_utiic"]
+offsets = PackedFloat32Array(0, 0.00536193, 0.0991957, 0.24933, 0.487936, 1)
+colors = PackedColorArray(0, 0.39625, 0.990625, 1, 0.953125, 0.821773, 0.202539, 1, 0.123629, 0.309375, 0.0531738, 1, 0.409375, 0.222981, 0.0921094, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_r75c5"]
+gradient = SubResource("Gradient_utiic")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_kvcud"]
+render_priority = 0
+shader = ExtResource("2_137oc")
+shader_parameter/planet_texture = SubResource("GradientTexture2D_r75c5")
 
 [node name="Planet" type="Node3D"]
 script = ExtResource("1_7tjws")
 Generate = true
-AutoUpdate = true
-Resolution = 101
-FaceRenderMask = 1
-PlanetColor = Color(0.667875, 0.975, 0.591094, 1)
+Resolution = 100
+FaceRenderMask = 63
+Gradient = SubResource("Gradient_utiic")
+PlanetMaterial = SubResource("ShaderMaterial_kvcud")
 PlanetRadius = 2.72
 LayerCount = 3
 Enabled0 = true

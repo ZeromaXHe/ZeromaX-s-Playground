@@ -37,7 +37,9 @@
         <Compile Include="Tool\NewMapMenuFS.fs" />
         <Compile Include="Tool\HexGameUiFS.fs" />
         <Compile Include="Tool\HexMapEditorFS.fs" />
+        <Compile Include="SebastianPlanet\MinMax.fs" />
         <Compile Include="SebastianPlanet\ColorSettings.fs" />
+        <Compile Include="SebastianPlanet\ColorGenerator.fs" />
         <Compile Include="SebastianPlanet\NoiseSettings.fs" />
         <Compile Include="SebastianPlanet\ShapeSettings.fs" />
         <Compile Include="SebastianPlanet\MyNoise.fs" />

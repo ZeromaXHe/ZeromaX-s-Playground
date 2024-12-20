@@ -18,6 +18,7 @@ type PlanetFS() as this =
     let mutable meshInstances: MeshInstance3D array = null
     let mutable terrainFaces: TerrainFace array = null
     let mutable shapeGenerator = Unchecked.defaultof<ShapeGenerator>
+    let mutable colorGenerator = Unchecked.defaultof<ColorGenerator>
 
     let directions =
         [| Vector3.Up
@@ -29,6 +30,9 @@ type PlanetFS() as this =
 
     let initialize () =
         shapeGenerator <- ShapeGenerator(this.shapeSettings)
+        shapeGenerator.UpdateSettings(this.shapeSettings)
+        colorGenerator <- ColorGenerator(this.colorSettings)
+        colorGenerator.UpdateSettings(this.colorSettings)
 
         if meshInstances = null || meshInstances.Length = 0 then
             meshInstances <- Array.zeroCreate 6
@@ -42,6 +46,7 @@ type PlanetFS() as this =
                 this.AddChild meshObj
                 meshInstances[i] <- meshObj
 
+            meshInstances[i].MaterialOverride <- this.colorSettings.planetMaterial
             terrainFaces[i] <- TerrainFace(shapeGenerator, meshInstances[i], this.resolution, directions[i])
 
             let renderFace =
@@ -58,12 +63,10 @@ type PlanetFS() as this =
             if meshInstances[i].Visible then
                 terrainFaces[i].ConstructMesh()
 
+        colorGenerator.UpdateElevation shapeGenerator.elevationMinMax
+
     let generateColors () =
-        meshInstances
-        |> Array.iter (fun m ->
-            let material = new StandardMaterial3D()
-            material.AlbedoColor <- this.colorSettings.planetColor
-            m.MaterialOverride <- material)
+        colorGenerator.UpdateColors()
 
     member val resolution = 10 with get, set
     member val autoUpdate = false with get, set
