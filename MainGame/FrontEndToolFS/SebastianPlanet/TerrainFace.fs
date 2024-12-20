@@ -1,4 +1,4 @@
-namespace FrontEndToolFS.SebatianPlanet
+namespace FrontEndToolFS.SebastianPlanet
 
 open Godot
 

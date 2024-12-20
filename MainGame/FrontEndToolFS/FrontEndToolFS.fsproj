@@ -37,11 +37,14 @@
         <Compile Include="Tool\NewMapMenuFS.fs" />
         <Compile Include="Tool\HexGameUiFS.fs" />
         <Compile Include="Tool\HexMapEditorFS.fs" />
-        <Compile Include="SebatianPlanet\ColorSettings.fs" />
-        <Compile Include="SebatianPlanet\ShapeSettings.fs" />
-        <Compile Include="SebatianPlanet\ShapeGenerator.fs" />
-        <Compile Include="SebatianPlanet\TerrainFace.fs" />
-        <Compile Include="SebatianPlanet\PlanetFS.fs" />
+        <Compile Include="SebastianPlanet\ColorSettings.fs" />
+        <Compile Include="SebastianPlanet\NoiseSettings.fs" />
+        <Compile Include="SebastianPlanet\ShapeSettings.fs" />
+        <Compile Include="SebastianPlanet\MyNoise.fs" />
+        <Compile Include="SebastianPlanet\NoiseFilter.fs" />
+        <Compile Include="SebastianPlanet\ShapeGenerator.fs" />
+        <Compile Include="SebastianPlanet\TerrainFace.fs" />
+        <Compile Include="SebastianPlanet\PlanetFS.fs" />
     </ItemGroup>
 
     <ItemGroup>

@@ -1,4 +1,4 @@
-namespace FrontEndToolFS.SebatianPlanet
+namespace FrontEndToolFS.SebastianPlanet
 
 open Godot
 
@@ -64,5 +64,8 @@ type PlanetFS() as this =
         generateMesh ()
         generateColors ()
         this.generate <- true
+
+    member this.RefreshNoiseLayers() =
+        this.shapeSettings.noiseLayers <- Array.init this.shapeSettings.layerCount (fun _ -> NoiseLayer())
 
     override this._Ready() = this.GeneratePlanet()
