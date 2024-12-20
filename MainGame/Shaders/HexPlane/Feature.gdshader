@@ -37,4 +37,3 @@ void fragment() {
 	// 设置透明度
 	//ALPHA = c.a;
 }
-

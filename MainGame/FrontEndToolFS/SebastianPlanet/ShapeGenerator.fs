@@ -3,8 +3,9 @@ namespace FrontEndToolFS.SebastianPlanet
 open Godot
 
 type ShapeGenerator(settings: ShapeSettings) =
-    member val noiseFilters: NoiseFilter array =
-        Array.init settings.noiseLayers.Length (fun i -> NoiseFilter(settings.noiseLayers[i].noiseSettings)) with get, set
+    member val noiseFilters: INoiseFilter array =
+        Array.init settings.noiseLayers.Length (fun i ->
+            NoiseFilterFactory.createNoiseFilter settings.noiseLayers[i].noiseSettings) with get, set
 
     member this.CalculatePointOnPlanet(pointOnUnitSphere: Vector3) =
         let mutable firstLayerValue = 0f

@@ -32,6 +32,13 @@ public partial class Planet : PlanetFS
         set => resolution = value;
     }
 
+    [Export]
+    public FaceRenderMask FaceRenderMask
+    {
+        get => faceRenderMask;
+        set => faceRenderMask = value;
+    }
+
     [ExportGroup("Color")]
     [Export]
     public Color PlanetColor
@@ -106,6 +113,13 @@ public partial class Planet : PlanetFS
     }
 
     [Export]
+    public FilterType FilterType0
+    {
+        get => NoiseLayerGetter(0, ns => ns.filterType);
+        set => NoiseLayerSetter(value, 0, (ns, v) => ns.filterType = v);
+    }
+
+    [Export]
     public float Strength0
     {
         get => NoiseLayerGetter(0, ns => ns.strength);
@@ -154,6 +168,13 @@ public partial class Planet : PlanetFS
         set => NoiseLayerSetter(value, 0, (ns, v) => ns.minValue = v);
     }
 
+    [Export]
+    public float WeightMultiplier0
+    {
+        get => NoiseLayerGetter(0, ns => ns.weightMultiplier);
+        set => NoiseLayerSetter(value, 0, (ns, v) => ns.weightMultiplier = v);
+    }
+
     [ExportSubgroup("Noise Layer 1")]
     [Export]
     public bool Enabled1
@@ -167,6 +188,13 @@ public partial class Planet : PlanetFS
     {
         get => NoiseLayerGetter(1, null, ns => ns.useFirstLayerAsMask);
         set => NoiseLayerSetter(value, 1, null, (ns, v) => ns.useFirstLayerAsMask = v);
+    }
+
+    [Export]
+    public FilterType FilterType1
+    {
+        get => NoiseLayerGetter(1, ns => ns.filterType);
+        set => NoiseLayerSetter(value, 1, (ns, v) => ns.filterType = v);
     }
 
     [Export]
@@ -217,6 +245,93 @@ public partial class Planet : PlanetFS
         get => NoiseLayerGetter(1, ns => ns.minValue);
         set => NoiseLayerSetter(value, 1, (ns, v) => ns.minValue = v);
     }
+
+    [Export]
+    public float WeightMultiplier1
+    {
+        get => NoiseLayerGetter(1, ns => ns.weightMultiplier);
+        set => NoiseLayerSetter(value, 1, (ns, v) => ns.weightMultiplier = v);
+    }
+
+
+    [ExportSubgroup("Noise Layer 2")]
+    [Export]
+    public bool Enabled2
+    {
+        get => NoiseLayerGetter(2, null, ns => ns.enabled);
+        set => NoiseLayerSetter(value, 2, null, (ns, v) => ns.enabled = v);
+    }
+
+    [Export]
+    public bool UseFirstLayerAsMask2
+    {
+        get => NoiseLayerGetter(2, null, ns => ns.useFirstLayerAsMask);
+        set => NoiseLayerSetter(value, 2, null, (ns, v) => ns.useFirstLayerAsMask = v);
+    }
+
+    [Export]
+    public FilterType FilterType2
+    {
+        get => NoiseLayerGetter(2, ns => ns.filterType);
+        set => NoiseLayerSetter(value, 2, (ns, v) => ns.filterType = v);
+    }
+
+    [Export]
+    public float Strength2
+    {
+        get => NoiseLayerGetter(2, ns => ns.strength);
+        set => NoiseLayerSetter(value, 2, (ns, v) => ns.strength = v);
+    }
+
+    [Export(PropertyHint.Range, "1, 8")]
+    public int NumLayers2
+    {
+        get => NoiseLayerGetter(2, ns => ns.numLayers);
+        set => NoiseLayerSetter(value, 2, (ns, v) => ns.numLayers = v);
+    }
+
+    [Export(PropertyHint.Range, "1.0, 10.0")]
+    public float Roughness2
+    {
+        get => NoiseLayerGetter(2, ns => ns.roughness);
+        set => NoiseLayerSetter(value, 2, (ns, v) => ns.roughness = v);
+    }
+
+    [Export]
+    public float BaseRoughness2
+    {
+        get => NoiseLayerGetter(2, ns => ns.baseRoughness);
+        set => NoiseLayerSetter(value, 2, (ns, v) => ns.baseRoughness = v);
+    }
+
+    [Export(PropertyHint.Range, "0.0, 1.0")]
+    public float Persistence2
+    {
+        get => NoiseLayerGetter(2, ns => ns.persistence);
+        set => NoiseLayerSetter(value, 2, (ns, v) => ns.persistence = v);
+    }
+
+    [Export]
+    public Vector3 Center2
+    {
+        get => NoiseLayerGetter(2, ns => ns.center);
+        set => NoiseLayerSetter(value, 2, (ns, v) => ns.center = v);
+    }
+
+    [Export]
+    public float MinValue2
+    {
+        get => NoiseLayerGetter(2, ns => ns.minValue);
+        set => NoiseLayerSetter(value, 2, (ns, v) => ns.minValue = v);
+    }
+
+    [Export]
+    public float WeightMultiplier2
+    {
+        get => NoiseLayerGetter(2, ns => ns.weightMultiplier);
+        set => NoiseLayerSetter(value, 2, (ns, v) => ns.weightMultiplier = v);
+    }
+
 
     // 请忽略 IDE 冗余提示，需要保留此处和 partial
     public override void _Ready() => base._Ready();

@@ -41,10 +41,14 @@
         <Compile Include="SebastianPlanet\NoiseSettings.fs" />
         <Compile Include="SebastianPlanet\ShapeSettings.fs" />
         <Compile Include="SebastianPlanet\MyNoise.fs" />
-        <Compile Include="SebastianPlanet\NoiseFilter.fs" />
+        <Compile Include="SebastianPlanet\INoiseFilter.fs" />
+        <Compile Include="SebastianPlanet\SimpleNoiseFilter.fs" />
+        <Compile Include="SebastianPlanet\RigidNoiseFilter.fs" />
+        <Compile Include="SebastianPlanet\NoiseFilterFactory.fs" />
         <Compile Include="SebastianPlanet\ShapeGenerator.fs" />
         <Compile Include="SebastianPlanet\TerrainFace.fs" />
         <Compile Include="SebastianPlanet\PlanetFS.fs" />
+        <Compile Include="SebastianPlanet\PropertyListToolTestFS.fs" />
     </ItemGroup>
 
     <ItemGroup>
