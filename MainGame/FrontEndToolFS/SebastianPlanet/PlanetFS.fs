@@ -61,15 +61,18 @@ type PlanetFS() as this =
     let generateMesh () =
         for i in 0..5 do
             if meshInstances[i].Visible then
-                terrainFaces[i].ConstructMesh()
+                terrainFaces[i].ConstructMesh(colorGenerator)
 
         colorGenerator.UpdateElevation shapeGenerator.elevationMinMax
 
-    let generateColors () =
+    let generateColors changeUV =
         colorGenerator.UpdateColors()
-        for i in 0..5 do
-            if meshInstances[i].Visible then
-                terrainFaces[i].UpdateUVs(colorGenerator)
+        // Godot 生成法线只能用 SurfaceTool，而 SurfaceTool 又不能单独改 UV…… 尴尬
+        // 只能这样重新生成 Mesh 来刷新 UV 了
+        if changeUV then
+            for i in 0..5 do
+                if meshInstances[i].Visible then
+                    terrainFaces[i].ConstructMesh(colorGenerator)
 
     member val resolution = 10 with get, set
     member val autoUpdate = false with get, set
@@ -88,12 +91,12 @@ type PlanetFS() as this =
         // 必须加 _readyFin 控制，不然加载已保存场景的时候也会调用进来，怪不得这么卡……
         if _readyFin && this.autoUpdate then
             initialize ()
-            generateColors ()
+            generateColors true
 
     member this.GeneratePlanet() =
         initialize ()
         generateMesh ()
-        generateColors ()
+        generateColors false
         this.generate <- true
 
     member this.RefreshNoiseLayers() =
