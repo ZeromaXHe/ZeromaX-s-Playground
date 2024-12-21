@@ -20,8 +20,13 @@ type TerrainFace(shapeGenerator: ShapeGenerator, meshIns: MeshInstance3D, resolu
                     localUp + (percent.X - 0.5f) * 2f * axisA + (percent.Y - 0.5f) * 2f * axisB
 
                 let pointOnUnitSphere = pointOnUnitCube.Normalized()
-                this.UpdateUVs colorGenerator pointOnUnitSphere
-                surfaceTool.AddVertex <| shapeGenerator.CalculatePointOnPlanet pointOnUnitSphere
+                let unscaledElevation = shapeGenerator.CalculateUnscaledElevation pointOnUnitSphere
+
+                surfaceTool.SetUV
+                <| Vector2(colorGenerator.BiomePercentFromPoint pointOnUnitSphere, unscaledElevation)
+
+                surfaceTool.AddVertex
+                <| pointOnUnitSphere * shapeGenerator.GetScaledElevation unscaledElevation
 
                 if x < resolution - 1 && y < resolution - 1 then
                     // 切记 Unity 的面方向和 Godot 相反，所以需要把每个三角形后两个点顺序互换
@@ -37,6 +42,3 @@ type TerrainFace(shapeGenerator: ShapeGenerator, meshIns: MeshInstance3D, resolu
         material.AlbedoColor <- Colors.White
         surfaceTool.SetMaterial(material)
         meshIns.Mesh <- surfaceTool.Commit()
-
-    member this.UpdateUVs(colorGenerator: ColorGenerator) pointOnUnitSphere =
-        surfaceTool.SetUV <| Vector2(colorGenerator.BiomePercentFromPoint pointOnUnitSphere, 0f)

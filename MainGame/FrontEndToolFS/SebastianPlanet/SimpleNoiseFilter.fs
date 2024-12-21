@@ -17,5 +17,5 @@ type SimpleNoiseFilter(settings: NoiseSettings) =
                 frequency <- frequency * settings.roughness
                 amplitude <- amplitude * settings.persistence
 
-            noiseValue <- Mathf.Max(0f, noiseValue - settings.minValue)
+            noiseValue <- noiseValue - settings.minValue
             noiseValue * settings.strength

@@ -16,11 +16,12 @@ type ColorGenerator(settings: ColorSettings) =
 
         if
             texture = null
+            || texture.GetWidth() <> textureResolution * 2
             || texture.GetHeight() <> settings.biomeColorSettings.biomes.Length
         then
             texture <-
                 Image.CreateEmpty(
-                    textureResolution,
+                    textureResolution * 2,
                     settings.biomeColorSettings.biomes.Length,
                     false,
                     Image.Format.Rgba8
@@ -57,14 +58,18 @@ type ColorGenerator(settings: ColorSettings) =
         let mutable colorIndex = 0
 
         for biome in settings.biomeColorSettings.biomes do
-            for i in 0 .. textureResolution - 1 do
+            for i in 0 .. textureResolution * 2 - 1 do
                 let gradientColor =
-                    biome.gradient.Sample(float32 i / float32 (textureResolution - 1))
+                    if i < textureResolution then
+                        settings.oceanColor.Sample(float32 i / float32 (textureResolution - 1))
+                    else
+                        biome.gradient.Sample(float32 (i - textureResolution) / float32 (textureResolution - 1))
 
                 let tintColor = biome.tint
-                let y = colorIndex / textureResolution
+                let y = colorIndex / textureResolution / 2
                 texture.SetPixel(i, y, gradientColor * (1f - biome.tintPercent) + tintColor * biome.tintPercent)
                 colorIndex <- colorIndex + 1
+                    
 
         settings.planetMaterial.SetShaderParameter(
             "planet_texture",

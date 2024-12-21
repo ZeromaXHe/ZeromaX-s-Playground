@@ -21,3 +21,4 @@ type BiomeColorSettings() =
 type ColorSettings() =
     member val planetMaterial: ShaderMaterial = null with get, set
     member val biomeColorSettings = BiomeColorSettings() with get, set
+    member val oceanColor: Gradient = null with get, set

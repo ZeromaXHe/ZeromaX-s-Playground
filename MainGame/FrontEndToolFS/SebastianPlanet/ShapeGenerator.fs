@@ -15,7 +15,7 @@ type ShapeGenerator(settings: ShapeSettings) =
             Array.init settings.noiseLayers.Length (fun i ->
                 NoiseFilterFactory.createNoiseFilter settings.noiseLayers[i].noiseSettings)
 
-    member this.CalculatePointOnPlanet(pointOnUnitSphere: Vector3) =
+    member this.CalculateUnscaledElevation(pointOnUnitSphere: Vector3) =
         let mutable firstLayerValue = 0f
         let mutable elevation = 0f
 
@@ -35,6 +35,9 @@ type ShapeGenerator(settings: ShapeSettings) =
 
                 elevation <- elevation + this.noiseFilters[i].Evaluate pointOnUnitSphere * mask
 
-        elevation <- settings.planetRadius * (1f + elevation)
         this.elevationMinMax.AddValue elevation
-        pointOnUnitSphere * elevation
+        elevation
+
+    member this.GetScaledElevation unscaledElevation =
+        let elevation = Mathf.Max(0f, unscaledElevation)
+        settings.planetRadius * (1f + elevation)

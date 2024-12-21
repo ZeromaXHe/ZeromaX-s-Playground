@@ -52,6 +52,17 @@ public partial class Planet : PlanetFS
     }
 
     [Export]
+    public Gradient OceanColor
+    {
+        get => colorSettings.oceanColor;
+        set
+        {
+            colorSettings.oceanColor = value;
+            OnColorSettingsUpdated();
+        }
+    }
+
+    [Export]
     public float CbNoiseOffset
     {
         get => colorSettings.biomeColorSettings.noiseOffset;
