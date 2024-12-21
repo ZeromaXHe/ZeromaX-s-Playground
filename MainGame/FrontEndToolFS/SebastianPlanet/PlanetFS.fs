@@ -67,6 +67,9 @@ type PlanetFS() as this =
 
     let generateColors () =
         colorGenerator.UpdateColors()
+        for i in 0..5 do
+            if meshInstances[i].Visible then
+                terrainFaces[i].UpdateUVs(colorGenerator)
 
     member val resolution = 10 with get, set
     member val autoUpdate = false with get, set

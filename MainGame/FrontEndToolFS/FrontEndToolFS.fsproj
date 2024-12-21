@@ -38,15 +38,15 @@
         <Compile Include="Tool\HexGameUiFS.fs" />
         <Compile Include="Tool\HexMapEditorFS.fs" />
         <Compile Include="SebastianPlanet\MinMax.fs" />
-        <Compile Include="SebastianPlanet\ColorSettings.fs" />
-        <Compile Include="SebastianPlanet\ColorGenerator.fs" />
         <Compile Include="SebastianPlanet\NoiseSettings.fs" />
+        <Compile Include="SebastianPlanet\ColorSettings.fs" />
         <Compile Include="SebastianPlanet\ShapeSettings.fs" />
         <Compile Include="SebastianPlanet\MyNoise.fs" />
         <Compile Include="SebastianPlanet\INoiseFilter.fs" />
         <Compile Include="SebastianPlanet\SimpleNoiseFilter.fs" />
         <Compile Include="SebastianPlanet\RigidNoiseFilter.fs" />
         <Compile Include="SebastianPlanet\NoiseFilterFactory.fs" />
+        <Compile Include="SebastianPlanet\ColorGenerator.fs" />
         <Compile Include="SebastianPlanet\ShapeGenerator.fs" />
         <Compile Include="SebastianPlanet\TerrainFace.fs" />
         <Compile Include="SebastianPlanet\PlanetFS.fs" />
