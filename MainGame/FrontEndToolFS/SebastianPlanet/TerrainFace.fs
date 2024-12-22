@@ -7,7 +7,7 @@ type TerrainFace(shapeGenerator: ShapeGenerator, meshIns: MeshInstance3D, resolu
     let mutable axisA = Vector3(localUp.Y, localUp.Z, localUp.X)
     let mutable axisB = localUp.Cross axisA
 
-    member this.ConstructMesh(colorGenerator: ColorGenerator) =
+    member this.ConstructMesh (colorGenerator: ColorGenerator) =
         surfaceTool.Clear()
         surfaceTool.Begin(Mesh.PrimitiveType.Triangles)
 

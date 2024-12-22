@@ -61,7 +61,7 @@ type PlanetFS() as this =
     let generateMesh () =
         for i in 0..5 do
             if meshInstances[i].Visible then
-                terrainFaces[i].ConstructMesh(colorGenerator)
+                terrainFaces[i].ConstructMesh colorGenerator
 
         colorGenerator.UpdateElevation shapeGenerator.elevationMinMax
 
@@ -72,7 +72,7 @@ type PlanetFS() as this =
         if changeUV then
             for i in 0..5 do
                 if meshInstances[i].Visible then
-                    terrainFaces[i].ConstructMesh(colorGenerator)
+                    terrainFaces[i].ConstructMesh colorGenerator
 
     member val resolution = 10 with get, set
     member val autoUpdate = false with get, set

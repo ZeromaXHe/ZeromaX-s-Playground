@@ -15,7 +15,7 @@ type ShapeGenerator(settings: ShapeSettings) =
             Array.init settings.noiseLayers.Length (fun i ->
                 NoiseFilterFactory.createNoiseFilter settings.noiseLayers[i].noiseSettings)
 
-    member this.CalculateUnscaledElevation(pointOnUnitSphere: Vector3) =
+    member this.CalculateUnscaledElevation pointOnUnitSphere =
         let mutable firstLayerValue = 0f
         let mutable elevation = 0f
 

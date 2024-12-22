@@ -34,6 +34,10 @@ Some changes by ZeromaXHe for use in my Godot F# project.
  * This noise module outputs values that usually range from
  * -1.0 to +1.0, but there are no guarantees that all output values will exist within that range.
 *)
+
+type INoise =
+    abstract member Evaluate: Vector3 -> float32
+
 type MyNoise(seed: int) =
     /// Initial permutation table
     // Rider 这个 F# 自动格式化数组分号有点烦……
@@ -135,7 +139,7 @@ type MyNoise(seed: int) =
     let dot2 (g: int array) (x: float) (y: float) = float g[0] * x + float g[1] * y
 
     let fastFloor (x: float) =
-        if x >= 0.0 then int x else int (x - 1.0)
+        if x >= 0.0 then int x else int x - 1
 
     do randomize seed
     new() = MyNoise(0)
@@ -173,7 +177,7 @@ type MyNoise(seed: int) =
                     1, 0, 0, 1, 0, 1
                 else
                     // Z X Y order
-                    0, 1, 0, 0, 1, 1
+                    0, 0, 1, 1, 0, 1
             // x0 < y0
             elif y0 < z0 then
                 // Z Y X order
@@ -191,9 +195,9 @@ type MyNoise(seed: int) =
         // where c = 1/6.
 
         // Offsets for second corner in (x,y,z) coords
-        let x1 = y0 - float i1 + G3
-        let y1 = z0 - float j1 + G3
-        let z1 = x0 - float k1 + G3
+        let x1 = x0 - float i1 + G3
+        let y1 = y0 - float j1 + G3
+        let z1 = z0 - float k1 + G3
         // Offsets for third corner in (x,y,z)
         let x2 = x0 - float i2 + F3
         let y2 = y0 - float j2 + F3

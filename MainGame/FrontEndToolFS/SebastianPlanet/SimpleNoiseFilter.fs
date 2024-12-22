@@ -6,7 +6,7 @@ type SimpleNoiseFilter(settings: NoiseSettings) =
     let noise = MyNoise()
 
     interface INoiseFilter with
-        override this.Evaluate(point: Vector3) =
+        override this.Evaluate point =
             let mutable noiseValue = 0f
             let mutable frequency = settings.baseRoughness
             let mutable amplitude = 1f
