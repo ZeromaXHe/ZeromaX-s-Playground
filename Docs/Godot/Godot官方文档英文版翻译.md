@@ -1,5 +1,251 @@
 # 渲染
 
+## 使用 Viewport
+
+https://docs.godotengine.org/en/stable/tutorials/rendering/viewports.html#using-viewports
+
+### 引言
+
+将 [Viewport](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport) 视为投影游戏的屏幕。为了观看游戏，我们需要一个可以绘制游戏的曲面。这个曲面就是根视口。
+
+![../../_images/subviewportnode.webp](https://docs.godotengine.org/en/stable/_images/subviewportnode.webp)
+
+[SubViewport](https://docs.godotengine.org/en/stable/classes/class_subviewport.html#class-subviewport) 是一种可以添加到场景中的视口，以便有多个表面可供绘制。当我们绘制子视口时，我们称之为渲染目标。我们可以通过访问渲染目标的相应[纹理](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport-method-get-texture)来访问其内容。通过使用子视口作为渲染目标，我们可以同时渲染多个场景，也可以渲染到应用于场景中对象的 [ViewportTexture](https://docs.godotengine.org/en/stable/classes/class_viewporttexture.html#class-viewporttexture)，例如动态天空盒。
+
+[SubViewports](https://docs.godotengine.org/en/stable/classes/class_subviewport.html#class-subviewport) 有各种用例，包括：
+
+- 在 2D 游戏中渲染 3D 对象
+- 在 3D 游戏中渲染 2D 元素
+- 渲染动态纹理
+- 在运行时生成程序纹理
+- 在同一场景中渲染多个摄影机
+
+所有这些用例的共同点是，您可以将对象绘制到纹理上，就像它是另一个屏幕一样，然后可以选择如何处理生成的纹理。
+
+Godot 中的另一种视口是 [Windows](https://docs.godotengine.org/en/stable/classes/class_window.html#class-window)。它们允许将内容投影到窗口上。虽然根视口是一个窗口，但它们的灵活性较差。如果你想使用视口的纹理，你大部分时间都会使用 [SubViewports](https://docs.godotengine.org/en/stable/classes/class_subviewport.html#class-subviewport)。
+
+### 输入
+
+[Viewports](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport) 还负责将经过适当调整和缩放的输入事件传递给其子节点。默认情况下，[SubViewports](https://docs.godotengine.org/en/stable/classes/class_subviewport.html#class-subviewport) 不会自动接收输入，除非它们从直接的 [SubViewportContainer](https://docs.godotengine.org/en/stable/classes/class_subviewportcontainer.html#class-subviewportcontainer) 父节点接收输入。在这种情况下，可以使用 [Disable Input](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport-property-gui-disable-input) 属性禁用输入。
+
+![../../_images/input.webp](https://docs.godotengine.org/en/stable/_images/input.webp)
+
+有关 Godot 如何处理输入的更多信息，请阅读[输入事件教程](https://docs.godotengine.org/en/stable/tutorials/inputs/inputevent.html#doc-inputevent)。
+
+### Listener
+
+Godot 支持 3D 声音（在 2D 和 3D 节点中）。更多信息可以在[音频流教程](https://docs.godotengine.org/en/stable/tutorials/audio/audio_streams.html#doc-audio-streams)中找到。为了使这种声音可听，需要将 [Viewport](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport) 启用为监听器（用于 2D 或 3D）。如果您使用 [SubViewport](https://docs.godotengine.org/en/stable/classes/class_subviewport.html#class-subviewport) 显示 [World3D](https://docs.godotengine.org/en/stable/classes/class_world3d.html#class-world3d) 或 [World2D](https://docs.godotengine.org/en/stable/classes/class_world2d.html#class-world2d)，别忘了启用此选项！
+
+### 相机（2D 和 3D）
+
+使用 [Camera3D](https://docs.godotengine.org/en/stable/classes/class_camera3d.html#class-camera3d) 或 [Camera2D](https://docs.godotengine.org/en/stable/classes/class_camera2d.html#class-camera2d) 时，它将始终显示在最近的父 [Viewport](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport) 上（朝向根）。例如，在以下层次结构中：
+
+![../../_images/cameras.webp](https://docs.godotengine.org/en/stable/_images/cameras.webp)
+
+`CameraA` 将显示在根 [Viewport](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport) 上，并绘制 `MeshA`。`CameraB` 将与 `MeshB` 一起被 [SubViewport](https://docs.godotengine.org/en/stable/classes/class_subviewport.html#class-subviewport) 捕获。即使 `MeshB` 位于场景层次中，它也不会被绘制到根视口。同样，`MeshA` 在子视口中不可见，因为子视口仅捕获层次结构中其下方的节点。
+
+每个 [Viewport](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport) 只能有一个活动摄影机，因此如果有多个，请确保所需的摄影机具有 [current](https://docs.godotengine.org/en/stable/classes/class_camera3d.html#class-camera3d-property-current) 属性集，或通过调用将其设置为当前摄影机：
+
+```gdscript
+camera.make_current()
+```
+
+```c#
+camera.MakeCurrent();
+```
+
+默认情况下，摄影机将渲染其世界中的所有对象。在 3D 中，摄影机可以使用其 [cull_mask](https://docs.godotengine.org/en/stable/classes/class_camera3d.html#class-camera3d-property-cull-mask) 属性和 [VisualInstance3D](https://docs.godotengine.org/en/stable/classes/class_visualinstance3d.html#class-visualinstance3d) 的[图层](https://docs.godotengine.org/en/stable/classes/class_visualinstance3d.html#class-visualinstance3d-property-layers)属性来限制渲染哪些对象。
+
+### 缩放和拉伸
+
+[SubViewport](https://docs.godotengine.org/en/stable/classes/class_subviewport.html#class-subviewport) 具有 [size](https://docs.godotengine.org/en/stable/classes/class_subviewport.html#class-subviewport-property-size) 属性，该属性表示子视口的像素大小。对于作为 [SubViewportContainers](https://docs.godotengine.org/en/stable/classes/class_subviewportcontainer.html#class-subviewportcontainer) 子级的SubViewports，这些值将被覆盖，但对于所有其他值，这将设置它们的分辨率。
+
+还可以通过调用以下命令来缩放二维内容，并使 [SubViewport](https://docs.godotengine.org/en/stable/classes/class_subviewport.html#class-subviewport) 分辨率与指定的大小不同：
+
+```gdscript
+sub_viewport.set_size_2d_override(Vector2i(width, height)) # Custom size for 2D.
+sub_viewport.set_size_2d_override_stretch(true) # Enable stretch for custom size.
+```
+
+```c#
+subViewport.Size2DOverride = new Vector2I(width, height); // Custom size for 2D.
+subViewport.Size2DOverrideStretch = true; // Enable stretch for custom size.
+```
+
+有关使用根视口缩放和拉伸的信息，请访问多分辨率教程
+
+### 世界
+
+对于 3D，[Viewport](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport) 将包含 [World3D](https://docs.godotengine.org/en/stable/classes/class_world3d.html#class-world3d)。这基本上是将物理和渲染联系在一起的宇宙。基于 Node3D 的节点将使用最近视口的 World3D 进行注册。默认情况下，新创建的视口不包含 World3D，但使用与其父视口相同的视口。根视口始终包含 World3D，默认情况下，这是渲染对象的对象。
+
+可以使用 [World 3D](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport-property-world-3d) 属性在 [Viewport](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport) 中设置 [World3D](https://docs.godotengine.org/en/stable/classes/class_world3d.html#class-world3d)，这将分隔此 [Viewport](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport) 的所有子节点，并阻止它们与父视口的 World3D 交互。这在某些场景中特别有用，例如，您可能希望在游戏中（如《星际争霸》）显示一个单独的 3D 角色。
+
+当您想要创建显示单个对象的 [Viewports](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport) 而不想创建 [World3D](https://docs.godotengine.org/en/stable/classes/class_world3d.html#class-world3d) 时，视口可以选择使用其[自己的 World3D](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport-property-own-world-3d)。当您想在 [World2D](https://docs.godotengine.org/en/stable/classes/class_world2d.html#class-world2d) 中实例化 3D 角色或对象时，这很有用。
+
+对于二维，每个[Viewport](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport) 始终包含自己的 [World2D](https://docs.godotengine.org/en/stable/classes/class_world2d.html#class-world2d)。在大多数情况下，这就足够了，但如果需要共享它们，可以通过代码在 Viewport 上设置 [world_2d](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport-property-world-2d) 来实现。
+
+有关其工作原理的示例，请分别参阅演示项目 [3D in 2D](https://github.com/godotengine/godot-demo-projects/tree/master/viewport/3d_in_2d) 和 [2D in 3D](https://github.com/godotengine/godot-demo-projects/tree/master/viewport/2d_in_3d)。
+
+### 捕获
+
+可以查询 [Viewport](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport) 内容的捕获。对于根视口，这实际上是一个屏幕截图。这是通过以下代码完成的：
+
+```gdscript
+# Retrieve the captured Image using get_image().
+var img = get_viewport().get_texture().get_image()
+# Convert Image to ImageTexture.
+var tex = ImageTexture.create_from_image(img)
+# Set sprite texture.
+sprite.texture = tex
+```
+
+```c#
+// Retrieve the captured Image using get_image().
+var img = GetViewport().GetTexture().GetImage();
+// Convert Image to ImageTexture.
+var tex = ImageTexture.CreateFromImage(img);
+// Set sprite texture.
+sprite.Texture = tex;
+```
+
+但是，如果你在 `_ready()` 中或从 [Viewport's](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport) 初始化的第一帧开始使用它，你将得到一个空纹理，因为没有什么可以作为纹理获得。您可以使用（例如）来处理它：
+
+```gdscript
+# Wait until the frame has finished before getting the texture.
+await RenderingServer.frame_post_draw
+# You can get the image after this.
+```
+
+```c#
+// Wait until the frame has finished before getting the texture.
+await RenderingServer.Singleton.ToSignal(RenderingServer.SignalName.FramePostDraw);
+// You can get the image after this.
+```
+
+
+
+
+
+## 修复抖动、卡顿和输入延迟
+
+https://docs.godotengine.org/en/stable/tutorials/rendering/jitter_stutter.html#fixing-jitter-stutter-and-input-lag
+
+### 什么是抖动、卡顿和输入延迟？
+
+抖动（jitter）和卡顿（stutter）是屏幕上物体可见运动的两种不同变化，即使在全速运行时也可能影响游戏。这些效果在游戏中最为明显，在游戏中，世界以恒定的速度朝着固定的方向移动，比如跑步者或平台玩家。
+
+输入延迟（input lag）与抖动和卡顿无关，但有时会一并讨论。输入延迟是指使用鼠标、键盘、控制器或触摸屏执行操作时，屏幕上可见的延迟。它可能与游戏代码、引擎代码或外部因素（如硬件）有关。输入延迟在使用鼠标瞄准的游戏中最为明显，例如第一人称游戏。输入延迟不能完全消除，但可以通过多种方式减少。
+
+### 区分抖动和卡顿
+
+以正常帧率运行而不显示任何效果的游戏将看起来很流畅：
+
+![../../_images/motion_normal.gif](https://docs.godotengine.org/en/stable/_images/motion_normal.gif)
+
+表现出*抖动*的游戏会以一种非常微妙的方式不断抖动：
+
+![../../_images/motion_jitter.gif](https://docs.godotengine.org/en/stable/_images/motion_jitter.gif)
+
+最后，一个出现卡顿的游戏会看起来很流畅，但每隔几秒钟就会停止或回滚一帧：
+
+![../../_images/motion_stutter.gif](https://docs.godotengine.org/en/stable/_images/motion_stutter.gif)
+
+### 抖动
+
+抖动的原因有很多，最典型的是当游戏*物理频率*（通常为 60 Hz)以与显示器刷新率不同的分辨率运行时。检查您的显示器刷新率是否与 60 Hz 不同。
+
+这通常不是问题，因为大多数监视器都是 60 Hz 的，从 Godot 3.1 开始，引入了一个帧计时器，试图尽可能地与刷新同步。
+
+有时只有一些对象出现抖动（角色或背景）。当它们在不同的时间源中处理时会发生这种情况（一个在物理步骤中处理，另一个在空闲步骤中处理）。Godot 3.1 对此做了一些改进，从允许在常规 `_process()` 循环中为运动体设置动画，到进一步修复帧计时器。
+
+### 卡顿
+
+卡顿可能由于两个不同的原因而发生。第一个，也是最明显的一个，是游戏无法保持全帧率性能。解决这个问题是特定于游戏的，需要优化。
+
+第二个更复杂，因为它通常与引擎或游戏无关，而是与底层操作系统有关。以下是关于不同操作系统上卡顿的一些信息。
+
+在支持禁用 V-Sync 的平台上，通过在项目设置中禁用 V-Sync，可以使口吃不那么明显。然而，这将导致撕裂，特别是在刷新率低的显示器上。如果您的显示器支持它，请考虑在启用 V-Sync 的同时启用可变刷新率（G-Sync / FreeSync）。这避免了在不引入撕裂的情况下减轻某些形式的卡顿。
+
+强制图形卡使用最大性能配置也有助于减少卡顿，但代价是 GPU 功耗增加。
+
+#### Windows
+
+众所周知，Windows 会导致窗口游戏卡顿。这主要取决于安装的硬件、驱动程序版本和并行运行的进程（例如，打开许多浏览器选项卡可能会导致正在运行的游戏卡顿）。为了避免这种情况，从 3.1 开始，Godot 将游戏优先级提高到“高于正常值”。这有很大帮助，但可能无法完全消除卡顿。
+
+完全消除这一点需要给你的游戏完全的权限才能变得“时间紧迫的（time critical）”，这是不建议的。有些游戏可能会这样做，但建议学会接受这个问题，因为这在 Windows 游戏中很常见，大多数用户不会玩窗口游戏（在窗口中玩的游戏，如益智游戏，通常无论如何都不会出现这个问题）。
+
+对于全屏模式，Windows 赋予游戏特殊的优先级，因此卡顿不再可见，而且非常罕见。大多数游戏都是这样玩的。
+
+使用轮询率为 1000 Hz 或更高的鼠标时，请考虑使用完全最新的 Windows 11 安装，该安装附带了与高轮询率鼠标的高 CPU 利用率相关的修复程序。这些修复程序在 Windows 10 和旧版本中不可用。
+
+> **小贴士：**
+>
+> 游戏应使用**独占全屏（Exclusive Fullscreen）**窗口模式，而不是**全屏**模式，全屏模式旨在防止 Windows 自动将窗口视为独占全屏。
+>
+> **全屏**是指希望使用每像素透明度而不会被操作系统禁用的 GUI 应用程序使用的。它通过在屏幕底部留下一条 1 像素的线来实现这一点。相比之下，**Exclusive Fullscreen** 使用实际屏幕大小，并允许 Windows 减少全屏游戏的抖动和输入延迟。
+
+#### Linux
+
+卡顿可能在桌面 Linux 上可见，但这通常与不同的视频驱动程序和合成器有关。一些合成器也可能触发此问题（例如 KWin），因此建议尝试使用不同的合成器来排除其原因。一些窗口管理器，如 KWin 和 Xfwm，允许您手动禁用合成，这可以提高性能（以撕裂为代价）。
+
+除了向驱动程序或合成器开发人员报告问题外，没有解决驱动程序或合成程序卡顿的方法。与全屏模式相比，在窗口模式下播放时，即使禁用合成，抖动也可能更明显。
+
+[Feral GameMode](https://github.com/FeralInteractive/gamemode) 可用于在运行特定进程时自动应用优化（例如强制GPU性能配置文件）。
+
+#### macOS
+
+一般来说，macOS 是无卡顿的，尽管最近在全屏运行时报告了一些错误（这是一个 macOS 错误）。如果你有一台机器表现出这种行为，请告诉我们。
+
+#### 安卓系统
+
+一般来说，Android 是不连贯和抖动的，因为运行活动得到了所有的优先级。也就是说，可能会有问题的设备（已知较旧的 Kindle Fire 就是其中之一）。如果你在 Android 上看到这个问题，请告诉我们。
+
+#### iOS
+
+iOS 设备通常没有卡顿，但运行较新版本操作系统的旧设备可能会出现问题。这通常是不可避免的。
+
+### 输入延迟
+
+#### 项目配置
+
+在支持禁用 V-Sync 的平台上，可以通过在项目设置中禁用 V-Sync 来减少输入延迟。然而，这将导致撕裂，特别是在刷新率低的显示器上。建议将 V-Sync 作为玩家切换的选项。
+
+使用 Forward+ 或 Mobile 渲染方法时，启用 V-Sync 时减少视觉延迟的另一种方法是使用双缓冲 V-Sync，而不是默认的三缓冲 V-Sync。从 Godot 4.3 开始，这可以通过将“**显示 > 窗口 > V-Sync > Swapchain 图像计数**”项目设置减少到 `2` 来实现。使用双缓冲的缺点是，如果由于 CPU 或 GPU 瓶颈而无法达到显示刷新率，帧率将不太稳定。例如，在 60 Hz 的显示器上，如果在三重缓冲的游戏过程中帧率通常会降至 55 FPS，那么在双缓冲的情况下，它必须暂时降至 30 FPS（然后在可能的情况下恢复到 60 FPS）。因此，只有当您能够在目标硬件上持续达到显示刷新率时，才建议使用双缓冲 V-Sync。
+
+增加每秒的物理迭代次数也可以减少物理引起的输入延迟。这在使用物理插值时尤其明显（这提高了平滑度，但增加了延迟）。为此，请将 **Physics > Common > Physics Ticks Per Second** 设置为高于默认值 `60` 的值，或在脚本中在运行时设置 `Engine.physics_ticks_per_second`。禁用物理插值时，监视器刷新率倍数（通常为 `60`）的值效果最佳，因为它们可以避免抖动。这意味着 `120`、`180` 和 `240` 等值是很好的起点。作为额外的好处，更高的物理FPGA使隧道和物理不稳定性问题不太可能发生。
+
+增加物理 FPS 的缺点是 CPU 使用率会增加，这可能会导致具有大量物理模拟代码的游戏出现性能瓶颈。这可以通过仅在低延迟至关重要的情况下提高物理 FPS 来缓解，或者让玩家调整物理 FPS 以匹配他们的硬件。然而，即使在游戏逻辑中一直使用 `delta`，不同的物理 FPS 也会导致物理模拟中的不同结果。这可以让某些玩家比其他玩家更有优势。因此，对于竞争性多人游戏，应避免允许玩家自己更改物理 FPS。
+
+最后，您可以通过在脚本中调用 `Input.set_use_accumulated_input(false)` 来禁用每个渲染帧的输入缓冲。这将使脚本中的 `_input()` 和 `_unhanded_input()` 函数在每次输入时都被调用，而不是累积输入并等待渲染帧。禁用输入累积将增加 CPU 使用率，因此应谨慎操作。
+
+> **小贴士：**
+>
+> 在任何 Godot 项目中，您都可以使用 `--disable-vsync` 命令行参数强制禁用 V-Sync。从 Godot 4.2 开始，`--max-fps <fps>` 也可用于设置 FPS 限制（`0` 表示无限制）。这些论点可以同时使用。
+
+#### 硬件/操作系统特定
+
+如果您的显示器支持它，请考虑在启用 V-Sync 的同时启用可变刷新率（G-Sync / FreeSync），然后根据[本页](https://blurbusters.com/howto-low-lag-vsync-on/)将项目设置中的帧速率限制在略低于显示器最大刷新率的值。例如，在 144 Hz 的显示器上，可以将项目的帧速率上限设置为 `141`。起初，这可能违反直觉，但将 FPS 限制在最大刷新率范围以下可以确保操作系统永远不必等待垂直消隐完成。这会导致类似的输入延迟，因为 V-Sync 在相同的帧速率上限下被禁用（通常大于 1ms），但没有任何撕裂。
+
+这可以通过更改**应用程序 > 运行 > 最大 FPS**项目设置或在脚本中的运行时分配 `Engine.max_fps` 来实现。
+
+在某些平台上，您还可以在图形驱动程序选项（如 Windows 上的 NVIDIA 控制面板）中选择进入低延迟模式。**Ultra** 设置将以略低的平均帧速率为代价，为您提供尽可能低的延迟。强制 GPU 使用最大性能配置文件还可以进一步减少输入延迟，但代价是更高的功耗（以及由此产生的热量/风扇噪音）。
+
+最后，确保您的显示器在操作系统的显示设置中以尽可能高的刷新率运行。
+
+此外，请确保您的鼠标配置为使用其最高轮询率（游戏鼠标通常为 1000 Hz，有时甚至更高）。然而，高 USB 轮询率可能会导致高 CPU 使用率，因此 500 Hz 可能是低端 CPU 上更安全的赌注。如果您的鼠标提供多种 DPI 设置，请考虑[使用尽可能高的设置并降低游戏内的灵敏度，以减少鼠标延迟](https://www.youtube.com/watch?v=6AoRfv9W110)。
+
+在 Linux 上，在允许合成的窗口管理器（如 KWin 或 Xfwm）中禁用合成可以显著减少输入延迟。
+
+### 报告抖动、卡顿或输入延迟问题
+
+如果您报告的卡顿或抖动问题（打开问题）不是由上述任何原因引起的，请非常清楚地说明有关设备、操作系统、驱动程序版本等的所有信息。这可能有助于更好地排除故障。
+
+如果您报告的是输入延迟问题，请包括使用高速相机拍摄的照片（例如手机的慢动作视频模式）。捕获**必须**使屏幕和输入设备都可见，以便可以计算输入和屏幕结果之间的帧数。此外，一定要提到显示器的刷新率和输入设备的轮询率（尤其是鼠标）。
+
+此外，请确保根据所展示的行为使用正确的术语（抖动、卡顿、输入延迟）。这将有助于更快地理解您的问题。提供一个可用于重现问题的项目，如果可能的话，包括一个演示错误的屏幕截图。
+
+
+
 ## 合成器（The Compositor）
 
 https://docs.godotengine.org/en/stable/tutorials/rendering/compositor.html#the-compositor
@@ -829,7 +1075,7 @@ void fragment() {
 
 在提交评论之前，请阅读[用户贡献笔记政策](https://github.com/godotengine/godot-docs-user-notes/discussions/1)。
 
-**3 个评论** 1 个回复
+**3 个评论** · 1 个回复
 
 
 
@@ -1102,7 +1348,7 @@ render_mode blend_premul_alpha;
 
 在提交评论之前，请阅读[用户贡献笔记政策](https://github.com/godotengine/godot-docs-user-notes/discussions/1)。
 
-**1 个评论** 1 个回复
+**1 个评论** · 1 个回复
 
 
 
@@ -1254,3 +1500,398 @@ void fragment() {
 
 以下是对各种后处理方法及其优缺点的讨论：
 [godotengine/godot#99491](https://github.com/godotengine/godot/issues/99491)
+
+
+
+## 高级后期处理
+
+https://docs.godotengine.org/en/stable/tutorials/shaders/advanced_postprocessing.html#advanced-post-processing
+
+### 引言
+
+本教程介绍了 Godot 中后期处理的高级方法。特别是，它将解释如何编写使用深度缓冲区的后处理着色器。您应该已经熟悉了后处理，特别是[自定义后处理教程](https://docs.godotengine.org/en/stable/tutorials/shaders/custom_postprocessing.html#doc-custom-postprocessing)中概述的方法。
+
+### 全屏四边形
+
+制作自定义后处理效果的一种方法是使用视口。然而，使用视口有两个主要缺点：
+
+1. 无法访问深度缓冲区
+2. 后处理着色器的效果在编辑器中不可见
+
+要绕过使用深度缓冲区的限制，请使用具有 [QuadMesh](https://docs.godotengine.org/en/stable/classes/class_quadmesh.html#class-quadmesh) 基本体（primitive）的 [MeshInstance3D](https://docs.godotengine.org/en/stable/classes/class_meshinstance3d.html#class-meshinstance3d)。这允许我们使用着色器并访问场景的深度纹理。接下来，使用顶点着色器使四边形始终覆盖屏幕，以便始终应用后处理效果，包括在编辑器中。
+
+首先，创建一个新的 MeshInstance3D，并将其网格设置为 QuadMesh。这将创建一个以位置 `(0, 0, 0)` 为中心的四边形，宽度和高度为 `1`。将宽度和高度设置为 `2`，并启用“**翻转面**”。现在，四边形在世界空间的原点占据了一个位置。但是，我们希望它与相机一起移动，以便它始终覆盖整个屏幕。为此，我们将绕过通过差分坐标空间（difference coordinate spaces）平移顶点位置的坐标变换，并将顶点视为已经在剪辑空间（clip space）中。
+
+顶点着色器期望在剪辑空间中输出坐标，这些坐标的范围从屏幕左侧和底部的 `-1` 到屏幕顶部和右侧的 `1`。这就是为什么 QuadMesh 的高度和宽度需要为 `2`。Godot 在幕后处理从模型到视图空间再到剪辑空间的转换，因此我们需要取消 Godot 转换的效果。我们通过将内置的 `POSITION` 设置为所需的位置来实现这一点。`POSITION` 绕过了内置的变换，直接在剪辑空间中设置顶点位置。
+
+```glsl
+shader_type spatial;
+// Prevent the quad from being affected by lighting and fog. This also improves performance.
+render_mode unshaded, fog_disabled;
+
+void vertex() {
+  POSITION = vec4(VERTEX.xy, 1.0, 1.0);
+}
+```
+
+> **注：**
+>
+> 在早于 4.3 的 Godot 版本中，此代码建议使用 `POSITION = vec4(VERTEX, 1.0);` 这隐含地假设平面附近的剪辑空间为 `0.0`。该代码现在不正确，在 4.3+ 版本中无法工作，因为我们现在使用“反向 z”深度缓冲区，其中近平面为 `1.0`。
+
+即使有了这个顶点着色器，四边形也会不断消失。这是由于在 CPU 上完成的截头体剔除（frustum culling）。截头体剔除使用相机矩阵和网格的 AABB 来确定网格在传递给 GPU 之前是否可见。CPU 不知道我们正在对顶点做什么，因此它假设指定的坐标是指世界位置，而不是剪辑空间位置，这导致当我们远离场景中心时，Godot 会剔除四边形。为了防止四边形被淘汰，有几个选择：
+
+1. 将 QuadMesh 作为子对象添加到摄影机中，使摄影机始终指向它
+2. 在 QuadMesh 中将几何属性 `extra_cull_margin` 设置得尽可能大
+
+第二个选项确保四边形在编辑器中可见，而第一个选项则保证即使相机移动到剔除边缘之外，四边形仍然可见。您也可以使用这两个选项。
+
+### 深度纹理
+
+要读取深度纹理，我们首先需要使用 `hint_depth_texture` 为深度缓冲区创建一个纹理 uniform 集。
+
+```glsl
+uniform sampler2D depth_texture : source_color, hint_depth_texture;
+```
+
+定义后，可以使用 `texture()` 函数读取深度纹理。
+
+```glsl
+float depth = texture(depth_texture, SCREEN_UV).x;
+```
+
+> **注：**
+>
+> 与访问屏幕纹理类似，只有从当前视口读取时才能访问深度纹理。无法从已渲染的其他视口访问深度纹理。
+
+`depth_texture` 返回的值在 `1.0` 和 `0.0` 之间（由于使用了“reverse-z”深度缓冲区，分别对应于近平面和远平面），并且是非线性的。当直接从 `depth_texture` 显示深度时，除非由于非线性而非常接近，否则一切看起来几乎都是黑色的。为了使深度值与世界或模型坐标对齐，我们需要线性化该值。当我们将投影矩阵应用于顶点位置时，z 值是非线性的，因此为了使其线性化，我们将其乘以投影矩阵的逆，在 Godot 中，可以通过变量 `INV_PROJECTION_MATRIX` 访问该逆。
+
+首先，获取屏幕空间坐标并将其转换为归一化设备坐标（NDC）。使用 Vulkan 后端时，NDC 在 `x` 和 `y` 方向上运行 `-1.0` 到 `1.0`，在 `z` 方向上运行 `0.0` 到 `1.0`。使用 `SCREEN_UV` 对 `x` 和 `y` 轴以及 `z` 的深度值重建 NDC。
+
+```glsl
+void fragment() {
+  float depth = texture(depth_texture, SCREEN_UV).x;
+  vec3 ndc = vec3(SCREEN_UV * 2.0 - 1.0, depth);
+}
+```
+
+> **注：**
+>
+> 本教程假设使用 Forward+ 或 Mobile 渲染器，这两种渲染器都使用 Z 范围为 `[0.0, 1.0]` 的 Vulkan NDC。相比之下，兼容性渲染器使用 Z 范围为 `[-1.0, 1.0]` 的 OpenGL NDC。对于兼容性渲染器，请将 NDC 计算替换为以下内容：
+>
+> ```glsl
+> vec3 ndc = vec3(SCREEN_UV, depth) * 2.0 - 1.0;
+> ```
+
+通过将 NDC 乘以 `INV_PROJECTION_MATRIX`，将 NDC 转换为视图空间。回想一下，视图空间给出了相对于相机的位置，因此 `z` 值将给出到该点的距离。
+
+```glsl
+void fragment() {
+  ...
+  vec4 view = INV_PROJECTION_MATRIX * vec4(ndc, 1.0);
+  view.xyz /= view.w;
+  float linear_depth = -view.z;
+}
+```
+
+因为相机面向负 `z` 方向，所以位置将具有负 `z` 值。为了获得可用的深度值，我们必须否定 `view.z`。
+
+可以使用以下代码从深度缓冲区构造世界位置，使用 `INV_VIEW_MATRIX` 将位置从视图空间转换为世界空间。
+
+```glsl
+void fragment() {
+  ...
+  vec4 world = INV_VIEW_MATRIX * INV_PROJECTION_MATRIX * vec4(ndc, 1.0);
+  vec3 world_position = world.xyz / world.w;
+}
+```
+
+### 着色器示例
+
+一旦我们添加了一行来输出 `ALBEDO`，我们就有了一个完整的着色器，看起来像这样。此着色器允许您可视化线性深度或世界空间坐标，具体取决于注释掉的行。
+
+```glsl
+shader_type spatial;
+// Prevent the quad from being affected by lighting and fog. This also improves performance.
+render_mode unshaded, fog_disabled;
+
+uniform sampler2D depth_texture : source_color, hint_depth_texture;
+
+void vertex() {
+  POSITION = vec4(VERTEX.xy, 1.0, 1.0);
+}
+
+void fragment() {
+  float depth = texture(depth_texture, SCREEN_UV).x;
+  vec3 ndc = vec3(SCREEN_UV * 2.0 - 1.0, depth);
+  vec4 view = INV_PROJECTION_MATRIX * vec4(ndc, 1.0);
+  view.xyz /= view.w;
+  float linear_depth = -view.z;
+
+  vec4 world = INV_VIEW_MATRIX * INV_PROJECTION_MATRIX * vec4(ndc, 1.0);
+  vec3 world_position = world.xyz / world.w;
+
+  // Visualize linear depth
+  ALBEDO.rgb = vec3(fract(linear_depth));
+
+  // Visualize world coordinates
+  //ALBEDO.rgb = fract(world_position).xyz;
+}
+```
+
+### 优化
+
+您可以从使用单个大三角形而不是使用全屏四边形中受益。[这里](https://michaldrobot.com/2014/04/01/gcn-execution-patterns-in-full-screen-passes)解释了原因。但是，好处很小，只有在运行特别复杂的片段着色器时才有好处。
+
+将 MeshInstance3D 中的网格设置为 [ArrayMesh](https://docs.godotengine.org/en/stable/classes/class_arraymesh.html#class-arraymesh)。ArrayMesh 是一种工具，它允许您轻松地从数组中为顶点、法线、颜色等构建网格。
+
+现在，将脚本附加到 MeshInstance3D 并使用以下代码：
+
+```gdscript
+extends MeshInstance3D
+
+func _ready():
+  # Create a single triangle out of vertices:
+  var verts = PackedVector3Array()
+  verts.append(Vector3(-1.0, -1.0, 0.0))
+  verts.append(Vector3(-1.0, 3.0, 0.0))
+  verts.append(Vector3(3.0, -1.0, 0.0))
+
+  # Create an array of arrays.
+  # This could contain normals, colors, UVs, etc.
+  var mesh_array = []
+  mesh_array.resize(Mesh.ARRAY_MAX) #required size for ArrayMesh Array
+  mesh_array[Mesh.ARRAY_VERTEX] = verts #position of vertex array in ArrayMesh Array
+
+  # Create mesh from mesh_array:
+  mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, mesh_array)
+```
+
+> **注：**
+>
+> 三角形在归一化设备坐标中指定。回想一下，NDC 在 `x` 和 `y` 方向上都从 `-1.0` 运行到 `1.0`。这使得屏幕宽 `2` 个单位，高 `2` 个单位。为了用一个三角形覆盖整个屏幕，请使用一个 `4` 个单位宽、`4` 个单位高的三角形，将其高度和宽度加倍。
+
+从上面指定相同的顶点着色器，一切看起来都应该完全相同。
+
+使用 ArrayMesh 而不是使用 QuadMesh 的一个缺点是，ArrayMesh 在编辑器中不可见，因为三角形在场景运行之前不会构建。为了解决这个问题，在建模程序中构造一个三角形网格，并在 MeshInstance3D 中使用它。
+
+### 用户贡献的笔记
+
+在提交评论之前，请阅读[用户贡献笔记政策](https://github.com/godotengine/godot-docs-user-notes/discussions/1)。
+
+**3 个评论** · 4 个回复
+
+
+
+[tetrapod00](https://github.com/tetrapod00) [Aug 17, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/42#discussioncomment-10362065)
+
+以下是一个示例，您可以将其用作效果的基础。它读取所有三个屏幕纹理（`screen_texture`、`depth_texture` 和 `normal_rough_texture`）。您想要使用的大多数值都是从屏幕纹理中提取的。通过取消注释 `ALBEDO` 行来更改渲染的值。
+
+```glsl
+// Godot 4.3, Forward+ or Mobile
+shader_type spatial;
+render_mode unshaded, fog_disabled;
+
+uniform sampler2D screen_texture : source_color, hint_screen_texture;
+uniform sampler2D depth_texture : hint_depth_texture;
+uniform sampler2D normal_rough_texture : hint_normal_roughness_texture;
+
+void vertex() {
+	POSITION = vec4(VERTEX.xy, 1.0, 1.0);
+}
+
+void fragment() {
+	vec4 screen = texture(screen_texture, SCREEN_UV);
+	
+	float depth_raw = texture(depth_texture, SCREEN_UV).x;
+	vec3 ndc = vec3(SCREEN_UV * 2.0 - 1.0, depth_raw);
+	vec4 position_view = INV_PROJECTION_MATRIX * vec4(ndc, 1.0);
+	position_view.xyz /= position_view.w;
+	float linear_depth = -position_view.z;
+	
+	vec4 world = INV_VIEW_MATRIX * INV_PROJECTION_MATRIX * vec4(ndc, 1.0);
+	vec3 position_world = world.xyz / world.w;
+	
+	vec4 normal_rough = texture(normal_rough_texture, SCREEN_UV);
+	vec3 normals_view_raw = normal_rough.xyz; // Normals in view space, in [0.0, 1.0] range
+	vec3 normals_view_remapped = normals_view_raw.xyz * 2.0 - 1.0;  // Normals in view space, in [-1.0, 1.0] range
+	vec3 normals_world = (INV_VIEW_MATRIX * vec4(normals_view_remapped, 0.0)).xyz;
+	float roughness = normal_rough.w;
+	
+	// Visualize the outputs
+	// Screen texture
+	ALBEDO.rgb = screen.rgb;
+	// Raw depth
+	//ALBEDO.rgb = vec3(depth_raw);
+	// Linear depth
+	//ALBEDO.rgb = vec3(fract(linear_depth));
+	// World position
+	//ALBEDO.rgb = fract(position_world);	
+	// Normals from the normal buffer, in view space
+	//ALBEDO.rgb = normals_view_raw;
+	// Normals in world space, [-1.0,1.0] range
+	//ALBEDO.rgb = normals_world;
+	// Roughness
+	//ALBEDO.rgb = vec3(roughness);
+}
+```
+
+
+
+[thompsop1sou](https://github.com/thompsop1sou) [Nov 20, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/42#discussioncomment-11318393)
+
+我也在 [Screen Reading Shaders](https://docs.godotengine.org/en/stable/tutorials/shaders/screen-reading_shaders.html) 文档中发布了这条评论，但我认为这里也值得注意。该文档提到了 3D 中后处理和透明对象的一个重大限制：
+
+> 在 3D 中，屏幕是在不透明几何体通过之后但在透明几何体通过之前复制的，因此透明对象不会被捕获在屏幕纹理中。
+
+这不仅会影响屏幕纹理，还会影响深度和正常粗糙度纹理。
+
+有几种方法可以解决这个问题，这样你就可以对透明对象进行后处理效果：
+
+1. 如果只使用屏幕纹理（不是深度或法线-粗糙度），请使用 2D 着色器。当您在 2D 着色器中访问屏幕纹理时，将显示透明对象。（我认为这是因为 3D 渲染已经全部完成。）这不适用于深度或法线-粗糙度纹理，因为这些纹理在 2D 着色器中不可用。
+2. 使用[合成器效果](https://docs.godotengine.org/en/stable/tutorials/rendering/compositor.html)。这是一个较低级别的解决方案，需要编写 GLSL 并像在计算着色器中一样传递数据。请注意，您需要将透明对象设置为“始终深度绘制”，以便它们显示在深度缓冲区中。目前，还没有办法让透明物体在法线-粗糙度纹理中显示出来。
+3. 您可以使用具有多个相机和视口的设置来手动捕获和传递纹理。设置起来有点复杂，但它最终会给你比合成器效果更多的控制权。您可以访问颜色、深度、法线或粗糙度数据，也可以传递自己的自定义数据。我在这里有一个示例项目：https://github.com/thompsop1sou/custom-screen-buffers
+
+​	[SephReed](https://github.com/SephReed) [Nov 22, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/42#discussioncomment-11343543)
+
+​	我爱你！出色的解决方案，清晰的文档。谢谢您
+
+
+
+[heart-rotting](https://github.com/heart-rotting) [Nov 26, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/42#discussioncomment-11379642)
+
+不确定我是否只是速度较慢，但即使我只是将教程着色器复制粘贴到我的文件中，我也会得到一种奇怪的振荡/带状效果（类似于此）。通过反复试验，我发现我必须将线性深度除以大约100或更高的值，才能得到振荡效应，使其推得足够远，不再存在。
+
+```glsl
+float linear_depth = -(view.xyz / view.w).z / 100.0;
+```
+
+如果有任何着色器专家理解为什么会发生这种情况，我很想听听！谢谢，希望这能帮助到别人！✌️
+
+​	[tetrapod00](https://github.com/tetrapod00) [Nov 26, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/42#discussioncomment-11379703)
+
+​	嗨，我相信带状效应是有意的。此页面上的此示例本身并不是一个有用的后处理效果，而只是为了可视化线性深度和世界空间位置的值（如果您取消注释另一行）。您可以使用这些值来实现自己的后处理效果。
+
+​	通过使用 `fract()`，带状效应每 1 单位（米）的线性深度重复一次。如果移动相机，它会随着相机向前或向后移动而出现振荡。
+
+​	当你像代码示例中那样将该值除以 100 时，你会每 100 个单位（米）重复一次带状效果，因此在大多数游戏场景中，带状效果似乎消失了。
+
+​	[heart-rotting](https://github.com/heart-rotting) [Nov 26, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/42#discussioncomment-11379729)
+
+​	哦，我知道了！这让我明白了很多😅. 感谢您的快速回复！
+
+​	[LordMcMutton](https://github.com/LordMcMutton) [Dec 20, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/42#discussioncomment-11624282)
+
+​	我能够用这个获得更好的深度缓冲：
+
+```glsl
+float depth = texture(depth_texture, SCREEN_UV).x;
+float linear_depth = mix(-10, 10, depth);
+```
+
+​	您可以使用页面提供的ALBEDO位看到它的样子：
+
+```glsl
+ALBEDO = vec3(fract(linear_depth));
+```
+
+​	它给你一个从黑到白的平滑缓冲，就像你所期望的那样。
+
+
+
+## 树木的制作
+
+https://docs.godotengine.org/en/stable/tutorials/shaders/making_trees.html#making-trees
+
+这是一个关于如何从头开始制作树木和其他类型植被的简短教程。
+
+我们的目的不是关注建模技术（有很多关于建模技术的教程），而是如何让它们在 Godot 中看起来很好。
+
+![../../_images/tree_sway.gif](https://docs.godotengine.org/en/stable/_images/tree_sway.gif)
+
+### 从树开始
+
+我从 SketchFab 中选取了这棵树：
+
+![../../_images/tree_base.png](https://docs.godotengine.org/en/stable/_images/tree_base.png)
+
+https://sketchfab.com/models/ea5e6ed7f9d6445ba69589d503e8cebf
+
+并在 Blender 中打开它。
+
+### 用顶点颜色绘制
+
+您可能要做的第一件事是使用顶点颜色来绘制有风时树会摆动多少。只需使用您最喜欢的 3D 建模程序的顶点颜色绘制工具，绘制如下内容：
+
+![../../_images/tree_vertex_paint.png](https://docs.godotengine.org/en/stable/_images/tree_vertex_paint.png)
+
+这有点夸张，但这个想法是，颜色表明摇摆对树的每个部分有多大影响。这里的比例更能代表它：
+
+![../../_images/tree_gradient.png](https://docs.godotengine.org/en/stable/_images/tree_gradient.png)
+
+### 为叶子编写自定义着色器
+
+这是一个叶子着色器的示例：
+
+```glsl
+shader_type spatial;
+render_mode depth_prepass_alpha, cull_disabled, world_vertex_coords;
+```
+
+这是一个空间着色器。没有前/后剔除（因此可以从两侧看到树叶），并且使用了阿尔法预处理，因此使用透明度（树叶投射阴影）产生的深度伪影更少。最后，对于摇摆效果，建议使用世界坐标，这样树就可以被复制、移动等，并且它仍然可以与其他树一起工作。
+
+```glsl
+uniform sampler2D texture_albedo : source_color;
+uniform vec4 transmission : source_color;
+```
+
+在这里，读取纹理和透射颜色，透射颜色用于为叶子添加一些背光，模拟次表面散射。
+
+```glsl
+uniform float sway_speed = 1.0;
+uniform float sway_strength = 0.05;
+uniform float sway_phase_len = 8.0;
+
+void vertex() {
+    float strength = COLOR.r * sway_strength;
+    VERTEX.x += sin(VERTEX.x * sway_phase_len * 1.123 + TIME * sway_speed) * strength;
+    VERTEX.y += sin(VERTEX.y * sway_phase_len + TIME * sway_speed * 1.12412) * strength;
+    VERTEX.z += sin(VERTEX.z * sway_phase_len * 0.9123 + TIME * sway_speed * 1.3123) * strength;
+}
+```
+
+这是创建树叶摇摆的代码。这是基本的（只使用正弦波乘以时间和轴位置，但效果很好）。请注意，强度与颜色相乘。每个轴都使用一个不同的接近 1.0 的小乘法因子，因此轴不会同步出现。
+
+最后，剩下的就是片段着色器：
+
+```glsl
+void fragment() {
+    vec4 albedo_tex = texture(texture_albedo, UV);
+    ALBEDO = albedo_tex.rgb;
+    ALPHA = albedo_tex.a;
+    METALLIC = 0.0;
+    ROUGHNESS = 1.0;
+    TRANSMISSION = transmission.rgb;
+}
+```
+
+这几乎就是全部。
+
+主干着色器是类似的，除了它不写入阿尔法通道（因此不需要阿尔法预处理），也不需要传输才能工作。这两个着色器都可以通过添加法线贴图、AO 和其他贴图来改进。
+
+### 改进着色器
+
+关于如何做到这一点，你可以阅读更多的资源。既然您已经了解了基础知识，建议您阅读 GPU Gems3 中关于 Crysis 如何做到这一点的章节（主要关注 sway 代码，因为其中显示的许多其他技术已经过时）：
+
+https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch16.html
+
+### 用户贡献的笔记
+
+在提交评论之前，请阅读[用户贡献笔记政策](https://github.com/godotengine/godot-docs-user-notes/discussions/1)。
+
+**1 个评论**
+
+
+
+[heinermann](https://github.com/heinermann) [Oct 7, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/185#discussioncomment-10866469)
+
+对于任何使用 TreeIt（它会自动生成上述顶点颜色）创建树的人来说，有人在以下位置创建了一个 Godot 就绪着色器 https://godotshaders.com/shader/treeit-tree-shader/
