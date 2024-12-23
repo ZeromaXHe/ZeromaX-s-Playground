@@ -1,3 +1,2219 @@
+# 插件
+
+## 安装插件
+
+https://docs.godotengine.org/en/stable/tutorials/plugins/editor/installing_plugins.html#installing-plugins
+
+Godot 具有一个编辑器插件系统，其中包含社区开发的众多插件。插件可以通过新节点、附加停靠点、便利功能等扩展编辑器的功能。
+
+### 查找插件
+
+查找 Godot 插件的首选方法是使用[资源库](https://godotengine.org/asset-library/)。虽然可以在线浏览，但直接从编辑器中使用它更方便。为此，请单击编辑器顶部的 **AssetLib** 选项卡：
+
+![../../../_images/installing_plugins_assetlib_tab.webp](https://docs.godotengine.org/en/stable/_images/installing_plugins_assetlib_tab.webp)
+
+您还可以在 GitHub 等代码托管网站上找到资产。
+
+> **注：**
+>
+> 一些存储库将自己描述为“插件”，但实际上可能不是编辑器插件。对于打算在运行中的项目中使用的脚本来说尤其如此。您不需要启用这些插件来使用它们。下载它们并解压缩项目文件夹中的文件。
+>
+> 区分编辑器插件和非编辑器插件的一种方法是在托管插件的存储库中查找 `plugin.cfg` 文件。如果存储库在 `addons/` 文件夹中的文件夹中包含 `plugin.cfg` 文件，则它是一个编辑器插件。
+
+### 安装插件
+
+要安装插件，请将其作为 ZIP 存档下载。在资产库上，可以使用下载按钮从编辑器或使用 Web 界面完成此操作。
+
+在 GitHub 上，如果插件声明了*标签*（版本），请转到“**发布**”选项卡下载稳定版本。这可确保您下载的版本由其作者声明为稳定版本。
+
+在 GitHub 上，如果插件没有声明任何标签，请使用**下载 ZIP** 按钮下载最新版本的 ZIP：
+
+![../../../_images/installing_plugins_github_download_zip.png](https://docs.godotengine.org/en/stable/_images/installing_plugins_github_download_zip.png)
+
+解压缩 ZIP 存档，并将其中包含的 `addons/` 文件夹移动到您的项目文件夹中。如果您的项目已经包含 `addons/` 文件夹，请将插件的 `addons/` 文件夹移动到您的项目文件夹中，以将新文件夹内容与现有文件夹内容合并。您的文件管理员可能会询问您是否要写入该文件夹；回答**是**。在此过程中不会覆盖任何文件。
+
+### 启用插件
+
+要启用新安装的插件，请打开编辑器顶部的**项目 > 项目设置**，然后转到**插件**选项卡。如果插件打包正确，您应该在插件列表中看到它。单击**启用**复选框启用插件。
+
+![../../../_images/installing_plugins_project_settings.webp](https://docs.godotengine.org/en/stable/_images/installing_plugins_project_settings.webp)
+
+启用插件后，您可以立即使用它；不需要重新启动编辑器。同样，禁用插件也可以在不重新启动编辑器的情况下完成。
+
+
+
+## 制作插件
+
+https://docs.godotengine.org/en/stable/tutorials/plugins/editor/making_plugins.html#making-plugins
+
+### 关于插件
+
+插件是用有用的工具扩展编辑器的好方法。它可以完全使用 GDScript 和标准场景制作，甚至无需重新加载编辑器。与模块不同，您不需要创建 C++ 代码，也不需要重新编译引擎。虽然这会降低插件的功能，但你仍然可以用它们做很多事情。请注意，插件类似于您已经可以制作的任何场景，除了它是使用脚本添加编辑器功能创建的。
+
+本教程将指导您创建两个插件，以便您了解它们的工作原理，并能够开发自己的插件。第一个是可以添加到项目中任何场景的自定义节点，另一个是添加到编辑器中的自定义停靠点。
+
+### 创建插件
+
+在开始之前，无论你想在哪里创建一个新的空项目。这将作为开发和测试插件的基础。
+
+编辑器识别新插件需要做的第一件事是创建两个文件：一个用于配置的 `plugin.cfg` 和一个具有该功能的工具脚本。插件在项目文件夹中有一个标准路径，如 `addons/plugin_name`。Godot 提供了一个对话框，用于生成这些文件并将其放置在需要的位置。
+
+在主工具栏中，单击“`项目`”下拉列表。然后单击“`项目设置…`”。转到 `插件` 选项卡，然后单击右上角的`创建新插件`按钮。
+
+您将看到对话框出现，如下所示：
+
+![../../../_images/making_plugins-create_plugin_dialog.webp](https://docs.godotengine.org/en/stable/_images/making_plugins-create_plugin_dialog.webp)
+
+每个字段中的占位符文本描述了它如何影响插件的文件创建和配置文件的值。
+
+要继续示例，请使用以下值：
+
+```gdscript
+Plugin Name: My Custom Node
+Subfolder: my_custom_node
+Description: A custom node made to extend the Godot Engine.
+Author: Your Name Here
+Version: 1.0.0
+Language: GDScript
+Script Name: custom_node.gd
+Activate now: No
+```
+
+```c#
+Plugin Name: My Custom Node
+Subfolder: MyCustomNode
+Description: A custom node made to extend the Godot Engine.
+Author: Your Name Here
+Version: 1.0.0
+Language: C#
+Script Name: CustomNode.cs
+Activate now: No
+```
+
+> **警告：**
+>
+> 取消选中“`立即激活？`” C# 中的选项始终是必需的，因为与其他 C# 脚本一样，需要编译 EditorPlugin 脚本，这需要构建项目。构建项目后，可以在 `项目设置` 的`插件`选项卡中启用插件。
+
+你应该得到这样的目录结构：
+
+![../../../_images/making_plugins-my_custom_mode_folder.webp](https://docs.godotengine.org/en/stable/_images/making_plugins-my_custom_mode_folder.webp)
+
+`plugin.cfg` 是一个 INI 文件，其中包含有关插件的元数据。名称和描述有助于人们理解它的功能。你的名字有助于你的工作得到适当的认可。版本号有助于其他人知道他们是否有过时的版本；如果您不确定如何计算版本号，请查看[语义版本控制](https://semver.org/)。主脚本文件将指示Godot，一旦插件处于活动状态，它将在编辑器中执行什么操作。
+
+#### 脚本文件
+
+创建插件后，对话框将自动为您打开 EditorPlugin 脚本。该脚本有两个不能更改的要求：它必须是 `@tool` 脚本，否则将无法在编辑器中正确加载，并且必须从 [EditorPlugin](https://docs.godotengine.org/en/stable/classes/class_editorplugin.html#class-editorplugin) 继承。
+
+> **警告：**
+>
+> 除了 EditorPlugin 脚本外，您的插件使用的任何其他 GDScript *也*必须是一个工具。编辑器使用的任何没有 `@tool` 的 GDScript 都将像一个空文件一样！
+
+处理资源的初始化和清理非常重要。一个好的做法是使用虚拟函数 [_enter_tree()](https://docs.godotengine.org/en/stable/classes/class_node.html#class-node-private-method-enter-tree) 来初始化你的插件，并使用 [_exit_tree()](https://docs.godotengine.org/en/stable/classes/class_node.html#class-node-private-method-exit-tree) 来清理它。幸运的是，对话框为您生成了这些回调。你的脚本应该看起来像这样：
+
+```gdscript
+@tool
+extends EditorPlugin
+
+
+func _enter_tree():
+	# Initialization of the plugin goes here.
+	pass
+
+
+func _exit_tree():
+	# Clean-up of the plugin goes here.
+	pass
+```
+
+```c#
+#if TOOLS
+using Godot;
+
+[Tool]
+public partial class CustomNode : EditorPlugin
+{
+    public override void _EnterTree()
+    {
+        // Initialization of the plugin goes here.
+    }
+
+    public override void _ExitTree()
+    {
+        // Clean-up of the plugin goes here.
+    }
+}
+#endif
+```
+
+这是创建新插件时使用的好模板。
+
+### 自定义节点
+
+有时，您希望在许多节点中具有某种行为，例如可以重用的自定义场景或控件。实例化在很多情况下都很有用，但有时它可能很麻烦，特别是如果你在许多项目中使用它。一个好的解决方案是制作一个插件，添加一个具有自定义行为的节点。
+
+> **警告：**
+>
+> 通过 EditorPlugin 添加的节点是“CustomType”节点。虽然它们可以使用任何脚本语言，但它们的功能比[脚本类系统](https://docs.godotengine.org/en/stable/tutorials/scripting/gdscript/gdscript_basics.html#doc-gdscript-basics-class-name)少。如果您正在编写 GDScript 或 NativeScript，我们建议您改用脚本类。
+
+要创建新的节点类型，可以使用 [EditorPlugin](https://docs.godotengine.org/en/stable/classes/class_editorplugin.html#class-editorplugin) 类中的函数 [add_custom_type()](https://docs.godotengine.org/en/stable/classes/class_editorplugin.html#class-editorplugin-method-add-custom-type)。此函数可以向编辑器添加新类型（节点或资源）。但是，在创建类型之前，您需要一个充当类型逻辑的脚本。虽然该脚本不必使用 `@tool` 注释，但可以添加它，以便脚本在编辑器中运行。
+
+在本教程中，我们将创建一个按钮，在单击时打印一条消息。为此，我们需要一个从 [Button](https://docs.godotengine.org/en/stable/classes/class_button.html#class-button) 扩展的脚本。如果你愿意，它也可以扩展 [BaseButton](https://docs.godotengine.org/en/stable/classes/class_basebutton.html#class-basebutton)：
+
+```gdscript
+@tool
+extends Button
+
+
+func _enter_tree():
+	pressed.connect(clicked)
+
+
+func clicked():
+	print("You clicked me!")
+```
+
+```c#
+using Godot;
+
+[Tool]
+public partial class MyButton : Button
+{
+    public override void _EnterTree()
+    {
+        Pressed += Clicked;
+    }
+
+    public void Clicked()
+    {
+        GD.Print("You clicked me!");
+    }
+}
+```
+
+这就是我们的基本按钮。您可以将其另存为插件文件夹中的 `my_button.gd`。您还需要一个 16×16 的图标才能在场景树中显示。如果没有，可以从引擎中获取默认徽标，并将其保存在 *addons/my_custom_node* 文件夹中作为 *icon.png*，或者使用默认的 Godot 徽标（*preload("res://icon.svg")*).
+
+> **小贴士：**
+>
+> 用作自定义节点图标的 SVG 图像应启用**“编辑器”>“随编辑器缩放”**和**“编辑器>随编辑器主题转换颜色”**导入选项。如果图标与 Godot 自己的图标使用相同的调色板设计，这允许图标遵循编辑器的比例和主题设置。
+
+![../../../_images/making_plugins-custom_node_icon.png](https://docs.godotengine.org/en/stable/_images/making_plugins-custom_node_icon.png)
+
+现在，我们需要将其添加为自定义类型，以便在“**创建新节点**”对话框中显示。为此，将 `custom_node.gd` 脚本更改为以下内容：
+
+```gdscript
+@tool
+extends EditorPlugin
+
+
+func _enter_tree():
+	# Initialization of the plugin goes here.
+	# Add the new type with a name, a parent type, a script and an icon.
+	add_custom_type("MyButton", "Button", preload("my_button.gd"), preload("icon.png"))
+
+
+func _exit_tree():
+	# Clean-up of the plugin goes here.
+	# Always remember to remove it from the engine when deactivated.
+	remove_custom_type("MyButton")
+```
+
+```c#
+#if TOOLS
+using Godot;
+
+[Tool]
+public partial class CustomNode : EditorPlugin
+{
+    public override void _EnterTree()
+    {
+        // Initialization of the plugin goes here.
+        // Add the new type with a name, a parent type, a script and an icon.
+        var script = GD.Load<Script>("res://addons/MyCustomNode/MyButton.cs");
+        var texture = GD.Load<Texture2D>("res://addons/MyCustomNode/Icon.png");
+        AddCustomType("MyButton", "Button", script, texture);
+    }
+
+    public override void _ExitTree()
+    {
+        // Clean-up of the plugin goes here.
+        // Always remember to remove it from the engine when deactivated.
+        RemoveCustomType("MyButton");
+    }
+}
+#endif
+```
+
+完成此操作后，该插件应该已经在**项目设置**中的插件列表中可用，因此请按照[检查结果](https://docs.godotengine.org/en/stable/tutorials/plugins/editor/making_plugins.html#checking-the-results)中的说明激活它。
+
+然后通过添加新节点来尝试：
+
+![../../../_images/making_plugins-custom_node_create.webp](https://docs.godotengine.org/en/stable/_images/making_plugins-custom_node_create.webp)
+
+添加节点时，您可以看到它已经附加了您创建的脚本。为按钮设置文本，保存并运行场景。当您单击按钮时，您可以在控制台中看到一些文本：
+
+![../../../_images/making_plugins-custom_node_console.webp](https://docs.godotengine.org/en/stable/_images/making_plugins-custom_node_console.webp)
+
+#### 定制停靠栏
+
+有时，您需要扩展编辑器并添加始终可用的工具。一个简单的方法是添加一个带有插件的新 dock。Docks 只是基于 Control 的场景，因此它们的创建方式类似于通常的 GUI 场景。
+
+创建自定义停靠点就像创建自定义节点一样。在 `addons/my_custom_dock` 文件夹中创建一个新的 `plugin.cfg` 文件，然后向其中添加以下内容：
+
+```gdscript
+[plugin]
+
+name="My Custom Dock"
+description="A custom dock made so I can learn how to make plugins."
+author="Your Name Here"
+version="1.0"
+script="custom_dock.gd"
+```
+
+```c#
+[plugin]
+
+name="My Custom Dock"
+description="A custom dock made so I can learn how to make plugins."
+author="Your Name Here"
+version="1.0"
+script="CustomDock.cs"
+```
+
+然后在同一文件夹中创建脚本 `custom_dock.gd`。用我们[之前看到的模板](https://docs.godotengine.org/en/stable/tutorials/plugins/editor/making_plugins.html#doc-making-plugins-template-code)填充它，以获得一个良好的开端。
+
+由于我们正试图添加一个新的自定义停靠站，因此需要创建停靠站的内容。这只不过是一个标准的Godot场景：只需在编辑器中创建一个新场景，然后对其进行编辑。
+
+对于编辑器停靠，根节点**必须**是 [Control](https://docs.godotengine.org/en/stable/classes/class_control.html#class-control) 或其子类之一。在本教程中，您可以创建一个按钮。根节点的名称也将是dock选项卡上显示的名称，因此请确保为其提供一个简短的描述性名称。此外，别忘了在按钮上添加一些文本。
+
+![../../../_images/making_plugins-my_custom_dock_scene.webp](https://docs.godotengine.org/en/stable/_images/making_plugins-my_custom_dock_scene.webp)
+
+将此场景另存为 `my_dock.tscn`。现在，我们需要抓取我们创建的场景，然后将其作为dock添加到编辑器中。为此，您可以依赖 [EditorPlugin](https://docs.godotengine.org/en/stable/classes/class_editorplugin.html#class-editorplugin) 类中的函数 [add_control_to_dock()](https://docs.godotengine.org/en/stable/classes/class_editorplugin.html#class-editorplugin-method-add-control-to-dock)。
+
+您需要选择一个停靠位置并定义要添加的控件（即您刚才创建的场景）。当插件被停用时，不要忘记**移除 dock**。脚本可能看起来像这样：
+
+```gdscript
+@tool
+extends EditorPlugin
+
+
+# A class member to hold the dock during the plugin life cycle.
+var dock
+
+
+func _enter_tree():
+	# Initialization of the plugin goes here.
+	# Load the dock scene and instantiate it.
+	dock = preload("res://addons/my_custom_dock/my_dock.tscn").instantiate()
+
+	# Add the loaded scene to the docks.
+	add_control_to_dock(DOCK_SLOT_LEFT_UL, dock)
+	# Note that LEFT_UL means the left of the editor, upper-left dock.
+
+
+func _exit_tree():
+	# Clean-up of the plugin goes here.
+	# Remove the dock.
+	remove_control_from_docks(dock)
+	# Erase the control from the memory.
+	dock.free()
+```
+
+```c#
+#if TOOLS
+using Godot;
+
+[Tool]
+public partial class CustomDock : EditorPlugin
+{
+    private Control _dock;
+
+    public override void _EnterTree()
+    {
+        _dock = GD.Load<PackedScene>("res://addons/MyCustomDock/MyDock.tscn").Instantiate<Control>();
+        AddControlToDock(DockSlot.LeftUl, _dock);
+    }
+
+    public override void _ExitTree()
+    {
+        // Clean-up of the plugin goes here.
+        // Remove the dock.
+        RemoveControlFromDocks(_dock);
+        // Erase the control from the memory.
+        _dock.Free();
+    }
+}
+#endif
+```
+
+请注意，虽然停靠站最初会出现在指定位置，但用户可以自由更改其位置并保存最终布局。
+
+#### 检查结果
+
+现在是时候检查你的工作结果了。打开**项目设置**，单击**插件**选项卡。你的插件应该是列表中唯一的一个。
+
+![../../../_images/making_plugins-project_settings.webp](https://docs.godotengine.org/en/stable/_images/making_plugins-project_settings.webp)
+
+您可以看到该插件未启用。单击**启用**复选框以激活插件。在您关闭设置窗口之前，停靠栏应该已经可见。您现在应该有一个自定义停靠栏：
+
+![../../../_images/making_plugins-custom_dock.webp](https://docs.godotengine.org/en/stable/_images/making_plugins-custom_dock.webp)
+
+### 超越
+
+现在您已经学习了如何制作基本插件，您可以通过多种方式扩展编辑器。GDScript 可以为编辑器添加许多功能；这是一种创建专用编辑器的强大方法，而无需深入研究 C++ 模块。
+
+你可以制作自己的插件来帮助自己，并在[资产库](https://godotengine.org/asset-library/)中共享它们，这样人们就可以从你的工作中受益。
+
+### 在插件中注册自动加载/单例加载
+
+启用插件后，编辑器插件可以自动注册[自动加载](https://docs.godotengine.org/en/stable/tutorials/scripting/singletons_autoload.html#doc-singletons-autoload)。这也包括在插件被禁用时注销自动加载。
+
+这使得用户设置插件更快，因为如果你的编辑器插件需要使用自动加载，他们就不必再手动将自动加载添加到项目设置中。
+
+使用以下代码从编辑器插件注册单例：
+
+```gdscript
+@tool
+extends EditorPlugin
+
+# Replace this value with a PascalCase autoload name, as per the GDScript style guide.
+const AUTOLOAD_NAME = "SomeAutoload"
+
+
+func _enable_plugin():
+	# The autoload can be a scene or script file.
+	add_autoload_singleton(AUTOLOAD_NAME, "res://addons/my_addon/some_autoload.tscn")
+
+
+func _disable_plugin():
+	remove_autoload_singleton(AUTOLOAD_NAME)
+```
+
+```c#
+#if TOOLS
+using Godot;
+
+[Tool]
+public partial class MyEditorPlugin : EditorPlugin
+{
+    // Replace this value with a PascalCase autoload name.
+    private const string AutoloadName = "SomeAutoload";
+
+    public override void _EnablePlugin()
+    {
+        // The autoload can be a scene or script file.
+        AddAutoloadSingleton(AutoloadName, "res://addons/MyAddon/SomeAutoload.tscn");
+    }
+
+    public override void _DisablePlugin()
+    {
+        RemoveAutoloadSingleton(AutoloadName);
+    }
+}
+#endif
+```
+
+### 用户贡献的笔记
+
+在提交评论之前，请阅读[用户贡献笔记政策](https://github.com/godotengine/godot-docs-user-notes/discussions/1)。
+
+**1 个评论** · 1 个回复
+
+
+
+[Rivers47](https://github.com/Rivers47) [Sep 13, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/137#discussioncomment-10629857)
+
+为什么 C# 版本的 MyButton 没有附带 #if TOOLS #endif？
+
+​	[paulloz](https://github.com/paulloz) [Sep 16, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/137#discussioncomment-10654243) Member
+
+​	你好。如果该类被 `#If TOOLS` 包装，则导出游戏时不会编译节点类型。你可以在[这里](https://docs.godotengine.org/en/stable/tutorials/scripting/c_sharp/c_sharp_features.html#full-list-of-defines)找到更多信息
+
+
+
+## 制作主屏幕插件
+
+https://docs.godotengine.org/en/stable/tutorials/plugins/editor/making_main_screen_plugins.html#making-main-screen-plugins
+
+### 本教程涵盖的内容
+
+主屏幕插件允许您在编辑器的中心部分创建新的 UI，这些UI显示在“2D”、“3D”、“脚本”和“AssetLib”按钮旁边。此类编辑器插件称为“主屏幕插件”。
+
+本教程将引导您创建一个基本的主屏幕插件。为了简单起见，我们的主屏幕插件将包含一个将文本打印到控制台的按钮。
+
+### 初始化插件
+
+首先从插件菜单创建一个新插件。在本教程中，我们将把它放在一个名为 `main_screen` 的文件夹中，但您可以使用任何您喜欢的名称。
+
+插件脚本将附带 `_enter_tree()` 和 `_exit_tree()` 方法，但对于主屏幕插件，我们需要添加一些额外的方法。添加五个额外的方法，使脚本看起来像这样：
+
+```gdscript
+@tool
+extends EditorPlugin
+
+
+func _enter_tree():
+	pass
+
+
+func _exit_tree():
+	pass
+
+
+func _has_main_screen():
+	return true
+
+
+func _make_visible(visible):
+	pass
+
+
+func _get_plugin_name():
+	return "Main Screen Plugin"
+
+
+func _get_plugin_icon():
+	return EditorInterface.get_editor_theme().get_icon("Node", "EditorIcons")
+```
+
+```c#
+#if TOOLS
+using Godot;
+
+[Tool]
+public partial class MainScreenPlugin : EditorPlugin
+{
+    public override void _EnterTree()
+    {
+
+    }
+
+    public override void _ExitTree()
+    {
+
+    }
+
+    public override bool _HasMainScreen()
+    {
+        return true;
+    }
+
+    public override void _MakeVisible(bool visible)
+    {
+
+    }
+
+    public override string _GetPluginName()
+    {
+        return "Main Screen Plugin";
+    }
+
+    public override Texture2D _GetPluginIcon()
+    {
+        return EditorInterface.GetEditorTheme().GetIcon("Node", "EditorIcons");
+    }
+}
+#endif
+```
+
+此脚本中的重要部分是 `_has_main_screen()` 函数，该函数被重载，因此返回 `true`。此函数在插件激活时由编辑器自动调用，告诉它此插件向编辑器添加了一个新的中心视图。现在，我们将保持这个脚本不变，稍后再回来讨论。
+
+### 主屏幕场景
+
+使用从 `Control` 派生的根节点创建一个新场景（对于这个示例插件，我们将把根节点设置为 `CenterContainer`）。选择此根节点，在视口中，单击“`布局`”菜单并选择“`完全矩形`”。您还需要在检查器中启用“`展开`垂直尺寸”标志。该面板现在使用主视口中的所有可用空间。
+
+接下来，让我们在示例主屏幕插件中添加一个按钮。添加一个 `Button` 节点，并将文本设置为“Print Hello”或类似。向按钮添加一个脚本，如下所示：
+
+```gdscript
+@tool
+extends Button
+
+
+func _on_print_hello_pressed():
+	print("Hello from the main screen plugin!")
+```
+
+```c#
+using Godot;
+
+[Tool]
+public partial class PrintHello : Button
+{
+    private void OnPrintHelloPressed()
+    {
+        GD.Print("Hello from the main screen plugin!");
+    }
+}
+```
+
+然后将“按下”信号连接到自身。如果您需要信号方面的帮助，请参阅[使用信号](https://docs.godotengine.org/en/stable/getting_started/step_by_step/signals.html#doc-signals)文章。
+
+我们已经完成了主屏幕面板。将场景另存为 `main_panel.tscn`。
+
+### 更新插件脚本
+
+我们需要更新 `main_screen_plugin.gd` 脚本，以便插件实例化我们的主面板场景并将其放置在需要的位置。以下是完整的插件脚本：
+
+```gdscript
+@tool
+extends EditorPlugin
+
+
+const MainPanel = preload("res://addons/main_screen/main_panel.tscn")
+
+var main_panel_instance
+
+
+func _enter_tree():
+	main_panel_instance = MainPanel.instantiate()
+	# Add the main panel to the editor's main viewport.
+	EditorInterface.get_editor_main_screen().add_child(main_panel_instance)
+	# Hide the main panel. Very much required.
+	_make_visible(false)
+
+
+func _exit_tree():
+	if main_panel_instance:
+		main_panel_instance.queue_free()
+
+
+func _has_main_screen():
+	return true
+
+
+func _make_visible(visible):
+	if main_panel_instance:
+		main_panel_instance.visible = visible
+
+
+func _get_plugin_name():
+	return "Main Screen Plugin"
+
+
+func _get_plugin_icon():
+	# Must return some kind of Texture for the icon.
+	return EditorInterface.get_editor_theme().get_icon("Node", "EditorIcons")
+```
+
+```c#
+#if TOOLS
+using Godot;
+
+[Tool]
+public partial class MainScreenPlugin : EditorPlugin
+{
+    PackedScene MainPanel = ResourceLoader.Load<PackedScene>("res://addons/main_screen/main_panel.tscn");
+    Control MainPanelInstance;
+
+    public override void _EnterTree()
+    {
+        MainPanelInstance = (Control)MainPanel.Instantiate();
+        // Add the main panel to the editor's main viewport.
+        EditorInterface.GetEditorMainScreen().AddChild(MainPanelInstance);
+        // Hide the main panel. Very much required.
+        _MakeVisible(false);
+    }
+
+    public override void _ExitTree()
+    {
+        if (MainPanelInstance != null)
+        {
+            MainPanelInstance.QueueFree();
+        }
+    }
+
+    public override bool _HasMainScreen()
+    {
+        return true;
+    }
+
+    public override void _MakeVisible(bool visible)
+    {
+        if (MainPanelInstance != null)
+        {
+            MainPanelInstance.Visible = visible;
+        }
+    }
+
+    public override string _GetPluginName()
+    {
+        return "Main Screen Plugin";
+    }
+
+    public override Texture2D _GetPluginIcon()
+    {
+        // Must return some kind of Texture for the icon.
+        return EditorInterface.GetEditorTheme().GetIcon("Node", "EditorIcons");
+    }
+}
+#endif
+```
+
+增加了几行具体内容。`MainPanel` 是一个常量，它包含对场景的引用，我们将其实例化到 *main_panel_instance* 中。
+
+`_enter_tree()` 函数在 `_ready()` 之前被调用。这是我们实例化主面板场景的地方，并将它们添加为编辑器特定部分的子级。我们使用 `EditorInterface.get_editor_main_screen()` 来获取主编辑器屏幕，并将我们的主面板实例作为子面板添加到其中。我们调用 `_make_visible(false)` 函数来隐藏主面板，这样它在首次激活插件时就不会争用空间。
+
+当插件被停用时，会调用 `_exit_tree()` 函数。如果主屏幕仍然存在，我们调用 `queue_free()` 来释放实例并将其从内存中删除。
+
+`_make_visible()` 函数被重写，以根据需要隐藏或显示主面板。当用户单击编辑器顶部的主视口按钮时，编辑器会自动调用此函数。
+
+`_get_plugin_name()` 和 `_get_plugin_icon()` 函数控制插件主视口按钮的显示名称和图标。
+
+您可以添加的另一个函数是 `handles()` 函数，它允许您处理节点类型，在选择类型时自动聚焦主屏幕。这类似于单击 3D 节点将自动切换到 3D 视口。
+
+### 尝试插件
+
+在项目设置中激活插件。您将在主视口上方的 2D、3D、脚本旁边看到一个新按钮。点击它将带你进入新的主屏幕插件，中间的按钮将打印文本。
+
+如果你想尝试这个插件的完整版本，请查看这里的插件演示：https://github.com/godotengine/godot-demo-projects/tree/master/plugins
+
+如果您想查看主屏幕插件功能的更完整示例，请查看此处的 2.5D 演示项目：https://github.com/godotengine/godot-demo-projects/tree/master/misc/2.5d
+
+
+
+## 导入插件
+
+https://docs.godotengine.org/en/stable/tutorials/plugins/editor/import_plugins.html#import-plugins
+
+> **注：**
+>
+> 本教程假设您已经知道如何制作通用插件。如有疑问，请参阅[制作插件](https://docs.godotengine.org/en/stable/tutorials/plugins/editor/making_plugins.html#doc-making-plugins)页面。这也假设您熟悉 Godot 的导入系统。
+
+### 引言
+
+导入插件是一种特殊类型的编辑器工具，它允许 Godot 导入自定义资源并将其视为一级资源。编辑器本身附带了许多导入插件，用于处理 PNG 图像、Collada 和 glTF 模型、Ogg Vorbis 声音等常见资源。
+
+本教程展示了如何创建导入插件，以将自定义文本文件作为素材资源加载。此文本文件将包含三个用逗号分隔的数值，表示一种颜色的三个通道，生成的颜色将用作导入材质的反照率（主颜色）。在这个例子中，它包含纯蓝色（零红色、零绿色和全蓝色）：
+
+```
+0,0,255
+```
+
+### 配置
+
+首先，我们需要一个通用插件来处理导入插件的初始化和销毁。让我们先添加 `plugin.cfg` 文件：
+
+```properties
+[plugin]
+
+name="Silly Material Importer"
+description="Imports a 3D Material from an external text file."
+author="Yours Truly"
+version="1.0"
+script="material_import.gd"
+```
+
+然后，我们需要 `material_inmport.gd` 文件在需要时添加和删除导入插件：
+
+```gdscript
+# material_import.gd
+@tool
+extends EditorPlugin
+
+
+var import_plugin
+
+
+func _enter_tree():
+	import_plugin = preload("import_plugin.gd").new()
+	add_import_plugin(import_plugin)
+
+
+func _exit_tree():
+	remove_import_plugin(import_plugin)
+	import_plugin = null
+```
+
+激活此插件后，它将创建导入插件的新实例（我们很快就会创建），并使用 [add_import_plugin()](https://docs.godotengine.org/en/stable/classes/class_editorplugin.html#class-editorplugin-method-add-import-plugin) 方法将其添加到编辑器中。我们将对它的引用存储在类成员 `import_plugin` 中，以便以后删除它时可以引用它。当插件被停用时，会调用 [remove_import_plugin()](https://docs.godotengine.org/en/stable/classes/class_editorplugin.html#class-editorplugin-method-remove-import-plugin) 方法来清理内存，并让编辑器知道导入插件不再可用。
+
+请注意，导入插件是一个引用类型，因此不需要使用 `free()` 函数从内存中显式释放它。当它超出范围时，发动机会自动释放。
+
+### EditorImportPlugin 类
+
+该节目的主角是 [EditorImportPlugin 类](https://docs.godotengine.org/en/stable/classes/class_editorimportplugin.html#class-editorimportplugin)。它负责实现 Godot 在需要知道如何处理文件时调用的方法。
+
+让我们开始编写我们的插件，一次一个方法：
+
+```gdscript
+# import_plugin.gd
+@tool
+extends EditorImportPlugin
+
+
+func _get_importer_name():
+	return "demos.sillymaterial"
+```
+
+第一种方法是 [_get_inmporter_name()](https://docs.godotengine.org/en/stable/classes/class_editorimportplugin.html#class-editorimportplugin-private-method-get-importer-name)。这是您的插件的唯一名称，Godot 使用它来知道在某个文件中使用了哪个导入。当需要重新导入文件时，编辑器将知道要调用哪个插件。
+
+```gdscript
+func _get_visible_name():
+	return "Silly Material"
+```
+
+[_get_visible_name()](https://docs.godotengine.org/en/stable/classes/class_editorimportplugin.html#class-editorimportplugin-private-method-get-visible-name)方法负责返回它导入的类型的名称，并将在 Import dock 中显示给用户。
+
+您应该选择此名称作为“导入为”的延续，例如“*导入为愚蠢材料*”。你可以随心所欲地命名它，但我们建议为你的插件取一个描述性的名称。
+
+```gdscript
+func _get_recognized_extensions():
+	return ["mtxt"]
+```
+
+Godot 的导入系统通过扩展名检测文件类型。在 [_get_recognized_extensions()](https://docs.godotengine.org/en/stable/classes/class_editorimportplugin.html#class-editorimportplugin-private-method-get-recognized-extensions) 方法中，您返回一个字符串数组来表示此插件可以理解的每个扩展。如果一个扩展名被多个插件识别，用户可以在导入文件时选择使用哪个插件。
+
+> **小贴士：**
+>
+> 许多插件可能会使用 `.json` 和 `.txt` 等常见扩展名。此外，项目中可能有一些文件只是游戏的数据，不应该导入。在导入以验证数据时必须小心。永远不要指望文件格式良好。
+
+```gdscript
+func _get_save_extension():
+	return "material"
+```
+
+导入的文件保存在项目根目录下的 `.import` 文件夹中。它们的扩展应该与您要导入的资源类型相匹配，但由于 Godot 无法告诉您将使用什么（因为同一资源可能有多个有效的扩展），您需要声明将在导入中使用什么。
+
+由于我们正在导入一个材质，因此我们将使用此类资源类型的特殊扩展名。如果要导入场景，可以使用 `scn`。通用资源可以使用 `res` 扩展名。然而，引擎并没有以任何方式强制执行。
+
+```gdscript
+func _get_resource_type():
+	return "StandardMaterial3D"
+```
+
+导入的资源具有特定类型，因此编辑器可以知道它属于哪个属性槽。这允许从 FileSystem dock 拖放到 Inspector 中的属性。
+
+在我们的例子中，它是一个 [StandardMaterial3D](https://docs.godotengine.org/en/stable/classes/class_standardmaterial3d.html#class-standardmaterial3d)，可以应用于 3D 对象。
+
+> **注：**
+>
+> 如果你需要从同一个扩展中导入不同的类型，你必须创建多个导入插件。您可以在另一个文件上抽象导入代码，以避免这方面的重复。
+
+### 选项和预设
+
+您的插件可以提供不同的选项，允许用户控制如何导入资源。如果一组选定的选项是通用的，您还可以创建不同的预设，以方便用户使用。下图显示了选项在编辑器中的显示方式：
+
+![../../../_images/import_plugin_options.png](https://docs.godotengine.org/en/stable/_images/import_plugin_options.png)
+
+由于可能有许多预设，并且它们是用数字标识的，因此使用枚举是一种很好的做法，这样你就可以使用名称来引用它们。
+
+```gdscript
+@tool
+extends EditorImportPlugin
+
+
+enum Presets { DEFAULT }
+
+
+...
+```
+
+现在枚举已经定义好了，让我们继续研究导入插件的方法：
+
+```gdscript
+func _get_preset_count():
+	return Presets.size()
+```
+
+[_get_preset_count()](https://docs.godotengine.org/en/stable/classes/class_editorimportplugin.html#class-editorimportplugin-private-method-get-preset-count) 方法返回此插件定义的预设数量。我们现在只有一个预设，但我们可以通过返回 `Presets` 枚举的大小来使此方法不受未来影响。
+
+```gdscript
+func _get_preset_name(preset_index):
+	match preset_index:
+		Presets.DEFAULT:
+			return "Default"
+		_:
+			return "Unknown"
+```
+
+这里我们有 [_get_preset_name()](https://docs.godotengine.org/en/stable/classes/class_editorimportplugin.html#class-editorimportplugin-private-method-get-preset-name) 方法，它为将呈现给用户的预设命名，所以一定要使用简短明了的名称。
+
+我们可以在这里使用 `match` 语句来使代码更有条理。这样，将来很容易添加新的预设。我们也使用包罗万象的模式来返回一些东西。尽管 Godot 不会要求超出您定义的预设计数的预设，但最好是安全的。
+
+如果你只有一个预设，你可以直接返回它的名称，但如果你这样做，在添加更多预设时必须小心。
+
+```gdscript
+func _get_import_options(path, preset_index):
+	match preset_index:
+		Presets.DEFAULT:
+			return [{
+					   "name": "use_red_anyway",
+					   "default_value": false
+					}]
+		_:
+			return []
+```
+
+这是定义可用选项的方法 [_get_import_options()](https://docs.godotengine.org/en/stable/classes/class_editorimportplugin.html#class-editorimportplugin-private-method-get-import-options) 返回一个字典数组，每个字典都包含一些键，这些键被选中以自定义选项，使其显示给用户。下表显示了可能的键：
+
+| 键              | 类型    | 描述                                                         |
+| --------------- | ------- | ------------------------------------------------------------ |
+| `name`          | String  | 选项的名称。显示时，下划线变为空格，首字母大写。             |
+| `default_value` | 任何    | 此预设选项的默认值。                                         |
+| `property_hint` | Enum 值 | 其中一个 [PropertyHint](https://docs.godotengine.org/en/stable/classes/class_%40globalscope.html#enum-globalscope-propertyhint) 值用作提示。 |
+| `hint_string`   | String  | 属性的提示文本。与您在 GDScript 中添加的 `export` 语句相同。 |
+| `usage`         | Enum 值 | 其中一个 [PropertyUsageFlags](https://docs.godotengine.org/en/stable/classes/class_%40globalscope.html#enum-globalscope-propertyusageflags) 值来定义用法。 |
+
+`name` 和 `default_value` 键是**必需的**，其余的是可选的。
+
+请注意，`_get_import_options` 方法接收预设编号，因此您可以为每个不同的预设（尤其是默认值）配置选项。在这个例子中，我们使用 `match` 语句，但如果你有很多选项，而预设只更改了值，你可能想先创建选项数组，然后根据预设进行更改。
+
+> **警告：**
+>
+> 即使您没有定义预设（通过使 `_get_preet_count` 返回零），也会调用 `_get_inmport_options` 方法。你必须返回一个数组，即使它是空的，否则你可能会得到错误。
+
+```gdscript
+func _get_option_visibility(path, option_name, options):
+	return true
+```
+
+对于 [_get_option_visibility()](https://docs.godotengine.org/en/stable/classes/class_editorimportplugin.html#class-editorimportplugin-private-method-get-option-visibility) 方法，我们只需返回 `true`，因为我们所有的选项（即我们定义的单个选项）始终可见。
+
+如果您需要使某些选项仅在另一个选项设置为特定值时可见，则可以在此方法中添加逻辑。
+
+### `import` 方法
+
+该过程中负责将文件转换为资源的繁重部分由 [_import()](https://docs.godotengine.org/en/stable/classes/class_editorimportplugin.html#class-editorimportplugin-private-method-import) 方法完成。我们的示例代码有点长，所以让我们分成几个部分：
+
+```gdscript
+func _import(source_file, save_path, options, r_platform_variants, r_gen_files):
+	var file = FileAccess.open(source_file, FileAccess.READ)
+	if file == null:
+		return FileAccess.get_open_error()
+
+	var line = file.get_line()
+```
+
+导入方法的第一部分打开并读取源文件。我们使用 [FileAccess](https://docs.godotengine.org/en/stable/classes/class_fileaccess.html#class-fileaccess) 类来实现这一点，传递编辑器提供的 `source_file` 参数。
+
+如果打开文件时出错，我们会返回它，让编辑器知道导入不成功。
+
+```gdscript
+var channels = line.split(",")
+if channels.size() != 3:
+	return ERR_PARSE_ERROR
+
+var color
+if options.use_red_anyway:
+	color = Color8(255, 0, 0)
+else:
+	color = Color8(int(channels[0]), int(channels[1]), int(channels[2]))
+```
+
+这段代码获取它之前读取的文件的行，并将其拆分为用逗号分隔的片段。如果多于或少于这三个值，则认为文件无效并报告错误。
+
+然后，它创建一个新的 [Color](https://docs.godotengine.org/en/stable/classes/class_color.html#class-color) 变量，并根据输入文件设置其值。如果启用了 `use_red_anyway` 选项，则将颜色设置为纯红色。
+
+```gdscript
+var material = StandardMaterial3D.new()
+material.albedo_color = color
+```
+
+这部分创建了一个新的 [StandardMaterial3D](https://docs.godotengine.org/en/stable/classes/class_standardmaterial3d.html#class-standardmaterial3d)，即导入的资源。我们创建一个新的实例，然后将其反照率颜色设置为之前的值。
+
+```gdscript
+return ResourceSaver.save(material, "%s.%s" % [save_path, _get_save_extension()])
+```
+
+这是最后一部分，也是非常重要的一部分，因为在这里我们将生成的资源保存到磁盘上。编辑器通过 `save_path` 参数生成并通知保存文件的路径。请注意，这**没有**扩展名，因此我们使用[字符串格式](https://docs.godotengine.org/en/stable/tutorials/scripting/gdscript/gdscript_format_string.html#doc-gdscript-printf)添加它。为此，我们调用前面定义的 `_get_save_extension` 方法，这样我们就可以确保它们不会不同步。
+
+我们还返回 [ResourceSaver.save()](https://docs.godotengine.org/en/stable/classes/class_resourcesaver.html#class-resourcesaver-method-save) 方法的结果，因此如果此步骤中出现错误，编辑器将知道。
+
+### 平台变体和生成的文件
+
+您可能已经注意到，我们的插件忽略了 `import` 方法的两个参数。这些是返回参数（因此名称开头的 `r`），这意味着编辑器在调用导入方法后将从中读取。它们都是可以填充信息的数组。
+
+如果需要根据目标平台以不同方式导入资源，则使用 `r_platform_variants` 参数。虽然它被称为*平台*变体，但它是基于[功能标签](https://docs.godotengine.org/en/stable/tutorials/export/feature_tags.html#doc-feature-tags)的存在，因此即使是同一个平台也可以根据设置有多个变体。
+
+要导入平台变体，您需要在扩展之前将其与功能标记一起保存，然后将标记推送到 `r_platform_variants` 数组中，以便编辑器知道您已经导入了。
+
+例如，假设我们为移动平台保存了不同的材料。我们需要做以下事情：
+
+```gdscript
+r_platform_variants.push_back("mobile")
+return ResourceSaver.save(mobile_material, "%s.%s.%s" % [save_path, "mobile", _get_save_extension()])
+```
+
+`r_gen_files` 参数用于导入过程中生成的需要保留的额外文件。编辑器将查看它以了解依赖关系，并确保额外的文件不会被无意中删除。
+
+这也是一个数组，应该填充您保存的文件的完整路径。例如，让我们为下一遍创建另一种材质并将其保存在其他文件中：
+
+```gdscript
+var next_pass = StandardMaterial3D.new()
+next_pass.albedo_color = color.inverted()
+var next_pass_path = "%s.next_pass.%s" % [save_path, _get_save_extension()]
+
+err = ResourceSaver.save(next_pass, next_pass_path)
+if err != OK:
+	return err
+r_gen_files.push_back(next_pass_path)
+```
+
+### 尝试插件
+
+这是理论上的，但现在导入插件已经完成，让我们测试一下。确保您创建了示例文件（包含介绍部分中描述的内容）并将其另存为 `test.mtxt`。然后在项目设置中激活插件。
+
+如果一切顺利，则将导入插件添加到编辑器中，并扫描文件系统，使自定义资源显示在 FileSystem dock 上。如果选择它并聚焦“导入”停靠栏，则可以在那里看到唯一的选择选项。
+
+在场景中创建 MeshInstance3D 节点，并为其 Mesh 属性设置新的 SphereMesh。在检查器中展开“材质”部分，然后将文件从文件系统停靠栏拖动到材质属性。对象将在视口中更新为导入材质的蓝色。
+
+![../../../_images/import_plugin_trying.png](https://docs.godotengine.org/en/stable/_images/import_plugin_trying.png)
+
+转到导入坞，启用“无论如何使用红色”选项，然后单击“重新导入”。这将更新导入的材质，并应自动更新显示红色的视图。
+
+就是这样！您的第一个导入插件已完成！现在，发挥创造力，为你喜欢的格式制作插件。这对于以自定义格式编写数据，然后在 Godot 中使用它非常有用，就像它们是本机资源一样。这表明导入系统是多么强大和可扩展。
+
+### 用户贡献的笔记
+
+在提交评论之前，请阅读[用户贡献笔记政策](https://github.com/godotengine/godot-docs-user-notes/discussions/1)。
+
+**1 个评论** · 2 个回复
+
+
+
+[horseyhorsey](https://github.com/horseyhorsey) [Sep 17, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/147#discussioncomment-10666037)
+
+```
+Unimplemented _get_priority in add-on.`
+`BUG: File queued for import, but can't be imported, importer for type '' not found.
+```
+
+添加：
+
+```gdscript
+func _get_priority():
+	return 2
+```
+
+​	[scriptsengineer](https://github.com/scriptsengineer) [Sep 27, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/147#discussioncomment-10769872)
+
+​	为什么是 2？
+
+​	[Jeremi360](https://github.com/Jeremi360) [Nov 30, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/147#discussioncomment-11421292)
+
+​	我尝试以 JSON 格式导入一些文件。
+
+​	我添加：
+
+```gdscript
+func _get_priority():
+	return 2
+
+# after that I also need to add this
+func _get_import_order() -> int:
+	return ResourceImporter.ImportOrder.IMPORT_ORDER_DEFAULT
+```
+
+​	但现在我收到了以下错误：
+
+```
+  editor/import/editor_import_plugin.cpp:123 - Condition "!d.has_all(needed)" is true.
+  core/io/file_access.cpp:812 - Condition "f.is_null()" is true. Continuing.
+```
+
+
+
+## 3D 小工具插件
+
+https://docs.godotengine.org/en/stable/tutorials/plugins/editor/3d_gizmos.html#d-gizmo-plugins
+
+### 引言
+
+编辑器和自定义插件使用 3D 小控件插件来定义附加到任何类型的 Node3D 节点的小控件。
+
+本教程展示了定义自己的自定义小控件的两种主要方法。第一个选项适用于简单的小控件，并在插件结构中减少混乱，第二个选项将允许您存储一些每个小控件的数据。
+
+> **注：**
+>
+> 本教程假设您已经知道如何制作通用插件。如有疑问，请参阅[制作插件](https://docs.godotengine.org/en/stable/tutorials/plugins/editor/making_plugins.html#doc-making-plugins)页面。
+
+### EditorNode3DGizmo 插件
+
+无论我们选择哪种方法，我们都需要创建一个新的 [EditorNode3DGizmoPlugin](https://docs.godotengine.org/en/stable/classes/class_editornode3dgizmoplugin.html#class-editornode3dgizmoplugin)。这将允许我们为新的小控件类型设置一个名称，并定义其他行为，例如小控件是否可以隐藏。
+
+这将是一个基本设置：
+
+```gdscript
+# my_custom_gizmo_plugin.gd
+extends EditorNode3DGizmoPlugin
+
+
+func _get_gizmo_name():
+	return "CustomNode"
+```
+
+```gdscript
+# MyCustomEditorPlugin.gd
+@tool
+extends EditorPlugin
+
+
+const MyCustomGizmoPlugin = preload("res://addons/my-addon/my_custom_gizmo_plugin.gd")
+
+var gizmo_plugin = MyCustomGizmoPlugin.new()
+
+
+func _enter_tree():
+	add_node_3d_gizmo_plugin(gizmo_plugin)
+
+
+func _exit_tree():
+	remove_node_3d_gizmo_plugin(gizmo_plugin)
+```
+
+对于简单的小控件，继承 [EditorNode3DGizmoPlugin](https://docs.godotengine.org/en/stable/classes/class_editornode3dgizmoplugin.html#class-editornode3dgizmoplugin) 就足够了。如果你想存储一些每个小控件的数据，或者你正在将 Godot 3.0 小控件移植到 3.1+，你应该采用第二种方法。
+
+### 简单的方法
+
+第一步是在我们的自定义 gizmo 插件中重写 [_has_gizmo()](https://docs.godotengine.org/en/stable/classes/class_editornode3dgizmoplugin.html#class-editornode3dgizmoplugin-private-method-has-gizmo) 方法，以便在节点参数为我们的目标类型时返回 `true`。
+
+```gdscript
+# ...
+
+
+func _has_gizmo(node):
+	return node is MyCustomNode3D
+
+
+# ...
+```
+
+然后我们可以重写像 [_redraw()](https://docs.godotengine.org/en/stable/classes/class_editornode3dgizmoplugin.html#class-editornode3dgizmoplugin-private-method-redraw) 这样的方法或所有与句柄相关的方法。
+
+```gdscript
+# ...
+
+
+func _init():
+	create_material("main", Color(1, 0, 0))
+	create_handle_material("handles")
+
+
+func _redraw(gizmo):
+	gizmo.clear()
+
+	var node3d = gizmo.get_node_3d()
+
+	var lines = PackedVector3Array()
+
+	lines.push_back(Vector3(0, 1, 0))
+	lines.push_back(Vector3(0, node3d.my_custom_value, 0))
+
+	var handles = PackedVector3Array()
+
+	handles.push_back(Vector3(0, 1, 0))
+	handles.push_back(Vector3(0, node3d.my_custom_value, 0))
+
+	gizmo.add_lines(lines, get_material("main", gizmo), false)
+	gizmo.add_handles(handles, get_material("handles", gizmo), [])
+
+
+# ...
+```
+
+请注意，我们在 *_init* 方法中创建了一个材质，并使用 [get_material()](https://docs.godotengine.org/en/stable/classes/class_editornode3dgizmoplugin.html#class-editornode3dgizmoplugin-method-get-material) 在 *_redraw* 方法中检索它。此方法根据小控件的状态（选定和/或可编辑）检索材质的变体之一。
+
+所以最后的插件看起来有点像这样：
+
+```gdscript
+extends EditorNode3DGizmoPlugin
+
+
+const MyCustomNode3D = preload("res://addons/my-addon/my_custom_node_3d.gd")
+
+
+func _init():
+	create_material("main", Color(1,0,0))
+	create_handle_material("handles")
+
+
+func _has_gizmo(node):
+	return node is MyCustomNode3D
+
+
+func _redraw(gizmo):
+	gizmo.clear()
+
+	var node3d = gizmo.get_node_3d()
+
+	var lines = PackedVector3Array()
+
+	lines.push_back(Vector3(0, 1, 0))
+	lines.push_back(Vector3(0, node3d.my_custom_value, 0))
+
+	var handles = PackedVector3Array()
+
+	handles.push_back(Vector3(0, 1, 0))
+	handles.push_back(Vector3(0, node3d.my_custom_value, 0))
+
+	gizmo.add_lines(lines, get_material("main", gizmo), false)
+	gizmo.add_handles(handles, get_material("handles", gizmo), [])
+
+
+# You should implement the rest of handle-related callbacks
+# (_get_handle_name(), _get_handle_value(), _commit_handle(), ...).
+```
+
+请注意，我们只是在 *_redraw* 方法中添加了一些句柄，但我们仍然需要在 [EditorNode3DGizmoPlugin](https://docs.godotengine.org/en/stable/classes/class_editornode3dgizmoplugin.html#class-editornode3dgizmoplugin) 中实现其余与句柄相关的回调，以获得正常工作的句柄。
+
+### 替代方法
+
+在某些情况下，我们想提供我们自己的 [EditorNode3DGizmo](https://docs.godotengine.org/en/stable/classes/class_editornode3dgizmo.html#class-editornode3dgizmo) 实现，也许是因为我们想在每个小控件中存储一些状态，或者因为我们正在移植一个旧的小控件插件，我们不想经历重写过程。
+
+在这些情况下，我们需要做的就是在我们的新 gizmo 插件中重写 [_create_gizmo()](https://docs.godotengine.org/en/stable/classes/class_editornode3dgizmoplugin.html#class-editornode3dgizmoplugin-private-method-create-gizmo)，这样它就会为我们想要定位的 Node3D 节点返回我们的自定义 gizmo 实现。
+
+```gdscript
+# my_custom_gizmo_plugin.gd
+extends EditorNode3DGizmoPlugin
+
+
+const MyCustomNode3D = preload("res://addons/my-addon/my_custom_node_3d.gd")
+const MyCustomGizmo = preload("res://addons/my-addon/my_custom_gizmo.gd")
+
+
+func _init():
+	create_material("main", Color(1, 0, 0))
+	create_handle_material("handles")
+
+
+func _create_gizmo(node):
+	if node is MyCustomNode3D:
+		return MyCustomGizmo.new()
+	else:
+		return null
+```
+
+这样，所有的 gizmo 逻辑和绘图方法都可以在一个扩展 [EditorNode3DGizmo](https://docs.godotengine.org/en/stable/classes/class_editornode3dgizmo.html#class-editornode3dgizmo) 的新类中实现，如下所示：
+
+```gdscript
+# my_custom_gizmo.gd
+extends EditorNode3DGizmo
+
+
+# You can store data in the gizmo itself (more useful when working with handles).
+var gizmo_size = 3.0
+
+
+func _redraw():
+	clear()
+
+	var node3d = get_node_3d()
+
+	var lines = PackedVector3Array()
+
+	lines.push_back(Vector3(0, 1, 0))
+	lines.push_back(Vector3(gizmo_size, node3d.my_custom_value, 0))
+
+	var handles = PackedVector3Array()
+
+	handles.push_back(Vector3(0, 1, 0))
+	handles.push_back(Vector3(gizmo_size, node3d.my_custom_value, 0))
+
+	var material = get_plugin().get_material("main", self)
+	add_lines(lines, material, false)
+
+	var handles_material = get_plugin().get_material("handles", self)
+	add_handles(handles, handles_material, [])
+
+
+# You should implement the rest of handle-related callbacks
+# (_get_handle_name(), _get_handle_value(), _commit_handle(), ...).
+```
+
+请注意，我们只是在 *_redraw* 方法中添加了一些句柄，但我们仍然需要在 [EditorNode3DGizmo](https://docs.godotengine.org/en/stable/classes/class_editornode3dgizmo.html#class-editornode3dgizmo) 中实现其余与句柄相关的回调，以获得正常工作的句柄。
+
+## 检查器插件
+
+https://docs.godotengine.org/en/stable/tutorials/plugins/editor/inspector_plugins.html#inspector-plugins
+
+检查器 dock 允许您创建自定义小部件，通过插件编辑属性。在使用自定义数据类型和资源时，这可能是有益的，尽管您可以使用该功能更改内置类型的检查器小部件。您可以为特定属性、整个对象，甚至与特定数据类型关联的单独控件设计自定义控件。
+
+本指南解释了如何使用 [EditorInspectorPlugin](https://docs.godotengine.org/en/stable/classes/class_editorinspectorplugin.html#class-editorinspectorplugin) 和 [EditorProperty](https://docs.godotengine.org/en/stable/classes/class_editorproperty.html#class-editorproperty) 类为整数创建自定义接口，用一个生成 0 到 99 之间随机值的按钮替换默认行为。
+
+![../../../_images/inspector_plugin_example.png](https://docs.godotengine.org/en/stable/_images/inspector_plugin_example.png)
+
+*左侧为默认行为，右侧为最终结果。*
+
+### 设置插件
+
+创建一个新的空插件以开始。
+
+> **另请参见：**
+>
+> 请参阅[制作插件](https://docs.godotengine.org/en/stable/tutorials/plugins/editor/making_plugins.html#doc-making-plugins)指南以设置新插件。
+
+假设您已将插件文件夹命名为 `my_inspector_plugin`。如果是这样，您应该会得到一个新的 `addons/my_inspector_plugin` 文件夹，其中包含两个文件：`plugin.cfg` 和 `plugin.gd`。
+
+如前所述，`plugin.gd` 是一个扩展 [EditorPlugin](https://docs.godotengine.org/en/stable/classes/class_editorplugin.html#class-editorplugin) 的脚本，您需要为其 `_enter_tree` 和 `_exit_tree` 方法引入新代码。要设置检查器插件，您必须加载其脚本，然后通过调用 `add_inspector_plugin()` 创建和添加实例。如果插件被禁用，您应该通过调用 `remove_inspector_plugin()` 来删除您添加的实例。
+
+> **注：**
+>
+> 在这里，您正在加载一个脚本，而不是一个打包的场景。因此，您应该使用 `new()` 而不是 `instantiate()`。
+
+```gdscript
+# plugin.gd
+@tool
+extends EditorPlugin
+
+var plugin
+
+
+func _enter_tree():
+	plugin = preload("res://addons/my_inspector_plugin/my_inspector_plugin.gd").new()
+	add_inspector_plugin(plugin)
+
+
+func _exit_tree():
+	remove_inspector_plugin(plugin)
+```
+
+```c#
+// Plugin.cs
+#if TOOLS
+using Godot;
+
+[Tool]
+public partial class Plugin : EditorPlugin
+{
+    private MyInspectorPlugin _plugin;
+
+    public override void _EnterTree()
+    {
+        _plugin = new MyInspectorPlugin();
+        AddInspectorPlugin(_plugin);
+    }
+
+    public override void _ExitTree()
+    {
+        RemoveInspectorPlugin(_plugin);
+    }
+}
+#endif
+```
+
+### 与检查器互动
+
+要与检查器 dock 交互，`my_inspector_plugin.gd` 脚本必须扩展 [EditorInspectorPlugin](https://docs.godotengine.org/en/stable/classes/class_editorinspectorplugin.html#class-editorinspectorplugin) 类。此类提供了几个影响检查器处理属性方式的虚拟方法。
+
+为了产生任何效果，脚本必须实现 `_can_handle()` 方法。每个编辑过的 [Object](https://docs.godotengine.org/en/stable/classes/class_object.html#class-object) 都会调用此函数，如果此插件应处理该对象或其属性，则必须返回 `true`。
+
+> **注：**
+>
+> 这包括附加到对象的任何 [Resource](https://docs.godotengine.org/en/stable/classes/class_resource.html#class-resource)。
+
+您可以实现其他四种方法，在特定位置向检查器添加控件。`_parse_begin()` 和 `_parse_end()` 方法分别在每个对象的解析开始和结束时只调用一次。他们可以通过调用 `add_custom_control()` 在检查器布局的顶部或底部添加控件。
+
+当编辑器解析对象时，它调用 `_parse_category()` 和 `_parse_property()` 方法。在那里，除了 `add_custom_control()` 之外，您还可以调用 `add_property_editor()` 和 `add_property_editor_for_multiple_properties()`。使用后两种方法专门添加基于 [EditorProperty](https://docs.godotengine.org/en/stable/classes/class_editorproperty.html#class-editorproperty) 的控件。
+
+```gdscript
+# my_inspector_plugin.gd
+extends EditorInspectorPlugin
+
+var RandomIntEditor = preload("res://addons/my_inspector_plugin/random_int_editor.gd")
+
+
+func _can_handle(object):
+	# We support all objects in this example.
+	return true
+
+
+func _parse_property(object, type, name, hint_type, hint_string, usage_flags, wide):
+	# We handle properties of type integer.
+	if type == TYPE_INT:
+		# Create an instance of the custom property editor and register
+		# it to a specific property path.
+		add_property_editor(name, RandomIntEditor.new())
+		# Inform the editor to remove the default property editor for
+		# this property type.
+		return true
+	else:
+		return false
+```
+
+```c#
+// MyInspectorPlugin.cs
+#if TOOLS
+using Godot;
+
+public partial class MyInspectorPlugin : EditorInspectorPlugin
+{
+    public override bool _CanHandle(GodotObject @object)
+    {
+        // We support all objects in this example.
+        return true;
+    }
+
+    public override bool _ParseProperty(GodotObject @object, Variant.Type type,
+        string name, PropertyHint hintType, string hintString,
+        PropertyUsageFlags usageFlags, bool wide)
+    {
+        // We handle properties of type integer.
+        if (type == Variant.Type.Int)
+        {
+            // Create an instance of the custom property editor and register
+            // it to a specific property path.
+            AddPropertyEditor(name, new RandomIntEditor());
+            // Inform the editor to remove the default property editor for
+            // this property type.
+            return true;
+        }
+
+        return false;
+    }
+}
+#endif
+```
+
+### 添加编辑属性的界面
+
+[EditorProperty](https://docs.godotengine.org/en/stable/classes/class_editorproperty.html#class-editorproperty) 类是一种特殊类型的 [Control](https://docs.godotengine.org/en/stable/classes/class_control.html#class-control)，可以与检查器 dock 的编辑对象进行交互。它不显示任何内容，但可以容纳任何其他控制节点，包括复杂的场景。
+
+扩展 [EditorProperty](https://docs.godotengine.org/en/stable/classes/class_editorproperty.html#class-editorproperty) 的脚本有三个基本部分：
+
+1. 您必须定义 `_init()` 方法来设置控制节点的结构。
+2. 您应该实现 `_update_property()` 来处理来自外部的数据更改。
+3. 必须在某个时刻发出信号，通知检查器控件已使用 `emit_changed` 更改了属性。
+
+您可以通过两种方式显示自定义小部件。只使用默认的 `add_child()` 方法将其显示在属性名称的右侧，并使用 `add_child()` 和 `set_bottom_editor()` 将其放置在名称下方。
+
+```gdscript
+# random_int_editor.gd
+extends EditorProperty
+
+
+# The main control for editing the property.
+var property_control = Button.new()
+# An internal value of the property.
+var current_value = 0
+# A guard against internal changes when the property is updated.
+var updating = false
+
+
+func _init():
+	# Add the control as a direct child of EditorProperty node.
+	add_child(property_control)
+	# Make sure the control is able to retain the focus.
+	add_focusable(property_control)
+	# Setup the initial state and connect to the signal to track changes.
+	refresh_control_text()
+	property_control.pressed.connect(_on_button_pressed)
+
+
+func _on_button_pressed():
+	# Ignore the signal if the property is currently being updated.
+	if (updating):
+		return
+
+	# Generate a new random integer between 0 and 99.
+	current_value = randi() % 100
+	refresh_control_text()
+	emit_changed(get_edited_property(), current_value)
+
+
+func _update_property():
+	# Read the current value from the property.
+	var new_value = get_edited_object()[get_edited_property()]
+	if (new_value == current_value):
+		return
+
+	# Update the control with the new value.
+	updating = true
+	current_value = new_value
+	refresh_control_text()
+	updating = false
+
+func refresh_control_text():
+	property_control.text = "Value: " + str(current_value)
+```
+
+```c#
+// RandomIntEditor.cs
+#if TOOLS
+using Godot;
+
+public partial class RandomIntEditor : EditorProperty
+{
+    // The main control for editing the property.
+    private Button _propertyControl = new Button();
+    // An internal value of the property.
+    private int _currentValue = 0;
+    // A guard against internal changes when the property is updated.
+    private bool _updating = false;
+
+    public RandomIntEditor()
+    {
+        // Add the control as a direct child of EditorProperty node.
+        AddChild(_propertyControl);
+        // Make sure the control is able to retain the focus.
+        AddFocusable(_propertyControl);
+        // Setup the initial state and connect to the signal to track changes.
+        RefreshControlText();
+        _propertyControl.Pressed += OnButtonPressed;
+    }
+
+    private void OnButtonPressed()
+    {
+        // Ignore the signal if the property is currently being updated.
+        if (_updating)
+        {
+            return;
+        }
+
+        // Generate a new random integer between 0 and 99.
+        _currentValue = (int)GD.Randi() % 100;
+        RefreshControlText();
+        EmitChanged(GetEditedProperty(), _currentValue);
+    }
+
+    public override void _UpdateProperty()
+    {
+        // Read the current value from the property.
+        var newValue = (int)GetEditedObject().Get(GetEditedProperty());
+        if (newValue == _currentValue)
+        {
+            return;
+        }
+
+        // Update the control with the new value.
+        _updating = true;
+        _currentValue = newValue;
+        RefreshControlText();
+        _updating = false;
+    }
+
+    private void RefreshControlText()
+    {
+        _propertyControl.Text = $"Value: {_currentValue}";
+    }
+}
+#endif
+```
+
+使用上面的示例代码，您应该能够制作一个自定义小部件，将整数的默认 [SpinBox](https://docs.godotengine.org/en/stable/classes/class_spinbox.html#class-spinbox) 控件替换为生成随机值的 [Button](https://docs.godotengine.org/en/stable/classes/class_button.html#class-button)。
+
+
+
+## Visual Shader 插件
+
+https://docs.godotengine.org/en/stable/tutorials/plugins/editor/visual_shader_plugins.html#visual-shader-plugins
+
+Visual Shader 插件用于在 GDScript 中创建自定义 [VisualShader](https://docs.godotengine.org/en/stable/classes/class_visualshader.html#class-visualshader) 节点。
+
+创建过程不同于通常的编辑器插件。您不需要创建 `plugin.cfg` 文件来注册它；相反，创建并保存一个脚本文件，只要自定义节点已用 `class_name` 注册，它就可以使用了。
+
+本简短教程将解释如何制作 Perlin-3D 噪波节点（来自此 [GPU 噪波着色器插件](https://github.com/curly-brace/Godot-3.0-Noise-Shaders/blob/master/assets/gpu_noise_shaders/classic_perlin3d.tres)的原始代码）。
+
+创建 Sprite2D 并将 [ShaderMaterial](https://docs.godotengine.org/en/stable/classes/class_shadermaterial.html#class-shadermaterial) 指定给其材质窗：
+
+![../../../_images/visual_shader_plugins_start.png](https://docs.godotengine.org/en/stable/_images/visual_shader_plugins_start.png)
+
+将 [VisualShader](https://docs.godotengine.org/en/stable/classes/class_visualshader.html#class-visualshader) 指定给材质的着色器窗：
+
+![../../../_images/visual_shader_plugins_start2.png](https://docs.godotengine.org/en/stable/_images/visual_shader_plugins_start2.png)
+
+不要忘记将其模式更改为“CanvasItem”（如果您使用的是 Sprite2D)：
+
+![../../../_images/visual_shader_plugins_start3.png](https://docs.godotengine.org/en/stable/_images/visual_shader_plugins_start3.png)
+
+创建一个从 [VisualShaderNodeCustom](https://docs.godotengine.org/en/stable/classes/class_visualshadernodecustom.html#class-visualshadernodecustom) 派生的脚本。这就是初始化插件所需的全部内容。
+
+```gdscript
+# perlin_noise_3d.gd
+@tool
+extends VisualShaderNodeCustom
+class_name VisualShaderNodePerlinNoise3D
+
+
+func _get_name():
+	return "PerlinNoise3D"
+
+
+func _get_category():
+	return "MyShaderNodes"
+
+
+func _get_description():
+	return "Classic Perlin-Noise-3D function (by Curly-Brace)"
+
+
+func _init():
+	set_input_port_default_value(2, 0.0)
+
+
+func _get_return_icon_type():
+	return VisualShaderNode.PORT_TYPE_SCALAR
+
+
+func _get_input_port_count():
+	return 4
+
+
+func _get_input_port_name(port):
+	match port:
+		0:
+			return "uv"
+		1:
+			return "offset"
+		2:
+			return "scale"
+		3:
+			return "time"
+
+
+func _get_input_port_type(port):
+	match port:
+		0:
+			return VisualShaderNode.PORT_TYPE_VECTOR_3D
+		1:
+			return VisualShaderNode.PORT_TYPE_VECTOR_3D
+		2:
+			return VisualShaderNode.PORT_TYPE_SCALAR
+		3:
+			return VisualShaderNode.PORT_TYPE_SCALAR
+
+
+func _get_output_port_count():
+	return 1
+
+
+func _get_output_port_name(port):
+	return "result"
+
+
+func _get_output_port_type(port):
+	return VisualShaderNode.PORT_TYPE_SCALAR
+
+
+func _get_global_code(mode):
+	return """
+        vec3 mod289_3(vec3 x) {
+            return x - floor(x * (1.0 / 289.0)) * 289.0;
+        }
+
+        vec4 mod289_4(vec4 x) {
+            return x - floor(x * (1.0 / 289.0)) * 289.0;
+        }
+
+        vec4 permute(vec4 x) {
+            return mod289_4(((x * 34.0) + 1.0) * x);
+        }
+
+        vec4 taylorInvSqrt(vec4 r) {
+            return 1.79284291400159 - 0.85373472095314 * r;
+        }
+
+        vec3 fade(vec3 t) {
+            return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+        }
+
+        // Classic Perlin noise.
+        float cnoise(vec3 P) {
+            vec3 Pi0 = floor(P); // Integer part for indexing.
+            vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1.
+            Pi0 = mod289_3(Pi0);
+            Pi1 = mod289_3(Pi1);
+            vec3 Pf0 = fract(P); // Fractional part for interpolation.
+            vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0.
+            vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);
+            vec4 iy = vec4(Pi0.yy, Pi1.yy);
+            vec4 iz0 = vec4(Pi0.z);
+            vec4 iz1 = vec4(Pi1.z);
+
+            vec4 ixy = permute(permute(ix) + iy);
+            vec4 ixy0 = permute(ixy + iz0);
+            vec4 ixy1 = permute(ixy + iz1);
+
+            vec4 gx0 = ixy0 * (1.0 / 7.0);
+            vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;
+            gx0 = fract(gx0);
+            vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);
+            vec4 sz0 = step(gz0, vec4(0.0));
+            gx0 -= sz0 * (step(0.0, gx0) - 0.5);
+            gy0 -= sz0 * (step(0.0, gy0) - 0.5);
+
+            vec4 gx1 = ixy1 * (1.0 / 7.0);
+            vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;
+            gx1 = fract(gx1);
+            vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);
+            vec4 sz1 = step(gz1, vec4(0.0));
+            gx1 -= sz1 * (step(0.0, gx1) - 0.5);
+            gy1 -= sz1 * (step(0.0, gy1) - 0.5);
+
+            vec3 g000 = vec3(gx0.x, gy0.x, gz0.x);
+            vec3 g100 = vec3(gx0.y, gy0.y, gz0.y);
+            vec3 g010 = vec3(gx0.z, gy0.z, gz0.z);
+            vec3 g110 = vec3(gx0.w, gy0.w, gz0.w);
+            vec3 g001 = vec3(gx1.x, gy1.x, gz1.x);
+            vec3 g101 = vec3(gx1.y, gy1.y, gz1.y);
+            vec3 g011 = vec3(gx1.z, gy1.z, gz1.z);
+            vec3 g111 = vec3(gx1.w, gy1.w, gz1.w);
+
+            vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));
+            g000 *= norm0.x;
+            g010 *= norm0.y;
+            g100 *= norm0.z;
+            g110 *= norm0.w;
+            vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));
+            g001 *= norm1.x;
+            g011 *= norm1.y;
+            g101 *= norm1.z;
+            g111 *= norm1.w;
+
+            float n000 = dot(g000, Pf0);
+            float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));
+            float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));
+            float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));
+            float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));
+            float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));
+            float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));
+            float n111 = dot(g111, Pf1);
+
+            vec3 fade_xyz = fade(Pf0);
+            vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);
+            vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
+            float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x);
+            return 2.2 * n_xyz;
+        }
+    """
+
+
+func _get_code(input_vars, output_vars, mode, type):
+	return output_vars[0] + " = cnoise(vec3((%s.xy + %s.xy) * %s, %s)) * 0.5 + 0.5;" % [input_vars[0], input_vars[1], input_vars[2], input_vars[3]]
+```
+
+保存它并打开 Visual Shader。您应该在 Addons 类别下的成员对话框中看到新的节点类型（如果看不到新节点，请尝试重新启动编辑器）：
+
+![../../../_images/visual_shader_plugins_result1.png](https://docs.godotengine.org/en/stable/_images/visual_shader_plugins_result1.png)
+
+将其放在图表上并连接所需的端口：
+
+![../../../_images/visual_shader_plugins_result2.png](https://docs.godotengine.org/en/stable/_images/visual_shader_plugins_result2.png)
+
+这就是你需要做的一切，正如你所看到的，创建自己的自定义 VisualShader 节点很容易！
+
+
+
+## 在编辑器中运行代码
+
+https://docs.godotengine.org/en/stable/tutorials/plugins/running_code_in_the_editor.html#running-code-in-the-editor
+
+### 什么是 `@tool`？
+
+`@tool` 是一行功能强大的代码，当添加到脚本顶部时，它将在编辑器中执行。您还可以决定脚本的哪些部分在编辑器中执行，哪些在游戏中执行，以及哪些在两者中执行。
+
+你可以用它做很多事情，但它在关卡设计中最有用，可以直观地呈现我们自己难以预测的东西。以下是一些用例：
+
+- 如果你有一门可以发射受物理（重力）影响的炮弹的大炮，你可以在编辑器中绘制炮弹的轨迹，使关卡设计变得容易得多。
+- 如果你有不同跳跃高度的跳台，你可以画出玩家跳上跳台时能达到的最大跳跃高度，这也使关卡设计更容易。
+- 如果你的玩家不使用角色，而是使用代码绘制自己，你可以在编辑器中执行绘制代码来查看你的玩家。
+
+> **危险：**
+>
+> `@tool` 脚本在编辑器内运行，并允许您访问当前编辑场景的场景树。这是一个强大的功能，但也有警告，因为编辑器不包括对 `@tool` 脚本潜在滥用的保护。在操作场景树时，尤其是通过 [Node.queue_free](https://docs.godotengine.org/en/stable/classes/class_node.html#class-node-method-queue-free)，要格外小心，因为如果在编辑器运行涉及节点的逻辑时释放节点，可能会导致崩溃。
+
+### 如何使用 `@tool`
+
+要将脚本转换为工具，请在代码顶部添加 `@tool` 注释。
+
+要检查您当前是否在编辑器中，请使用：`Engine.is_editor_hint()`。
+
+例如，如果您只想在编辑器中执行某些代码，请使用：
+
+```gdscript
+if Engine.is_editor_hint():
+	# Code to execute when in editor.
+```
+
+```c#
+if (Engine.IsEditorHint())
+{
+    // Code to execute when in editor.
+}
+```
+
+另一方面，如果你只想在游戏中执行代码，只需否定相同的语句：
+
+```gdscript
+if not Engine.is_editor_hint():
+	# Code to execute when in game.
+```
+
+```c#
+if (!Engine.IsEditorHint())
+{
+    // Code to execute when in game.
+}
+```
+
+不符合上述两个条件的代码将在编辑器和游戏中运行。
+
+以下是 `_process()` 函数可能会如何查找您：
+
+```gdscript
+func _process(delta):
+	if Engine.is_editor_hint():
+		# Code to execute in editor.
+
+	if not Engine.is_editor_hint():
+		# Code to execute in game.
+
+	# Code to execute both in editor and in game.
+```
+
+```c#
+public override void _Process(double delta)
+{
+    if (Engine.IsEditorHint())
+    {
+        // Code to execute in editor.
+    }
+
+    if (!Engine.IsEditorHint())
+    {
+        // Code to execute in game.
+    }
+
+    // Code to execute both in editor and in game.
+}
+```
+
+### 重要信息
+
+您的工具脚本使用的任何其他 GDScript *也*必须是工具。编辑器使用的任何没有 `@tool` 的 GDScript 都将像一个空文件一样！
+
+扩展 `@tool` 脚本不会自动使扩展脚本成为 `@tool`。从扩展脚本中省略 `@tool` 将禁用超类中的工具行为。因此，扩展脚本还应指定 `@tool` 注解。
+
+编辑器中的修改是永久性的。例如，在下一节中，当我们删除脚本时，节点将保持其旋转。小心避免进行不必要的修改。
+
+### 试试 `@tool`
+
+将 `Sprite2D` 节点添加到场景中，并将纹理设置为 Godot 图标。附加并打开一个脚本，然后将其更改为：
+
+```gdscript
+@tool
+extends Sprite2D
+
+func _process(delta):
+	rotation += PI * delta
+```
+
+```c#
+using Godot;
+
+[Tool]
+public partial class MySprite : Sprite2D
+{
+    public override void _Process(double delta)
+    {
+        Rotation += Mathf.Pi * (float)delta;
+    }
+}
+```
+
+保存脚本并返回编辑器。现在，您应该看到您的对象正在旋转。如果你运行游戏，它也会旋转。
+
+![../../_images/rotating_in_editor.gif](https://docs.godotengine.org/en/stable/_images/rotating_in_editor.gif)
+
+> **注：**
+>
+> 如果看不到更改，请重新加载场景（关闭并再次打开）。
+
+现在让我们选择什么时候运行哪些代码。修改 `_process()` 函数，使其看起来像这样：
+
+```gdscript
+func _process(delta):
+	if Engine.is_editor_hint():
+		rotation += PI * delta
+	else:
+		rotation -= PI * delta
+```
+
+```c#
+public override void _Process(double delta)
+{
+    if (Engine.IsEditorHint())
+    {
+        Rotation += Mathf.Pi * (float)delta;
+    }
+    else
+    {
+        Rotation -= Mathf.Pi * (float)delta;
+    }
+}
+```
+
+保存脚本。现在，对象将在编辑器中顺时针旋转，但如果你运行游戏，它将逆时针旋转。
+
+### 编辑变量
+
+将变速添加并导出到脚本中。要更新速度并重置旋转角度，请添加一个设置器 `set(new_speed)` ，该设置器集根据检查器的输入执行。修改 `_process()` 以包含旋转速度。
+
+```gdscript
+@tool
+extends Sprite2D
+
+
+@export var speed = 1:
+	# Update speed and reset the rotation.
+	set(new_speed):
+		speed = new_speed
+		rotation = 0
+
+
+func _process(delta):
+	rotation += PI * delta * speed
+```
+
+```c#
+using Godot;
+
+[Tool]
+public partial class MySprite : Sprite2D
+{
+    private float _speed = 1;
+
+    [Export]
+    public float Speed
+    {
+        get => _speed;
+        set
+        {
+            // Update speed and reset the rotation.
+            _speed = value;
+            Rotation = 0;
+        }
+    }
+
+    public override void _Process(double delta)
+    {
+        Rotation += Mathf.Pi * (float)delta * speed;
+    }
+}
+```
+
+> **注：**
+>
+> 来自其他节点的代码不会在编辑器中运行。您对其他节点的访问受到限制。您可以访问树和节点及其默认属性，但无法访问用户变量。如果你想这样做，其他节点也必须在编辑器中运行。在编辑器中根本无法访问自动加载节点。
+
+### 当资源发生变化时收到通知
+
+有时你希望你的工具使用资源。但是，当您在编辑器中更改该资源的属性时，将不会调用工具的 `set()` 方法。
+
+```gdscript
+@tool
+class_name MyTool
+extends Node
+
+@export var resource: MyResource:
+	set(new_resource):
+		resource = new_resource
+		_on_resource_set()
+
+# This will only be called when you create, delete, or paste a resource.
+# You will not get an update when tweaking properties of it.
+func _on_resource_set():
+	print("My resource was set!")
+```
+
+```c#
+using Godot;
+
+[Tool]
+public partial class MyTool : Node
+{
+    private MyResource _resource;
+
+    [Export]
+    public MyResource Resource
+    {
+        get => _resource;
+        set
+        {
+            _resource = value;
+            OnResourceSet();
+        }
+    }
+}
+
+// This will only be called when you create, delete, or paste a resource.
+// You will not get an update when tweaking properties of it.
+private void OnResourceSet()
+{
+    GD.Print("My resource was set!");
+}
+```
+
+要解决这个问题，您首先必须将资源设置为工具，并使其在设置属性时发出 `changed` 的信号：
+
+```gdscript
+# Make Your Resource a tool.
+@tool
+class_name MyResource
+extends Resource
+
+@export var property = 1:
+	set(new_setting):
+		property = new_setting
+		# Emit a signal when the property is changed.
+		changed.emit()
+```
+
+```c#
+using Godot;
+
+[Tool]
+public partial class MyResource : Resource
+{
+    private float _property = 1;
+
+    [Export]
+    public float Property
+    {
+        get => _property;
+        set
+        {
+            _property = value;
+            // Emit a signal when the property is changed.
+            EmitChanged();
+        }
+    }
+}
+```
+
+然后，您希望在设置新资源时连接信号：
+
+```gdscript
+@tool
+class_name MyTool
+extends Node
+
+@export var resource: MyResource:
+	set(new_resource):
+		resource = new_resource
+		# Connect the changed signal as soon as a new resource is being added.
+		resource.changed.connect(_on_resource_changed)
+
+func _on_resource_changed():
+	print("My resource just changed!")
+```
+
+```c#
+using Godot;
+
+[Tool]
+public partial class MyTool : Node
+{
+    private MyResource _resource;
+
+    [Export]
+    public MyResource Resource
+    {
+        get => _resource;
+        set
+        {
+            _resource = value;
+            // Connect the changed signal as soon as a new resource is being added.
+            _resource.Changed += OnResourceChanged;
+        }
+    }
+}
+
+private void OnResourceChanged()
+{
+    GD.Print("My resource just changed!");
+}
+```
+
+最后，记得断开信号，因为在其他地方使用和更改的旧资源会导致不必要的更新。
+
+```gdscript
+@export var resource: MyResource:
+	set(new_resource):
+		# Disconnect the signal if the previous resource was not null.
+		if resource != null:
+			resource.changed.disconnect(_on_resource_changed)
+		resource = new_resource
+		resource.changed.connect(_on_resource_changed)
+```
+
+```c#
+[Export]
+public MyResource Resource
+{
+    get => _resource;
+    set
+    {
+        // Disconnect the signal if the previous resource was not null.
+        if (_resource != null)
+        {
+            _resource.Changed -= OnResourceChanged;
+        }
+        _resource = value;
+        _resource.Changed += OnResourceChanged;
+    }
+}
+```
+
+### 报告节点配置警告
+
+Godot 使用*节点配置警告*系统来警告用户节点配置不正确。当节点配置不正确时，“场景”停靠栏中节点名称旁边会显示一个黄色警告标志。当您悬停或单击图标时，会弹出一条警告消息。您可以在脚本中使用此功能，以帮助您和您的团队在设置场景时避免错误。
+
+当使用节点配置警告时，当任何应该影响或删除警告的值发生变化时，您需要调用 [update_configuration_warnings](https://docs.godotengine.org/en/stable/classes/class_node.html#class-node-method-update-configuration-warnings)。默认情况下，警告仅在关闭和重新打开场景时更新。
+
+```gdscript
+# Use setters to update the configuration warning automatically.
+@export var title = "":
+	set(p_title):
+		if p_title != title:
+			title = p_title
+			update_configuration_warnings()
+
+@export var description = "":
+	set(p_description):
+		if p_description != description:
+			description = p_description
+			update_configuration_warnings()
+
+
+func _get_configuration_warnings():
+	var warnings = []
+
+	if title == "":
+		warnings.append("Please set `title` to a non-empty value.")
+
+	if description.length() >= 100:
+		warnings.append("`description` should be less than 100 characters long.")
+
+	# Returning an empty array means "no warning".
+	return warnings
+```
+
+### 使用 EditorScript 运行一次性脚本
+
+有时，您只需要运行一次代码，就可以自动执行编辑器中不可用的特定任务。一些例子可能是：
+
+- 用作 GDScript 或 C# 脚本的游乐场，而无需运行项目。`print()` 输出显示在编辑器输出面板中。
+- 缩放当前编辑场景中的所有灯光节点，因为您注意到在将灯光放置在所需位置后，您的关卡看起来太暗或太亮。
+- 将复制粘贴的节点替换为场景实例，以便以后更容易修改。
+
+在 Godot 中，这可以通过在脚本中扩展 [EditorScript](https://docs.godotengine.org/en/stable/classes/class_editorscript.html#class-editorscript) 来实现。这提供了一种在编辑器中运行单个脚本的方法，而无需创建编辑器插件。
+
+要创建 EditorScript，请右键单击文件系统停靠栏中的文件夹或空白区域，然后选择**新建 > 脚本...**。在脚本创建对话框中，单击树图标选择要从中扩展的对象（或直接在左侧的字段中输入 `EditorScript`，但请注意这是区分大小写的）：
+
+![Creating an editor script in the script editor creation dialog](https://docs.godotengine.org/en/stable/_images/running_code_in_the_editor_creating_editor_script.webp)
+
+*在脚本编辑器创建对话框中创建编辑器脚本*
+
+这将自动选择一个适合 EditorScripts 的脚本模板，其中已插入 `_run()` 方法：
+
+```gdscript
+@tool
+extends EditorScript
+
+# Called when the script is executed (using File -> Run in Script Editor).
+func _run():
+	pass
+```
+
+当 EditorScript 是脚本编辑器中当前打开的脚本时，当您使用**“文件” > “运行”**或键盘快捷键 `Ctrl + Shift + X` 时，会执行此 `_run()` 方法。此键盘快捷键仅在当前专注于脚本编辑器时有效。
+
+扩展 EditorScript 的脚本必须是 `@tool` 脚本才能运行。
+
+> **警告：**
+>
+> EditorScripts 没有撤消/重做功能，因此如果脚本旨在修改任何数据，请**确保在运行场景之前保存场景**。
+
+要访问当前编辑场景中的节点，请使用 [EditorScript.get_scene](https://docs.godotengine.org/en/stable/classes/class_editorscript.html#class-editorscript-method-get-scene) 方法，该方法返回当前编辑场景的根节点。以下是一个递归获取当前编辑场景中所有节点并将所有 OmniLight3D 节点的范围加倍的示例：
+
+```gdscript
+@tool
+extends EditorScript
+
+func _run():
+	for node in get_all_children(get_scene()):
+		if node is OmniLight3D:
+			# Don't operate on instanced subscene children, as changes are lost
+			# when reloading the scene.
+			# See the "Instancing scenes" section below for a description of `owner`.
+			var is_instanced_subscene_child = node != get_scene() and node.owner != get_scene()
+			if not is_instanced_subscene_child:
+				node.omni_range *= 2.0
+
+# This function is recursive: it calls itself to get lower levels of child nodes as needed.
+# `children_acc` is the accumulator parameter that allows this function to work.
+# It should be left to its default value when you call this function directly.
+func get_all_children(in_node, children_acc = []):
+	children_acc.push_back(in_node)
+	for child in in_node.get_children():
+		children_acc = get_all_children(child, children_acc)
+
+	return children_acc
+```
+
+> **小贴士：**
+>
+> 即使在“脚本”视图打开时，也可以在编辑器顶部更改当前编辑的场景。这将影响 [EditorScript.get_scene](https://docs.godotengine.org/en/stable/classes/class_editorscript.html#class-editorscript-method-get-scene) 的返回值，因此请确保在运行脚本之前已选择要迭代的场景。
+
+### 实例化场景
+
+您可以正常实例化打包的场景，并将其添加到编辑器中当前打开的场景中。默认情况下，使用 [Node.add_child(Node)](https://docs.godotengine.org/en/stable/classes/class_node.html#class-node-method-add-child) 添加的节点或场景在场景树停靠栏中**不**可见，也**不会**持久化到磁盘。如果希望节点或场景在场景树停靠栏中可见，并在保存场景时持久化到磁盘，则需要将子节点的 [owner](https://docs.godotengine.org/en/stable/classes/class_node.html#class-node-property-owner) 属性设置为当前编辑的场景根。
+
+如果您正在使用 `@tool`：
+
+```gdscript
+func _ready():
+	var node = Node3D.new()
+	add_child(node) # Parent could be any node in the scene
+
+	# The line below is required to make the node visible in the Scene tree dock
+	# and persist changes made by the tool script to the saved scene file.
+	node.owner = get_tree().edited_scene_root
+```
+
+```c#
+public override void _Ready()
+{
+    var node = new Node3D();
+    AddChild(node); // Parent could be any node in the scene
+
+    // The line below is required to make the node visible in the Scene tree dock
+    // and persist changes made by the tool script to the saved scene file.
+    node.Owner = GetTree().EditedSceneRoot;
+}
+```
+
+如果您使用的是 [EditorScript](https://docs.godotengine.org/en/stable/classes/class_editorscript.html#class-editorscript)：
+
+```gdscript
+func _run():
+	# `parent` could be any node in the scene.
+	var parent = get_scene().get_node("Parent")
+	var node = Node3D.new()
+	parent.add_child(node)
+
+	# The line below is required to make the node visible in the Scene tree dock
+	# and persist changes made by the tool script to the saved scene file.
+	node.owner = get_scene()
+```
+
+```c#
+public override void _Run()
+{
+    // `parent` could be any node in the scene.
+    var parent = GetScene().GetNode("Parent");
+    var node = new Node3D();
+    parent.AddChild(node);
+
+    // The line below is required to make the node visible in the Scene tree dock
+    // and persist changes made by the tool script to the saved scene file.
+    node.Owner = GetScene();
+}
+```
+
+> **警告：**
+>
+> 不正确地使用 `@tool` 会产生许多错误。建议先按照您想要的方式编写代码，然后再将 `@tool` 注解添加到顶部。此外，请确保将编辑器中运行的代码与游戏中运行的程序代码分开。这样，你可以更容易地发现 bug。
+
+
+
 # 渲染
 
 ## 使用 Viewport
@@ -928,6 +3144,292 @@ color.rgb = vec3(gray);
 
 # 着色器
 
+## 粒子着色器
+
+https://docs.godotengine.org/en/stable/tutorials/shaders/shader_reference/particle_shader.html#particle-shaders
+
+粒子着色器是一种特殊类型的着色器，在绘制对象之前运行。它们用于计算材质属性，如颜色、位置和旋转。它们是使用 CanvasItem 或 Spatial 的任何常规材质绘制的，具体取决于它们是 2D 还是 3D。
+
+粒子着色器是唯一的，因为它们不用于绘制对象本身；它们用于计算粒子属性，然后由 CanvasItem 或 Spatial 着色器使用。它们包含两个处理器函数：`start()` 和 `process()`。
+
+与其他着色器类型不同，粒子着色器保留上一帧输出的数据。因此，粒子着色器可用于在多个帧上发生的复杂效果。
+
+> **注：**
+>
+> 粒子着色器仅适用于基于 GPU 的粒子节点（[GPUParticles2D](https://docs.godotengine.org/en/stable/classes/class_gpuparticles2d.html#class-gpuparticles2d) 和 [GPUParticles3D](https://docs.godotengine.org/en/stable/classes/class_gpuparticles3d.html#class-gpuparticles3d)）。
+>
+> 基于 CPU 的粒子节点（[CPUarticles2D](https://docs.godotengine.org/en/stable/classes/class_cpuparticles2d.html#class-cpuparticles2d) 和 [CPUarticles3D](https://docs.godotengine.org/en/stable/classes/class_cpuparticles3d.html#class-cpuparticles3d)）在 GPU 上*渲染*（这意味着它们可以使用自定义 CanvasItem 或 Spatial 着色器），但它们的运动是在 CPU 上*模拟*的。
+
+### 渲染模式
+
+| 渲染模式                | 描述                           |
+| ----------------------- | ------------------------------ |
+| **keep_data**           | 重新启动时不要清除以前的数据。 |
+| **disable_force**       | 禁用吸引子力。                 |
+| **disable_velocity**    | 忽略 **VELOCITY** 值。         |
+| **collision_use_scale** | 缩放粒子的大小以进行碰撞。     |
+
+### 内置
+
+标记为“in”的值是只读的。标记为“out”的值用于可选写入，不一定包含合理的值。标记为“inout”的值提供了一个合理的默认值，并且可以选择写入。采样器不是写入的对象，也没有标记。
+
+### 全局内置
+
+全局内置在各处可用，包括自定义函数。
+
+| 内置              | 描述                                                         |
+| ----------------- | ------------------------------------------------------------ |
+| in float **TIME** | 引擎启动后的全局时间（秒）。它每 3600 秒重复一次（可以通过[翻转](https://docs.godotengine.org/en/stable/classes/class_projectsettings.html#class-projectsettings-property-rendering-limits-time-time-rollover-secs)设置进行更改）。它不受 [time_scale](https://docs.godotengine.org/en/stable/classes/class_engine.html#class-engine-property-time-scale) 的影响或暂停。如果你需要一个可以缩放或暂停的 `TIME` 变量，请添加你自己的[全局着色器 uniform](https://docs.godotengine.org/en/stable/tutorials/shaders/shader_reference/shading_language.html#doc-shading-language-global-uniforms)，并在每一帧更新它。 |
+| in float **PI**   | 一个 `PI` 常数（`3.141592`）。圆的周长与直径的比值，以及半圈的弧度数。 |
+| in float **TAU**  | 一个 `TAU` 常数（`6.283185`）。相当于 `PI * 2` 和整圈弧度。  |
+| in float **E**    | 一个 `E` 常数（`2.718281`）。欧拉数和自然对数的底数。        |
+
+### Start 和 Process 内置
+
+这些属性可以从 `start()` 和 `process()` 函数访问。
+
+| 函数                            | 描述                                                         |
+| ------------------------------- | ------------------------------------------------------------ |
+| in float **LIFETIME**           | 粒子寿命。                                                   |
+| in float **DELTA**              | 增量处理时间。                                               |
+| in uint **NUMBER**              | 自排放开始以来的唯一编号。                                   |
+| in uint **INDEX**               | 颗粒索引（来自总颗粒）。                                     |
+| in mat4 **EMISSION_TRANSFORM**  | 发射器变换（用于非局部系统）。                               |
+| in uint **RANDOM_SEED**         | 随机种子用作随机的基础。                                     |
+| inout bool **ACTIVE**           | 当粒子处于活动状态时为 `true` ，可以设置为 `false`。         |
+| inout vec4 **COLOR**            | 粒子颜色，可以写入网格的顶点函数并在其中访问。               |
+| inout vec3 **VELOCITY**         | 粒子速度可以修改。                                           |
+| inout mat4 **TRANSFORM**        | 粒子变换。                                                   |
+| inout vec4 **CUSTOM**           | 自定义粒子数据。可从网格着色器中访问 **INSTANCE_CUSTOM**。   |
+| inout float **MASS**            | 粒子质量，用于吸引子。默认情况下等于 `1.0`。                 |
+| in vec4 **USERDATAX**           | 可将补充的用户定义数据集成到粒子过程着色器中的矢量。`USERDATAX` 是由数字标识的六个内置组件，`X` 可以是 1 到 6 之间的数字。 |
+| in uint **FLAG_EMIT_POSITION**  | 用于在 `emit_subparticle` 函数的最后一个参数上使用的标志，用于为新粒子的变换分配位置。 |
+| in uint **FLAG_EMIT_ROT_SCALE** | 用于在 `emit_subparticle` 函数的最后一个参数上使用的标志，用于将旋转和缩放分配给新粒子的变换。 |
+| in uint **FLAG_EMIT_VELOCITY**  | 用于在 `emit_subparticle` 函数的最后一个参数上使用的标志，用于为新粒子分配速度。 |
+| in uint **FLAG_EMIT_COLOR**     | 用于在 `emit_subparticle` 函数的最后一个参数上使用的标志，为新粒子分配颜色。 |
+| in uint **FLAG_EMIT_CUSTOM**    | 用于在 `emit_subparticle` 函数的最后一个参数上使用的标志，用于将自定义数据向量分配给新粒子。 |
+| in vec3 **EMITTER_VELOCITY**    | Particles 节点的速度。                                       |
+| in float **INTERPOLATE_TO_END** | 粒子节点的 `interp_to_end` 属性的值。                        |
+| in uint **AMOUNT_RATIO**        | 粒子节点的 `amount_ratio` 属性的值。                         |
+
+> **注：**
+>
+> 为了在 StandardMaterial3D 中使用 `COLOR` 变量，请将 `vertex_color_use_as_albedo` 设置为 `true`。在 ShaderMaterial 中，使用 `COLOR` 变量访问它。
+
+### Start 内置
+
+| 内置                          | 描述                                                         |
+| ----------------------------- | ------------------------------------------------------------ |
+| in bool **RESTART_POSITION**  | 如果粒子重新启动，或者在没有自定义位置的情况下发射（即该粒子是由`emit_subparticle()` 创建的，没有 `FLAG_EMIT_POSITION` 标志），则返回 `true`。 |
+| in bool **RESTART_ROT_SCALE** | 如果粒子重新启动，或者在没有自定义旋转或缩放的情况下发射（即该粒子是由 `emit_subparticle()` 创建的，没有 `FLAG_EMIT_ROT_SCALE` 标志），则为 `true`。 |
+| in bool **RESTART_VELOCITY**  | 如果粒子重新启动，或者在没有自定义速度的情况下发射（即该粒子是由 `emit_subparticle()` 创建的，没有 `FLAG_EMIT_VELOCITY` 标志），则为 `true`。 |
+| in bool **RESTART_COLOR**     | 如果粒子重新启动或发射时没有自定义颜色（即该粒子是由 `emit_subparticle()` 创建的，没有 `FLAG_EMIT_COLOR` 标志），则为 `true`。 |
+| in bool **RESTART_CUSTOM**    | 如果粒子重新启动，或者在没有自定义属性的情况下发射（即该粒子是由 `emit_subparticle()` 创建的，没有 `FLAG_EMIT_CUSTOM` 标志），则为 `true`。 |
+
+### Process 内置
+
+| 内置                         | 描述                                                         |
+| ---------------------------- | ------------------------------------------------------------ |
+| in bool **RESTART**          | 如果当前进程帧是粒子的第一个进程帧，则为 `true`。            |
+| in bool **COLLIDED**         | 当粒子与粒子碰撞体碰撞时为 `true`。                          |
+| in vec3 **COLLISION_NORMAL** | 上次碰撞的正常现象。如果没有检测到碰撞，则等于 `vec3(0.0)`。 |
+| in float **COLLISION_DEPTH** | 上次碰撞的法线长度。如果没有检测到碰撞，则等于 `0.0`。       |
+| in vec3 **ATTRACTOR_FORCE**  | 此刻吸引子对该粒子的合力。                                   |
+
+### Process 函数
+
+`emit_subparticle` 是粒子着色器目前唯一支持的自定义函数。它允许用户从子发射器添加具有指定参数的新粒子。新创建的粒子将仅使用与 `flags` 参数匹配的属性。例如，以下代码将发射具有指定位置、速度和颜色但未指定旋转、比例和自定义值的粒子：
+
+```glsl
+mat4 custom_transform = mat4(1.0);
+custom_transform[3].xyz = vec3(10.5, 0.0, 4.0);
+emit_subparticle(custom_transform, vec3(1.0, 0.5, 1.0), vec4(1.0, 0.0, 0.0, 1.0), vec4(1.0), FLAG_EMIT_POSITION | FLAG_EMIT_VELOCITY | FLAG_EMIT_COLOR);
+```
+
+| 函数                                                         | 描述                 |
+| ------------------------------------------------------------ | -------------------- |
+| bool **emit_subparticle** (mat4 xform, vec3 velocity, vec4 color, vec4 custom, uint flags) | 从子发射器发射粒子。 |
+
+
+
+## 天空着色器
+
+https://docs.godotengine.org/en/stable/tutorials/shaders/shader_reference/sky_shader.html#sky-shaders
+
+天空着色器是一种特殊类型的着色器，用于绘制天空背景和更新用于基于图像的照明（IBL）的辐射立方体图。天空着色器只有一个处理函数，即 `sky()` 函数。
+
+有三个地方使用了天空着色器。
+
+- 首先，当您选择在场景中使用天空作为背景时，天空着色器用于绘制天空。
+- 其次，当使用天空作为环境色或反射时，天空着色器用于更新辐射立方体贴图。
+- 第三，天空着色器用于绘制低分辨率子通道，这些子通道可用于高分辨率背景或立方体贴图通道。
+
+总的来说，这意味着天空着色器每帧最多可以运行六次，但在实践中，它会比这少得多，因为辐射立方体贴图不需要每帧都更新，也不会使用所有子路径。通过检查 `AT_*_PASS` 布尔值，可以根据调用着色器的位置更改着色器的行为。例如：
+
+```glsl
+shader_type sky;
+
+void sky() {
+    if (AT_CUBEMAP_PASS) {
+        // Sets the radiance cubemap to a nice shade of blue instead of doing
+        // expensive sky calculations
+        COLOR = vec3(0.2, 0.6, 1.0);
+    } else {
+        // Do expensive sky calculations for background sky only
+        COLOR = get_sky_color(EYEDIR);
+    }
+}
+```
+
+使用天空着色器绘制背景时，将对屏幕上的所有非遮挡片段调用着色器。但是，对于背景的子通道，将对子通道的每个像素调用着色器。
+
+当使用天空着色器更新辐射立方体贴图时，立方体贴图中的每个像素都将调用天空着色器。另一方面，只有在需要更新辐射立方体贴图时才会调用着色器。当任何着色器参数更新时，都需要更新辐射立方体贴图。例如，如果着色器中使用了 `TIME`，则辐射立方体贴图将更新每一帧。以下更改列表强制更新辐射立方体贴图：
+
+- `TIME` 被使用。
+- 使用 `POSITION`，相机位置会发生变化。
+- 如果使用了任何 `LIGHTX_*` 属性，并且任何 [DirectionalLight3D](https://docs.godotengine.org/en/stable/classes/class_directionallight3d.html#class-directionallight3d) 发生了变化。
+- 如果着色器中更改了任何均匀性。
+- 如果调整了屏幕大小并且使用了其中任何一个子页面。
+
+尽量避免不必要地更新辐射立方体贴图。如果您确实需要在每一帧更新辐射立方体贴图，请确保您的[天空处理模式](https://docs.godotengine.org/en/stable/classes/class_sky.html#class-sky-property-process-mode)设置为[实时](https://docs.godotengine.org/en/stable/classes/class_sky.html#class-sky-constant-process-mode-realtime)。
+
+请注意，[处理模式](https://docs.godotengine.org/en/stable/classes/class_sky.html#class-sky-property-process-mode)仅影响辐射立方体贴图的渲染。始终通过为每个像素调用片段着色器来渲染可见天空。对于复杂的片段着色器，这可能会导致较高的渲染开销。如果天空是静态的（满足上述条件）或变化缓慢，则不需要每帧都运行完整的片段着色器。通过将整个天空渲染到辐射立方体贴图中，并在渲染可见天空时从该立方体贴图中读取，可以避免这种情况。对于完全静态的天空，这意味着只需要渲染一次。
+
+以下代码将整个天空渲染到辐射立方体贴图中，并从该立方体贴图中读取以显示可见天空：
+
+```glsl
+shader_type sky;
+
+void sky() {
+    if (AT_CUBEMAP_PASS) {
+        vec3 dir = EYEDIR;
+
+        vec4 col = vec4(0.0);
+
+        // Complex color calculation
+
+        COLOR = col.xyz;
+        ALPHA = 1.0;
+    } else {
+        COLOR = texture(RADIANCE, EYEDIR).rgb;
+    }
+}
+```
+
+这样，复杂的计算只发生在立方体贴图过程中，可以通过设置天空的处理模式和辐射大小来优化立方体贴图过程，以在性能和视觉保真度之间达到所需的平衡。
+
+### 渲染模式
+
+子通道允许您以较低的分辨率进行更昂贵的计算，以加快着色器的速度。例如，以下代码以比天空其他部分更低的分辨率渲染云：
+
+```glsl
+shader_type sky;
+render_mode use_half_res_pass;
+
+void sky() {
+    if (AT_HALF_RES_PASS) {
+        // Run cloud calculation for 1/4 of the pixels
+        vec4 color = generate_clouds(EYEDIR);
+        COLOR = color.rgb;
+        ALPHA = color.a;
+    } else {
+        // At full resolution pass, blend sky and clouds together
+        vec3 color = generate_sky(EYEDIR);
+        COLOR = color + HALF_RES_COLOR.rgb * HALF_RES_COLOR.a;
+    }
+}
+```
+
+| 渲染模式                 | 描述                                     |
+| ------------------------ | ---------------------------------------- |
+| **use_half_res_pass**    | 允许着色器写入和访问半分辨率过程。       |
+| **use_quarter_res_pass** | 允许着色器写入和访问四分之一分辨率通道。 |
+| **disable_fog**          | 如果使用，雾不会影响天空。               |
+
+### 内置
+
+标记为“in”的值是只读的。标记为“out”的值用于可选写入，不一定包含合理的值。采样器无法写入，因此没有标记。
+
+### 全局内置
+
+全局内置在所有地方可用，包括在自定义函数中。
+
+有 4 个 `LIGHTX` 光，分别为 `LIGHT0`、`LIGHT1`、`LIGHT2` 和 `LIGHT3`。
+
+| 内置                            | 描述                                                         |
+| ------------------------------- | ------------------------------------------------------------ |
+| in float **TIME**               | 引擎启动后的全局时间（秒）。它每 3600 秒重复一次（可以通过[翻转](https://docs.godotengine.org/en/stable/classes/class_projectsettings.html#class-projectsettings-property-rendering-limits-time-time-rollover-secs)设置进行更改）。它不受 [time_scale](https://docs.godotengine.org/en/stable/classes/class_engine.html#class-engine-property-time-scale) 的影响或暂停。如果你需要一个可以缩放或暂停的 `TIME` 变量，请添加你自己的[全局着色器 uniform](https://docs.godotengine.org/en/stable/tutorials/shaders/shader_reference/shading_language.html#doc-shading-language-global-uniforms)，并在每一帧更新它。 |
+| in vec3 **POSITION**            | 相机在世界空间中的位置                                       |
+| samplerCube **RADIANCE**        | 辐射立方体图。只能在后台通过时读取。检查 `!AT_CUBEMAP_PASS` 使用前。 |
+| in bool **AT_HALF_RES_PASS**    | 当前渲染为半分辨率通过。                                     |
+| in bool **AT_QUARTER_RES_PASS** | 当前渲染为四分之一分辨率。                                   |
+| in bool **AT_CUBEMAP_PASS**     | 当前正在渲染为辐射立方体贴图。                               |
+| in bool **LIGHTX_ENABLED**      | `LightX` 在场景中可见。如果为 `false`，则其他灯光属性可能是垃圾。 |
+| in float **LIGHTX_ENERGY**      | `LIGHTX` 的能量倍增器。                                      |
+| in vec3 **LIGHTX_DIRECTION**    | `LIGHTX` 所面向的方向。                                      |
+| in vec3 **LIGHTX_COLOR**        | `LIGHTX` 的颜色。                                            |
+| in float **LIGHTX_SIZE**        | 天空中 `LIGHTX` 的角直径。以弧度表示。作为参考，太阳离地球约为 .0087 弧度（0.5 度）。 |
+| in float **PI**                 | 一个 `PI` 常数（`3.141592`）。圆的周长与直径的比值，以及半圈的弧度数。 |
+| in float **TAU**                | 一个 `TAU` 常数（`6.283185`）。相当于 `PI * 2` 和整圈弧度。  |
+| in float **E**                  | 一个 `E` 常数（`2.718281`）。欧拉数和自然对数的底数。        |
+
+### 天空内置
+
+| 内置                          | 描述                                                   |
+| ----------------------------- | ------------------------------------------------------ |
+| in vec3 **EYEDIR**            | 当前像素的归一化方向。将此作为程序效果的基本方向。     |
+| in vec2 **SCREEN_UV**         | 当前像素的屏幕 UV 坐标。用于将纹理映射到全屏。         |
+| in vec2 **SKY_COORDS**        | 球体 UV。用于将全景纹理映射到天空。                    |
+| in vec4 **HALF_RES_COLOR**    | 半分辨率通过时对应像素的颜色值。使用线性滤波器。       |
+| in vec4 **QUARTER_RES_COLOR** | 四分之一分辨率通过时对应像素的颜色值。使用线性滤波器。 |
+| out vec3 **COLOR**            | 输出颜色。                                             |
+| out float **ALPHA**           | 输出 alpha 值，只能在子页面中使用。                    |
+| out vec4 **FOG**              |                                                        |
+
+
+
+## 雾着色器
+
+https://docs.godotengine.org/en/stable/tutorials/shaders/shader_reference/fog_shader.html#fog-shaders
+
+雾着色器用于定义如何在给定区域的场景中添加（或减少）雾。雾着色器始终与 [FogVolumes](https://docs.godotengine.org/en/stable/classes/class_fogvolume.html#class-fogvolume) 和体积雾一起使用。雾着色器只有一个处理函数，即 `fog()` 函数。
+
+雾着色器的分辨率取决于体积雾冻结网格的分辨率。因此，雾着色器可以添加的细节级别取决于 [FogVolume](https://docs.godotengine.org/en/stable/classes/class_fogvolume.html#class-fogvolume) 与摄影机的距离。
+
+雾着色器是一种特殊形式的计算着色器，对于关联 [FogVolume](https://docs.godotengine.org/en/stable/classes/class_fogvolume.html#class-fogvolume) 的轴对齐边界框所接触的每个 froxel，都会调用一次。这意味着几乎不会接触到给定 [FogVolume](https://docs.godotengine.org/en/stable/classes/class_fogvolume.html#class-fogvolume) 的 froxels 仍将被使用。
+
+### 内置
+
+标记为“in”的值是只读的。标记为“out”的值用于可选写入，不一定包含合理的值。采样器无法写入，因此没有标记。
+
+### 全局内置
+
+全局内置功能无处不在，包括在自定义功能中。
+
+| 内置              | 描述                                                         |
+| ----------------- | ------------------------------------------------------------ |
+| in float **TIME** | 引擎启动后的全球时间（秒）。它每 3600 秒重复一次（可以通过[翻转](https://docs.godotengine.org/en/stable/classes/class_projectsettings.html#class-projectsettings-property-rendering-limits-time-time-rollover-secs)设置进行更改）。它不受 [time_scale](https://docs.godotengine.org/en/stable/classes/class_engine.html#class-engine-property-time-scale) 的影响或暂停。如果你需要一个可以缩放或暂停的 `TIME` 变量，请添加你自己的[全局着色器 uniform](https://docs.godotengine.org/en/stable/tutorials/shaders/shader_reference/shading_language.html#doc-shading-language-global-uniforms)，并在每一帧更新它。 |
+| in float **PI**   | 一个 `PI` 常数（`3.141592`）。圆的周长与直径的比值，以及半圈的弧度数。 |
+| in float **TAU**  | 一个 `TAU` 常数（`6.283185`）。相当于 `PI * 2` 和整圈弧度。  |
+| in float **E**    | 一个 `E` 常数（`2.718281`）。欧拉数和自然对数的底数。        |
+
+### 雾内置
+
+雾体积的所有输出值都相互重叠。这允许有效地渲染 [FogVolumes](https://docs.godotengine.org/en/stable/classes/class_fogvolume.html#class-fogvolume)，因为它们可以一次绘制。
+
+| 内置                        | 描述                                                         |
+| --------------------------- | ------------------------------------------------------------ |
+| in vec3 **WORLD_POSITION**  | 当前 froxel 细胞在世界空间中的位置。                         |
+| in vec3 **OBJECT_POSITION** | 当前在世界空间中 [FogVolume](https://docs.godotengine.org/en/stable/classes/class_fogvolume.html#class-fogvolume) 的中心位置。 |
+| in vec3 **UVW**             | 三维 uv，用于将 3D 纹理映射到当前 [FogVolume](https://docs.godotengine.org/en/stable/classes/class_fogvolume.html#class-fogvolume)。 |
+| in vec3 **SIZE**            | 当前 [FogVolume](https://docs.godotengine.org/en/stable/classes/class_fogvolume.html#class-fogvolume) 的 [形状](https://docs.godotengine.org/en/stable/classes/class_fogvolume.html#class-fogvolume-property-shape) 具有大小时的大小。 |
+| in vec3 **SDF**             | [FogVolume](https://docs.godotengine.org/en/stable/classes/class_fogvolume.html#class-fogvolume) 表面的符号距离场。如果内部体积为负，则为正。 |
+| out vec3 **ALBEDO**         | 输出基色值，与光相互作用以产生最终颜色。仅在使用时写入雾量。 |
+| out float **DENSITY**       | 输出密度值。可以为负数，以允许从另一个卷中减去一个卷。雾着色器必须使用“密度”才能写入任何内容。 |
+| out vec3 **EMISSION**       | 输出发射颜色值，在光通过过程中添加到颜色中以产生最终颜色。仅在使用时写入雾量。 |
+
+
+
 ## 你的第一个 2D 着色器
 
 https://docs.godotengine.org/en/stable/tutorials/shaders/your_first_shader/your_first_2d_shader.html#your-first-2d-shader
@@ -1452,6 +3954,452 @@ void fragment() {
 ​	[Sleepybean2](https://github.com/Sleepybean2) [Sep 10, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/120#discussioncomment-10594922)
 
 ​	对不起，是 1/2，不是 2
+
+
+
+## 你的第二个 3D 着色器
+
+https://docs.godotengine.org/en/stable/tutorials/shaders/your_first_shader/your_second_3d_shader.html#your-second-3d-shader
+
+从高层来看，Godot 所做的是为用户提供一系列可以选择设置的参数（`AO`、`SSS_Strength`、`RIM` 等）。这些参数对应于不同的复杂效果（环境光遮挡、亚表面散射、边缘照明等）。如果不写入，代码在编译之前就会被抛出，因此着色器不会产生额外功能的成本。这使得用户可以轻松地进行复杂的 PBR-正确着色，而无需编写复杂的着色器。当然，Godot 还允许您忽略所有这些参数，并编写一个完全自定义的着色器。
+
+有关这些参数的完整列表，请参阅[空间着色器](https://docs.godotengine.org/en/stable/tutorials/shaders/shader_reference/spatial_shader.html#doc-spatial-shader)参考文档。
+
+顶点函数和片段函数之间的区别在于，顶点函数按顶点运行并设置 `VERTEX`（位置）和 `NORMAL` 等属性，而片段着色器按像素运行，最重要的是设置 [MeshInstance3D](https://docs.godotengine.org/en/stable/classes/class_meshinstance3d.html#class-meshinstance3d) 的 `ALBEDO` 颜色。
+
+### 您的第一个空间片段函数
+
+正如本教程前一部分所述。Godot 中片段函数的标准用途是设置不同的材质属性，并让 Godot 处理其余的属性。为了提供更大的灵活性，Godot 还提供了称为渲染模式的功能。渲染模式设置在着色器的顶部，直接在 `shader_type` 下方，它们指定了您希望着色器的内置方面具有什么样的功能。
+
+例如，如果不希望灯光影响对象，请将渲染模式设置为 `unshaded`：
+
+```glsl
+render_mode unshaded;
+```
+
+您还可以将多个渲染模式堆叠在一起。例如，如果要使用卡通着色而不是更逼真的 PBR 着色，请将漫反射模式和镜面反射模式设置为卡通：
+
+```glsl
+render_mode diffuse_toon, specular_toon;
+```
+
+这种内置功能模型允许您通过仅更改几个参数来编写复杂的自定义着色器。
+
+有关渲染模式的完整列表，请参见[空间着色器参考](https://docs.godotengine.org/en/stable/tutorials/shaders/shader_reference/spatial_shader.html#doc-spatial-shader)。
+
+在本教程的这一部分中，我们将介绍如何将上一部分的崎岖地形变成海洋。
+
+首先，我们来设定水的颜色。我们通过设置 `ALBEDO` 来实现这一点。
+
+`ALBEDO` 是一个包含对象颜色的 `vec3`。
+
+让我们把它调成一种漂亮的蓝色。
+
+```glsl
+void fragment() {
+  ALBEDO = vec3(0.1, 0.3, 0.5);
+}
+```
+
+![../../../_images/albedo.png](https://docs.godotengine.org/en/stable/_images/albedo.png)
+
+我们将其设置为非常深的蓝色，因为水的大部分蓝色将来自天空的反射。
+
+Godot 使用的 PBR 模型依赖于两个主要参数：`METALLIC` 和 `ROUGHNESS`。
+
+`ROUGHNESS` 指定材料表面的光滑/粗糙程度。低 `ROUGHNESS` 会使材料看起来像闪亮的塑料，而高粗糙度会让材料看起来颜色更纯色。
+
+`METALLIC` 指定对象与金属的相似度。最好将其设置为接近 `0` 或 `1`。将 `METALLIC` 视为改变反射和 `ALBEDO` 颜色之间的平衡。高 `METALLIC` 几乎完全忽略了 `ALBEDO`，看起来就像天空的镜子。而低 `METALLIC` 更能代表天空颜色和 `ALBEDO` 颜色。
+
+`ROUGHNESS` 从左到右从 `0` 增加到 `1`，而 `METALLIC` 从上到下从 `0` 增加至 `1`。
+
+![../../../_images/PBR.png](https://docs.godotengine.org/en/stable/_images/PBR.png)
+
+> **注：**
+>
+> `METALLIC` 应接近 `0` 或 `1`，以获得适当的 PBR 阴影。仅在它们之间设置它，用于混合材料。
+
+水不是金属，因此我们将其 `METALLIC` 属性设置为 `0.0`。水也具有很高的反射性，因此我们也会将其 `ROUGHNESS` 属性设置得相当低。
+
+```glsl
+void fragment() {
+  METALLIC = 0.0;
+  ROUGHNESS = 0.01;
+  ALBEDO = vec3(0.1, 0.3, 0.5);
+}
+```
+
+![../../../_images/plastic.png](https://docs.godotengine.org/en/stable/_images/plastic.png)
+
+现在我们有了一个光滑的塑料表面。是时候考虑我们想要模拟的水的一些特殊性质了。有两个主要的方法可以将它从一个奇怪的塑料表面变成一个漂亮的风格化的水。第一种是镜面反射。镜面反射是指你从太阳直接反射到眼睛的地方看到的亮点。第二个是菲涅耳反射率。菲涅耳反射率是物体在浅角度下变得更具反射性的特性。这就是为什么你可以看到下面的水，但更远的地方却能看到天空。
+
+为了增加镜面反射，我们将做两件事。首先，我们将把镜面反射的渲染模式更改为 toon，因为 toon 渲染模式具有更大的镜面反射高光。
+
+```glsl
+render_mode specular_toon;
+```
+
+![../../../_images/specular-toon.png](https://docs.godotengine.org/en/stable/_images/specular-toon.png)
+
+其次，我们将添加边缘照明。边缘照明增强了光线在掠角处的效果。通常，它用于模拟光线穿过物体边缘织物的方式，但我们将在这里使用它来帮助实现良好的水性效果。
+
+```glsl
+void fragment() {
+  RIM = 0.2;
+  METALLIC = 0.0;
+  ROUGHNESS = 0.01;
+  ALBEDO = vec3(0.1, 0.3, 0.5);
+}
+```
+
+![../../../_images/rim.png](https://docs.godotengine.org/en/stable/_images/rim.png)
+
+为了添加菲涅耳反射率，我们将在片段着色器中计算菲涅耳项。在这里，出于性能原因，我们不打算使用真正的菲涅耳项。相反，我们将使用 `NORMAL` 和 `VIEW` 向量的点积来近似它。`NORMAL` 矢量指向远离网格曲面的方向，而 `VIEW` 矢量是眼睛和曲面上该点之间的方向。它们之间的点积是一种方便的方法，可以判断你是正面看表面还是从某个角度看表面。
+
+```glsl
+float fresnel = sqrt(1.0 - dot(NORMAL, VIEW));
+```
+
+并将其混合到 `ROUGHNESS` 和 `ALBEDO` 中。这是 ShaderMaterials 优于 StandardMaterial3D 的优点。使用 StandardMaterial3D，我们可以用纹理或平面数字设置这些属性。但是有了着色器，我们可以根据我们能想到的任何数学函数来设置它们。
+
+```glsl
+void fragment() {
+  float fresnel = sqrt(1.0 - dot(NORMAL, VIEW));
+  RIM = 0.2;
+  METALLIC = 0.0;
+  ROUGHNESS = 0.01 * (1.0 - fresnel);
+  ALBEDO = vec3(0.1, 0.3, 0.5) + (0.1 * fresnel);
+}
+```
+
+![../../../_images/fresnel.png](https://docs.godotengine.org/en/stable/_images/fresnel.png)
+
+现在，只需 5 行代码，你就可以得到外观复杂的水。现在我们有了照明，这水看起来太亮了。让我们把它变暗。这很容易通过减小我们传递给 `ALBEDO` 的 `vec3` 的值来实现。让我们将它们设置为 `vec3(0.01, 0.03, 0.05)`。
+
+![../../../_images/dark-water.png](https://docs.godotengine.org/en/stable/_images/dark-water.png)
+
+### 用 `TIME` 制作动画
+
+回到顶点函数，我们可以使用内置变量 `TIME` 为波浪设置动画。
+
+`TIME` 是一个内置变量，可以从顶点和片段函数访问。
+
+在上一个教程中，我们通过阅读高度图来计算高度。对于本教程，我们将做同样的事情。将 heightmap 代码放入一个名为 `height()` 的函数中。
+
+```glsl
+float height(vec2 position) {
+  return texture(noise, position / 10.0).x; // Scaling factor is based on mesh size (this PlaneMesh is 10×10).
+}
+```
+
+为了在 `height()` 函数中使用 `TIME`，我们需要传入它。
+
+```glsl
+float height(vec2 position, float time) {
+}
+```
+
+并确保在顶点函数内正确传递它。
+
+```glsl
+void vertex() {
+  vec2 pos = VERTEX.xz;
+  float k = height(pos, TIME);
+  VERTEX.y = k;
+}
+```
+
+而不是使用法线贴图来计算法线。我们将在 `vertex()` 函数中手动计算它们。为此，请使用以下代码行。
+
+```glsl
+NORMAL = normalize(vec3(k - height(pos + vec2(0.1, 0.0), TIME), 0.1, k - height(pos + vec2(0.0, 0.1), TIME)));
+```
+
+我们需要手动计算 `NORMAL`，因为在下一节中，我们将使用数学来创建复杂的外观波。
+
+现在，我们将通过用 `TIME` 的余弦偏移 `position` 来使 `height()` 函数稍微复杂一些。
+
+```glsl
+float height(vec2 position, float time) {
+  vec2 offset = 0.01 * cos(position + time);
+  return texture(noise, (position / 10.0) - offset).x;
+}
+```
+
+这导致波浪移动缓慢，但不是以非常自然的方式。下一节将深入探讨使用着色器通过添加更多数学函数来创建更复杂的效果，在这种情况下是逼真的波浪。
+
+### 高级效果：波浪
+
+着色器之所以如此强大，是因为你可以通过使用数学来实现复杂的效果。为了说明这一点，我们将通过修改 `height()` 函数并引入一个名为 `wave()` 的新函数，将我们的 wave 提升到一个新的层次。
+
+`wave()` 有一个参数 `position`，它与 `height()` 中的参数相同。
+
+我们将在 `height()` 中多次调用 `wave()`，以伪造波浪的外观。
+
+```glsl
+float wave(vec2 position){
+  position += texture(noise, position / 10.0).x * 2.0 - 1.0;
+  vec2 wv = 1.0 - abs(sin(position));
+  return pow(1.0 - pow(wv.x * wv.y, 0.65), 4.0);
+}
+```
+
+起初，这看起来很复杂。所以，让我们一行一行地浏览一下。
+
+```glsl
+position += texture(noise, position / 10.0).x * 2.0 - 1.0;
+```
+
+通过 `noise` 纹理偏移位置。这将使波浪弯曲，因此它们不会是与网格完全对齐的直线。
+
+```glsl
+vec2 wv = 1.0 - abs(sin(position));
+```
+
+使用 `sin()` 和 `position` 定义一个波浪形函数。通常 `sin()` 波是非常圆的。我们使用 `abs()` 进行绝对化，以给它们一个尖锐的脊，并将它们约束在 0-1 的范围内。然后我们从 `1.0` 中减去它，把峰值放在顶部。
+
+```glsl
+return pow(1.0 - pow(wv.x * wv.y, 0.65), 4.0);
+```
+
+将 x 方向波乘以 y 方向波，并将其提高到某个功率以锐化峰值。然后从 `1.0` 中减去该值，使脊变为峰值，并将其提高到使脊变尖的幂。
+
+我们现在可以用 `wave()` 替换 `height()` 函数的内容。
+
+```glsl
+float height(vec2 position, float time) {
+  float h = wave(position);
+  return h;
+}
+```
+
+使用此方法，您可以获得：
+
+![../../../_images/wave1.png](https://docs.godotengine.org/en/stable/_images/wave1.png)
+
+正弦波的形状太明显了。所以，让我们把波浪分散一点。我们通过缩放 `position` 来做到这一点。
+
+```glsl
+float height(vec2 position, float time) {
+  float h = wave(position * 0.4);
+  return h;
+}
+```
+
+现在看起来好多了。
+
+![../../../_images/wave2.png](https://docs.godotengine.org/en/stable/_images/wave2.png)
+
+如果我们以不同的频率和振幅将多个波叠加在一起，我们可以做得更好。这意味着我们将缩放每个波的位置，使波变薄或变宽（频率）。我们将把波的输出相乘，使其更短或更高（振幅)。
+
+以下是一个示例，说明如何对四个波进行分层，以获得更美观的波。
+
+```glsl
+float height(vec2 position, float time) {
+  float d = wave((position + time) * 0.4) * 0.3;
+  d += wave((position - time) * 0.3) * 0.3;
+  d += wave((position + time) * 0.5) * 0.2;
+  d += wave((position - time) * 0.6) * 0.2;
+  return d;
+}
+```
+
+请注意，我们将时间加到两个上，然后从另外两个中减去。这使得波浪向不同的方向移动，从而产生复杂的效果。还要注意，振幅（结果乘以的数字）加起来都是 `1.0`。这将使波保持在 0-1 范围内。
+
+有了这段代码，你最终会得到看起来更复杂的波浪，你所要做的就是添加一些数学运算！
+
+![../../../_images/wave3.png](https://docs.godotengine.org/en/stable/_images/wave3.png)
+
+有关空间着色器的更多信息，请阅读“[着色语言](https://docs.godotengine.org/en/stable/tutorials/shaders/shader_reference/shading_language.html#doc-shading-language)”文档和“[空间着色器](https://docs.godotengine.org/en/stable/tutorials/shaders/shader_reference/spatial_shader.html#doc-spatial-shader)”文档。还要查看[着色部分](https://docs.godotengine.org/en/stable/tutorials/shaders/index.html#toc-learn-features-shading)和[三维](https://docs.godotengine.org/en/stable/tutorials/3d/index.html#toc-learn-features-3d)部分中的更高级教程。
+
+### 用户贡献的笔记
+
+在提交评论之前，请阅读[用户贡献笔记政策](https://github.com/godotengine/godot-docs-user-notes/discussions/1)。
+
+**4 个评论** · 8 个回复
+
+
+
+[ChrisDWhitehead](https://github.com/ChrisDWhitehead) [Aug 29, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/95#discussioncomment-10480523)
+
+我一直在尝试遵循本教程，但我得到的结果与图片所示完全不同。如果最后有一个完整的代码列表，就像 2D Shader 教程中那样，那将非常有帮助。我怀疑正在运行的解释中可能缺少代码。
+
+​	[Catley94](https://github.com/Catley94) [Aug 29, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/95#discussioncomment-10488861)
+
+​	我在下面发布了我的代码，它是有效的，我不得不稍微调整一下，我用水的“平静”进行了修改，不过欢迎你忽略这一点，用 10.0 这个神奇的数字替换变量。
+
+​	[mrlem](https://github.com/mrlem) [Sep 7, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/95#discussioncomment-10576138)
+
+​	我发现这两个教程之间缺少的东西：
+
+- 您应该将平面从 2x2（第一个教程）调整为 10x10（第二个教程中假设）
+- 您应该使噪波纹理无缝，以避免在纹理边缘出现周期性的“波峰”
+
+​	[Catley94](https://github.com/Catley94) [Sep 7, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/95#discussioncomment-10576152)
+
+​	对！虽然不知道第二个，但稍后会看看。谢谢！
+
+
+
+[Catley94](https://github.com/Catley94) [Aug 29, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/95#discussioncomment-10488237)
+
+我也在努力解决这个问题——到目前为止，我注意到了两件事，当我从第 1 部分=>第 2 部分开始时，我的峰值比第 2 部分的第一张图片更清晰，尽管我忽略了这一点。
+
+但我真正陷入困境的是 TIME，你第一次提到顶点函数是：
+
+```glsl
+void vertex() {
+  vec2 pos = VERTEX.xz;
+  float k = height(pos, TIME);
+  VERTEX.y = k;
+}
+```
+
+然而，在我做出任何改变之前，我的样子是：
+
+```glsl
+void vertex() {
+	tex_position = VERTEX.xz / 2.0 + 0.5;
+	float height = texture(noise, tex_position).x;
+	VERTEX.y += height * height_scale;
+}
+```
+
+我现在正在弄清楚这一点，但我觉得过去和现在之间存在脱节。（尽管这也可能是我目前陷得太深了）。
+将继续并在最后发布我的代码，看看其他人是否也得到了同样的代码：-）
+
+​	[Calinou](https://github.com/Calinou) [Aug 31, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/95#discussioncomment-10504759)
+
+​	PS：代码块应该使用这样的三重回溯（带有可选的语言名称用于语法突出显示）：
+
+````markdown
+```glsl
+code here
+```
+````
+
+​	我相应地编辑了你的帖子，但以后记得这样做🙂
+
+​	[Catley94](https://github.com/Catley94) [Aug 31, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/95#discussioncomment-10506645)
+
+​	谢谢你！😊
+
+
+
+[Catley94](https://github.com/Catley94) [Aug 29, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/95#discussioncomment-10488853)
+
+这是我的最后一段代码，尽管我对其进行了轻微的修改以“驯服”水域，因为我在教程之后的实现非常不稳定和快速。
+
+冷静变量从 1 到 100，但我会坚持在 20 到 60 之间（这个数字取决于你用 `d += wave((position - time) * 0.6) * 0.2; //Or similar` 创建的波的数量）。
+
+下面的代码很好地产生了一段相对平静的水，多层水向不同方向移动。
+
+```glsl
+shader_type spatial;
+render_mode specular_toon;
+
+uniform float height_scale = 0.5;
+uniform sampler2D noise;
+uniform sampler2D normalmap;
+uniform float calmness = 50.0; // 1 - 100
+uniform int num_of_additional_waves_in_x_direction = 2; // May be labeled as the wrong direction
+uniform int num_of_additional_waves_in_z_direction = 2; // May be labeled as the wrong direction
+
+varying vec2 tex_position;
+
+float wave(vec2 position) {
+	position += texture(noise, position / calmness).x * 2.0 - 1.0;
+	vec2 wv = 1.0 - abs(sin(position));
+	return pow(1.0 - pow(wv.x * wv.y, 0.65), 4.0);
+}
+
+float height(vec2 position, float time) {
+	// Change your MeshInstance3D PlaneMesh to 10 x 10
+
+	float d = wave((position + time) * 0.4) * 0.3;
+	
+	// Give the user control over how many waves and in what direction
+	
+	//for(int i = 0; i < num_of_additional_waves_in_x_direction; i++) {
+		////Randomise magic number 0.3 and 0.3 to a range beteen 0.1 and 1
+		//d += wave((position + time) * 0.3) * 0.3;
+	//}
+	//
+	//for(int i = 0; i < num_of_additional_waves_in_z_direction; i++) {
+		////Randomise magic number 0.3 and 0.3 to a range beteen 0.1 and 1
+		//d += wave((position - time) * 0.3) * 0.3;
+	//}
+	
+	// Statically create the waves
+	
+	d += wave((position - time) * 0.3) * 0.3;
+	d += wave((position + time) * 0.5) * 0.2;
+	d += wave((position - time) * 0.6) * 0.2;
+	return d;
+}
+
+
+void vertex() {
+	// Called for every vertex the material is visible on.	
+
+	//Do I change the below to height(tex_position, TIME); ?
+	// Version - 1
+	//tex_position = VERTEX.xz / 5.0 + 0.5;
+	//float _height = texture(noise, tex_position).x;
+	
+	//VERTEX.y += _height * height_scale;
+	
+	
+	vec2 pos = VERTEX.xz;
+	float k = height(pos, TIME);
+
+	// Version - 2
+  	VERTEX.y = k;
+	
+	NORMAL = normalize(vec3(k - height(pos + vec2(0.1, 0.0), TIME), 0.1, k - height(pos + vec2(0.0, 0.1), TIME)));
+	
+	
+}
+
+void fragment() {
+	// Called for every pixel the material is visible on.
+	
+	float fresnel = sqrt(1.0 - dot(NORMAL, VIEW));
+	NORMAL_MAP = texture(normalmap, tex_position).xyz;
+	
+	
+	RIM = 0.2;
+	METALLIC = 0.0;
+	ROUGHNESS = 0.01 * (1.0 - fresnel);
+	ALBEDO = vec3(0.01, 0.03, 0.05) +  + (0.1 * fresnel);
+	
+}
+
+//void light() {
+	// Called for every pixel for every light affecting the material.
+	// Uncomment to replace the default light processing function with this one.
+//}```
+```
+
+​	[mrlem](https://github.com/mrlem) [Sep 7, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/95#discussioncomment-10576149)
+
+​	我想说，在你的代码中，你应该删除 `fragment()` 中的 `NORMAL_MAP`，因为法线现在是在 `vertex()` 中计算的
+
+​	[Catley94](https://github.com/Catley94) [Sep 7, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/95#discussioncomment-10576160)
+
+​	谢谢你，我还在学习着色器，还以为它们是不同的东西哈哈。目前我正在通过 TheBookofShaders 工作，希望这能有所帮助：）
+
+
+
+[Vosburgh](https://github.com/Vosburgh) [Nov 20, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/95#discussioncomment-11322878)
+
+本教程需要重新复习，着色器已经足够难了。为什么教程要跳过步骤，把猜测留给作者做什么？
+
+至少给我们留下一些可以相互参照的东西。
+
+​	[Calinou](https://github.com/Calinou) [Nov 23, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/95#discussioncomment-11354040)
+
+​	这在 [godotengine/godot-docs#8077](https://github.com/godotengine/godot-docs/issues/8077) 中进行了跟踪。
 
 
 
