@@ -122,7 +122,383 @@ await RenderingServer.Singleton.ToSignal(RenderingServer.SignalName.FramePostDra
 // You can get the image after this.
 ```
 
+### 视口容器
 
+如果 [SubViewport](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport) 是 [SubViewportContainer](https://docs.godotengine.org/en/stable/classes/class_subviewportcontainer.html#class-subviewportcontainer)的子级，则它将处于活动状态并显示其中的任何内容。布局如下：
+
+![../../_images/container.webp](https://docs.godotengine.org/en/stable/_images/container.webp)
+
+如果在 SubViewportContainer 中将 [Stretch](https://docs.godotengine.org/en/stable/classes/class_subviewportcontainer.html#class-subviewportcontainer-property-stretch) 设置为 `true`，则 [SubViewport](https://docs.godotengine.org/en/stable/classes/class_subviewport.html#class-subviewport) 将完全覆盖其父 [SubViewportContainer](https://docs.godotengine.org/en/stable/classes/class_subviewportcontainer.html#class-subviewportcontainer) 的区域。
+
+> **注：**
+>
+> [SubViewportContainer](https://docs.godotengine.org/en/stable/classes/class_subviewportcontainer.html#class-subviewportcontainer) 的大小不能小于 [SubViewport](https://docs.godotengine.org/en/stable/classes/class_subviewport.html#class-subviewport) 的大小。
+
+### 渲染
+
+由于 [Viewport](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport) 是进入另一个渲染曲面的入口，它暴露了一些可能与项目设置不同的渲染属性。您可以选择为每个视口使用不同级别的 [MSAA](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport-property-msaa-2d)。默认行为为 `Disabled`。
+
+如果知道 [Viewport](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport) 仅用于二维，则可以[禁用三维](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport-property-disable-3d)。然后，Godot 将限制 Viewport 的绘制方式。与启用 3D 相比，禁用 3D 稍微快一些，占用的内存更少。如果您的视口没有渲染任何 3D 内容，最好禁用 3D。
+
+> **注：**
+>
+> 如果需要在视口中渲染 3D 阴影，请确保将视口的 [positional_shadow_atlas_size](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport-property-positional-shadow-atlas-size) 属性设置为大于 `0` 的值。否则，将不会渲染阴影。默认情况下，在桌面平台上，等效项目设置设置为 `4096`，在移动平台上设置为 `2048`。
+
+Godot 还提供了一种使用 [Debug Draw](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport-property-debug-draw) 自定义如何在 [Viewports](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport) 内绘制所有内容的方法。Debug Draw允许您指定一种模式，该模式决定了视口如何显示其内部绘制的内容。默认情况下，Debug Draw 处于 `Disabled` 状态。其他一些选项包括 `Unshaded`、`Overdraw` 和 `Wireframe`。有关完整列表，请参阅[视口文档](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport-property-debug-draw)。
+
+- **调试绘制 = 禁用**（默认）：场景正常绘制。
+
+  ![../../_images/default_scene.webp](https://docs.godotengine.org/en/stable/_images/default_scene.webp)
+
+- **Debug Draw = Unshaded**：Unshaded 在不使用照明信息的情况下绘制场景，这样所有对象都会以其反照率颜色显示为单色。
+
+  ![../../_images/unshaded.webp](https://docs.godotengine.org/en/stable/_images/unshaded.webp)
+
+- **Debug Draw = Overdraw**：Overdraw 使用添加混合绘制半透明网格，以便您可以看到网格是如何重叠的。
+
+  ![../../_images/overdraw.webp](https://docs.godotengine.org/en/stable/_images/overdraw.webp)
+
+- **调试绘制 = 线框**：线框仅使用网格中三角形的边绘制场景。
+
+  ![../../_images/wireframe.webp](https://docs.godotengine.org/en/stable/_images/wireframe.webp)
+
+> **注：**
+>
+> 使用兼容性呈现方法时，当前**不**支持调试绘图模式。它们将显示为常规绘图模式。
+
+### 渲染目标
+
+渲染到 [SubViewport](https://docs.godotengine.org/en/stable/classes/class_subviewport.html#class-subviewport) 时，场景编辑器中不会显示其中的任何内容。要显示内容，您必须在某处绘制子视口的 [ViewportTexture](https://docs.godotengine.org/en/stable/classes/class_viewporttexture.html#class-viewporttexture)。这可以通过代码请求（例如）：
+
+```gdscript
+# This gives us the ViewportTexture.
+var tex = viewport.get_texture()
+sprite.texture = tex
+```
+
+```c#
+// This gives us the ViewportTexture.
+var tex = viewport.GetTexture();
+sprite.Texture = tex;
+```
+
+或者可以在编辑器中选择“新建 ViewportTexture”进行分配
+
+![../../_images/texturemenu.webp](https://docs.godotengine.org/en/stable/_images/texturemenu.webp)
+
+然后选择要使用的视口。
+
+![../../_images/texturepath.webp](https://docs.godotengine.org/en/stable/_images/texturepath.webp)
+
+每一帧，[Viewport](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport) 的纹理都会用默认的透明颜色清除（如果“[透明 BG](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport-property-transparent-bg)”设置为 `true`，则使用透明颜色)。这可以通过将“[清除模式](https://docs.godotengine.org/en/stable/classes/class_subviewport.html#class-subviewport-property-render-target-clear-mode)”设置为 `Never` 或 `NextFrame` 来更改。顾名思义，Never 意味着纹理永远不会被清除，而下一帧将清除下一帧上的纹理，然后将其设置为 Never。
+
+默认情况下，当子视口的 [ViewportTexture](https://docs.godotengine.org/en/stable/classes/class_viewporttexture.html#class-viewporttexture) 在帧中绘制时，会重新渲染 [SubViewport](https://docs.godotengine.org/en/stable/classes/class_subviewport.html#class-subviewport)。如果可见，它将被渲染，否则将不会。通过将“[更新模式](https://docs.godotengine.org/en/stable/classes/class_subviewport.html#class-subviewport-property-render-target-update-mode)”设置为 `Never`、`Once`、`Always` 或 `When Parent Visible`，可以更改此行为。Never 和 Always 永远不会或总是分别重新渲染。Once 将重新渲染下一帧，然后更改为 Never。这可用于手动更新视口。这种灵活性允许用户渲染一次图像，然后使用纹理，而不会产生渲染每一帧的成本。
+
+> **注：**
+>
+> 请务必查看视口演示。它们位于演示存档的视口文件夹中，或位于 https://github.com/godotengine/godot-demo-projects/tree/master/viewport.
+
+
+
+## 多分辨率
+
+https://docs.godotengine.org/en/stable/tutorials/rendering/multiple_resolutions.html#multiple-resolutions
+
+### 多分辨率的问题
+
+开发人员经常很难理解如何在他们的游戏中最好地支持多种分辨率。对于桌面和主机游戏，这或多或少是简单的，因为大多数屏幕宽高比是 16:9，分辨率是标准的（720p、1080p、1440p、4K 等）。
+
+对于手机游戏来说，起初很容易。多年来，iPhone 和 iPad 使用相同的分辨率。当 *Retina* 被实现时，他们只是将像素密度提高了一倍；大多数开发商不得不以默认和双重分辨率提供资产。
+
+如今，情况已不再如此，因为有很多不同的屏幕尺寸、密度和纵横比。非传统尺寸也越来越受欢迎，例如超宽显示器。
+
+对于 3D 游戏，不需要支持多种分辨率（从美学角度来看）。3D 几何体将仅根据视场填充屏幕，而忽略纵横比。在这种情况下，人们可能希望支持这一点的主要原因是*性能*原因（以较低的分辨率运行以增加每秒帧数）。
+
+对于 2D 和游戏 UI 来说，这是另一回事，因为艺术需要在 Photoshop、GIMP 或 Krita 等软件中使用特定的像素大小来创建。
+
+由于布局、纵横比、分辨率和像素密度可能会发生很大变化，因此不再可能为每个特定屏幕设计 UI。必须使用另一种方法。
+
+### 一个尺寸适配所有
+
+最常见的方法是使用单个基础分辨率，然后将其与其他所有内容相匹配。这个分辨率是大多数玩家玩游戏的方式（考虑到他们的硬件）。对于移动设备，谷歌在网上有有用的[统计数据](https://developer.android.com/about/dashboards)，对于台式机，Steam [也有](https://store.steampowered.com/hwsurvey/)。
+
+例如，Steam 显示最常见的*主显示器分辨率*是 1920×1080，因此一个明智的方法是开发一款适用于此分辨率的游戏，然后处理不同尺寸和纵横比的缩放。
+
+Godot 提供了几个有用的工具来轻松实现这一点。
+
+> **另请参见：**
+>
+> 您可以使用[多分辨率和纵横比演示项目](https://github.com/godotengine/godot-demo-projects/tree/master/gui/multiple_resolutions)看到 Godot 对多分辨率的支持是如何工作的。
+
+### 基础尺寸
+
+可以在**“显示”→“窗口”**下的“项目设置”中指定窗口的基本大小。
+
+![../../_images/screenres.webp](https://docs.godotengine.org/en/stable/_images/screenres.webp)
+
+然而，它的作用并不完全明显；引擎将不会尝试将监视器切换到此分辨率。相反，将此设置视为“设计大小”，即您在编辑器中使用的区域的大小。此设置直接对应于 2D 编辑器中蓝色矩形的大小。
+
+通常需要支持屏幕和窗口尺寸与此基本尺寸不同的设备。Godot 提供了许多方法来控制视口如何调整大小和拉伸到不同的屏幕大小。
+
+> **注：**
+>
+> 在此页面上，*窗口*是指系统分配给游戏的屏幕区域，而*视口*是指游戏控制以填充此屏幕区域的根对象（可从 `get_tree().root` 访问）。此视口是 [Window](https://docs.godotengine.org/en/stable/classes/class_window.html#class-window) 实例。回想一下，在[介绍](https://docs.godotengine.org/en/stable/tutorials/rendering/viewports.html#doc-viewports)中，*所有*窗口对象都是视口。
+
+要在运行时从脚本配置拉伸基大小，请使用 `get_tree().root.content_scale_size` 属性（请参阅 [Window.content_scale_size](https://docs.godotengine.org/en/stable/classes/class_window.html#class-window-property-content-scale-size)）。更改此值可以间接更改二维元素的大小。但是，为了提供用户可访问的缩放选项，建议使用“[拉伸比例](https://docs.godotengine.org/en/stable/tutorials/rendering/multiple_resolutions.html#doc-multiple-resolutions-stretch-scale)”，因为它更容易调整。
+
+> **注：**
+>
+> Godot 采用现代方法处理多种分辨率。引擎永远不会自行改变显示器的分辨率。虽然更改显示器的分辨率是最有效的方法，但它也是最不可靠的方法，因为如果游戏崩溃，它可能会使显示器停留在低分辨率上。这在 macOS 或 Linux 上尤其常见，因为它们不能像 Windows 那样处理分辨率更改。
+>
+> 更改显示器的分辨率也会消除游戏开发人员对过滤和纵横比拉伸的任何控制，这对于确保像素艺术游戏的正确显示非常重要。
+>
+> 除此之外，更改显示器的分辨率会使 alt-tab 在游戏中的切换速度变慢，因为每次切换时显示器都必须更改分辨率。
+
+### 调整大小
+
+有几种类型的设备，几种类型的屏幕，它们又具有不同的像素密度和分辨率。处理所有这些可能是一项艰巨的工作，因此 Godot 试图让开发人员的生活更轻松一些。[Viewport](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport) 节点有几个函数来处理大小调整，场景树的根节点始终是一个视口（加载的场景被实例化为它的子节点，并且始终可以通过调用 `get_tree().root` 或 `get_node("/root")` 来访问它）。
+
+无论如何，虽然更改根视口参数可能是处理问题的最灵活的方法，但这可能需要大量的工作、代码和猜测，因此 Godot 在项目设置中提供了一组参数来处理多种分辨率。
+
+### 拉伸设置
+
+拉伸设置位于项目设置中，提供了几个选项：
+
+![../../_images/stretchsettings.webp](https://docs.godotengine.org/en/stable/_images/stretchsettings.webp)
+
+#### 拉伸模式
+
+“**拉伸模式**”设置定义了如何拉伸基础尺寸以适应窗口或屏幕的分辨率。下面的动画使用仅 16×9 像素的“基本尺寸”来演示不同拉伸模式的效果。一个同样大小为 16×9 像素的精灵图覆盖了整个视口，并在其顶部添加了一条对角线 [Line2D](https://docs.godotengine.org/en/stable/classes/class_line2d.html#class-line2d)：
+
+![../../_images/stretch_demo_scene.png](https://docs.godotengine.org/en/stable/_images/stretch_demo_scene.png)
+
+- **拉伸模式 = 禁用**（默认)：不进行拉伸。场景中的一个单位对应于屏幕上的一个像素。在此模式下，“**拉伸纵横比**”设置无效。
+
+  ![../../_images/stretch_disabled_expand.gif](https://docs.godotengine.org/en/stable/_images/stretch_disabled_expand.gif)
+
+- **拉伸模式 = 画布项目**：在此模式下，在项目设置中以宽度和高度指定的基础尺寸被拉伸以覆盖整个屏幕（考虑到“**拉伸纵横比**”设置）。这意味着所有内容都直接以目标分辨率呈现。3D 不受影响，而在 2D 中，子画面像素和屏幕像素之间不再有 1:1 的对应关系，这可能会导致缩放伪影。
+
+  ![../../_images/stretch_2d_expand.gif](https://docs.godotengine.org/en/stable/_images/stretch_2d_expand.gif)
+
+- **拉伸模式 = 视口**：视口缩放意味着根 [Viewport](https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport) 的大小被精确地设置为在“项目设置”的“**显示**”部分中指定的基准大小。场景首先渲染到此视口。最后，缩放此视口以适应屏幕（考虑到“**拉伸纵横比**”设置）。
+
+  ![../../_images/stretch_viewport_expand.gif](https://docs.godotengine.org/en/stable/_images/stretch_viewport_expand.gif)
+
+要在运行时从脚本配置拉伸模式，请使用 `get_tree().root.content_scale_mode` 属性（请参阅 [Window.content_scale_mode](https://docs.godotengine.org/en/stable/classes/class_window.html#class-window-property-content-scale-mode) 和 [ContentScaleMode](https://docs.godotengine.org/en/stable/classes/class_window.html#enum-window-contentscalemode) 枚举）。
+
+#### 拉伸比例
+
+第二个设置是拉伸比例。请注意，这仅在“**拉伸模式**”设置为“**禁用**”以外的其他值时生效。
+
+在下面的动画中，您会注意到灰色和黑色区域。黑色区域是由引擎添加的，不能被绘制。灰色区域是场景的一部分，可以绘制到。灰色区域对应于您在 2D 编辑器中看到的蓝色框外的区域。
+
+- **拉伸纵横比 = 忽略**：拉伸屏幕时忽略纵横比。这意味着原始分辨率将被拉伸以完全填充屏幕，即使它更宽或更窄。这可能会导致拉伸不均匀：物体看起来比设计的更宽或更高。
+
+  ![../../_images/stretch_viewport_ignore.gif](https://docs.godotengine.org/en/stable/_images/stretch_viewport_ignore.gif)
+
+- **拉伸纵横比 = 保持**：拉伸屏幕时保持纵横比。这意味着，无论屏幕分辨率如何，视口都将保持其原始大小，并且黑色条将添加到屏幕的顶部/底部（“letterboxing”）或侧面（“pillarboxing”）。
+
+  如果你提前知道目标设备的宽高比，或者你不想处理不同的宽高比的话，这是一个不错的选择。
+
+  ![../../_images/stretch_viewport_keep.gif](https://docs.godotengine.org/en/stable/_images/stretch_viewport_keep.gif)
+
+- **拉伸纵横比 = 保持宽度**：拉伸屏幕时保持纵横比。如果屏幕比基本尺寸宽，则会在左右两侧添加黑色条（pillarboxing）。但是，如果屏幕高于基本分辨率，视口将在垂直方向上生长（底部将看到更多内容）。你也可以把这看作是“垂直扩展”。
+
+  这通常是创建可缩放的 GUI 或 HUD 的最佳选择，因此一些控件可以锚定在底部（[大小和锚定](https://docs.godotengine.org/en/stable/tutorials/ui/size_and_anchors.html#doc-size-and-anchors)）。
+
+  ![../../_images/stretch_viewport_keep_width.gif](https://docs.godotengine.org/en/stable/_images/stretch_viewport_keep_width.gif)
+
+- **拉伸纵横比 = 保持高度**：拉伸屏幕时保持纵横比。如果屏幕高于基本尺寸，则在顶部和底部添加黑色条（letterboxing）。但是，如果屏幕比基本分辨率宽，视口将在水平方向上增长（右侧将看到更多内容）。你也可以把这看作是“横向扩展”。
+
+  这通常是水平滚动的2D游戏（如跑步者或平台游戏）的最佳选择。
+
+  ![../../_images/stretch_viewport_keep_height.gif](https://docs.godotengine.org/en/stable/_images/stretch_viewport_keep_height.gif)
+
+- **拉伸纵横比 = 扩展**：拉伸屏幕时保持纵横比，但既不保持底部宽度也不保持高度。根据屏幕纵横比，视口将在水平方向上（如果屏幕比基本尺寸宽）或垂直方向（如果屏幕高于原始尺寸）更大。
+
+  ![../../_images/stretch_viewport_expand.gif](https://docs.godotengine.org/en/stable/_images/stretch_viewport_expand.gif)
+
+> **小贴士：**
+>
+> 要使用类似的自动确定的比例因子支持纵向和横向模式，请将项目的基本分辨率设置为正方形（1:1 纵横比）而不是矩形。例如，如果您希望将 1280×720 设计为基本分辨率，但希望同时支持纵向和横向模式，请在“项目设置”中使用 720×720 作为项目的基本窗口大小。
+>
+> 要允许用户在运行时选择他们喜欢的屏幕方向，请记住将**“显示”>“窗口”>“手持设备”>“方向”**设置为 `sensor`。
+
+要在运行时从脚本配置拉伸特性，请使用 `get_tree().root.content_scale_aspect` 属性（请参阅 [Window.content_scale_aspect](https://docs.godotengine.org/en/stable/classes/class_window.html#class-window-property-content-scale-aspect) 和 [ContentScaleAspect](https://docs.godotengine.org/en/stable/classes/class_window.html#enum-window-contentscaleaspect) 枚举）。
+
+#### 拉伸缩放
+
+**“缩放（Scale）”**设置允许您在上述“**拉伸**”选项已经提供的基础上添加额外的缩放因子。默认值 `1.0` 表示不会发生额外的缩放。
+
+例如，如果将“**缩放**”设置为 `2.0`，并将“**拉伸模式**”设置为“**禁用**”，则场景中的每个单位将对应于屏幕上的 2×2 像素。这是为非游戏应用程序提供缩放选项的好方法。
+
+如果“**拉伸模式**”设置为 **canvas_items**，则二维元素将相对于基本窗口大小进行缩放，然后乘以“**缩放**”设置。这可以暴露给玩家，让他们根据自己的喜好调整自动确定的比例，以获得更好的可访问性。
+
+如果“**拉伸模式**”设置为**视口**，则视口的分辨率除以“**缩放**”。这会使像素看起来更大，并降低渲染分辨率（在给定的窗口大小下），从而提高性能。
+
+要在运行时从脚本配置拉伸比例，请使用 `get_tree().root.content_scale_factor` 属性（请参阅 [Window.content_scale_factor](https://docs.godotengine.org/en/stable/classes/class_window.html#class-window-property-content-scale-factor)）。
+
+#### 拉伸缩放模式
+
+从 Godot 4.2 开始，**拉伸缩放模式**设置允许您将自动确定的缩放因子（以及手动指定的**拉伸缩放**设置）约束为整数值。默认情况下，此设置设置为 `fractional`，允许应用任何缩放因子（包括 `2.5` 等分数值）。当设置为 `integer` 时，该值将四舍五入到最接近的整数。例如，它将四舍五入到 `2.0`，而不是使用 `2.5` 的缩放因子。这有助于在显示像素艺术时防止失真。
+
+将使用 `viewport` 拉伸模式显示的此像素艺术与设置为 `fractional` 的拉伸比例模式进行比较：
+
+![Fractional scaling example (incorrect pixel art appearance)](https://docs.godotengine.org/en/stable/_images/multiple_resolutions_pixel_art_fractional_scaling.webp)
+
+*棋盘看起来并不“均匀”。徽标和文本中的线宽差异很大。*
+
+此像素艺术也以 `viewport` 拉伸模式显示，但这次拉伸比例模式设置为 `integer`：
+
+![Integer scaling example (correct pixel art appearance)](https://docs.godotengine.org/en/stable/_images/multiple_resolutions_pixel_art_integer_scaling.webp)
+
+*棋盘看起来非常均匀。线宽一致。*
+
+例如，如果视口基准大小为 640×360，窗口大小为 1366×768：
+
+- 使用 `fractional` 时，视口以 1366×768 的分辨率显示（缩放因子约为 2.133×）。整个窗口空间都被使用了。视口中的每个像素对应于显示区域中的 2.133×2.133 像素。然而，由于显示器只能显示“整个”像素，这将导致像素缩放不均匀，从而导致像素艺术的外观不正确。
+- 使用 `integer` 时，视口以 1280×720 的分辨率显示（缩放因子为 2×）。剩余的空间在所有四个侧面都填充了黑色条，因此视口中的每个像素对应于显示区域中的 2×2 像素。
+
+此设置对任何拉伸模式都有效。但是，当使用 `disabled` 的拉伸模式时，它只会通过将其四舍五入到最接近的整数值来影响“**拉伸缩放**”设置。这可用于具有像素艺术 UI 的 3D 游戏，这样 3D 视口中的可见区域就不会减小大小（当使用 `canvas_items` 或具有 `integer` 缩放模式的 `viewport` 拉伸模式时会发生这种情况）。
+
+> **小贴士：**
+>
+> 游戏应使用**独占全屏**窗口模式，而不是**全屏**模式，全屏模式旨在防止 Windows 自动将窗口视为独占全屏。
+>
+> **全屏**是指希望使用每像素透明度而不会被操作系统禁用的 GUI 应用程序使用的。它通过在屏幕底部留下一条 1 像素的线来实现这一点。相比之下，**Exclusive Fullscreen** 使用实际屏幕大小，并允许 Windows 减少全屏游戏的抖动和输入延迟。
+>
+> 当使用整数缩放时，这一点尤为重要，因为**全屏**模式下的 1 像素高度降低可能会导致整数缩放使用比预期更小的缩放因子。
+
+### 常见用例场景
+
+建议使用以下设置来很好地支持多种分辨率和宽高比。
+
+#### 桌面游戏
+
+**非像素艺术**：
+
+- 将基本窗口宽度设置为 `1920`，窗口高度设置为 `1080`。如果显示尺寸小于 1920×1080，请将“**窗口宽度替代**”和“**窗口高度替代**”设置为较低的值，以便在项目开始时使窗口变小。
+- 或者，如果您主要针对高端设备，请将基本窗口宽度设置为 `3840`，窗口高度设置为 `2160`。这允许您提供更高分辨率的 2D 资源，以更高的内存使用率和文件大小为代价，实现更清晰的视觉效果。请注意，这将使低分辨率设备上的非 mipmap 纹理具有颗粒感，因此请确保遵循“[减少下采样时的混叠](https://docs.godotengine.org/en/stable/tutorials/rendering/multiple_resolutions.html#doc-multiple-resolutions-reducing-aliasing-on-downsampling)”中描述的说明。
+- 将拉伸模式设置为 `canvas_items`。
+- 将拉伸方面设置为 `expand`。这允许支持多种宽高比，并更好地利用高智能手机显示屏（如 18:9 或 19:9 宽高比）。
+- 使用**布局**菜单配置控制节点的锚点以捕捉到正确的角。
+
+**像素艺术**：
+
+- 将基本窗口大小设置为要使用的视口大小。大多数像素艺术游戏使用 256×224 到 640×480 之间的视口大小。640×360 是一个很好的基线，因为使用整数缩放时，它可以缩放到 1280×720、1920×1080、2560×1440 和 3840×2160，没有任何黑条。更高的视口尺寸将需要使用更高分辨率的艺术品，除非您打算在给定时间显示更多的游戏世界。
+- 将拉伸模式设置为 `viewport`。
+- 将拉伸纵横比设置为 `keep`，以强制执行单一纵横比（带黑条）。作为替代方案，您可以将拉伸纵横比设置为 `expand` 以支持多种纵横比。
+- 如果使用 `expand` 拉伸比例，请使用“**布局**”菜单配置控制节点的锚点以捕捉到正确的角。
+- 将拉伸比例模式设置为 `integer`。这可以防止出现不均匀的像素缩放，从而使像素艺术无法按预期显示。
+
+> **注：**
+>
+> `viewport` 拉伸模式提供低分辨率渲染，然后将其拉伸到最终窗口大小。如果您同意精灵图能够在“亚像素”位置移动或旋转，或者希望拥有高分辨率的 3D 视口，则应使用 `canvas_items` 拉伸模式而不是 `viewport` 拉伸模式。
+
+#### 横向模式下的手机游戏
+
+Godot 默认配置为使用横向模式。这意味着您不需要更改显示方向项目设置。
+
+- 将基本窗口宽度设置为 `1280`，窗口高度设置为 `720`。
+- 或者，如果您主要针对高端设备，请将基本窗口宽度设置为 `1920`，窗口高度设置为 `1080`。这允许您提供更高分辨率的 2D 资源，以更高的内存使用率和文件大小为代价，实现更清晰的视觉效果。许多设备具有更高分辨率的显示器（1440p），但考虑到智能手机显示器的尺寸很小，与 1080p 的差异几乎看不见。请注意，这将使低分辨率设备上的非 mipmap 纹理具有颗粒感，因此请确保遵循“[减少下采样时的混叠](https://docs.godotengine.org/en/stable/tutorials/rendering/multiple_resolutions.html#doc-multiple-resolutions-reducing-aliasing-on-downsampling)”中描述的说明。
+- 将拉伸模式设置为 `canvas_items`。
+- 将拉伸方面设置为 `expand`。这允许支持多种宽高比，并更好地利用高智能手机显示屏（如 18:9 或 19:9 宽高比）。
+- 使用**布局**菜单配置控制节点的锚点以捕捉到正确的角。
+
+> **小贴士：**
+>
+> 为了更好地支持平板电脑和可折叠手机（其显示器的宽高比通常接近 4:3），请考虑使用宽高比为 4:3 的基本分辨率，同时遵循此处的其余说明。例如，您可以将基本窗口宽度设置为 `1280`，将基本窗口高度设置为 `960`。
+
+#### 竖屏模式下的手机游戏
+
+- 将基础窗口宽度设置为 `720`，窗口高度设置为 `1280`。
+- 或者，如果您主要针对高端设备，请将基本窗口宽度设置为 `1080`，窗口高度设置为 `1920`。这允许您提供更高分辨率的 2D 资源，以更高的内存使用率和文件大小为代价，实现更清晰的视觉效果。许多设备具有更高分辨率的显示器（1440p），但考虑到智能手机显示器的尺寸很小，与 1080p 的差异几乎看不见。请注意，这将使低分辨率设备上的非 mipmap 纹理具有颗粒感，因此请确保遵循“[减少下采样时的混叠](https://docs.godotengine.org/en/stable/tutorials/rendering/multiple_resolutions.html#doc-multiple-resolutions-reducing-aliasing-on-downsampling)”中描述的说明。
+- 将“**显示 > 窗口 > 手持设备 > 方向**”设置为 `portrait`。
+- 将拉伸模式设置为 `canvas_items`。
+- 将拉伸方面设置为 `expand`。这允许支持多种宽高比，并更好地利用高智能手机显示屏（如 18:9 或 19:9 宽高比）。
+- 使用**布局**菜单配置控制节点的锚点以捕捉到正确的角。
+
+> **小贴士：**
+>
+> 为了更好地支持平板电脑和可折叠手机（其显示器的宽高比通常接近 4:3），请考虑使用宽高比为 3:4 的基本分辨率，同时遵循此处的其余说明。例如，您可以将基本窗口宽度设置为 `960`，将基本窗口高度设置为 `1280`。
+
+#### 非游戏应用程序
+
+- 将基础窗口的宽度和高度设置为您想要的最小窗口大小。这不是必需的，但这可以确保您在设计 UI 时考虑到小窗口大小。
+- 将拉伸模式保持为默认值，`disabled`。
+- 将拉伸方面保持为默认值，`ignore`（由于拉伸模式 `disabled`，因此不会使用其值）。
+- 您可以通过在脚本的 `_ready()` 函数中调用 `get_window().set_min_size()` 来定义最小窗口大小。这可以防止用户将应用程序的大小调整到低于某个大小，这可能会破坏 UI 布局。
+
+> **注：**
+>
+> Godot 还不支持手动覆盖 2D 比例因子，因此在非游戏应用程序中不可能有 hiDPI 支持。因此，建议在非游戏应用程序中禁用 **Allow Hidpi**，以允许操作系统使用其低DPI回退。
+
+### hiDPI 支持
+
+默认情况下，Godot 项目被操作系统视为支持 DPI。这由**“显示”>“窗口”>“Dpi”>“允许Hidpi”**项目设置控制，应尽可能保持启用状态。禁用 DPI 感知可能会破坏 Windows 上的全屏行为。
+
+由于 Godot 项目是 DPI 感知的，因此在高 DPI 显示器上启动时，它们可能会以非常小的窗口大小显示（与屏幕分辨率成比例）。对于游戏来说，解决这个问题的最常见方法是默认设置为全屏。或者，您可以根据屏幕大小在[自动加载](https://docs.godotengine.org/en/stable/tutorials/scripting/singletons_autoload.html#doc-singletons-autoload)的 `_ready()` 函数中设置窗口大小。
+
+为确保 2D 元素在 hiDPI 显示器上不会显得太小：
+
+- 对于游戏，使用 `canvas_items` 或 `viewport` 拉伸模式，以便根据当前窗口大小自动调整 2D 元素的大小。
+- 对于非游戏应用程序，使用 `disabled` 的拉伸模式，并在[自动加载](https://docs.godotengine.org/en/stable/tutorials/scripting/singletons_autoload.html#doc-singletons-autoload)的 `_ready()` 函数中将拉伸比例设置为与显示比例因子对应的值。显示比例因子在操作系统的设置中设置，可以使用 [screen_get_scale](https://docs.godotengine.org/en/stable/classes/class_displayserver.html#class-displayserver-method-screen-get-scale) 查询。此方法目前仅在 macOS 上实现。在其他操作系统上，您需要实现一种方法，根据屏幕分辨率猜测显示比例因子（如果需要，可以设置为让用户覆盖）。这是 Godot 编辑器目前使用的方法。
+
+“**允许 Hidpi**”设置仅在 Windows 和 macOS 上有效。它在所有其他平台上都被忽略了。
+
+> **注：**
+>
+> Godot 编辑器本身始终标记为 DPI 感知。只有在“项目设置”中启用了“**允许 Hidpi**”时，从编辑器运行项目才会感知 DPI。
+
+### 减少下采样时的混叠
+
+如果游戏具有非常高的基本分辨率（例如 3840×2160），则在降采样到相当低的值（如 1280×720）时可能会出现混叠。
+
+为了解决这个问题，您可以在所有 2D 纹理上[启用 mipmaps](https://docs.godotengine.org/en/stable/tutorials/assets_pipeline/importing_images.html#doc-importing-images-mipmaps)。然而，启用 mipmaps 将增加内存使用，这在低端移动设备上可能是一个问题。
+
+### 处理纵横比
+
+一旦考虑了不同分辨率的缩放，请确保您的用户界面也能针对不同的宽高比进行缩放。这可以使用[锚](https://docs.godotengine.org/en/stable/tutorials/ui/size_and_anchors.html#doc-size-and-anchors)和/或[容器](https://docs.godotengine.org/en/stable/tutorials/ui/gui_containers.html#doc-gui-containers)来完成。
+
+### 视场缩放
+
+“3D 摄影机”节点的“**保持纵横比**”属性默认为“**保持高度**”缩放模式（也称为 *Hor+*）。这通常是横向模式下桌面游戏和移动游戏的最佳值，因为宽屏显示器会自动使用更宽的视野。
+
+但是，如果您的 3D 游戏打算在纵向模式下玩，那么使用“**保持宽度**”（也称为 *Vert-*）可能更有意义。这样，纵横比高于 16:9（例如 19:9）的智能手机将使用更高的视野，这在这里更合乎逻辑。
+
+### 使用视口以不同方式缩放 2D 和 3D 元素
+
+使用多个视口节点，可以为各种元素设置不同的比例。例如，您可以使用此功能以低分辨率渲染 3D 世界，同时将 2D 元素保持在本机分辨率。这可以显著提高性能，同时保持 HUD 和其他 2D 元素的清晰。
+
+这是通过仅对二维元素使用根 Viewport 节点，然后创建一个 Viewport 节点来显示三维世界，并使用 SubViewportContainer 或 TextureRect 节点进行显示来实现的。在最终项目中，实际上将有两个视口。在 SubViewportContainer 上使用 TextureRect 的一个好处是它允许启用线性过滤。这在许多情况下使缩放的 3D 视口看起来更好。
+
+有关示例，请参阅 [3D 视口缩放演示](https://github.com/godotengine/godot-demo-projects/tree/master/viewport/3d_scaling)。
+
+### 用户贡献的笔记
+
+在提交评论之前，请阅读[用户贡献笔记政策](https://github.com/godotengine/godot-docs-user-notes/discussions/1)。
+
+**1 个评论** · 1 个回复
+
+
+
+[troynall](https://github.com/troynall) [Dec 7, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/275#discussioncomment-11491911)
+
+但是，它的作用并不完全明显；引擎不会尝试将显示器切换到此分辨率。相反，可以将此设置视为“设计大小”，即您在编辑器中使用的区域的大小。此设置直接对应于 2D 编辑器中蓝色矩形的大小
+
+上面的文字很冗长。我认为我的版本（以下文本）更简洁。
+
+此设置定义了“设计尺寸”，即您在编辑器中看到的工作区，由二维编辑器中的蓝色矩形表示。它不会切换显示器分辨率，但会为您的设计建立尺寸
+
+​	[mechalynx](https://github.com/mechalynx) [Dec 8, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/275#discussioncomment-11495853)
+
+​	说实话，我认为长度没有问题。也许它可以被视为冗长的，因为解释某事所需的时间比严格必要的要长，但它符合文本其余部分的流程。
+
+​	我认为它很好地确保了用户不会期望指示的分辨率是全屏分辨率，并且还暗示默认分辨率旨在与编辑器预览相匹配。读者可能会将“设计尺寸”解释解释为编辑器自己会做的事情（例如，当它只是一个初始化值时，编辑器会将分辨率设置为与预览相同的分辨率），但刚才读过之后，我没有得到这样的印象，尽管我已经知道它是如何工作的。因此，从这个意义上讲，这可能是一个有用的默认值，而不是与预览分辨率相对应的动态设置值，这可能会更清楚。
+
+​	另一方面，我觉得你提出的简洁版本更有可能让用户感到困惑，因为它可以被解释为定义设计尺寸，而事实并非如此。我自己读过它，我想我会得到这样的印象，即改变这个高度和宽度实际上会在编辑器内部产生影响，而不是在运行时产生影响（尽管本文的其余部分会清楚地说明它所指的是什么）。
+
+​	我想，如果需要改进，那就是“设计尺寸”应该被描述为一个有用的默认值，没有歧义，并且由于“窗口化”默认值，分辨率不会将显示器切换到该分辨率。这将对 2D 和 3D 渲染产生不同的效果，但我觉得其余的文本可以很好地解释这种差异，因为它提到了 2D 中的像素对齐，而且无论如何场景都会适合 3D 中的分辨率。
 
 
 
@@ -551,6 +927,533 @@ color.rgb = vec3(gray);
 
 
 # 着色器
+
+## 你的第一个 2D 着色器
+
+https://docs.godotengine.org/en/stable/tutorials/shaders/your_first_shader/your_first_2d_shader.html#your-first-2d-shader
+
+### 引言
+
+着色器是在 GPU 上执行的特殊程序，用于渲染图形。所有现代渲染都是使用着色器完成的。有关着色器的更详细描述，请参阅[着色器是什么](https://docs.godotengine.org/en/stable/tutorials/shaders/introduction_to_shaders.html#doc-introduction-to-shaders)。
+
+本教程将通过指导您编写具有顶点和片段函数的着色器的过程，重点介绍编写着色器程序的实际方面。本教程面向着色器的绝对初学者。
+
+> **注：**
+>
+> 如果您有编写着色器的经验，并且只是想了解着色器在 Godot 中的工作原理，请参阅[《着色参考》](https://docs.godotengine.org/en/stable/tutorials/shaders/shader_reference/index.html#toc-shading-reference)。
+
+### 设置
+
+[CanvasItem 着色器](https://docs.godotengine.org/en/stable/tutorials/shaders/shader_reference/canvas_item_shader.html#doc-canvas-item-shader)用于绘制 Godot 中的所有 2D 对象，而 [Spatial](https://docs.godotengine.org/en/stable/tutorials/shaders/shader_reference/spatial_shader.html#doc-spatial-shader) 着色器用于绘制所有 3D 对象。
+
+为了使用着色器，它必须附着在必须附着到对象的 [Material](https://docs.godotengine.org/en/stable/classes/class_material.html#class-material) 内。Material 是一种 [Resource](https://docs.godotengine.org/en/stable/tutorials/scripting/resources.html#doc-resources)。要使用相同的材质绘制多个对象，必须将材质附着到每个对象上。
+
+从 [CanvasItem](https://docs.godotengine.org/en/stable/classes/class_canvasitem.html#class-canvasitem) 派生的所有对象都具有材质属性。这包括所有 [GUI 元素](https://docs.godotengine.org/en/stable/classes/class_control.html#class-control)、[Sprite2Ds](https://docs.godotengine.org/en/stable/classes/class_sprite2d.html#class-sprite2d)、[TileMapLayers](https://docs.godotengine.org/en/stable/classes/class_tilemaplayer.html#class-tilemaplayer)、[MeshInstance2Ds](https://docs.godotengine.org/en/stable/classes/class_meshinstance2d.html#class-meshinstance2d) 等。他们还可以选择继承父母的材料。如果您有大量要使用相同材质的节点，这可能很有用。
+
+首先，创建一个 Sprite2D 节点。[您可以使用任何 CanvasItem](https://docs.godotengine.org/en/stable/tutorials/2d/custom_drawing_in_2d.html#doc-custom-drawing-in-2d)，只要它是在画布上绘制的，因此在本教程中，我们将使用 Sprite2D，因为它是最容易开始绘制的 CanvasItem。
+
+在检查器中，单击“纹理”旁边的“[空]”，选择“加载”，然后选择“icon.svg”。对于新项目，这是 Godot 图标。现在，您应该可以在视口中看到该图标。
+
+接下来，在检查器的 CanvasItem 部分下向下看，单击“材质”旁边的，然后选择“新建着色器材质”。这将创建一个新的材质资源。单击出现的球体。Godot 目前不知道您是在编写 CanvasItem 着色器还是空间着色器，它会预览空间着色器的输出。因此，您看到的是默认空间着色器的输出。
+
+单击“着色器”旁边的，然后选择“新建着色器”。最后，单击刚刚创建的着色器，着色器编辑器将打开。现在，您已准备好开始编写第一个着色器。
+
+### 您的第一个 CanvasItem 着色器
+
+在 Godot 中，所有着色器都以一行开头，指定它们是哪种类型的着色器。它使用以下格式：
+
+```glsl
+shader_type canvas_item;
+```
+
+因为我们正在编写 CanvasItem 着色器，所以我们在第一行中指定 `canvas_item`。我们所有的代码都将位于此声明之下。
+
+这一行告诉引擎要为您提供哪些内置变量和功能。
+
+在 Godot 中，您可以覆盖三个函数来控制着色器的操作方式；`vertex`、`fragment` 和 `light`。本教程将指导您编写具有顶点和片段函数的着色器。光函数比顶点和片段函数复杂得多，因此这里将不涉及。
+
+### 您的第一个片段函数
+
+片段函数对 Sprite2D 中的每个像素运行，并确定该像素应该是什么颜色。
+
+它们仅限于 Sprite2D 覆盖的像素，这意味着您不能使用它们来创建 Sprite2D 周围的轮廓。
+
+最基本的片段函数除了为每个像素分配一种颜色外，什么也不做。
+
+我们通过将 `vec4` 写入内置变量 `COLOR` 来实现。`vec4` 是构造具有 4 个数字的向量的简写。有关向量的更多信息，请参阅[向量数学教程](https://docs.godotengine.org/en/stable/tutorials/math/vector_math.html#doc-vector-math)。`COLOR` 既是片段函数的输入变量，也是其最终输出。
+
+```glsl
+void fragment(){
+  COLOR = vec4(0.4, 0.6, 0.9, 1.0);
+}
+```
+
+![../../../_images/blue-box.png](https://docs.godotengine.org/en/stable/_images/blue-box.png)
+
+祝贺！你完成了。您已经在Godot中成功编写了第一个着色器。
+
+现在让我们把事情弄得更复杂。
+
+您可以使用片段函数的许多输入来计算 `COLOR`。`UV` 就是其中之一。UV 坐标在 Sprite2D 中指定（您不知道！），它们告诉着色器从网格每个部分的纹理中读取的位置。
+
+在片段函数中，您只能从 `UV` 读取，但您可以在其他函数中使用它或直接为 `COLOR` 赋值。
+
+`UV` 从左到右和从上到下在 0-1 之间变化。
+
+![../../../_images/iconuv.png](https://docs.godotengine.org/en/stable/_images/iconuv.png)
+
+```glsl
+void fragment() {
+  COLOR = vec4(UV, 0.5, 1.0);
+}
+```
+
+![../../../_images/UV.png](https://docs.godotengine.org/en/stable/_images/UV.png)
+
+#### 使用内置的 `TEXTURE`
+
+默认片段函数从 Sprite2D 纹理集读取并显示它。
+
+当你想在 Sprite2D 中调整颜色时，你可以像下面的代码一样手动调整纹理的颜色。
+
+```glsl
+void fragment(){
+  // This shader will result in a blue-tinted icon
+  COLOR.b = 1.0;
+}
+```
+
+某些节点，如 Sprite2Ds，有一个专用的纹理变量，可以在着色器中使用 `TEXTURE` 访问。如果要使用 Sprite2D 纹理与其他颜色组合，可以使用 `UV` 和 `texture` 函数来访问此变量。使用它们用纹理重绘 Sprite2D。
+
+```glsl
+void fragment(){
+  COLOR = texture(TEXTURE, UV); // Read from texture again.
+  COLOR.b = 1.0; //set blue channel to 1.0
+}
+```
+
+![../../../_images/blue-tex.png](https://docs.godotengine.org/en/stable/_images/blue-tex.png)
+
+#### uniform 输入
+
+uniform 输入用于将数据传递到着色器中，该着色器在整个着色器中都是相同的。
+
+您可以通过在着色器顶部定义 uniform 来使用，如下所示：
+
+```glsl
+uniform float size;
+```
+
+有关用法的更多信息，请参阅[着色语言文档](https://docs.godotengine.org/en/stable/tutorials/shaders/shader_reference/shading_language.html#doc-shading-language)。
+
+添加一个 uniform 以更改 Sprite2D 中的蓝色量。
+
+```glsl
+uniform float blue = 1.0; // you can assign a default value to uniforms
+
+void fragment(){
+  COLOR = texture(TEXTURE, UV); // Read from texture
+  COLOR.b = blue;
+}
+```
+
+现在，您可以从编辑器中更改 Sprite2D 中的蓝色量。回头看看创建着色器的检查器。您应该看到一个名为“着色器参数”的部分。展开该部分，您将看到您刚才声明的 uniform。如果在编辑器中更改该值，它将覆盖在着色器中提供的默认值。
+
+#### 从代码中与着色器交互
+
+您可以使用在节点的材料资源上调用的函数 `set_shader_parameter()` 从代码中更改 uniform。使用 Sprite2D 节点，可以使用以下代码设置 `blue` uniform。
+
+```gdscript
+var blue_value = 1.0
+material.set_shader_parameter("blue", blue_value)
+```
+
+```c#
+var blueValue = 1.0;
+((ShaderMaterial)Material).SetShaderParameter("blue", blueValue);
+```
+
+请注意，uniform 的名称是一个字符串。该字符串必须与着色器中的书写方式完全匹配，包括拼写和大小写。
+
+### 你的第一个顶点函数
+
+现在我们有了片段函数，让我们编写一个顶点函数。
+
+使用顶点函数计算每个顶点在屏幕上的最终位置。
+
+顶点函数中最重要的变量是 `VERTEX`。最初，它指定模型中的顶点坐标，但您也可以写入它以确定实际绘制这些顶点的位置。`VERTEX` 是一个最初在局部空间中呈现的 `vec2`（即不相对于摄影机、视口或父节点）。
+
+您可以通过直接添加到 `VERTEX` 来偏移顶点。
+
+```glsl
+void vertex() {
+  VERTEX += vec2(10.0, 0.0);
+}
+```
+
+结合 `TIME` 内置变量，这可用于基本动画。
+
+```glsl
+void vertex() {
+  // Animate Sprite2D moving in big circle around its location
+  VERTEX += vec2(cos(TIME)*100.0, sin(TIME)*100.0);
+}
+```
+
+### 结论
+
+着色器的核心是执行您到目前为止看到的操作，即计算 `VERTEX` 和 `COLOR`。你可以想出更复杂的数学策略来给这些变量赋值。
+
+为了获得灵感，请查看一些更高级的着色器教程，并查看其他网站，如 [Shadertoy](https://www.shadertoy.com/results?query=&sort=popular&from=10&num=4) 和 [The Book of Shaders](https://thebookofshaders.com/)。
+
+### 用户贡献的笔记
+
+在提交评论之前，请阅读[用户贡献笔记政策](https://github.com/godotengine/godot-docs-user-notes/discussions/1)。
+
+**1 个评论**
+
+
+
+[vanBerloDevelopments](https://github.com/vanBerloDevelopments) [Oct 8, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/188#discussioncomment-10880147)
+
+以下是我在学习着色器以及如何接近它们时遇到的一些困难。希望它能帮助别人！
+
+1. 着色器的外部边界
+
+   顶点着色器控制可以使用顶点操纵的区域。顶点之外的所有内容都不会在屏幕上绘制。
+
+2. `texture(TEXTURE, UV)` 功能不会“创建”纹理。
+   这是开始时常见的误解。纹理函数从您在第一个参数中指定的纹理中采样纹理数据，在本例中为 `TEXTURE`（即其原始纹理）。然后将颜色数据和阿尔法通道作为向量 4 数据类型返回。
+
+   例子：
+
+   ```glsl
+   vec4 fragment_color_data = texture(TEXTURE, UV).rgba;
+   ```
+
+3. 使用 UV 贴图缩放纹理：
+
+   - 要“放大”，请将 UV 坐标乘以小于 1 的值。
+   - 要“缩小”比例，请将 UV 坐标乘以大于 1 的值。
+
+   例子：
+
+   ```glsl
+   vec4 scaled_up_sample = texture(TEXTURE, vec2(UV.x * 0.9, UV.y));
+   ```
+
+   有关视觉示例，请参阅[此视频教程](https://www.youtube.com/watch?v=tbcgEIvJlrI&t=109s)。
+
+4. 使用 UV 贴图移动（平移）纹理：
+
+   - 向左平移：将正值添加到 UV.x
+   - 要向右平移：从 UV.x 中减去正值
+   - 向上转换：将正值添加到 UV.y
+   - 向下平移：从 UV.y 中减去正值
+
+   例子：
+
+   ```glsl
+   vec4 sampled_to_left = texture(TEXTURE, vec2(UV.x + 0.1, UV.y));
+   ```
+
+   有关视觉示例，请参阅[此视频教程](https://www.youtube.com/watch?v=tbcgEIvJlrI&t=109s)。
+
+快乐着色！
+亲切问候 Sam，
+godot2dshaders.com 的作者
+
+
+
+## 您的第一个 3D 着色器
+
+https://docs.godotengine.org/en/stable/tutorials/shaders/your_first_shader/your_first_3d_shader.html#your-first-3d-shader
+
+您已决定开始编写自己的自定义空间着色器。也许你在网上看到了一个很酷的着色器技巧，或者你发现 [StandardMaterial3D](https://docs.godotengine.org/en/stable/classes/class_standardmaterial3d.html#class-standardmaterial3d) 并不能完全满足你的需求。不管怎样，你已经决定写自己的，现在你需要弄清楚从哪里开始。
+
+本教程将解释如何编写空间着色器，并将涵盖比 [CanvasItem](https://docs.godotengine.org/en/stable/tutorials/shaders/your_first_shader/your_first_2d_shader.html#doc-your-first-canvasitem-shader) 教程更多的主题。
+
+空间着色器比 CanvasItem 着色器具有更多的内置功能。对空间着色器的期望是，Godot 已经为常见用例提供了功能，用户在着色器中需要做的就是设置适当的参数。对于 PBR（基于物理的渲染）工作流来说尤其如此。
+
+这是一个由两部分组成的教程。在第一部分中，我们将使用顶点函数中高度图的顶点位移来创建地形。在[第二部分](https://docs.godotengine.org/en/stable/tutorials/shaders/your_first_shader/your_second_3d_shader.html#doc-your-second-spatial-shader)中，我们将学习本教程中的概念，并通过编写海水着色器在片段着色器中设置自定义材质。
+
+> **注：**
+>
+> 本教程假设您具备一些基本的着色器知识，如类型（`vec2`、`float`、`sampler2D`）和函数。如果你对这些概念感到不舒服，最好在完成本教程之前从[《着色器之书》](https://thebookofshaders.com/)中得到一个温和的介绍。
+
+### 在哪里分配我的材质
+
+在三维中，对象是使用 [Meshes](https://docs.godotengine.org/en/stable/classes/class_mesh.html#class-mesh) 绘制的。网格是一种资源类型，它以称为“曲面”的单位存储几何体（对象的形状）和材质（颜色以及对象对光的反应）。网格可以有多个曲面，也可以只有一个曲面。通常，您会从另一个程序（例如 Blender）导入网格。但是 Godot 也有一些 [PrimitiveMeshes](https://docs.godotengine.org/en/stable/classes/class_primitivemesh.html#class-primitivemesh)，允许您在不导入网格的情况下向场景添加基本几何体。
+
+有多种节点类型可用于绘制网格。主要的是 [MeshInstance3D](https://docs.godotengine.org/en/stable/classes/class_meshinstance3d.html#class-meshinstance3d)，但您也可以使用 [GPUParticles3D](https://docs.godotengine.org/en/stable/classes/class_gpuparticles3d.html#class-gpuparticles3d)、[MultiMeshes](https://docs.godotengine.org/en/stable/classes/class_multimesh.html#class-multimesh)（使用 [MultiMeshInstance3D](https://docs.godotengine.org/en/stable/classes/class_multimeshinstance3d.html#class-multimeshinstance3d)）或其他。
+
+通常，材质与网格中的给定曲面相关联，但某些节点（如 MeshInstance3D）允许您覆盖特定曲面或所有曲面的材质。
+
+如果在曲面或网格本身上设置材质，则共享该网格的所有 MeshInstance3D 都将共享该材质。但是，如果你想在多个网格实例中重用相同的网格，但每个实例都有不同的材质，那么你应该在 MeshInstance3D 上设置材质。
+
+在本教程中，我们将在网格本身上设置材质，而不是利用 MeshInstance3D 覆盖材质的能力。
+
+### 设置
+
+将新的 [MeshInstance3D](https://docs.godotengine.org/en/stable/classes/class_meshinstance3d.html#class-meshinstance3d) 节点添加到场景中。
+
+在“网格”旁边的检查器选项卡中，单击“[空]”，然后选择“新建平面网格”。然后单击出现的平面图像。
+
+这将为我们的场景添加一个 [PlaneMesh](https://docs.godotengine.org/en/stable/classes/class_planemesh.html#class-planemesh)。
+
+然后，在视口中，单击左上角的“透视”按钮。将出现一个菜单。菜单中间是用于显示场景的选项。选择“显示线框”。
+
+这将使您能够看到构成平面的三角形。
+
+![../../../_images/plane.png](https://docs.godotengine.org/en/stable/_images/plane.png)
+
+现在将平面网格的“`Subdivide Width`”和“`Subdivide Depth`”设置为 `32`。
+
+![../../../_images/plane-sub-set.webp](https://docs.godotengine.org/en/stable/_images/plane-sub-set.webp)
+
+您可以看到 [MeshInstance3D](https://docs.godotengine.org/en/stable/classes/class_meshinstance3d.html#class-meshinstance3d) 中现在有更多的三角形。这将为我们提供更多的顶点，从而允许我们添加更多的细节。
+
+![../../../_images/plane-sub.png](https://docs.godotengine.org/en/stable/_images/plane-sub.png)
+
+与 PlaneMesh 一样，[PrimitiveMeshes](https://docs.godotengine.org/en/stable/classes/class_primitivemesh.html#class-primitivemesh) 只有一个表面，因此只有一个曲面，而不是一系列材质。单击“材质”旁边的“[空]”，然后选择“新建着色器材质”。然后单击出现的球体。
+
+现在单击“着色器”旁边的“[空]”，然后选择“新建着色器”。
+
+着色器编辑器现在应该弹出，您已经准备好开始编写第一个Spatial着色器了！
+
+### 着色魔法
+
+![../../../_images/shader-editor.webp](https://docs.godotengine.org/en/stable/_images/shader-editor.webp)
+
+新着色器已经使用 `shader_type` 变量和 `fragment()` 函数生成。Godot 着色器需要的第一件事是声明它们是什么类型的着色器。在这种情况下，`shader_type` 被设置为 `spatial`，因为这是一个空间着色器。
+
+```glsl
+shader_type spatial;
+```
+
+现在忽略 `fragment()` 函数并定义 `vertex()` 函数。`vertex()` 函数确定 [MeshInstance3D](https://docs.godotengine.org/en/stable/classes/class_meshinstance3d.html#class-meshinstance3d) 的顶点在最终场景中的显示位置。我们将使用它来偏移每个顶点的高度，使我们的平面看起来像一个小地形。
+
+我们这样定义顶点着色器：
+
+```glsl
+void vertex() {
+
+}
+```
+
+在 `vertex()` 函数中没有任何内容的情况下，Godot 将使用其默认顶点着色器。我们可以通过添加一行轻松地开始进行更改：
+
+```glsl
+void vertex() {
+  VERTEX.y += cos(VERTEX.x) * sin(VERTEX.z);
+}
+```
+
+添加这一行，你应该会得到一个像下面这样的图像。
+
+![../../../_images/cos.png](https://docs.godotengine.org/en/stable/_images/cos.png)
+
+好吧，让我们打开这个。`VERTEX` 的 `y` 值正在增加。我们将 `VERTEX` 的 `x` 和 `z` 分量作为参数传递给 `cos` 和 `sin`；这使我们在 `x` 和 `z` 轴上呈现出波浪状的外观。
+
+我们想要实现的是小山的外观；毕竟。因为 `cos` 和 `sin` 看起来已经有点像山了。我们通过将输入缩放到 `cos` 和 `sin` 函数来实现。
+
+```glsl
+void vertex() {
+  VERTEX.y += cos(VERTEX.x * 4.0) * sin(VERTEX.z * 4.0);
+}
+```
+
+![../../../_images/cos4.png](https://docs.godotengine.org/en/stable/_images/cos4.png)
+
+这看起来更好，但它仍然太尖锐和重复，让我们让它更有趣一点。
+
+### 噪声高度图
+
+噪波是一种非常流行的伪造地形外观的工具。把它想象成类似于余弦函数，其中你有重复的山丘，除了有噪音，每个山丘都有不同的高度。
+
+Godot 提供 [NoiseTexture2D](https://docs.godotengine.org/en/stable/classes/class_noisetexture2d.html#class-noisetexture2d) 资源，用于生成可以从着色器访问的噪波纹理。
+
+要访问着色器中的纹理，请在着色器顶部附近的 `vertex()` 函数外添加以下代码。
+
+```glsl
+uniform sampler2D noise;
+```
+
+这将允许您将噪波纹理发送到着色器。现在看看你材质下面的检视栏。您应该看到一个名为“着色器参数”的部分。如果你打开它，你会看到一个名为“noise”的部分。
+
+单击它旁边的“[空]”，然后选择“新建 NoiseTexture2D”。然后在 [NoiseTexture2D](https://docs.godotengine.org/en/stable/classes/class_noisetexture2d.html#class-noisetexture2d) 中，单击“Noise”旁边的位置，然后选择“新建 FastNoiseSite”。
+
+> **注：**
+>
+> NoiseTexture2D 使用 [FastNoiseSite](https://docs.godotengine.org/en/stable/classes/class_fastnoiselite.html#class-fastnoiselite) 生成高度图。
+
+一旦你设置好了，它应该看起来像这样。
+
+![../../../_images/noise-set.webp](https://docs.godotengine.org/en/stable/_images/noise-set.webp)
+
+现在，使用 `texture()` 函数访问噪波纹理。`texture()` 将纹理作为第一个参数，将纹理上位置的 `vec2` 作为第二个参数。我们使用 `VERTEX` 的 `x` 和 `z` 通道来确定在纹理上查找的位置。请注意，PlaneMesh 坐标在 [-1,1] 范围内（大小为 2），而纹理坐标在 [0,1] 范围内，因此为了归一化，我们将 PlaneMesh 的大小除以 2.0，再加上 0.5。`texture()` 返回该位置 `r, g, b, a` 通道的 `vec4`。由于噪波纹理是灰度的，所有值都是相同的，因此我们可以使用任何一个通道作为高度。在这种情况下，我们将使用 `r` 或 `x` 通道。
+
+```glsl
+void vertex() {
+  float height = texture(noise, VERTEX.xz / 2.0 + 0.5).x;
+  VERTEX.y += height;
+}
+```
+
+注意：`xyzw` 与 GLSL 中的 `rgba` 相同，因此我们可以使用 `texture().r` 来代替上面的 `texture().x`。有关更多详细信息，请参阅 [OpenGL 文档](https://www.khronos.org/opengl/wiki/Data_Type_(GLSL)#Vectors)。
+
+使用此代码，您可以看到纹理创建了随机外观的山丘。
+
+![../../../_images/noise.png](https://docs.godotengine.org/en/stable/_images/noise.png)
+
+现在它太尖了，我们想稍微软化一下山丘。为此，我们将使用 uniform。您已经使用了上面的 uniform 来传递噪波纹理，现在让我们学习它们是如何工作的。
+
+### uniforms
+
+uniform 变量允许您将游戏中的数据传递到着色器中。它们对于控制着色器效果非常有用。uniform 几乎可以是着色器中可以使用的任何数据类型。要使用 uniform，您可以在[着色器](https://docs.godotengine.org/en/stable/classes/class_shader.html#class-shader)中使用关键字 `uniform` 声明它。
+
+让我们制作一个可以改变地形高度的 uniform。
+
+```glsl
+uniform float height_scale = 0.5;
+```
+
+Godot 允许您使用值初始化 uniform；这里，`height_scale` 设置为 `0.5`。您可以通过在与着色器对应的材质上调用函数 `set_shader_parameter()`，从 GDScript 中设置 uniform。从 GDScript 传递的值优先于用于在着色器中初始化它的值。
+
+```gdscript
+# called from the MeshInstance3D
+mesh.material.set_shader_parameter("height_scale", 0.5)
+```
+
+> **注：**
+>
+> 在基于 Spatial 的节点中更改 uniform 与基于 CanvasItem 的节点不同。在这里，我们在 PlaneMesh 资源中设置材质。在其他网格资源中，您可能需要首先通过调用 `surface_get_material()` 来访问材质。在 MeshInstance3D 中，您可以使用 `get_surface_material()` 或 `material_override` 访问材质。
+
+请记住，传递给 `set_shader_parameter()` 的字符串必须与[着色器](https://docs.godotengine.org/en/stable/classes/class_shader.html#class-shader)中 uniform 变量的名称匹配。您可以在[着色器](https://docs.godotengine.org/en/stable/classes/class_shader.html#class-shader)内的任何位置使用 uniform 变量。在这里，我们将使用它来设置高度值，而不是任意乘以 `0.5`。
+
+```glsl
+VERTEX.y += height * height_scale;
+```
+
+现在看起来好多了。
+
+![../../../_images/noise-low.png](https://docs.godotengine.org/en/stable/_images/noise-low.png)
+
+使用 uniforms，我们甚至可以更改每一帧的值，以设置地形高度的动画。结合 [Tweens](https://docs.godotengine.org/en/stable/classes/class_tween.html#class-tween)，这对动画特别有用。
+
+### 与光相互作用
+
+首先，关闭线框。为此，再次单击视口左上角的“透视”，然后选择“显示法线”。此外，在3D场景工具栏中，关闭预览日光。
+
+![../../../_images/normal.png](https://docs.godotengine.org/en/stable/_images/normal.png)
+
+请注意网格颜色是如何变平的。这是因为它的照明是平的。让我们加一盏灯！
+
+首先，我们将在场景中添加 [OmniLight3D](https://docs.godotengine.org/en/stable/classes/class_omnilight3d.html#class-omnilight3d)。
+
+![../../../_images/light.png](https://docs.godotengine.org/en/stable/_images/light.png)
+
+你可以看到光线影响地形，但看起来很奇怪。问题是光线对地形的影响就像是一个平面。这是因为光着色器使用 [Mesh](https://docs.godotengine.org/en/stable/classes/class_mesh.html#class-mesh) 中的法线来计算光。
+
+法线存储在网格中，但我们正在着色器中更改网格的形状，因此法线不再正确。为了解决这个问题，我们可以在着色器中重新计算法线，或者使用与噪声相对应的法线纹理。戈多让我们两者都变得容易。
+
+您可以在顶点函数中手动计算新的法线，然后只需设置 `NORMAL`。使用 `NORMAL` 设置，Godot将为我们完成所有困难的照明计算。我们将在本教程的下一部分介绍这种方法，现在我们将从纹理中读取法线。
+
+相反，我们将再次依赖 NoiseTexture 来为我们计算法线。我们通过传递第二个噪波纹理来实现这一点。
+
+```glsl
+uniform sampler2D normalmap;
+```
+
+使用另一个 [FastNoiseLite](https://docs.godotengine.org/en/stable/classes/class_fastnoiselite.html#class-fastnoiselite) 将第二个均匀纹理设置为另一个 [NoiseTexture2D](https://docs.godotengine.org/en/stable/classes/class_noisetexture2d.html#class-noisetexture2d)。但这一次，请勾选 **As Normalmap**。
+
+![../../../_images/normal-set.webp](https://docs.godotengine.org/en/stable/_images/normal-set.webp)
+
+现在，因为这是一个法线贴图，而不是逐顶点法线，我们将在 `fragment()` 函数中分配它。本教程的下一部分将更详细地解释 `fragment()` 函数。
+
+```glsl
+void fragment() {
+}
+```
+
+当我们有与特定顶点对应的法线时，我们会设置 `NORMAL`，但如果你有一个来自纹理的法线贴图，请使用 `NORMAL_MAP` 设置法线。这样，Godot 将自动处理网格周围的纹理包裹。
+
+最后，为了确保我们从噪波纹理和法线贴图纹理的相同位置读取，我们将把 `vertex()` 函数的 `VERTEX.xz` 位置传递给 `fragment()` 函数。我们用变量来做这件事。
+
+在 `vertex()` 之上定义一个名为 `tex_position` 的 `vec2`。在 `vertex()` 函数中，将 `VERTEX.xz` 赋值给 `tex_position`。
+
+```glsl
+varying vec2 tex_position;
+
+void vertex() {
+  ...
+  tex_position = VERTEX.xz / 2.0 + 0.5;
+  float height = texture(noise, tex_position).x;
+  ...
+}
+```
+
+现在我们可以从 `fragment()` 函数访问 `tex_position`。
+
+```glsl
+void fragment() {
+  NORMAL_MAP = texture(normalmap, tex_position).xyz;
+}
+```
+
+法线就位后，灯光现在会动态地对网格的高度做出反应。
+
+![../../../_images/normalmap.png](https://docs.godotengine.org/en/stable/_images/normalmap.png)
+
+我们甚至可以拖动灯光，灯光会自动更新。
+
+![../../../_images/normalmap2.png](https://docs.godotengine.org/en/stable/_images/normalmap2.png)
+
+这是本教程的完整代码。你可以看到，由于 Godot 为你处理了大部分困难的事情，所以并不长。
+
+```glsl
+shader_type spatial;
+
+uniform float height_scale = 0.5;
+uniform sampler2D noise;
+uniform sampler2D normalmap;
+
+varying vec2 tex_position;
+
+void vertex() {
+  tex_position = VERTEX.xz / 2.0 + 0.5;
+  float height = texture(noise, tex_position).x;
+  VERTEX.y += height * height_scale;
+}
+
+void fragment() {
+  NORMAL_MAP = texture(normalmap, tex_position).xyz;
+}
+```
+
+这就是这部分的全部内容。希望您现在了解了 Godot 中顶点着色器的基础知识。在本教程的下一部分中，我们将编写一个片段函数来配合这个顶点函数，我们将介绍一种更高级的技术，将这个地形变成一个移动的波浪海洋。
+
+### 用户贡献的笔记
+
+在提交评论之前，请阅读[用户贡献笔记政策](https://github.com/godotengine/godot-docs-user-notes/discussions/1)。
+
+**1 个评论** · 2 个回复
+
+
+
+[mrlem](https://github.com/mrlem) [Sep 7, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/120#discussioncomment-10571877)
+
+我不是数学/着色器专家，但正常的计算不应该也基于高度标度吗？这似乎是合乎逻辑的，因为这个变量会影响三角形的方向。除非 NORMAL_MAP 在引擎盖下处理？
+
+​	[Sleepybean2](https://github.com/Sleepybean2) [Sep 10, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/120#discussioncomment-10594911)
+
+​	这实际上根本不会根据几何体计算法线。它使用纹理中的 uv 位置和颜色值来计算法线。该法线是准确的，但不是直接从几何图形计算出来的。因此，乘以 tex_position 将缩放纹理的 uv 位置（和颜色值，但它是归一化的），这意味着你的法线实际上将用于几何体上的另一个位置。如果按 0.5 缩放，则将 uv 位置乘以 2，从而得到一个法线，该法线适用于相距一半的顶点。
+
+​	[Sleepybean2](https://github.com/Sleepybean2) [Sep 10, 2024](https://github.com/godotengine/godot-docs-user-notes/discussions/120#discussioncomment-10594922)
+
+​	对不起，是 1/2，不是 2
+
+
 
 ## 使用计算着色器
 
