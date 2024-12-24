@@ -32,7 +32,7 @@ float SdfSphere(vec3 p) {
 
 float SdfBox(vec3 p, vec3 b, float rad) {
 	vec3 d = abs(p) - b;
-	return length(max(d, 0.)) - min(max(d.x, max(d.y, d.z)), 0.) - rad;
+	return length(max(d, 0.)) + min(max(d.x, max(d.y, d.z)), 0.) - rad;
 }
 
 // 圆环
@@ -55,6 +55,27 @@ float SdCappedTorus(vec3 p, vec2 sc, float ra, float rb) {
 
 float SdfPlane(vec3 p) {
 	return p.y;
+}
+
+float Shape1(vec3 p) {
+	// union
+	float d = SdfSphere(p);
+	d = min(d, SdfBox(p - vec3(0., 1., 0.), vec3(.4), 0.)); // 并集
+	return d;
+}
+
+float Shape2(vec3 p) {
+	// intersection
+	float d = SdfSphere(p);
+	d = max(d, SdfBox(p - vec3(0., 1., 0.), vec3(.4, 2., .4), 0.)); // 交集
+	return d;
+}
+
+float Shape3(vec3 p) {
+	// difference
+	float d = SdfSphere(p);
+	d = max(d, -1. * SdfBox(p - vec3(0., 0., 0.), vec3(2., .4, .4), 0.)); // 求差
+	return d;
 }
 
 vec4 OpElongate(vec3 p, vec3 h) {
@@ -96,8 +117,9 @@ vec2 Map(vec3 p) {
 		// 脚
 		d = OpU(d, vec2(SdCapsule(vec3(abs(p.x), p.y, abs(p.z)), vec3(1.3, .5, 1.), vec3(1.5, .1, 1.3), .1), 5.));
 	}
-	d = OpU(d, vec2(SdfSphere(p - vec3(-2.5, 3., 1.)), 2.));
-	d = OpU(d, vec2(SdfBox(p - vec3(3., 2.5, -.5), vec3(.5, 1., 1.), 0.), 3.));
+	d = OpU(d, vec2(Shape1(p - vec3(-2.5, 3., 1.)), 2.));
+	d = OpU(d, vec2(Shape2(p - vec3(1., 3.5, -2.5)), 3.));
+	d = OpU(d, vec2(Shape3(p - vec3(2., 2.5, 2.5)), 6.));
 	return d;
 }
 
@@ -175,7 +197,7 @@ float CheckersGrad(vec2 uv, vec2 ddx, vec2 ddy) {
 }
 
 vec3 Render(vec2 uv, vec2 px, vec2 py) {
-	vec3 ro = vec3(4. * cos(.1 * TIME), 1. + .5 * sin(.3 * TIME), 4. * sin(.1 * TIME));
+	vec3 ro = vec3(4. * cos(.1 * TIME), 4. + .5 * sin(.3 * TIME), 4. * sin(.1 * TIME));
 	if (iMouse.z > 0.01) {
 		float theta = iMouse.x / iRes.x * 2. * PI;
 		ro = vec3(4. * cos(theta), 2., 4. * sin(theta));
@@ -190,7 +212,7 @@ vec3 Render(vec2 uv, vec2 px, vec2 py) {
 	if (t.y > 0.) {
 		vec3 p = ro + t.x * rd;
 		vec3 n = t.y < 1.1 ? vec3(0., 1., 0.) : CalcNormal(p);
-		vec3 light = vec3(6., 4., 5.);// vec3(2. * cos(TIME), 1., 2. * sin(TIME) + 2.);
+		vec3 light = vec3(6., 10., 5.);// vec3(2. * cos(TIME), 1., 2. * sin(TIME) + 2.);
 		float dif = clamp(dot(normalize(light - p), n), 0., 1.);
 		p += PRECISION * n;
 		float st = SoftShadow(p, normalize(light - p), 10.);
@@ -198,11 +220,14 @@ vec3 Render(vec2 uv, vec2 px, vec2 py) {
 		float amb = 0.5 + 0.5 * dot(n, vec3(0., 1., 0.)); // 环境光
 		vec3 c = vec3(0.);
 		if (t.y > 1.9 && t.y < 2.1) {
-			// 2 球
+			// 2 红色
 			c = vec3(1., 0., 0.);
 		} else if (t.y > 2.9 && t.y < 3.1) {
-			// 3 立方体
+			// 3 黄色
 			c = vec3(1., 1., 0.);
+		} else if (t.y > 5.9 && t.y < 6.1) {
+			// 6 青色
+			c = vec3(0., 1., 1.);
 		} else if (t.y > 3.9 && t.y < 4.1) {
 			// 4 小电视主体盒子
 			c = vec3(1.);
