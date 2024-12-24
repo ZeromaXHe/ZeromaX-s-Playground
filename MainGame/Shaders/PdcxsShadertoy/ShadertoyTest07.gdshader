@@ -84,7 +84,22 @@ vec4 OpElongate(vec3 p, vec3 h) {
 	return vec4(max(q, 0.0), min(max(q.x, max(q.y, q.z)), 0.0));
 }
 
+// 用于圆滑连接边界
+float Smin(float a, float b, float k) {
+	float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+	return mix(b, a, h) - k * h * (1.0 - h);
+}
+
 vec2 OpU(vec2 a, vec2 b) {
+	// 用 Smin 的话，隔空的物体之间有点搞笑，哈哈哈~
+	//float smin = Smin(a.x, b.x, 1. + 0.5 * sin(TIME));
+	//if (a.x < b.x) {
+		//a.x = smin;
+		//return a;
+	//} else {
+		//b.x = smin;
+		//return b;
+	//}
 	return a.x < b.x ? a: b;
 }
 
