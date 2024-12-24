@@ -15,9 +15,10 @@ void fragment() {
 	vec2 iResolution = 1.0 / SCREEN_PIXEL_SIZE;
 	vec2 uv = (FRAGCOORD.xy - 0.5 * iResolution.xy) / iResolution.xx;
 	float c = 0.; //length(uv);
-	float r = 0.3;
-	if (length(uv) < r) {
-		c = 1.;
-	}
+	//float r = 0.3;
+	//if (length(uv) < r) {
+		//c = 1.;
+	//}
+	c = smoothstep(.31, .3, length(uv)); // 教程04 修改
 	COLOR = vec4(vec3(c), 1);
 }

@@ -1,5 +1,7 @@
 // Shadertoy教程03——线段绘制、clamp与mix函数: 
 // https://www.bilibili.com/video/BV1oq4y1271G
+// Shadertoy教程04——smoothstep函数：
+// https://www.bilibili.com/video/BV1EF411B7Mo
 shader_type canvas_item;
 
 vec2 FixUV(vec2 c, vec2 iResolution) {
@@ -9,13 +11,10 @@ vec2 FixUV(vec2 c, vec2 iResolution) {
 vec3 Grid(vec2 uv) {
 	vec3 color = vec3(0.);
 	vec2 fraction = 1. - 2. * abs(fract(uv) - 0.5);
-	if (abs(uv.x) <= 2. * fwidth(uv.x)) {
-		color.g = 1.;
-	} else if (abs(uv.y) <= 2. * fwidth(uv.y)) {
-		color.r = 1.;
-	} else if (fraction.x < 2. * fwidth(uv.x) || fraction.y <  2. * fwidth(uv.y)) {
-		color = vec3(1.);
-	}
+	color = vec3(smoothstep(4. * fwidth(uv.x), 3.9 * fwidth(uv.x), fraction.x));
+	color += vec3(smoothstep(4. * fwidth(uv.y), 3.9 * fwidth(uv.y), fraction.y));
+	color.rb *= smoothstep(1.9 * fwidth(uv.x), 2.0 * fwidth(uv.x), abs(uv.x));
+	color.gb *= smoothstep(1.9 * fwidth(uv.y), 2.0 * fwidth(uv.y), abs(uv.y));
 	return color;
 }
 
@@ -25,9 +24,7 @@ float Segment(vec2 p, vec2 a, vec2 b, float w) {
 	vec2 pa = p - a;
 	float proj = clamp(dot(pa, ba) / dot(ba, ba), 0., 1.);
 	float d = length(proj * ba - pa);
-	if (d <= w) {
-		f = 1.;
-	}
+	f = smoothstep(w, 0.95 * w, d);
 	return f;
 }
 
@@ -36,12 +33,16 @@ float Func(float x) {
 	return sin(2. * PI / T * x);
 }
 
+float Func04(float x) {
+	return smoothstep(0.5, 0., x);
+}
+
 float FuncPlot(vec2 uv, vec2 iRes) {
 	float f = 0.;
 	for (float x = 0.; x <= iRes.x; x += 1.) {
 		float fx = FixUV(vec2(x, 0.), iRes).x;
 		float nfx = FixUV(vec2(x + 1., 0.), iRes).x;
-		f += Segment(uv, vec2(fx, Func(fx)), vec2(nfx, Func(nfx)), fwidth(uv.x));
+		f += Segment(uv, vec2(fx, Func04(fx)), vec2(nfx, Func04(nfx)), fwidth(uv.x));
 	}
 	return clamp(f, 0., 1.);
 }
