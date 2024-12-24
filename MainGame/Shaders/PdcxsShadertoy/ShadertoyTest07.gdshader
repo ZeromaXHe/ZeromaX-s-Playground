@@ -8,6 +8,8 @@
 // https://www.bilibili.com/video/BV1HL411F74d
 // Shadertoy教程12——多物体着色与棋盘贴图
 // https://www.bilibili.com/video/BV1bm4y1f7B5
+// Shadertoy教程13——制作一个B站小电视
+// https://www.bilibili.com/video/BV1kY41147MB
 shader_type canvas_item;
 
 #define RAYMARCH_TIME 120
@@ -28,13 +30,37 @@ float SdfSphere(vec3 p) {
 	return length(p) - 1.;
 }
 
-float SdfBox(vec3 p, vec3 b) {
+float SdfBox(vec3 p, vec3 b, float rad) {
 	vec3 d = abs(p) - b;
-	return length(max(d, 0.)) - min(max(d.x, max(d.y, d.z)), 0.);
+	return length(max(d, 0.)) - min(max(d.x, max(d.y, d.z)), 0.) - rad;
+}
+
+// 圆环
+float SdTorus(vec3 p, vec2 t) {
+	vec2 q = vec2(length(p.xz) - t.x, p.y);
+	return length(q) - t.y;
+}
+
+float SdCapsule(vec3 p, vec3 a, vec3 b, float r) {
+	vec3 pa = p - a, ba = b - a;
+	float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+	return length(pa - ba * h) - r;
+}
+
+float SdCappedTorus(vec3 p, vec2 sc, float ra, float rb) {
+	p.x = abs(p.x);
+	float k = (sc.y * p.x > sc.x * p.y) ? dot(p.xy, sc) : length(p.xy);
+	return sqrt(dot(p, p) + ra * ra - 2.0 * ra * k) - rb;
 }
 
 float SdfPlane(vec3 p) {
 	return p.y;
+}
+
+vec4 OpElongate(vec3 p, vec3 h) {
+	// return vec4(p - clamp(p, -h, h), 0.0); // faster, but produces zero in the interior elongation
+	vec3 q = abs(p) - h;
+	return vec4(max(q, 0.0), min(max(q.x, max(q.y, q.z)), 0.0));
 }
 
 vec2 OpU(vec2 a, vec2 b) {
@@ -42,8 +68,36 @@ vec2 OpU(vec2 a, vec2 b) {
 }
 
 vec2 Map(vec3 p) {
-	vec2 d = vec2(SdfSphere(p - vec3(0., 1., 0.)), 2.);
-	d = OpU(d, vec2(SdfBox(p - vec3(2., 1., 0.), vec3(.5, 1., 1.)), 3.));
+	p.xz *= mat2(vec2(0., 1.), vec2(1., 0.)); // 逆时针旋转 90 度
+	vec2 d = vec2(SdfBox(p - vec3(0., 1.3, 0.), vec3(1.5, .9, 1.), .3), 4.);
+	{
+		// 小电视框
+		vec4 w = OpElongate(p.xzy - vec3(0., 1.3, 1.3), vec3(1.2, 0., 0.55));
+		float t = w.w + SdTorus(w.xyz, vec2(.3, .05));
+		d = OpU(d, vec2(t, 5.));
+	}
+	{
+		// 眼睛
+		d = OpU(d, vec2(SdCapsule(p, vec3(.4, 1.6, 1.3), vec3(1., 1.3, 1.3), .1), 5.));
+		d = OpU(d, vec2(SdCapsule(p, vec3(-.4, 1.6, 1.3), vec3(-1., 1.3, 1.3), .1), 5.));
+	}
+	{
+		// 嘴巴
+		float an = 70. / 180. * PI;
+		d = OpU(d, vec2(SdCappedTorus(p * vec3(1., -1., 1.) - vec3(.3, -1., 1.3), vec2(sin(an), cos(an)), .3, .07), 5.));
+		d = OpU(d, vec2(SdCappedTorus(p * vec3(1., -1., 1.) - vec3(-.3, -1., 1.3), vec2(sin(an), cos(an)), .3, .07), 5.));
+	}
+	{
+		// 天线
+		d = OpU(d, vec2(SdCapsule(p, vec3(1.3, 3.0, 1.), vec3(.2, 2.0, 1.), .1), 5.));
+		d = OpU(d, vec2(SdCapsule(p, vec3(-1.3, 3.0, 1.), vec3(-.2, 2.0, 1.), .1), 5.));
+	}
+	{
+		// 脚
+		d = OpU(d, vec2(SdCapsule(vec3(abs(p.x), p.y, abs(p.z)), vec3(1.3, .5, 1.), vec3(1.5, .1, 1.3), .1), 5.));
+	}
+	d = OpU(d, vec2(SdfSphere(p - vec3(-2.5, 3., 1.)), 2.));
+	d = OpU(d, vec2(SdfBox(p - vec3(3., 2.5, -.5), vec3(.5, 1., 1.), 0.), 3.));
 	return d;
 }
 
@@ -113,6 +167,7 @@ vec2 Tri(vec2 x) {
 	return 1. - 2. * abs(h);
 }
 
+// https://iquilezles.org/articles/checkerfiltering
 float CheckersGrad(vec2 uv, vec2 ddx, vec2 ddy) {
 	vec2 w = max(abs(ddx), abs(ddy)) + 0.01; // filter kernel
 	vec2 i = (Tri(uv + 0.5 * w) - Tri(uv - 0.5 * w)) / w; // analytical integral (box filter)
@@ -120,7 +175,7 @@ float CheckersGrad(vec2 uv, vec2 ddx, vec2 ddy) {
 }
 
 vec3 Render(vec2 uv, vec2 px, vec2 py) {
-	vec3 ro = vec3(4. * cos(.1 * TIME), 2., 4. * sin(.1 * TIME));
+	vec3 ro = vec3(4. * cos(.1 * TIME), 1. + .5 * sin(.3 * TIME), 4. * sin(.1 * TIME));
 	if (iMouse.z > 0.01) {
 		float theta = iMouse.x / iRes.x * 2. * PI;
 		ro = vec3(4. * cos(theta), 2., 4. * sin(theta));
@@ -135,7 +190,7 @@ vec3 Render(vec2 uv, vec2 px, vec2 py) {
 	if (t.y > 0.) {
 		vec3 p = ro + t.x * rd;
 		vec3 n = t.y < 1.1 ? vec3(0., 1., 0.) : CalcNormal(p);
-		vec3 light = vec3(5., 5., 0.);// vec3(2. * cos(TIME), 1., 2. * sin(TIME) + 2.);
+		vec3 light = vec3(6., 4., 5.);// vec3(2. * cos(TIME), 1., 2. * sin(TIME) + 2.);
 		float dif = clamp(dot(normalize(light - p), n), 0., 1.);
 		p += PRECISION * n;
 		float st = SoftShadow(p, normalize(light - p), 10.);
@@ -143,13 +198,19 @@ vec3 Render(vec2 uv, vec2 px, vec2 py) {
 		float amb = 0.5 + 0.5 * dot(n, vec3(0., 1., 0.)); // 环境光
 		vec3 c = vec3(0.);
 		if (t.y > 1.9 && t.y < 2.1) {
-			// 球
+			// 2 球
 			c = vec3(1., 0., 0.);
 		} else if (t.y > 2.9 && t.y < 3.1) {
-			// 立方体
+			// 3 立方体
 			c = vec3(1., 1., 0.);
+		} else if (t.y > 3.9 && t.y < 4.1) {
+			// 4 小电视主体盒子
+			c = vec3(1.);
+		} else if (t.y > 4.9 && t.y < 5.1) {
+			// 5 小电视黑色组件
+			c = vec3(0.);
 		} else if (t.y > 0.9 && t.y < 1.1) {
-			// 平面
+			// 1 平面
 			vec3 rdx = normalize(cam * vec3(px, fl));
 			vec3 rdy = normalize(cam * vec3(py, fl));
 			vec3 ddx = ro.y * (rd/rd.y - rdx/rdx.y);
