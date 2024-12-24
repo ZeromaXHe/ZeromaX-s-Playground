@@ -1,15 +1,13 @@
-// Shadertoy教程07——Ray Marching
-// https://www.bilibili.com/video/BV18q4y1271t
-// Shadertoy教程08——3D摄像机设置
-// https://www.bilibili.com/video/BV1PS4y1j7Xg
-// Shadertoy教程09——矩形的SDF函数
-// https://www.bilibili.com/video/BV1zS4y157de
-// Shadertoy教程10——多物体与阴影
-// https://www.bilibili.com/video/BV1HL411F74d
-// Shadertoy教程12——多物体着色与棋盘贴图
-// https://www.bilibili.com/video/BV1bm4y1f7B5
-// Shadertoy教程13——制作一个B站小电视
-// https://www.bilibili.com/video/BV1kY41147MB
+// Shadertoy教程
+// 07——Ray Marching：https://www.bilibili.com/video/BV18q4y1271t
+// 08——3D摄像机设置：https://www.bilibili.com/video/BV1PS4y1j7Xg
+// 09——矩形的SDF函数： https://www.bilibili.com/video/BV1zS4y157de
+// 10——多物体与阴影： https://www.bilibili.com/video/BV1HL411F74d
+// 12——多物体着色与棋盘贴图： https://www.bilibili.com/video/BV1bm4y1f7B5
+// 13——制作一个B站小电视： https://www.bilibili.com/video/BV1kY41147MB
+// 14——布尔运算： https://www.bilibili.com/video/BV1pL4y1u7Cz
+// 15——Smooth Minimum： https://www.bilibili.com/video/BV1CB4y1m7V8
+// 16——环境光遮蔽： https://www.bilibili.com/video/BV1KL4y1c79A
 shader_type canvas_item;
 
 #define RAYMARCH_TIME 120
@@ -85,6 +83,7 @@ vec4 OpElongate(vec3 p, vec3 h) {
 }
 
 // 用于圆滑连接边界
+// https://iquilezles.org/articles/smin
 float Smin(float a, float b, float k) {
 	float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
 	return mix(b, a, h) - k * h * (1.0 - h);
@@ -211,54 +210,74 @@ float CheckersGrad(vec2 uv, vec2 ddx, vec2 ddy) {
 	return 0.5 - 0.5 * i.x * i.y; // xor pattern
 }
 
+// n: 法向量
+// https://iquilezles.org/articles/nvscene2008/rwwtt.pdf
+float CalcAO(vec3 p, vec3 n) {
+	float occ = 0.0;
+	float sca = 1.0;
+	for (int i = 0; i < 5; i++) {
+		float h = 0.01 + 0.03 * float(i);
+		float d = Map(p + n * h).x;
+		occ += (h - d) * sca;
+		sca *= 0.95;
+		if (occ > 0.35)
+			break;
+	}
+	return clamp(1. - 3. * occ, 0., 1.);
+}
+
 vec3 Render(vec2 uv, vec2 px, vec2 py) {
-	vec3 ro = vec3(4. * cos(.1 * TIME), 4. + .5 * sin(.3 * TIME), 4. * sin(.1 * TIME));
+	vec3 camLoc = vec3(4. * cos(.1 * TIME), 4. + .5 * sin(.3 * TIME), 4. * sin(.1 * TIME));
 	if (iMouse.z > 0.01) {
 		float theta = iMouse.x / iRes.x * 2. * PI;
-		ro = vec3(4. * cos(theta), 2., 4. * sin(theta));
+		camLoc = vec3(4. * cos(theta), 2., 4. * sin(theta));
 	}
-	vec3 ta = vec3(0., 1., 0.); // 摄像机目标
-	mat3 cam = SetCamera(ta, ro, 0.);
+	vec3 target = vec3(0., 1., 0.); // 摄像机目标
+	mat3 camMat = SetCamera(target, camLoc, 0.);
 	float fl = 1.; // 焦距
-	vec3 rd = normalize(cam * vec3(uv, fl));
+	vec3 rd = normalize(camMat * vec3(uv, fl));
 	vec3 bg = vec3(.7, .7, .9); // 背景颜色
 	vec3 color = bg - rd.y * vec3(.1);
-	vec2 t = RayMatch(ro, rd);
+	vec2 t = RayMatch(camLoc, rd);
 	if (t.y > 0.) {
-		vec3 p = ro + t.x * rd;
-		vec3 n = t.y < 1.1 ? vec3(0., 1., 0.) : CalcNormal(p);
-		vec3 light = vec3(6., 10., 5.);// vec3(2. * cos(TIME), 1., 2. * sin(TIME) + 2.);
-		float dif = clamp(dot(normalize(light - p), n), 0., 1.);
+		vec3 p = camLoc + t.x * rd;
+		vec3 n = t.y < 1.1 ? vec3(0., 1., 0.) /*平面的情况*/ : CalcNormal(p);
+		vec3 lightLoc = vec3(3. + 3. * cos(TIME), 10., 2.5 + 2.5 * sin(TIME));
+		vec3 lightColor = vec3(.7);
+		float dif = clamp(dot(normalize(lightLoc - p), n), 0., 1.);
 		p += PRECISION * n;
-		float st = SoftShadow(p, normalize(light - p), 10.);
-		dif *= st;
-		float amb = 0.5 + 0.5 * dot(n, vec3(0., 1., 0.)); // 环境光
-		vec3 c = vec3(0.);
+		float shadow = SoftShadow(p, normalize(lightLoc - p), 10.);
+		vec3 ambDirect = vec3(0., 1., 0.);
+		float amb = 0.5 + 0.5 * dot(n, normalize(ambDirect)); // 环境光
+		vec3 ambColor = vec3(0.);
 		if (t.y > 1.9 && t.y < 2.1) {
 			// 2 红色
-			c = vec3(1., 0., 0.);
+			ambColor = vec3(1., 0., 0.);
 		} else if (t.y > 2.9 && t.y < 3.1) {
 			// 3 黄色
-			c = vec3(1., 1., 0.);
+			ambColor = vec3(1., 1., 0.);
 		} else if (t.y > 5.9 && t.y < 6.1) {
 			// 6 青色
-			c = vec3(0., 1., 1.);
+			ambColor = vec3(0., 1., 1.);
 		} else if (t.y > 3.9 && t.y < 4.1) {
 			// 4 小电视主体盒子
-			c = vec3(1.);
+			ambColor = vec3(1.);
 		} else if (t.y > 4.9 && t.y < 5.1) {
 			// 5 小电视黑色组件
-			c = vec3(0.);
+			ambColor = vec3(0.);
 		} else if (t.y > 0.9 && t.y < 1.1) {
 			// 1 平面
-			vec3 rdx = normalize(cam * vec3(px, fl));
-			vec3 rdy = normalize(cam * vec3(py, fl));
-			vec3 ddx = ro.y * (rd/rd.y - rdx/rdx.y);
-			vec3 ddy = ro.y * (rd/rd.y - rdy/rdy.y);
+			vec3 rdx = normalize(camMat * vec3(px, fl));
+			vec3 rdy = normalize(camMat * vec3(py, fl));
+			vec3 ddx = camLoc.y * (rd/rd.y - rdx/rdx.y);
+			vec3 ddy = camLoc.y * (rd/rd.y - rdy/rdy.y);
 			// 棋盘纹理
-			c = vec3(.1) + 0.1 * CheckersGrad(p.xz, ddx.xz, ddy.xz);
+			ambColor = vec3(.1) + 0.1 * CheckersGrad(p.xz, ddx.xz, ddy.xz);
 		}
-		color = amb * c + dif * vec3(.7);
+		color = amb * ambColor + dif * lightColor * shadow;
+		// 计算环境光遮蔽
+		float ao = CalcAO(p, n);
+		color *= ao;
 	}
 	return sqrt(color); // gamma 矫正
 }
