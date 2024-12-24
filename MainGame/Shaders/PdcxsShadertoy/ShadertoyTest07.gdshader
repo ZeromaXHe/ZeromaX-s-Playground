@@ -6,10 +6,10 @@
 // https://www.bilibili.com/video/BV1zS4y157de
 // Shadertoy教程10——多物体与阴影
 // https://www.bilibili.com/video/BV1HL411F74d
+// Shadertoy教程12——多物体着色与棋盘贴图
+// https://www.bilibili.com/video/BV1bm4y1f7B5
 shader_type canvas_item;
 
-#define TMIN 0.1
-#define TMAX 100.
 #define RAYMARCH_TIME 120
 #define PRECISION .001
 #define AA 3
@@ -28,7 +28,7 @@ float SdfSphere(vec3 p) {
 	return length(p) - 1.;
 }
 
-float SdfRect(vec3 p, vec3 b) {
+float SdfBox(vec3 p, vec3 b) {
 	vec3 d = abs(p) - b;
 	return length(max(d, 0.)) - min(max(d.x, max(d.y, d.z)), 0.);
 }
@@ -37,33 +37,45 @@ float SdfPlane(vec3 p) {
 	return p.y;
 }
 
-float Map(vec3 p) {
-	float d = SdfSphere(p);
-	d = min(d, SdfPlane(p + vec3(0., 1., 0.)));
+vec2 OpU(vec2 a, vec2 b) {
+	return a.x < b.x ? a: b;
+}
+
+vec2 Map(vec3 p) {
+	vec2 d = vec2(SdfSphere(p - vec3(0., 1., 0.)), 2.);
+	d = OpU(d, vec2(SdfBox(p - vec3(2., 1., 0.), vec3(.5, 1., 1.)), 3.));
 	return d;
 }
 
-float RayMatch(vec3 ro, vec3 rd) {
-	float t = TMIN;
-	for (int i = 0; i < RAYMARCH_TIME && t < TMAX; i++) {
+vec2 RayMatch(vec3 ro, vec3 rd) {
+	float t = 0.1;
+	float tmax = 40.;
+	vec2 res = vec2(-1.);
+	if (rd.y < 0.) {
+		float tp = -ro.y / rd.y;
+		tmax = min(tmax, tp);
+		res = vec2(tp, 1.);
+	}
+	for (int i = 0; i < RAYMARCH_TIME && t < tmax; i++) {
 		vec3 p = ro + t * rd;
-		float d = Map(p);
-		if (d < PRECISION) {
+		vec2 d = Map(p);
+		if (d.x < PRECISION) {
+			res = vec2(t, d.y);
 			break;
 		}
-		t += d;
+		t += d.x;
 	}
-	return t;
+	return res;
 }
 
 // https://iquilezles.org/articles/normalsSDF
 vec3 CalcNormal(vec3 p) {
 	const float h = 0.0001;
 	const vec2 k = vec2(1, -1);
-	return normalize(k.xyy * Map(p + k.xyy * h)
-		+ k.yyx * Map(p + k.yyx * h)
-		+ k.yxy * Map(p + k.yxy * h)
-		+ k.xxx * Map(p + k.xxx * h));
+	return normalize(k.xyy * Map(p + k.xyy * h).x
+		+ k.yyx * Map(p + k.yyx * h).x
+		+ k.yxy * Map(p + k.yxy * h).x
+		+ k.xxx * Map(p + k.xxx * h).x);
 }
 
 mat3 SetCamera(vec3 ta, vec3 ro, float cr) {
@@ -78,10 +90,12 @@ mat3 SetCamera(vec3 ta, vec3 ro, float cr) {
 float SoftShadow(vec3 ro, vec3 rd, float k) {
 	float res = 1.0;
 	float ph = 1e20;
-	for (float t = TMIN; t < TMAX;) {
+	float tmin = .1;
+	float tmax = 10.;
+	for (float t = tmin; t < tmax;) {
 		// 这里循环得小心，尽量别在使用中修改。
 		// 写到一半时假如被 Godot 编译成了死循环，就会直接卡死…… 坑啊！
-		float h = Map(ro + rd * t);
+		float h = Map(ro + rd * t).x;
 		if (h < .001) 
 			return 0.0;
 		float y = h * h / (2.0 * ph);
@@ -93,27 +107,57 @@ float SoftShadow(vec3 ro, vec3 rd, float k) {
 	return res;
 }
 
-vec3 Render(vec2 uv) {
-	vec3 color = vec3(0.);
-	vec3 ro = vec3(4. * cos(TIME), 1., 4. * sin(TIME));
+// triangular signal
+vec2 Tri(vec2 x) {
+	vec2 h = fract(x * .5) - .5;
+	return 1. - 2. * abs(h);
+}
+
+float CheckersGrad(vec2 uv, vec2 ddx, vec2 ddy) {
+	vec2 w = max(abs(ddx), abs(ddy)) + 0.01; // filter kernel
+	vec2 i = (Tri(uv + 0.5 * w) - Tri(uv - 0.5 * w)) / w; // analytical integral (box filter)
+	return 0.5 - 0.5 * i.x * i.y; // xor pattern
+}
+
+vec3 Render(vec2 uv, vec2 px, vec2 py) {
+	vec3 ro = vec3(4. * cos(.1 * TIME), 2., 4. * sin(.1 * TIME));
 	if (iMouse.z > 0.01) {
 		float theta = iMouse.x / iRes.x * 2. * PI;
-		ro = vec3(4. * cos(theta), 1., 4. * sin(theta));
+		ro = vec3(4. * cos(theta), 2., 4. * sin(theta));
 	}
-	vec3 ta = vec3(0.);
+	vec3 ta = vec3(0., 1., 0.); // 摄像机目标
 	mat3 cam = SetCamera(ta, ro, 0.);
-	vec3 rd = normalize(cam * vec3(uv, 1.));
-	float t = RayMatch(ro, rd);
-	if (t < TMAX) {
-		vec3 p = ro + t * rd;
-		vec3 n = CalcNormal(p);
-		vec3 light = vec3(2., 3., 0.);// vec3(2. * cos(TIME), 1., 2. * sin(TIME) + 2.);
+	float fl = 1.; // 焦距
+	vec3 rd = normalize(cam * vec3(uv, fl));
+	vec3 bg = vec3(.7, .7, .9); // 背景颜色
+	vec3 color = bg - rd.y * vec3(.1);
+	vec2 t = RayMatch(ro, rd);
+	if (t.y > 0.) {
+		vec3 p = ro + t.x * rd;
+		vec3 n = t.y < 1.1 ? vec3(0., 1., 0.) : CalcNormal(p);
+		vec3 light = vec3(5., 5., 0.);// vec3(2. * cos(TIME), 1., 2. * sin(TIME) + 2.);
 		float dif = clamp(dot(normalize(light - p), n), 0., 1.);
 		p += PRECISION * n;
 		float st = SoftShadow(p, normalize(light - p), 10.);
 		dif *= st;
 		float amb = 0.5 + 0.5 * dot(n, vec3(0., 1., 0.)); // 环境光
-		color = amb * vec3(0.23) + dif * vec3(1.);
+		vec3 c = vec3(0.);
+		if (t.y > 1.9 && t.y < 2.1) {
+			// 球
+			c = vec3(1., 0., 0.);
+		} else if (t.y > 2.9 && t.y < 3.1) {
+			// 立方体
+			c = vec3(1., 1., 0.);
+		} else if (t.y > 0.9 && t.y < 1.1) {
+			// 平面
+			vec3 rdx = normalize(cam * vec3(px, fl));
+			vec3 rdy = normalize(cam * vec3(py, fl));
+			vec3 ddx = ro.y * (rd/rd.y - rdx/rdx.y);
+			vec3 ddy = ro.y * (rd/rd.y - rdy/rdy.y);
+			// 棋盘纹理
+			c = vec3(.1) + 0.1 * CheckersGrad(p.xz, ddx.xz, ddy.xz);
+		}
+		color = amb * c + dif * vec3(.7);
 	}
 	return sqrt(color); // gamma 矫正
 }
@@ -125,7 +169,9 @@ void fragment() {
 		for (int n = 0; n < AA; n++) {
 			vec2 offset = 2. * (vec2(float(m), float(n)) / float(AA) - 0.5);
 			vec2 uv = FixUV(FRAGCOORD.xy + offset);
-			color += Render(uv);
+			vec2 px = FixUV(FRAGCOORD.xy + vec2(1., 0.) + offset);
+			vec2 py = FixUV(FRAGCOORD.xy + vec2(0., 1.) + offset);
+			color += Render(uv, px, py);
 		}
 	}
 	COLOR = vec4(color / float(AA * AA), 1.);
