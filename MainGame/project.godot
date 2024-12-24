@@ -102,3 +102,7 @@ elevation_min_max={
 "type": "vec2",
 "value": Vector2(0, 0)
 }
+iMouse={
+"type": "vec3",
+"value": Vector3(0, 0, 0)
+}

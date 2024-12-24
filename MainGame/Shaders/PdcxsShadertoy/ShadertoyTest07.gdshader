@@ -1,5 +1,7 @@
 // Shadertoy教程07——Ray Marching
 // https://www.bilibili.com/video/BV18q4y1271t
+// Shadertoy教程08——3D摄像机设置
+// https://www.bilibili.com/video/BV1PS4y1j7Xg
 shader_type canvas_item;
 
 #define TMIN 0.1
@@ -8,6 +10,8 @@ shader_type canvas_item;
 #define PRECISION .001
 #define AA 3
 
+global uniform vec3 iMouse;
+
 varying vec2 iRes;
 
 vec2 FixUV(vec2 c) {
@@ -15,7 +19,7 @@ vec2 FixUV(vec2 c) {
 }
 
 float SdfSphere(vec3 p) {
-	return length(p - vec3(0., 0., 2.)) - 1.5;
+	return length(p) - 1.5;
 }
 
 float RayMatch(vec3 ro, vec3 rd) {
@@ -40,15 +44,29 @@ vec3 CalcNormal(vec3 p) {
 		+ k.xxx * SdfSphere(p + k.xxx * h));
 }
 
+mat3 SetCamera(vec3 ta, vec3 ro, float cr) {
+	vec3 z = normalize(ta - ro);
+	vec3 cp = vec3(sin(cr), cos(cr), 0.);
+	vec3 x = normalize(cross(z, cp));
+	vec3 y = cross(x, z);
+	return mat3(x, y, z);
+}
+
 vec3 Render(vec2 uv) {
 	vec3 color = vec3(0.);
-	vec3 ro = vec3(0., 0., -1.5);
-	vec3 rd = normalize(vec3(uv, 0.) - ro);
+	vec3 ro = vec3(2. * cos(TIME), 1. + 0.2 * cos(TIME / 2.), 2. * sin(TIME));
+	if (iMouse.z > 0.01) {
+		float theta = iMouse.x / iRes.x * 2. * PI;
+		ro = vec3(2. * cos(theta), 1., 2. * sin(theta));
+	}
+	vec3 ta = vec3(0.);
+	mat3 cam = SetCamera(ta, ro, 0.);
+	vec3 rd = normalize(cam * vec3(uv, 1.));
 	float t = RayMatch(ro, rd);
 	if (t < TMAX) {
 		vec3 p = ro + t * rd;
 		vec3 n = CalcNormal(p);
-		vec3 light = vec3(2. * cos(TIME), 1., 2. * sin(TIME) + 2.);
+		vec3 light = vec3(2., 1., 0.);// vec3(2. * cos(TIME), 1., 2. * sin(TIME) + 2.);
 		float dif = clamp(dot(normalize(light - p), n), 0., 1.);
 		float amb = 0.5 + 0.5 * dot(n, vec3(0., 1., 0.)); // 环境光
 		color = amb * vec3(0.25, 0.23, 0.23) + dif * vec3(1.);

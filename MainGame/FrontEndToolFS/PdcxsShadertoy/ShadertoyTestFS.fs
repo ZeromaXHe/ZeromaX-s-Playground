@@ -17,9 +17,10 @@ type ShadertoyTestFS() as this =
             // TODO：不知道怎么从编辑器里获取鼠标坐标…… 所以 Shadertoy iMouse 无法在编辑器中查看，目前只有启动场景才行。
             // https://github.com/godotengine/godot-proposals/issues/3376
             // 感觉好像得作为 EditorPlugin 插件来写，但那样有点麻烦…… 暂时先偷懒吧
-            let coords = EditorInterface.Singleton.GetEditorViewport2D().GetMousePosition()
+            // let coords = EditorInterface.Singleton.GetEditorViewport2D().GetMousePosition()
             // let coords = this.GetViewport().GetMousePosition()
-            test06ShaderMat.SetShaderParameter("iMouse", Vector3(coords.X, coords.Y, 1.0f))
+            // RenderingServer.GlobalShaderParameterSet("iMouse", Vector3(coords.X, coords.Y, 1.0f))
+            ()
         else
             let coords = this.GetLocalMousePosition()
 
@@ -29,4 +30,4 @@ type ShadertoyTestFS() as this =
                 else
                     0.0f
 
-            test06ShaderMat.SetShaderParameter("iMouse", Vector3(coords.X, coords.Y, mouseLeft))
+            RenderingServer.GlobalShaderParameterSet("iMouse", Vector3(coords.X, coords.Y, mouseLeft))

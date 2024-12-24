@@ -4,7 +4,7 @@ shader_type canvas_item;
 
 #define r .5 + .2 * sin(TIME)
 
-uniform vec3 iMouse;
+global uniform vec3 iMouse;
 
 varying vec2 iRes;
 

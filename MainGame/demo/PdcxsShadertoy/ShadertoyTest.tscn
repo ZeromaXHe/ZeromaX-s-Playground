@@ -20,7 +20,6 @@ shader = ExtResource("3_7vdol")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_uvb6h"]
 shader = ExtResource("4_mlvwv")
-shader_parameter/iMouse = null
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_igiyd"]
 shader = ExtResource("6_mdgwf")
