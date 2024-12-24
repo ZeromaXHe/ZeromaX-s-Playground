@@ -2,6 +2,8 @@
 // https://www.bilibili.com/video/BV18q4y1271t
 // Shadertoy教程08——3D摄像机设置
 // https://www.bilibili.com/video/BV1PS4y1j7Xg
+// Shadertoy教程09——矩形的SDF函数
+// https://www.bilibili.com/video/BV1zS4y157de
 shader_type canvas_item;
 
 #define TMIN 0.1
@@ -22,11 +24,16 @@ float SdfSphere(vec3 p) {
 	return length(p) - 1.5;
 }
 
+float SdfRect(vec3 p, vec3 b) {
+	vec3 d = abs(p) - b;
+	return length(max(d, 0.)) - min(max(d.x, max(d.y, d.z)), 0.);
+}
+
 float RayMatch(vec3 ro, vec3 rd) {
 	float t = TMIN;
 	for (int i = 0; i < RAYMARCH_TIME && t < TMAX; i++) {
 		vec3 p = ro + t * rd;
-		float d = SdfSphere(p);
+		float d = SdfRect(p, vec3(.5 + .1 * sin(TIME), .3 + .2 * cos(TIME), .3));
 		if (d < PRECISION) {
 			break;
 		}
