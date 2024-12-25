@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3 uid="uid://l0xs4sec2gc7"]
+[gd_scene load_steps=20 format=3 uid="uid://l0xs4sec2gc7"]
 
 [ext_resource type="Shader" path="res://Shaders/PdcxsShadertoy/ShadertoyTest01.gdshader" id="1_7bqat"]
 [ext_resource type="Script" path="res://demo/PdcxsShadertoy/ShadertoyTest.cs" id="1_08510"]
@@ -9,6 +9,7 @@
 [ext_resource type="Shader" path="res://Shaders/PdcxsShadertoy/ShadertoyTest17.gdshader" id="7_y0yw3"]
 [ext_resource type="Texture2D" uid="uid://crewtvqme5bc7" path="res://icon.svg" id="8_oxi0c"]
 [ext_resource type="Shader" path="res://Shaders/PdcxsShadertoy/ShadertoyTest18.gdshader" id="9_asoxo"]
+[ext_resource type="Shader" path="res://Shaders/PdcxsShadertoy/ShadertoyTest19.gdshader" id="10_q6qp1"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_6ofdj"]
 shader = ExtResource("1_7bqat")
@@ -33,6 +34,9 @@ shader_parameter/iChannel0 = ExtResource("8_oxi0c")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_23hdu"]
 shader = ExtResource("9_asoxo")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_2i5qp"]
+shader = ExtResource("10_q6qp1")
 
 [node name="ShadertoyTest" type="Control"]
 layout_mode = 3
@@ -110,7 +114,18 @@ grow_vertical = 2
 texture = SubResource("CanvasTexture_bvjl1")
 
 [node name="Test18" type="TextureRect" parent="."]
+visible = false
 material = SubResource("ShaderMaterial_23hdu")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = SubResource("CanvasTexture_bvjl1")
+
+[node name="Test19" type="TextureRect" parent="."]
+material = SubResource("ShaderMaterial_2i5qp")
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
