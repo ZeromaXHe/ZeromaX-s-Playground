@@ -4,12 +4,20 @@
 // https://www.bilibili.com/video/BV1EF411B7Mo
 // Shadertoy教程05——函数绘制的优化、mod与subsampling
 // https://www.bilibili.com/video/BV1Ka411r7yK
+// Shadertoy教程22——随机地形生成方法
+// https://www.bilibili.com/video/BV1Mo4y1t72X
 shader_type canvas_item;
 
 varying vec2 iRes;
 
 vec2 FixUV(vec2 c) {
-	return 3. * (2. * c - iRes) / min(iRes.x, iRes.y);
+	vec2 uv = (2. * c - iRes) / min(iRes.x, iRes.y);
+	uv.y *= -1.; // 如果在 Godot 中使用 Shadertoy/GLSL 的 UV, 则 y 坐标将颠倒翻转.
+	return uv;
+}
+
+float Random(float x) {
+	return abs(fract(25563.2466 * sin(x * 2.333)));
 }
 
 vec3 Grid(vec2 uv) {
@@ -31,7 +39,7 @@ float Segment(vec2 p, vec2 a, vec2 b, float w) {
 	return f;
 }
 
-float Func(float x) {
+float Func03(float x) {
 	float T = 3. + sin(TIME);
 	return sin(2. * PI / T * x);
 }
@@ -44,6 +52,26 @@ float Func05(float x) {
 	return floor(mod(x, 2.));
 }
 
+float Func22(float x) {
+	float i = floor(x);
+	float u = fract(x);
+	float r1 = Random(i);
+	float r2 = Random(i + 1.);
+	return mix(r1, r2, u * u * (3.0 - 2.0 * u));
+}
+
+float Func(float x) {
+	float t = mod(TIME, 10.0);
+	if (t < 2.0) {
+		return Func03(x);
+	} else if (t < 3.0) {
+		return Func04(x);
+	} else if (t < 4.0) {
+		return Func05(x);
+	}
+	return Func22(x);
+}
+
 float FuncPlot(vec2 uv) {
 	float f = Func(uv.x);
 	return smoothstep(f - .01, f + .01, uv.y);
@@ -53,14 +81,14 @@ float FuncPlot(vec2 uv) {
 
 void fragment() {
 	iRes = 1.0 / SCREEN_PIXEL_SIZE;
-	vec2 uv = FixUV(FRAGCOORD.xy);
+	vec2 uv = 3. * FixUV(FRAGCOORD.xy);
 	vec3 color = Grid(uv);
 	float seg = Segment(uv, vec2(1., 2.), vec2(-2., -2.), fwidth(uv.x));
 	float sin_line = 0.;
 	for (int m = 0; m < AA; m++) {
 		for (int n = 0; n < AA; n++) {
 			vec2 offset = (vec2(float(m), float(n)) - .5 * float(AA)) / float(AA) * 2.;
-			sin_line += FuncPlot(FixUV(FRAGCOORD.xy + offset));
+			sin_line += FuncPlot(3. * FixUV(FRAGCOORD.xy + offset));
 		}
 	}
 	if (sin_line > float(AA * AA) / 2.)

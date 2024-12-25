@@ -2,10 +2,13 @@
 // https://www.bilibili.com/video/BV1ud4y1s7c1
 // Shadertoy教程21——制作天空
 // https://www.bilibili.com/video/BV1UY411q7tE
+// Shadertoy教程22——随机地形生成方法
+// https://www.bilibili.com/video/BV1Mo4y1t72X
 shader_type canvas_item;
 
 #define EPSILON 0.001
 #define MAX_DIST 200.
+#define MAX_ITER 300
 
 varying vec2 iRes;
 
@@ -15,17 +18,41 @@ vec2 FixUV(vec2 c) {
 	return uv;
 }
 
+float Hash12(vec2 p) {
+	vec3 p3 = fract(vec3(p.xyx) * .1031);
+	p3 += dot(p3, p3.yzx + 33.33);
+	return fract((p3.x + p3.y) * p3.z);
+}
+
+float Random(vec2 pos) {
+	return Hash12(pos);
+	// 不知道为啥在 Godot 这种实现就会有突变？视频里正常
+	//return abs(fract(78523.215 * sin(dot(pos, vec2(25.32, 547.23)))));
+}
+
+float Noise(vec2 pos) {
+	vec2 i = floor(pos);
+	vec2 f = fract(pos);
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	float a = Random(i);
+	float b = Random(i + vec2(1.0, 0.));
+	float c = Random(i + vec2(0.0, 1.0));
+	float d = Random(i + vec2(1.0, 1.0));
+	return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x)
+		+ (d - b) * u.x * u.y;
+}
+
 float Ground(vec2 p) {
-	return sin(p.x) * sin(p.y);
+	return 2. * Noise(p);
 }
 
 float RayMatch(vec3 ro, vec3 rd) {
 	float t = 0.;
-	for (int i = 0; i < 128; i++) {
+	for (int i = 0; i < MAX_ITER; i++) {
 		vec3 p = ro + t * rd;
 		float h = p.y - Ground(p.xz); // 取巧的简便写法，直接取垂直距离，不准确但够用
-		if (abs(h) < EPSILON || t > MAX_DIST) break;
-		t += h;
+		if (abs(h) < EPSILON * t || t > MAX_DIST) break;
+		t += 0.2 * h;
 	}
 	return t;
 }
@@ -66,15 +93,14 @@ vec3 Render(vec2 uv) {
 	col += 0.25 * vec3(1.0, 0.7, 0.4) * pow(sunDot, 512.0);
 	// 地平线以下的深蓝
 	col = mix(col, 0.68 * vec3(0.4, 0.65, 1.0), pow(1.0 - max(rd.y, 0.0), 16.0));
-	col = sqrt(col); // gamma 校正
 	float t = RayMatch(ro, rd);
 	if (t < MAX_DIST) {
 		vec3 p = ro + t * rd;
 		vec3 n = CalcNorm(p);
 		vec3 difColor = vec3(0.9, 0.8, 0.);
-		col = 0.2 + 0.8 * difColor * dot(n, vec3(0, 1, 0));
+		col = difColor * dot(n, vec3(0, 1, 0));
 	}
-	return col;
+	return sqrt(col); // gamma 校正
 }
 
 void fragment() {
