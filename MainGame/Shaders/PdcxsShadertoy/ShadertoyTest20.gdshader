@@ -6,6 +6,7 @@
 // 24——山体形状与性能优化: https://www.bilibili.com/video/BV1nX4y1W7Lj
 // 25——雾气与户外光照: https://www.bilibili.com/video/BV1xN41167Wv
 // 26——Fractal Brownian Motion: https://www.bilibili.com/video/BV1Vp4y1w7A9
+// 27——山体材质: https://www.bilibili.com/video/BV1fN4y127Pw
 shader_type canvas_item;
 
 #define EPSILON 0.001
@@ -125,7 +126,7 @@ float SoftShadow(vec3 ro, vec3 rd, float dis) {
 }
 
 vec3 CalcNorm(vec3 p, float t) {
-	vec2 epsilon = vec2(0.001 * t, 0);
+	vec2 epsilon = vec2(0.0028 * t, 0);
 	return normalize(vec3(GroundH(p.xz - epsilon.xy) - GroundH(p.xz + epsilon.xy),
 		2.0 * epsilon.x,
 		GroundH(p.xz - epsilon.yx) - GroundH(p.xz + epsilon.yx)
@@ -201,21 +202,46 @@ vec3 Render(vec2 uv) {
 	} else {
 		vec3 p = ro + t * rd;
 		vec3 n = CalcNorm(p, t);
-		vec3 difColor = vec3(0.67, 0.57, 0.44);
-		col = 0.1 * difColor; // 漫反射作为基础颜色
+		// 漫反射作为基础颜色
+		vec3 difColor = mix(vec3(0.08, 0.05, 0.03),
+			vec3(0.1, 0.09, 0.08), Noise(p.xz * 0.02).x);
+		float r = Noise(p.xz * 0.1).x;
+		// 岩石
+		col = (r * 0.25 + 0.75) * 0.9 * difColor; 
+		// 模拟较平地表植被颜色
+		col = mix(col, vec3(0.09, 0.06, 0.03) * (0.5 + 0.5 * r),
+			smoothstep(0.7, 0.9, n.y)); // 法向量的 y 判断垂直程度
+		// 模拟平缓植被颜色
+		col = mix(col, vec3(0.045, 0.045, 0.015) * (0.25 + 0.75 * r),
+			smoothstep(0.95, 1., n.y));
+		// 山体深浅不一颜色效果
+		col *= 0.1 + 1.8 * sqrt(Fbm(p.xz * 0.04) * Fbm(p.xz * 0.005));
+		// 雪
+		float h = smoothstep(95.0, 130.0, p.y + 35.0 * Fbm(0.01 * p.xz));
+		float e = smoothstep(1.0 - 0.5 * h, 1.0 - 0.1 * h, n.y); // 判断平缓处积雪
+		float o = 0.3 + 0.7 * smoothstep(0.0, 0.1, n.y + h * h);
+		float s = h * e * o;
+		col = mix(col, 0.29 * vec3(0.62, 0.65, 0.7),
+			smoothstep(0.1, 0.9, s));
 		vec3 lin = vec3(0.); // 线性空间
 		float dif = clamp(dot(sunLight, n), 0., 1.);
 		float sh = SoftShadow(p + 0.01 * sunLight, sunLight, t); // 阴影
 		float amb = clamp(0.5 + 0.5 * n.y, 0., 1.); // 环境光遮罩
 		float bac = clamp(0.2 + 0.8 * dot(vec3(-sunLight.x, 0., sunLight.z), n),
 			0., 1.); // 背景光照
-		lin += dif * vec3(8.0, 5.0, 3.0) * 1.3
+		lin += dif * vec3(8.0, 5.0, 3.0) * 1.8
 			* vec3(sh, sh * sh * 0.5 + 0.5 * sh, sh * sh * 0.8 + 0.2 * sh);
-		lin += amb * vec3(0.4, 0.6, 1.) * 5.2;
-		lin += bac * vec3(0.4, 0.5, 0.6) * 1.5;
+		lin += amb * vec3(0.4, 0.6, 1.) * 1.2;
+		lin += bac * vec3(0.4, 0.5, 0.6);
 		col *= lin;
+		// 高光
+		vec3 hal = normalize(sunLight - rd);
+		col += (0.3 * s + 0.7) * dif * sh
+			* (0.04 + 0.96 * pow(clamp(dot(hal, rd), 0., 1.), 5.))
+			* vec3(7., 5., 3.) * pow(clamp(dot(n, hal), 0., 1.), 16.);
 		// 雾效果
-		col = mix(col, 0.65 * vec3(0.5, 0.75, 1.0), 1. - exp(-pow(0.002 * t, 1.5)));
+		col = mix(col, 0.65 * vec3(0.5, 0.75, 1.0),
+			1. - exp(-pow(0.002 * t, 1.5)));
 	}
 	col += 0.3 * vec3(1.0, 0.7, 0.3) * pow(sunDot, 8.0); // 太阳光晕
 	//return sqrt(col); // gamma 校正
