@@ -1,9 +1,8 @@
-// Shadertoy教程20——地面渲染技巧
-// https://www.bilibili.com/video/BV1ud4y1s7c1
-// Shadertoy教程21——制作天空
-// https://www.bilibili.com/video/BV1UY411q7tE
-// Shadertoy教程22——随机地形生成方法
-// https://www.bilibili.com/video/BV1Mo4y1t72X
+// Shadertoy教程
+// 20——地面渲染技巧: https://www.bilibili.com/video/BV1ud4y1s7c1
+// 21——制作天空: https://www.bilibili.com/video/BV1UY411q7tE
+// 22——随机地形生成方法: https://www.bilibili.com/video/BV1Mo4y1t72X
+// 23——制作山体: https://www.bilibili.com/video/BV18P411i7PF
 shader_type canvas_item;
 
 #define EPSILON 0.001
@@ -30,20 +29,36 @@ float Random(vec2 pos) {
 	//return abs(fract(78523.215 * sin(dot(pos, vec2(25.32, 547.23)))));
 }
 
-float Noise(vec2 pos) {
+vec3 Noise(vec2 pos) {
 	vec2 i = floor(pos);
 	vec2 f = fract(pos);
 	vec2 u = f * f * (3.0 - 2.0 * f);
+	vec2 du = 6. * u * (1. - u);
 	float a = Random(i);
 	float b = Random(i + vec2(1.0, 0.));
 	float c = Random(i + vec2(0.0, 1.0));
 	float d = Random(i + vec2(1.0, 1.0));
-	return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x)
-		+ (d - b) * u.x * u.y;
+	float val = a + (b - a) * u.x * (1. - u.y)
+		+ (c - a) * (1.0 - u.x) * u.y
+		+ (d - a) * u.x * u.y;
+	vec2 derivative = du * (vec2(b - a, c - a) + (a - b - c + d) * u.yx);
+	return vec3(val, derivative);
 }
 
+const mat2 mat = mat2(vec2(0.6, -0.8), vec2(0.8, 0.6));
+
 float Ground(vec2 p) {
-	return 2. * Noise(p);
+	float a = 0.;
+	float b = 1.;
+	vec2 d = vec2(0);
+	for (int i = 0; i < 8; i++) {
+		vec3 n = Noise(p);
+		d += n.yz;
+		a += b * n.x / (1. + dot(d, d));
+		p = mat * p * 2.;
+		b *= 0.5;
+	}
+	return a;
 }
 
 float RayMatch(vec3 ro, vec3 rd) {
@@ -76,8 +91,8 @@ mat3 SetCamera(vec3 ro, vec3 target, float cr) {
 vec3 Render(vec2 uv) {
 	float an = 0.2 * TIME; // 摄像机绕行圆心角度
 	float r = 10.; // 摄像机绕行半径
-	vec3 ro = vec3(r * sin(an), 5, r * cos(an));
-	vec3 target = vec3(-4, 3, -7);
+	vec3 ro = vec3(r * sin(an), 2, r * cos(an));
+	vec3 target = vec3(-4, 1, -7);
 	mat3 cam = SetCamera(ro, target, 0.);
 	float fl = 1.;
 	vec3 rd = normalize(cam * vec3(uv, fl));
@@ -97,7 +112,7 @@ vec3 Render(vec2 uv) {
 	if (t < MAX_DIST) {
 		vec3 p = ro + t * rd;
 		vec3 n = CalcNorm(p);
-		vec3 difColor = vec3(0.9, 0.8, 0.);
+		vec3 difColor = vec3(0.67, 0.57, 0.44);
 		col = difColor * dot(n, vec3(0, 1, 0));
 	}
 	return sqrt(col); // gamma 校正
