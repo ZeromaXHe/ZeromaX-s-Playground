@@ -3,10 +3,11 @@
 // 21——制作天空: https://www.bilibili.com/video/BV1UY411q7tE
 // 22——随机地形生成方法: https://www.bilibili.com/video/BV1Mo4y1t72X
 // 23——制作山体: https://www.bilibili.com/video/BV18P411i7PF
+// 24——山体形状与性能优化: https://www.bilibili.com/video/BV1nX4y1W7Lj
 shader_type canvas_item;
 
 #define EPSILON 0.001
-#define MAX_DIST 200.
+#define MAX_DIST 1000.
 #define MAX_ITER 300
 
 varying vec2 iRes;
@@ -47,7 +48,8 @@ vec3 Noise(vec2 pos) {
 
 const mat2 mat = mat2(vec2(0.6, -0.8), vec2(0.8, 0.6));
 
-float Ground(vec2 p) {
+float Ground(vec2 x) {
+	vec2 p = 0.03 * x;
 	float a = 0.;
 	float b = 1.;
 	vec2 d = vec2(0);
@@ -58,25 +60,55 @@ float Ground(vec2 p) {
 		p = mat * p * 2.;
 		b *= 0.5;
 	}
-	return a;
+	return 20. * a;
 }
 
-float RayMatch(vec3 ro, vec3 rd) {
-	float t = 0.;
+float GroundH(vec2 x) {
+	vec2 p = 0.03 * x;
+	float a = 0.;
+	float b = 1.;
+	vec2 d = vec2(0);
+	for (int i = 0; i < 16; i++) {
+		vec3 n = Noise(p);
+		d += n.yz;
+		a += b * n.x / (1. + dot(d, d));
+		p = mat * p * 2.;
+		b *= 0.5;
+	}
+	return 20. * a;
+}
+
+float GroundL(vec2 x) {
+	vec2 p = 0.03 * x;
+	float a = 0.;
+	float b = 1.;
+	vec2 d = vec2(0);
+	for (int i = 0; i < 3; i++) {
+		vec3 n = Noise(p);
+		d += n.yz;
+		a += b * n.x / (1. + dot(d, d));
+		p = mat * p * 2.;
+		b *= 0.5;
+	}
+	return 20. * a;
+}
+
+float RayMatch(vec3 ro, vec3 rd, float tmin, float tmax) {
+	float t = tmin;
 	for (int i = 0; i < MAX_ITER; i++) {
 		vec3 p = ro + t * rd;
 		float h = p.y - Ground(p.xz); // 取巧的简便写法，直接取垂直距离，不准确但够用
-		if (abs(h) < EPSILON * t || t > MAX_DIST) break;
-		t += 0.2 * h;
+		if (abs(h) < EPSILON * t || t > tmax) break;
+		t += 0.4 * h;
 	}
 	return t;
 }
 
-vec3 CalcNorm(vec3 p) {
-	vec2 epsilon = vec2(1e-5, 0);
-	return normalize(vec3(Ground(p.xz + epsilon.xy) - Ground(p.xz - epsilon.xy),
+vec3 CalcNorm(vec3 p, float t) {
+	vec2 epsilon = vec2(0.001 * t, 0);
+	return normalize(vec3(GroundH(p.xz + epsilon.xy) - GroundH(p.xz - epsilon.xy),
 		2.0 * epsilon.x,
-		Ground(p.xz + epsilon.yx) - Ground(p.xz - epsilon.yx)
+		GroundH(p.xz + epsilon.yx) - GroundH(p.xz - epsilon.yx)
 		));
 }
 
@@ -89,10 +121,13 @@ mat3 SetCamera(vec3 ro, vec3 target, float cr) {
 }
 
 vec3 Render(vec2 uv) {
-	float an = 0.2 * TIME; // 摄像机绕行圆心角度
-	float r = 10.; // 摄像机绕行半径
-	vec3 ro = vec3(r * sin(an), 2, r * cos(an));
-	vec3 target = vec3(-4, 1, -7);
+	float an = 0.001 * TIME; // 摄像机绕行圆心角度
+	float r = 500.0; // 摄像机绕行半径
+	vec2 pos2d = vec2(r * sin(an), r * cos(an)); // 平面坐标
+	float h = GroundL(pos2d) + 10.;
+
+	vec3 ro = vec3(pos2d.x, h, pos2d.y);
+	vec3 target = vec3(r * sin(an + 0.01), h, r * cos(an + 0.01));
 	mat3 cam = SetCamera(ro, target, 0.);
 	float fl = 1.;
 	vec3 rd = normalize(cam * vec3(uv, fl));
@@ -108,10 +143,21 @@ vec3 Render(vec2 uv) {
 	col += 0.25 * vec3(1.0, 0.7, 0.4) * pow(sunDot, 512.0);
 	// 地平线以下的深蓝
 	col = mix(col, 0.68 * vec3(0.4, 0.65, 1.0), pow(1.0 - max(rd.y, 0.0), 16.0));
-	float t = RayMatch(ro, rd);
-	if (t < MAX_DIST) {
+	float tmin = 0.01;
+	float tmax = MAX_DIST;
+	float maxh = 200.;
+	float tp = (maxh - ro.y) / rd.y;
+	if (tp > 0.) {
+		if (rd.y > 0.) {
+			tmax = min(tp, tmax);
+		} else {
+			tmin = max(tp, tmin);
+		}
+	}
+	float t = RayMatch(ro, rd, tmin, tmax);
+	if (t < tmax) {
 		vec3 p = ro + t * rd;
-		vec3 n = CalcNorm(p);
+		vec3 n = CalcNorm(p, t);
 		vec3 difColor = vec3(0.67, 0.57, 0.44);
 		col = difColor * dot(n, vec3(0, 1, 0));
 	}
