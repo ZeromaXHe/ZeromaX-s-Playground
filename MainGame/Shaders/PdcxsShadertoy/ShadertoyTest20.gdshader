@@ -5,6 +5,7 @@
 // 23——制作山体: https://www.bilibili.com/video/BV18P411i7PF
 // 24——山体形状与性能优化: https://www.bilibili.com/video/BV1nX4y1W7Lj
 // 25——雾气与户外光照: https://www.bilibili.com/video/BV1xN41167Wv
+// 26——Fractal Brownian Motion: https://www.bilibili.com/video/BV1Vp4y1w7A9
 shader_type canvas_item;
 
 #define EPSILON 0.001
@@ -58,12 +59,12 @@ float Ground(vec2 x) {
 	float a = 0.;
 	float b = 1.;
 	vec2 d = vec2(0);
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < 8; i++) { // 多层噪声叠加
 		vec3 n = Noise(p);
 		d += n.yz;
 		a += b * n.x / (1. + dot(d, d));
 		p = mat * p * 2.;
-		b *= 0.5;
+		b *= 0.5; // 噪声因子每次缩小一半
 	}
 	return 120. * a;
 }
@@ -139,6 +140,17 @@ mat3 SetCamera(vec3 ro, vec3 target, float cr) {
 	return mat3(x, y, z);
 }
 
+float Fbm(vec2 p) {
+	float f = 0.;
+	float fac = 0.5;
+	for (int i = 0; i < 4; i++) {
+		f += fac * Noise(p).x;
+		p = 2. * mat * p;
+		fac *= 0.5;
+	}
+	return f;
+}
+
 vec3 Render(vec2 uv) {
 	float an = 0.05 * TIME; // 摄像机绕行圆心角度
 	float r = 300.0; // 摄像机绕行半径
@@ -171,11 +183,21 @@ vec3 Render(vec2 uv) {
 		col = vec3(0.3, 0.5, 0.85) - rd.y * rd.y * 0.5;
 		// 地平线的淡灰色渐变
 		col = mix(col, vec3(0.7, 0.75, 0.85), pow(1.0 - max(rd.y, 0.0), 4.0));
+		// 太阳三层光圈
 		col += 0.25 * vec3(1.0, 0.7, 0.4) * pow(sunDot, 5.0);
 		col += 0.25 * vec3(1.0, 0.8, 0.6) * pow(sunDot, 64.0);
 		col += 0.2 * vec3(1.0, 0.8, 0.6) * pow(sunDot, 512.0);
 		// 地平线以下的深蓝
 		col = mix(col, 0.68 * vec3(0.4, 0.65, 1.0), pow(1.0 - max(rd.y, 0.0), 16.0));
+		// 云朵
+		float cloudHeight = 200.;
+		vec2 cloudOffset = (cloudHeight - ro.y) / rd.y * rd.xz;
+		vec2 cloudUV = ro.xz + cloudOffset + TIME * 5.;
+		// 远处的云锯齿明显，限制一下
+		if (length(cloudOffset) < tmax) {
+			col = mix(col, vec3(1., 0.95, 1.),
+				0.5 * smoothstep(0.4, 0.8, Fbm(cloudUV * 0.01)));
+		}
 	} else {
 		vec3 p = ro + t * rd;
 		vec3 n = CalcNorm(p, t);

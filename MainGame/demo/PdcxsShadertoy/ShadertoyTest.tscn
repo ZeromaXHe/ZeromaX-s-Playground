@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3 uid="uid://l0xs4sec2gc7"]
+[gd_scene load_steps=24 format=3 uid="uid://l0xs4sec2gc7"]
 
 [ext_resource type="Shader" path="res://Shaders/PdcxsShadertoy/ShadertoyTest01.gdshader" id="1_7bqat"]
 [ext_resource type="Script" path="res://demo/PdcxsShadertoy/ShadertoyTest.cs" id="1_08510"]
@@ -11,6 +11,7 @@
 [ext_resource type="Shader" path="res://Shaders/PdcxsShadertoy/ShadertoyTest18.gdshader" id="9_asoxo"]
 [ext_resource type="Shader" path="res://Shaders/PdcxsShadertoy/ShadertoyTest19.gdshader" id="10_q6qp1"]
 [ext_resource type="Shader" path="res://Shaders/PdcxsShadertoy/ShadertoyTest20.gdshader" id="11_nd0di"]
+[ext_resource type="Shader" path="res://Shaders/PdcxsShadertoy/ShadertoyTest26.gdshader" id="12_smshe"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_6ofdj"]
 shader = ExtResource("1_7bqat")
@@ -41,6 +42,9 @@ shader = ExtResource("10_q6qp1")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_q8kty"]
 shader = ExtResource("11_nd0di")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_p4qed"]
+shader = ExtResource("12_smshe")
 
 [node name="ShadertoyTest" type="Control"]
 layout_mode = 3
@@ -141,6 +145,17 @@ texture = SubResource("CanvasTexture_bvjl1")
 
 [node name="Test20" type="TextureRect" parent="."]
 material = SubResource("ShaderMaterial_q8kty")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = SubResource("CanvasTexture_bvjl1")
+
+[node name="Test26" type="TextureRect" parent="."]
+visible = false
+material = SubResource("ShaderMaterial_p4qed")
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
