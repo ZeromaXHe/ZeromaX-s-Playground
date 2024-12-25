@@ -1,5 +1,7 @@
 // Shadertoy教程20——地面渲染技巧
 // https://www.bilibili.com/video/BV1ud4y1s7c1
+// Shadertoy教程21——制作天空
+// https://www.bilibili.com/video/BV1UY411q7tE
 shader_type canvas_item;
 
 #define EPSILON 0.001
@@ -45,14 +47,26 @@ mat3 SetCamera(vec3 ro, vec3 target, float cr) {
 }
 
 vec3 Render(vec2 uv) {
-	vec3 col = vec3(0);
-	float an = 0.2 * TIME;
-	float r = 10.;
+	float an = 0.2 * TIME; // 摄像机绕行圆心角度
+	float r = 10.; // 摄像机绕行半径
 	vec3 ro = vec3(r * sin(an), 5, r * cos(an));
-	vec3 target = vec3(0, 0, 7);
+	vec3 target = vec3(-4, 3, -7);
 	mat3 cam = SetCamera(ro, target, 0.);
 	float fl = 1.;
 	vec3 rd = normalize(cam * vec3(uv, fl));
+	// 天空蓝色，y 轴越高越深（二次方渐变）
+	vec3 col = vec3(0.3, 0.5, 0.85) - rd.y * rd.y * 0.5;
+	// 地平线的淡灰色渐变
+	col = mix(col, 0.85 * vec3(0.7, 0.75, 0.85), pow(1.0 - max(rd.y, 0.0), 4.0));
+	// 太阳
+	vec3 sunLight = normalize(vec3(0., 0.4, -1.0));
+	float sunDot = clamp(dot(rd, sunLight), 0.0, 1.0);
+	col += 0.25 * vec3(1.0, 0.7, 0.4) * pow(sunDot, 5.0);
+	col += 0.25 * vec3(1.0, 0.7, 0.4) * pow(sunDot, 64.0);
+	col += 0.25 * vec3(1.0, 0.7, 0.4) * pow(sunDot, 512.0);
+	// 地平线以下的深蓝
+	col = mix(col, 0.68 * vec3(0.4, 0.65, 1.0), pow(1.0 - max(rd.y, 0.0), 16.0));
+	col = sqrt(col); // gamma 校正
 	float t = RayMatch(ro, rd);
 	if (t < MAX_DIST) {
 		vec3 p = ro + t * rd;
