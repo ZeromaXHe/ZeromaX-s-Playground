@@ -1,0 +1,67 @@
+[gd_scene load_steps=12 format=3 uid="uid://ck81g1owuig7f"]
+
+[ext_resource type="Shader" path="res://Shaders/ConwaysGameOfLife/DotMatrix.gdshader" id="1_4ela8"]
+[ext_resource type="Texture2D" uid="uid://crewtvqme5bc7" path="res://icon.svg" id="2_7yxkd"]
+[ext_resource type="Script" path="res://demo/ConwaysGameOfLife/Dispatcher.cs" id="3_xdvl5"]
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_xi558"]
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_wkcv2"]
+width = 1024
+height = 1024
+noise = SubResource("FastNoiseLite_xi558")
+
+[sub_resource type="Gradient" id="Gradient_oyxjp"]
+offsets = PackedFloat32Array(0, 0.576471, 0.729412)
+colors = PackedColorArray(0, 0.567266, 0.85625, 1, 0, 0.568627, 0.854902, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_v81c6"]
+gradient = SubResource("Gradient_oyxjp")
+width = 16
+height = 16
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+
+[sub_resource type="Gradient" id="Gradient_afxvs"]
+offsets = PackedFloat32Array(0, 0.576471, 0.729412)
+colors = PackedColorArray(0.223529, 0.223529, 0.223529, 1, 0.225, 0.225, 0.225, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_1fgph"]
+gradient = SubResource("Gradient_afxvs")
+width = 16
+height = 16
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ty5eh"]
+shader = ExtResource("1_4ela8")
+shader_parameter/gridWidth = 1024
+shader_parameter/unlitTexture = SubResource("GradientTexture2D_1fgph")
+shader_parameter/litTexture = SubResource("GradientTexture2D_v81c6")
+shader_parameter/binaryDataTexture = SubResource("NoiseTexture2D_wkcv2")
+
+[sub_resource type="Environment" id="Environment_efx5m"]
+background_mode = 3
+glow_enabled = true
+glow_intensity = 1.38
+glow_blend_mode = 0
+glow_hdr_threshold = 0.42
+glow_hdr_scale = 0.83
+
+[node name="DotMatrix" type="Node2D"]
+
+[node name="Renderer" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_ty5eh")
+position = Vector2(576, 384)
+scale = Vector2(9, 9)
+texture = ExtResource("2_7yxkd")
+metadata/_edit_lock_ = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_efx5m")
+
+[node name="Dispatcher" type="Node" parent="." node_paths=PackedStringArray("Renderer")]
+script = ExtResource("3_xdvl5")
+UpdateFrequency = 60
+ComputeShader = "res://Shaders/ConwaysGameOfLife/game_of_life.glsl"
+Renderer = NodePath("../Renderer")
