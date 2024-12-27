@@ -4,9 +4,7 @@
 
 [node name="PropertyListToolTest" type="Node3D"]
 script = ExtResource("1_2lq65")
-numbers_0 = 0
-numbers_1 = 1
-numbers_2 = 2
-numbers_3 = 3
-numbers_4 = 4
+numbers/num2 = 0
+numbers/num3 = 3
+numbers/num4 = 4
 NumberCount = 5
