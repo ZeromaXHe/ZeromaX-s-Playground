@@ -3,7 +3,7 @@ namespace FrontEndToolFS.SebastianPlanet
 open Godot
 open Microsoft.FSharp.Core
 
-type ColorGenerator(settings: ColorSettings) =
+type ColorGenerator(settings: IColorSettings) =
     let mutable settings = settings
     let mutable texture: Image = null
     let textureResolution = 50
@@ -11,7 +11,7 @@ type ColorGenerator(settings: ColorSettings) =
     let mutable biomeNoiseFilter =
         NoiseFilterFactory.createNoiseFilter settings.biomeColorSettings.noise
 
-    member this.UpdateSettings(settingsIn: ColorSettings) =
+    member this.UpdateSettings(settingsIn: IColorSettings) =
         settings <- settingsIn
 
         if
@@ -38,15 +38,15 @@ type ColorGenerator(settings: ColorSettings) =
         heightPercent <-
             heightPercent
             + (biomeNoiseFilter.Evaluate pointOnUnitSphere
-               - settings.biomeColorSettings.noiseOffset)
-              * settings.biomeColorSettings.noiseStrength
+               - settings.biomeColorSettings.NoiseOffset)
+              * settings.biomeColorSettings.NoiseStrength
 
         let mutable biomeIndex = 0f
         let numBiome = settings.biomeColorSettings.biomes.Length
-        let blendRange = settings.biomeColorSettings.blendAmount / 2f + 0.001f
+        let blendRange = settings.biomeColorSettings.BlendAmount / 2f + 0.001f
 
         for i in 0 .. numBiome - 1 do
-            let dst = heightPercent - settings.biomeColorSettings.biomes[i].startHeight
+            let dst = heightPercent - settings.biomeColorSettings.biomes[i].StartHeight
             // Unity 的 InverseLerp 是会自动 Clamp
             let weight = Mathf.Clamp(Mathf.InverseLerp(-blendRange, blendRange, dst), 0f, 1f)
             biomeIndex <- biomeIndex * (1f - weight)
@@ -61,17 +61,17 @@ type ColorGenerator(settings: ColorSettings) =
             for i in 0 .. textureResolution * 2 - 1 do
                 let gradientColor =
                     if i < textureResolution then
-                        settings.oceanColor.Sample(float32 i / float32 (textureResolution - 1))
+                        settings.OceanColor.Sample(float32 i / float32 (textureResolution - 1))
                     else
-                        biome.gradient.Sample(float32 (i - textureResolution) / float32 (textureResolution - 1))
+                        biome.Gradient.Sample(float32 (i - textureResolution) / float32 (textureResolution - 1))
 
-                let tintColor = biome.tint
+                let tintColor = biome.Tint
                 let y = colorIndex / textureResolution / 2
-                texture.SetPixel(i, y, gradientColor * (1f - biome.tintPercent) + tintColor * biome.tintPercent)
+                texture.SetPixel(i, y, gradientColor * (1f - biome.TintPercent) + tintColor * biome.TintPercent)
                 colorIndex <- colorIndex + 1
                     
 
-        settings.planetMaterial.SetShaderParameter(
+        settings.PlanetMaterial.SetShaderParameter(
             "planet_texture",
             ImageTexture.CreateFromImage texture |> Variant.CreateFrom
         )

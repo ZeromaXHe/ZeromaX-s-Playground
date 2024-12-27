@@ -2,13 +2,13 @@ namespace FrontEndToolFS.SebastianPlanet
 
 open Godot
 
-type ShapeGenerator(settings: ShapeSettings) =
+type ShapeGenerator(settings: IShapeSettings) =
     let mutable settings = settings
     member val noiseFilters: INoiseFilter array = null with get, set
 
     member val elevationMinMax = MinMax()
 
-    member this.UpdateSettings(settingsIn: ShapeSettings) =
+    member this.UpdateSettings(settingsIn: IShapeSettings) =
         settings <- settingsIn
 
         this.noiseFilters <-
@@ -22,13 +22,13 @@ type ShapeGenerator(settings: ShapeSettings) =
         if this.noiseFilters.Length > 0 then
             firstLayerValue <- this.noiseFilters[0].Evaluate pointOnUnitSphere
 
-            if settings.noiseLayers[0].enabled then
+            if settings.noiseLayers[0].Enabled then
                 elevation <- firstLayerValue
 
         for i in 1 .. this.noiseFilters.Length - 1 do
-            if settings.noiseLayers[i].enabled then
+            if settings.noiseLayers[i].Enabled then
                 let mask =
-                    if settings.noiseLayers[i].useFirstLayerAsMask then
+                    if settings.noiseLayers[i].UseFirstLayerAsMask then
                         firstLayerValue
                     else
                         1f
@@ -40,4 +40,4 @@ type ShapeGenerator(settings: ShapeSettings) =
 
     member this.GetScaledElevation unscaledElevation =
         let elevation = Mathf.Max(0f, unscaledElevation)
-        settings.planetRadius * (1f + elevation)
+        settings.PlanetRadius * (1f + elevation)

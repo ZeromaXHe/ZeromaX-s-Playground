@@ -46,7 +46,7 @@ type PlanetFS() as this =
                 this.AddChild meshObj
                 meshInstances[i] <- meshObj
 
-            meshInstances[i].MaterialOverride <- this.colorSettings.planetMaterial
+            meshInstances[i].MaterialOverride <- this.colorSettings.PlanetMaterial
             terrainFaces[i] <- TerrainFace(shapeGenerator, meshInstances[i], this.resolution, directions[i])
 
             let renderFace =
@@ -78,8 +78,8 @@ type PlanetFS() as this =
     member val autoUpdate = false with get, set
     member val generate = true with get, set
     member val faceRenderMask = FaceRenderMask.None with get, set
-    member val shapeSettings = ShapeSettings() with get, set
-    member val colorSettings: ColorSettings = ColorSettings() with get, set
+    member val shapeSettings = Unchecked.defaultof<IShapeSettings> with get, set
+    member val colorSettings = Unchecked.defaultof<IColorSettings> with get, set
 
     member this.OnShapeSettingsUpdated() =
         // 必须加 _readyFin 控制，不然加载已保存场景的时候也会调用进来，怪不得这么卡……
@@ -98,9 +98,6 @@ type PlanetFS() as this =
         generateMesh ()
         generateColors false
         this.generate <- true
-
-    member this.RefreshNoiseLayers() =
-        this.shapeSettings.noiseLayers <- Array.init this.shapeSettings.layerCount (fun _ -> NoiseLayer())
 
     override this._Ready() =
         // 注意这里加载已保存场景时，每个 member val 貌似都会先按初始值执行一遍，再按 Export 值执行一遍
