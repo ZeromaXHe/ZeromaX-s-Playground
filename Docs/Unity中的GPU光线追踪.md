@@ -608,7 +608,7 @@ https://blog.csdn.net/wodownload2/article/details/103897548
 
 原文章链接：http://blog.three-eyed-games.com/2018/05/12/gpu-path-tracing-in-unity-part-2/
 
-“没有什么比模糊概念的清晰图像更糟糕的了。”—— Ansel Adams
+> “没有什么比模糊概念的清晰图像更糟糕的了。”—— Ansel Adams
 
 在本系列的第一部分中，我们创建了一个 Whitted 光线跟踪器，能够跟踪完美的反射和硬阴影。缺少的是模糊效果：漫反射、光泽反射和柔和阴影。
 
@@ -692,3 +692,649 @@ float rand()
 }
 ```
 
+在 CSMain 中直接将 `_Pixel` 初始化为 `_Pixel = id.xy`，因此每个像素将使用不同的随机值 `_Seed` 在 `SetShaderParameters`函数中从 C# 初始化。
+
+```c#
+RayTracingShader.SetFloat("_Seed", Random.value);
+```
+
+我们在这里生成的随机数的质量是不确定的。值得研究和测试此功能，分析参数的影响并将其与其他方法进行比较。目前，我们只会使用它，并希望最好的结果。
+
+## 半球采样
+
+首先，我们需要在半球上均匀分布的随机方向。对于整个领域，Cory Simon 在本文中详细描述了这一非平凡的挑战。http://corysimon.github.io/articles/uniformdistn-on-sphere/
+
+它很容易适应半球。以下是着色器代码：
+
+```glsl
+float3 SampleHemisphere(float3 normal)
+{
+    // Uniformly sample hemisphere direction
+    float cosTheta = rand();
+    float sinTheta = sqrt(max(0.0f, 1.0f - cosTheta * cosTheta));
+    float phi = 2 * PI * rand();
+    float3 tangentSpaceDir = float3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
+    // Transform direction to world space
+    return mul(tangentSpaceDir, GetTangentSpace(normal));
+}
+```
+
+方向是为以正 Z 为中心的半球生成的，因此我们需要将其转换为以我们需要的任何法线为中心。为此，我们生成一个切线和二项式（两个与法线正交且彼此正交的向量）。我们首先选择一个辅助向量来生成切线。为此，我们取正 X，只有当法线（几乎）与 X 轴重合时，才会回落到正 Z。然后，我们可以使用叉积来生成切线，并随后生成二项式。
+
+```glsl
+float3x3 GetTangentSpace(float3 normal)
+{
+    // Choose a helper vector for the cross product
+    float3 helper = float3(1, 0, 0);
+    if (abs(normal.x) > 0.99f)
+        helper = float3(0, 0, 1);
+    // Generate vectors
+    float3 tangent = normalize(cross(normal, helper));
+    float3 binormal = normalize(cross(normal, tangent));
+    return float3x3(tangent, binormal, normal);
+}
+```
+
+## 兰伯特漫射
+
+现在我们有了统一的随机方向，我们可以开始实现第一个 BRDF。Lambert BRDF 是漫反射最常用的方法，它非常简单：$f_r(x, \vec\omega_i, \vec\omega_o)$，其中 $k_d$ 是表面的反照率。让我们将其插入到蒙特卡洛渲染方程中（我现在将省略发射项），看看会发生什么：
+
+$$L(x,\vec\omega_o) \approx \frac{1}{N}\sum\limits^N_{n=0}2k_d(\vec\omega_i\cdot\vec n)L(x, \vec\omega_i)$$
+
+让我们马上把它放在着色器中。在 `Shade` 函数中，将 `if (hit.distance<1.#INF)` 子句中的代码替换为以下行：
+
+```glsl
+// Diffuse shading
+ray.origin = hit.position + hit.normal * 0.001f;
+ray.direction = SampleHemisphere(hit.normal);
+ray.energy *= 2 * hit.albedo * sdot(hit.normal, ray.direction);
+return 0.0f;
+```
+
+使用我们的均匀半球采样函数确定反射光线的新方向。射线的能量与上述方程的相关部分相乘。由于表面不发射任何光（而只反射它直接或间接从天空接收到的光），我们在这里返回 0。请记住，我们的 `AddShader` 为我们平均了样本，所以我们不需要关心 $\frac{1}{N}\sum$。CSMain 函数已经包含了与 $L(x,\vec\omega_i)$（下一个反射光线）的乘法，所以我们没什么可做的。
+
+sdot 函数是我为自己定义的一个简单实用程序。它只是返回点积的结果，加上一个可选因子，然后被箝位为[0,1]：
+
+```glsl
+float sdot(float3 x, float3 y, float f = 1.0f)
+{
+    return saturate(dot(x, y) * f);
+}
+```
+
+让我们回顾一下到目前为止代码的功能。CSMain 生成我们的主相机光线并调用 `Shade`。如果一个表面被击中，此函数将依次生成一条新的光线（在法线周围的半球中均匀随机），并将材料的BRDF和余弦因子计入光线的能量。如果天空被击中，我们将对 HDRI（我们唯一的光源）进行采样，并返回光线，该光线与光线的能量相乘（即从相机开始的所有先前撞击的乘积）。这是一个与收敛结果混合的单个样本。最后，每个样本的贡献为 1/N。
+是时候试试了。由于金属没有漫反射，现在让我们在 C# 脚本的 `SetUpScene` 函数中禁用它们（仍在此处调用 `Random.value` 以保持场景确定性）：
+进入播放模式，看看最初嘈杂的图像是如何清除并收敛到这样的良好渲染的：
+
+![在这里插入图片描述](https://i-blog.csdnimg.cn/blog_migrate/28d98388ada1dde77d3b8f35bde7b977.png)
+
+## Phong 镜面
+
+对于几行代码来说还不错（还有一些仔细的数学计算——我看到你们正在慢慢成为朋友）。我们来加点香料吧通过添加 Phong BRDF 来解决镜面反射问题。最初的 Phong 配方也有一些问题（不是互惠的（reciprocal），不是节能的），但幸运的是，其他人解决了这个问题。修改后的 Phong BRDF 看起来像这样，其中 $\vec\omega_r$ 是完美反射的光方向，α 是控制粗糙度的 Phong 指数：
+
+$$f_r(x, \vec\omega_i,\vec\omega_o) = k_s\frac{\alpha+2}{2\pi}(\vec\omega_r\cdot\vec\omega_o)^\alpha$$
+
+这是一个小的二维图，显示了 α=15 的 Phong BRDF 在 45° 角入射光线下的样子。单击右下角可自行更改 α 值。
+
+https://www.desmos.com/calculator/h7m3esuf28
+
+![在这里插入图片描述](https://i-blog.csdnimg.cn/blog_migrate/692ef045d780eb942ae2462ea278b05a.png)
+
+将其代入我们的蒙特卡洛渲染方程：
+
+$$L(x,\vec\omega_o)\approx\frac{1}{N}\sum\limits^N_{n=0}k_s(\alpha+2)(\vec\omega_r\cdot\vec\omega_o)^\alpha(\vec\omega_i\cdot\vec n)L(x, \vec\omega_i)$$
+
+最后，将此添加到我们已经拥有的 Lambert BRDF 中：
+
+$$L(x,\vec\omega_o)\approx\frac{1}{N}\sum\limits^N_{n=0}[2k_d + k_s(\alpha+2)(\vec\omega_r\cdot\vec\omega_o)^\alpha](\vec\omega_i\cdot\vec n)L(x, \vec\omega_i)$$
+
+在这里，它与 Lambert 漫反射一起出现在代码中：
+
+```glsl
+// Phong shading
+ray.origin = hit.position + hit.normal * 0.001f;
+float3 reflected = reflect(ray.direction, hit.normal);
+ray.direction = SampleHemisphere(hit.normal);
+float3 diffuse = 2 * min(1.0f - hit.specular, hit.albedo);
+float alpha = 15.0f;
+float3 specular = hit.specular * (alpha + 2) * pow(sdot(ray.direction, reflected), alpha);
+ray.energy *= (diffuse + specular) * sdot(hit.normal, ray.direction);
+return 0.0f;
+```
+
+请注意，我们用稍微不同但等效的点积（反射 $\vec\omega_o$ 而不是 $\vec\omega_i$）代替了点积。现在，在 SetUpScene 功能中重新启用金属材质，并对其进行拍摄。
+
+尝试不同的 α 值，你会注意到一个问题：较低的指数已经需要很长时间才能收敛，而对于较高的指数，噪声尤其顽固。即使经过几分钟的等待，结果也远非美好，这对于如此简单的场景来说是不可接受的。α=15 和 α=300，有 8192 个样本，看起来像这样：
+
+![在这里插入图片描述](https://i-blog.csdnimg.cn/blog_migrate/f8d2a4461635351387a1e429b54303c9.png)
+
+你可能会问：“为什么？我们以前有过如此完美的反射（α=∞）！”。问题是，我们正在生成均匀的样本，并根据 BRDF 对其进行加权。对于高 Phong 指数，除了那些非常接近完美反射的方向外，其他方向的 BRDF 值都很小，我们不太可能使用均匀样本随机选择它们。另一方面，如果我们真的击中了其中一个方向，BRDF 将非常大，可以补偿所有其他微小的样本。结果是一个非常高的方差。具有多个镜面反射的路径甚至更糟糕，导致您在上面的图像中看到的噪声。
+
+## 更好的采样
+
+为了使我们的路径跟踪器实用，我们需要改变范式。与其将宝贵的样本浪费在最终不重要的领域（因为它们将获得非常低的 BRDF 和/或余弦因子），不如生成重要的样本。
+
+作为第一步，我们将得到我们的完美反射，然后看看我们如何推广这个想法。为此，我们将把着色逻辑分为漫反射和镜面反射。对于每个样本，我们将随机选择一个或另一个（取决于 $k_d$ 和 $k_s$ 的比率）。对于漫反射，我们将坚持均匀采样，但对于镜面反射，我们会明确地将光线反射到重要的单一方向。由于现在每种反射类型上花费的样本更少，我们需要相应地增加样本的贡献，最终得到相同的净额，如下所示：
+
+```glsl
+// Calculate chances of diffuse and specular reflection
+hit.albedo = min(1.0f - hit.specular, hit.albedo);
+float specChance = energy(hit.specular);
+float diffChance = energy(hit.albedo);
+float sum = specChance + diffChance;
+specChance /= sum;
+diffChance /= sum;
+// Roulette-select the ray's path
+float roulette = rand();
+if (roulette < specChance)
+{
+    // Specular reflection
+    ray.origin = hit.position + hit.normal * 0.001f;
+    ray.direction = reflect(ray.direction, hit.normal);
+    ray.energy *= (1.0f / specChance) * hit.specular * sdot(hit.normal, ray.direction);
+}
+else
+{
+    // Diffuse reflection
+    ray.origin = hit.position + hit.normal * 0.001f;
+    ray.direction = SampleHemisphere(hit.normal);
+    ray.energy *= (1.0f / diffChance) * 2 * hit.albedo * sdot(hit.normal, ray.direction);
+}
+return 0.0f;
+```
+
+能量函数是一个对颜色通道进行平均的小助手：
+
+```glsl
+float energy(float3 color)
+{
+    return dot(color, 1.0f / 3.0f);
+}
+```
+
+这是我们上次构建的 Whitted 光线跟踪器的美化变体，但现在具有真正的漫反射着色（读作“软阴影、环境遮挡、漫反射全局照明”）：
+
+![在这里插入图片描述](https://i-blog.csdnimg.cn/blog_migrate/e2efe21c1c7f6fd6afaff4bed0c5ff7a.png)
+
+## 重要性抽样
+
+让我们再次看看基本的蒙特卡洛公式：
+
+$$F_N\approx\frac{1}{N}\sum\limits^N_{n=0}\frac{f(x_n)}{p(x_n)}$$
+
+如您所见，我们将每个样本的贡献除以选择该特定样本的概率。到目前为止，我们在半球上使用了均匀采样，因此常数 $p(\omega)=1/2\pi$。正如我们之前看到的，这远非最佳，例如在 Phong BRDF 的情况下，它在一组非常狭窄的方向上很大。
+
+想象一下，我们可以找到一个与被积函数完全匹配的概率分布：$p(x)=f(x)$。这就是会发生的事情：
+
+$$F_N\approx\frac{1}{N}\sum\limits^N_{n=0}1$$
+
+现在，没有样本的贡献很小。相反，这些样本将以较低的概率被选择。这将大大减少结果的方差，使渲染收敛更快。
+
+在实践中，找到这样一个完美的分布是不现实的，因为被积函数的一些因素（在我们的例子中是 BRDF × 余弦 × 入射光）是未知的（最突出的是入射光），但已经根据 BRDF × 余弦甚至只有 BRDF 分布样本对我们有很大的好处。这被称为重要性抽样。
+
+## 余弦采样
+
+对于以下步骤，我们需要用余弦（幂）分布替换均匀样本分布。记住，我们不想将均匀样本与余弦相乘，降低它们的贡献，而是想按比例生成更少的样本。
+
+Thomas Poulet 的这篇文章描述了如何做到这一点。我们将在 SampleHemisphere 函数中添加一个 alpha 参数，用于确定余弦采样的幂：0 表示均匀，1 表示余弦，或更高的 Phong 指数。在代码中：
+
+```glsl
+float3 SampleHemisphere(float3 normal, float alpha)
+{
+    // Sample the hemisphere, where alpha determines the kind of the sampling
+    float cosTheta = pow(rand(), 1.0f / (alpha + 1.0f));
+    float sinTheta = sqrt(1.0f - cosTheta * cosTheta);
+    float phi = 2 * PI * rand();
+    float3 tangentSpaceDir = float3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
+    // Transform direction to world space
+    return mul(tangentSpaceDir, GetTangentSpace(normal));
+}
+```
+
+现在每个样本的概率是
+
+$$p(\omega)=\frac{\alpha+1}{2\pi}(\vec\omega\cdot\vec n)^\alpha$$
+
+它的美丽可能不会立即显现，但它将在一分钟内展开。
+
+## 重要性抽样兰伯特
+
+首先，我们将改进漫反射渲染。我们的均匀分布已经很好地适应了常数 Lambert BRDF，但通过包含余弦因子，我们可以做得更好。余弦采样的概率分布（其中 α=1）为 $\frac{(\vec\omega_i\cdot\vec n)}{\pi}$，这将我们的扩散蒙特卡罗公式简化为：
+
+$$L(x,\vec\omega_o)\approx\frac{1}{N}\sum\limits^N_{n=0}k_d L(x,\vec\omega_i)$$
+
+```glsl
+// Diffuse reflection
+ray.origin = hit.position + hit.normal * 0.001f;
+ray.direction = SampleHemisphere(hit.normal, 1.0f);
+ray.energy *= (1.0f / diffChance) * hit.albedo;
+```
+
+这将使我们的漫反射着色稍微加速。现在让我们来处理真正的罪魁祸首。
+
+## 重要性抽样 Phong
+
+对于 Phong BRDF，程序类似。这一次，我们得到了两个余弦的乘积：渲染方程中的正则余弦（如漫反射情况）乘以 BRDF 自己的幂余弦。我们只会照顾后者。
+
+让我们把上面的概率分布插入到我们的 Phong 方程中。详细的推导可以在 Lafortune 和 Willems 中找到：使用改进的 Phong 反射模型进行基于物理的渲染（1994）：
+
+$$L(x, \vec\omega_o)\approx\frac{1}{N} \sum\limits^N_{n=0}k_s\frac{\alpha+2}{\alpha + 1}(\vec\omega_i\cdot\vec n)L(x,\vec\omega_i)$$
+
+```glsl
+// Specular reflection
+float alpha = 15.0f;
+ray.origin = hit.position + hit.normal * 0.001f;
+ray.direction = SampleHemisphere(reflect(ray.direction, hit.normal), alpha);
+float f = (alpha + 2) / (alpha + 1);
+ray.energy *= (1.0f / specChance) * hit.specular * sdot(hit.normal, ray.direction, f);
+```
+
+这些更改足以解决高 Phong 指数的任何问题，并使我们的渲染在更合理的时间内收敛。
+
+## 材质
+
+最后，让我们扩展场景生成，以便获得球体平滑度和发射的不同值！在 C# 中，向 `struct Sphere` 添加 `public float smoothness` 和 `public Vector3 emission`。由于我们更改了结构的大小，因此在创建 Compute Buffer时需要调整步幅（4 × 浮点数，还记得吗？）。使 SetUpScene 函数为平滑度和发射设置一些值。
+
+回到着色器中，将这两个变量添加到 `struct Sphere` 和 `struct RayHit` 中，并在 `CreateRayHit` 中将其初始化。最后但并非最不重要的一点是，在 `IntersectGroundPlane`（硬编码，放入任何你想要的东西）和 `IntersectSphere`（从 Sphere 中获取值）中设置这两个值。
+
+我想使用 Unity 标准着色器中的平滑度值，这与任意 Phong 指数不同。以下是一个相当有效的转换，用于 `Shade` 函数：
+
+```glsl
+float SmoothnessToPhongAlpha(float s)
+{
+    return pow(1000.0f, s * s);
+}
+```
+
+```glsl
+float alpha = SmoothnessToPhongAlpha(hit.smoothness);
+```
+
+![在这里插入图片描述](https://i-blog.csdnimg.cn/blog_migrate/55a779e9513307234b516836ea8aef97.png)
+
+只需返回 `Shade` 中的值即可使用发射：
+
+```glsl
+return hit.emission;
+```
+
+## 结果
+
+深呼吸，放松，等待你的图像清晰地进入舒缓的视线，如下所示：
+
+![在这里插入图片描述](https://i-blog.csdnimg.cn/blog_migrate/5d879e3ff19ddb2f94b326fa0584551a.png)
+
+祝贺你！你已经穿过了这片充满数学的森林。您实现了一个能够进行漫反射和镜面着色的路径跟踪器，并学习了重要性采样，立即应用了该概念，使渲染在几分钟内收敛，而不是几小时或几天。
+
+这篇文章在复杂性和结果质量方面都比上一篇文章有了很大的飞跃。完成数学运算需要时间，但值得一试，因为它将大大加深你对正在发生的事情的理解，并允许你在不破坏物理合理性的情况下扩展算法。
+
+感谢您的关注！在第三部分中，我们将把采样和着色抛在脑后（目前……），回到文明世界，与默勒先生（Gentleman Möller）和特龙博先生（Trumbore）会面。他们对三角形有一两句话要说。
+
+
+
+# Unity 中的  GPU 光线追踪：第 3 部分
+
+https://www.gamedeveloper.com/programming/gpu-path-tracing-in-unity-part-3
+
+我们基于 Unity Compute Shader 的光线跟踪器现在可以显示具有模糊效果的球体，如柔和阴影、光泽反射和漫反射 GI，但我们缺少了拼图中的一个重要部分：三角形。这是我们今天的工作。
+
+[David Kuri](https://www.gamedeveloper.com/author/david-kuri), Blogger
+
+March 18, 2019
+
+13 Min Read
+
+> **“算术！代数！几何！宏伟的三位一体！发光的三角形！谁不认识你，谁就没有理智！”——劳特雷阿蒙伯爵**
+
+今天，我们要迈出一大步。我们正在超越迄今为止我们一直在追踪的纯球形结构和无限平面，引入三角形——现代计算机图形学的本质，整个虚拟词所包含的元素。如果你想从[上次中断的地方](http://blog.three-eyed-games.com/2018/05/12/gpu-path-tracing-in-unity-part-2/)继续，请使用[第 2 部分的代码](https://bitbucket.org/Daerst/gpu-ray-tracing-in-unity/src/Tutorial_Pt2/)。我们今天要做的事情的完成代码可以在[这里](https://bitbucket.org/Daerst/gpu-ray-tracing-in-unity/src/Tutorial_Pt3/)找到。我们走！
+
+## 三角形
+
+三角形的定义很简单：它只是一个由三个连接的顶点组成的列表，每个顶点都存储其位置，然后存储法线。从你的角度来看，顶点的缠绕顺序决定了你是看前面还是后面。传统上，逆时针缠绕顺序被认为是“前”。
+
+首先，我们需要能够判断光线是否击中三角形，以及在哪里。[Tomas Akenine-Möller](https://twitter.com/inversepixel) 和 Ben Trumbore 于 1997 年提出了一种非常流行（但肯定不是唯一）的确定光线三角形交点的算法。您可以在[此处](http://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/pubs/raytri_tam.pdf)阅读论文“快速、最小存储射线三角交点”中的所有详细信息。
+
+论文中的代码可以很容易地移植到 HLSL 着色器代码中：
+
+```glsl
+static const float EPSILON = 1e-8;
+
+bool IntersectTriangle_MT97(Ray ray, float3 vert0, float3 vert1, float3 vert2,
+    inout float t, inout float u, inout float v)
+{
+    // find vectors for two edges sharing vert0
+    float3 edge1 = vert1 - vert0;
+    float3 edge2 = vert2 - vert0;
+
+    // begin calculating determinant - also used to calculate U parameter
+    float3 pvec = cross(ray.direction, edge2);
+
+    // if determinant is near zero, ray lies in plane of triangle
+    float det = dot(edge1, pvec);
+
+    // use backface culling
+    if (det < EPSILON)
+        return false;
+    float inv_det = 1.0f / det;
+
+    // calculate distance from vert0 to ray origin
+    float3 tvec = ray.origin - vert0;
+
+    // calculate U parameter and test bounds
+    u = dot(tvec, pvec) * inv_det;
+    if (u < 0.0 || u > 1.0f)
+        return false;
+
+    // prepare to test V parameter
+    float3 qvec = cross(tvec, edge1);
+
+    // calculate V parameter and test bounds
+    v = dot(ray.direction, qvec) * inv_det;
+    if (v < 0.0 || u + v > 1.0f)
+        return false;
+
+    // calculate t, ray intersects triangle
+    t = dot(edge2, qvec) * inv_det;
+
+    return true;
+}
+```
+
+要使用此功能，您需要一条光线和三角形的三个顶点。返回值告诉三角形是否被击中。在命中的情况下，会计算三个附加值：t 描述了沿光线到命中点的距离，u/v 是指定命中点在三角形上的位置的三个重心坐标中的两个（其中最后一个可以计算为 w = 1 - u - v）。如果你还不知道重心坐标，请阅读 [Scratchapixel](https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/barycentric-coordinates) 上的精彩解释。
+
+闲话少说，让我们追踪一个硬编码的三角形！找到着色器的 Trace 函数并添加以下代码段：
+
+```glsl
+// Trace single triangle
+float3 v0 = float3(-150, 0, -150);
+float3 v1 = float3(150, 0, -150);
+float3 v2 = float3(0, 150 * sqrt(2), -150);
+float t, u, v;
+if (IntersectTriangle_MT97(ray, v0, v1, v2, t, u, v))
+{
+    if (t > 0 && t < bestHit.distance)
+    {
+        bestHit.distance = t;
+        bestHit.position = ray.origin + t * ray.direction;
+        bestHit.normal = normalize(cross(v1 - v0, v2 - v0));
+        bestHit.albedo = 0.00f;
+        bestHit.specular = 0.65f * float3(1, 0.4f, 0.2f);
+        bestHit.smoothness = 0.9f;
+        bestHit.emission = 0.0f;
+    }
+}
+```
+
+如前所述，t 存储了沿射线的距离，我们可以直接使用它来计算撞击点。法线对于正确反射很重要，可以使用任何两条三角形边的叉积来获得。进入游戏模式，享受你的第一个自我追踪三角形：
+
+![Bronze triangle](https://eu-images.contentstack.com/v3/assets/blt740a130ae3c5d529/blt58491a58018ffcca/650e8841fc5c84e3a10d41e0/bronze-triangle.png/?width=700&auto=webp&quality=80&disable=upscale)
+
+**练习**：尝试使用重心坐标而不是距离来计算位置。如果你做得对，光滑的三角形看起来和以前完全一样。
+
+## 三角形网格
+
+我们已经克服了第一个障碍，但追踪完整的三角形网格是另一回事。我们需要先学习一些关于网格的基本知识。如果你熟悉这一点，可以随意浏览下一段。
+
+在计算机图形学中，网格由多个缓冲区定义，其中最重要的缓冲区是顶点和索引缓冲区。顶点缓冲区是一个 3D 向量列表，描述了每个顶点在对象空间中的位置（这意味着当你平移、旋转或缩放对象时，这些值不需要改变——它们会使用矩阵乘法动态地从对象空间转换到世界空间）。索引缓冲区是一个整数列表，这些整数是指向顶点缓冲区的索引。每三个指数组成一个三角形。例如，如果索引缓冲区为 [0,1,2,0,2,3]，则有两个三角形：第一个三角形由顶点缓冲区中的第一、第二和第三个顶点组成，而第二个三角形由第一、第三和第四个顶点组成。因此，索引缓冲区也定义了上述的卷绕顺序。除了顶点和索引缓冲区外，其他缓冲区还可以向每个顶点添加信息。最常见的附加缓冲区存储法线、纹理坐标（称为纹理坐标或简称为 UV）和顶点颜色。
+
+## 使用 GameObjects
+
+我们需要做的第一件事是真正了解应该成为光线跟踪过程一部分的游戏对象。简单的解决方案是执行 `FindObjectOfType()`，但我们会选择更灵活、更快的方法。让我们添加一个新组件 `RayTracingObject`：
+
+```c#
+using UnityEngine;
+
+[RequireComponent(typeof(MeshRenderer))]
+[RequireComponent(typeof(MeshFilter))]
+public class RayTracingObject : MonoBehaviour
+{
+    private void OnEnable()
+    {
+        RayTracingMaster.RegisterObject(this);
+    }
+
+    private void OnDisable()
+    {
+        RayTracingMaster.UnregisterObject(this);
+    }
+}
+```
+
+该组件被添加到我们想要在光线跟踪中使用的每个对象中，并负责将它们注册到 `RayTracingMaster` 中。在 master 中添加以下函数：
+
+```c#
+private static bool _meshObjectsNeedRebuilding = false;
+private static List _rayTracingObjects = new List();
+
+public static void RegisterObject(RayTracingObject obj)
+{
+    _rayTracingObjects.Add(obj);
+    _meshObjectsNeedRebuilding = true;
+}
+
+public static void UnregisterObject(RayTracingObject obj)
+{
+    _rayTracingObjects.Remove(obj);
+    _meshObjectsNeedRebuilding = true;
+}
+```
+
+到目前为止，一切顺利——我们知道要追踪哪些对象。现在到了关键部分：我们即将从 Unity 的网格（矩阵、顶点和索引缓冲区，还记得吗？）收集所有数据，将它们放入我们自己的数据结构中，并上传到 GPU，以便着色器可以使用它们。让我们从 master 中 C# 端的数据结构和缓冲区定义开始：
+
+```c#
+struct MeshObject
+{
+    public Matrix4x4 localToWorldMatrix;
+    public int indices_offset;
+    public int indices_count;
+}
+
+private static List _meshObjects = new List();
+private static List _vertices = new List();
+private static List _indices = new List();
+private ComputeBuffer _meshObjectBuffer;
+private ComputeBuffer _vertexBuffer;
+private ComputeBuffer _indexBuffer;
+```
+
+…让我们在着色器中做同样的事情。你现在已经习惯了，不是吗？
+
+```glsl
+struct MeshObject
+{
+    float4x4 localToWorldMatrix;
+    int indices_offset;
+    int indices_count;
+};
+
+StructuredBuffer _MeshObjects;
+StructuredBuffer _Vertices;
+StructuredBuffer _Indices;
+```
+
+我们的数据结构已经到位，所以我们现在可以用实际数据填充它们。我们将所有网格中的所有顶点收集到一个大列表中，并将所有索引收集到大 `List<int>` 中。虽然这对顶点来说不是问题，但我们需要调整索引，使其仍然指向大缓冲区中的正确顶点。例如，假设到目前为止，我们已经添加了价值 1000 个顶点的对象，现在我们正在添加一个简单的立方体网格。第一个三角形可能由索引 [0,1,2] 组成，但由于在开始添加立方体的顶点之前，缓冲区中已经有 1000 个顶点，因此我们需要移动索引，使其变为 [1000, 1001, 1002]。这是它在代码中的样子：
+
+```c#
+private void RebuildMeshObjectBuffers()
+{
+    if (!_meshObjectsNeedRebuilding)
+    {
+        return;
+    }
+
+    _meshObjectsNeedRebuilding = false;
+    _currentSample = 0;
+
+    // Clear all lists
+    _meshObjects.Clear();
+    _vertices.Clear();
+    _indices.Clear();
+
+    // Loop over all objects and gather their data
+    foreach (RayTracingObject obj in _rayTracingObjects)
+    {
+        Mesh mesh = obj.GetComponent().sharedMesh;
+
+        // Add vertex data
+        int firstVertex = _vertices.Count;
+        _vertices.AddRange(mesh.vertices);
+
+        // Add index data - if the vertex buffer wasn't empty before, the
+        // indices need to be offset
+        int firstIndex = _indices.Count;
+        var indices = mesh.GetIndices(0);
+        _indices.AddRange(indices.Select(index => index + firstVertex));
+
+        // Add the object itself
+        _meshObjects.Add(new MeshObject()
+        {
+            localToWorldMatrix = obj.transform.localToWorldMatrix,
+            indices_offset = firstIndex,
+            indices_count = indices.Length
+        });
+    }
+
+    CreateComputeBuffer(ref _meshObjectBuffer, _meshObjects, 72);
+    CreateComputeBuffer(ref _vertexBuffer, _vertices, 12);
+    CreateComputeBuffer(ref _indexBuffer, _indices, 4);
+}
+```
+
+在 `OnRenderImage` 函数中调用 `RebuildMeshObjectBuffers`，不要忘记在 `OnDisable` 中释放新的缓冲区。以下是我在上面的代码中使用的两个辅助函数，使缓冲区处理更容易一些：
+
+```c#
+private static void CreateComputeBuffer(ref ComputeBuffer buffer, List data, int stride)
+    where T : struct
+{
+    // Do we already have a compute buffer?
+    if (buffer != null)
+    {
+        // If no data or buffer doesn't match the given criteria, release it
+        if (data.Count == 0 || buffer.count != data.Count || buffer.stride != stride)
+        {
+            buffer.Release();
+            buffer = null;
+        }
+    }
+
+    if (data.Count != 0)
+    {
+        // If the buffer has been released or wasn't there to
+        // begin with, create it
+        if (buffer == null)
+        {
+            buffer = new ComputeBuffer(data.Count, stride);
+        }
+
+        // Set data on the buffer
+        buffer.SetData(data);
+    }
+}
+
+private void SetComputeBuffer(string name, ComputeBuffer buffer)
+{
+    if (buffer != null)
+    {
+        RayTracingShader.SetBuffer(0, name, buffer);
+    }
+}
+```
+
+太好了，我们有缓冲区，它们充满了所需的数据！现在我们只需要告诉着色器。在 `SetShaderParameters` 中，添加以下代码（并且，由于我们的新辅助函数，您也可以在处理球体缓冲区时缩短代码）：
+
+```c#
+SetComputeBuffer("_Spheres", _sphereBuffer);
+SetComputeBuffer("_MeshObjects", _meshObjectBuffer);
+SetComputeBuffer("_Vertices", _vertexBuffer);
+SetComputeBuffer("_Indices", _indexBuffer);
+```
+
+呼。这很乏味，但看看我们刚刚做了什么：我们收集了网格的所有内部数据（矩阵、顶点和索引），把它们放在一个漂亮而简单的结构中，并将其发送到 GPU，GPU 现在正急切地等待着使用它。
+
+## 追踪网格
+
+我们不要让 GPU 等待。我们已经有了在着色器中跟踪单个三角形的代码，而网格实际上只是一堆三角形。这里唯一的新东西是，我们使用我们的矩阵，使用内在函数 `mul`（用于乘法）将顶点从对象空间转换到世界空间。矩阵包含对象的平移、旋转和缩放。它是 4×4，所以我们需要一个 4d 向量进行乘法。前三个分量（x，y，z）来自我们的顶点缓冲区。我们将第四个分量（w）设置为 1，因为我们正在处理一个点。如果这是一个方向，我们会在那里加一个 0 来忽略矩阵中的任何平移和缩放。困惑吗？请至少阅读[本教程](http://www.opengl-tutorial.org/beginners-tutorials/tutorial-3-matrices/)八遍。以下是着色器代码：
+
+```glsl
+void IntersectMeshObject(Ray ray, inout RayHit bestHit, MeshObject meshObject)
+{
+    uint offset = meshObject.indices_offset;
+    uint count = offset + meshObject.indices_count;
+    for (uint i = offset; i < count; i += 3)
+    {
+        float3 v0 = (mul(meshObject.localToWorldMatrix, float4(_Vertices[_Indices[i]], 1))).xyz;
+        float3 v1 = (mul(meshObject.localToWorldMatrix, float4(_Vertices[_Indices[i + 1]], 1))).xyz;
+        float3 v2 = (mul(meshObject.localToWorldMatrix, float4(_Vertices[_Indices[i + 2]], 1))).xyz;
+
+        float t, u, v;
+        if (IntersectTriangle_MT97(ray, v0, v1, v2, t, u, v))
+        {
+            if (t > 0 && t < bestHit.distance)
+            {
+                bestHit.distance = t;
+                bestHit.position = ray.origin + t * ray.direction;
+                bestHit.normal = normalize(cross(v1 - v0, v2 - v0));
+                bestHit.albedo = 0.0f;
+                bestHit.specular = 0.65f;
+                bestHit.smoothness = 0.99f;
+                bestHit.emission = 0.0f;
+            }
+        }
+    }
+}
+```
+
+我们离实际看到这一切只差一步了。让我们稍微重构一下 `Trace` 函数，并添加网格对象的跟踪：
+
+```glsl
+	RayHit Trace(Ray ray)
+    {
+        RayHit bestHit = CreateRayHit();
+        uint count, stride, i;
+        // Trace ground plane
+        IntersectGroundPlane(ray, bestHit);
+        // Trace spheres
+        _Spheres.GetDimensions(count, stride);
+        for (i = 0; i < count; i++)
+        {
+            IntersectSphere(ray, bestHit, _Spheres[i]);
+        }
+        // Trace mesh objects
+        _MeshObjects.GetDimensions(count, stride);
+        for (i = 0; i < count; i++)
+        {
+            IntersectMeshObject(ray, bestHit, _MeshObjects[i]);
+        }
+        return bestHit;
+    }
+```
+
+## 结果
+
+就是这样！让我们添加一些简单的网格（Unity 的 primitves 工作得很好），给它们一个 RayTracingObject 组件，然后观察奇迹的发生。**不要**使用任何详细的网格（超过几百个三角形）！我们的着色器缺少适当的优化，如果你走得太远，可能需要几秒钟甚至几分钟才能跟踪每个像素的一个样本。结果是你的 GPU 驱动程序将被系统杀死，Unity 可能会崩溃，你的机器需要重新启动。
+
+![Flat primitives](https://eu-images.contentstack.com/v3/assets/blt740a130ae3c5d529/blt5a1c576d91bdd0b0/650e88244965463fac4b5ff0/flat-primitives.png/?width=700&auto=webp&quality=80&disable=upscale)
+
+请注意，我们的网格不是平滑的，而是平坦的着色。由于我们还没有将顶点的法线上传到缓冲区，我们需要使用叉积来单独获得每个三角形的法线，并且不能在三角形区域内插值。我们将在本系列教程的下一部分中处理这个问题。
+
+为了好玩，我从 [Morgan McGuire 的档案](https://casual-effects.com/g3d/data10/index.html#mesh3)中下载了Stanford Bunny，并使用 [Blender](https://www.blender.org/)的抽取修改器将其缩减为 431 个三角形。您可以在着色器的 `IntersectMeshObject` 函数中使用灯光设置和硬编码材质。这是 [Grafitti 庇护所](https://hdrihaven.com/hdri/?h=graffiti_shelter)里的一只电介质兔子，它有着漂亮的柔和阴影和微妙的漫反射 GI：
+
+![Bunny matte](https://eu-images.contentstack.com/v3/assets/blt740a130ae3c5d529/bltc372ac312e3cd86f/650e882e285a8a474bf4bc56/bunny-matte.png/?width=700&auto=webp&quality=80&disable=upscale)
+
+…在 [Cape Hill](https://hdrihaven.com/hdri/?h=cape_hill) 强烈的定向光下，一只金属兔子在地板上投下了一些迪斯科般的斑点：
+
+![Bunny glossy](https://eu-images.contentstack.com/v3/assets/blt740a130ae3c5d529/bltc798f25ce0dee3c3/650e882a4ba72b5912f96e67/bunny-reflecting.jpg/?width=700&auto=webp&quality=80&disable=upscale)
+
+…还有两只小兔子躲在 [Kiara 9 Dusk](https://hdrihaven.com/hdri/?h=kiara_9_dusk) 蓝天下的一块大岩石 Suzanne 下面（我通过检查索引偏移量是否为 0，为第一个对象硬编码了一种替代材质）：
+
+![Suzanne and Bunnies](https://eu-images.contentstack.com/v3/assets/blt740a130ae3c5d529/blt23b67bb1cccb4a86/650e88566b0b7138bf544e1c/suzanne-and-bunnies.png/?width=700&auto=webp&quality=80&disable=upscale)
+
+## 接下来是什么？
+
+第一次在自己的光线跟踪器中看到真正的网格真的很酷，不是吗？我们今天处理了相当多的数据，了解了 Möller-Trumbore 交叉口，并整合了所有内容，以便 Unity 的 GameObjects 可以立即使用。我们还看到了光线追踪的美丽一面：一旦你集成了一个新的交点，所有很酷的效果（软阴影、镜面反射和漫反射 GI 等）都会正常工作。
+
+渲染光滑的兔子花了很长时间，我仍然需要对结果进行一些轻微的过滤，以去除最刺耳的噪音。为了克服这一点，场景通常被结构化为网格、kD 树或边界体积层次等空间结构，这大大加快了更大场景的渲染速度。
+
+但首先要做的是：接下来我们应该做的是修复法线，这样我们的网格（即使是低多边形）看起来比现在更平滑。当对象移动时，矩阵会自动更新，与 Unity 材质的实际耦合，而不仅仅是一个硬编码的耦合，听起来也是一个好主意。我们将在本系列的下一部分中处理这个问题。
+
+你已经走了这么远。谢谢，第四部分见！
