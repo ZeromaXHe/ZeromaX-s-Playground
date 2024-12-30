@@ -1,3 +1,50 @@
+欢迎在 B 站跟踪项目进展和查看相关实现细节讲解：
+
+[个人主页：ZeromaX訸](https://space.bilibili.com/27867310)
+
+[项目进展：“从零开始做游戏”系列视频](https://www.bilibili.com/video/BV1JaCYYVEd2)
+
+# 仓库内容
+
+- **Docs 文件夹**: 各种开发过程中用到的文档、翻译
+
+  - **CatlikeCoding 文件夹**：学习 [Catlike Coding 网站](https://catlikecoding.com/)相关文档时一边看一边翻译的中文文档。
+
+    主文档入口为 **[CatlikeCoding网站翻译.md](./Docs/CatlikeCoding/CatlikeCoding网站翻译.md)**。一切版权归原作者 Jasper Flick 所有，[许可](https://catlikecoding.com/unity/tutorials/license/)基于网站代码 MIT 协议和教程 CC BY-NC-SA 4.0 许可证。
+
+  - **FSharpForFunAndProfit 文件夹**: 学习 F# 时参考 [F# for Fun and Profit 网站]() 一边学习一边翻译的中文文档。
+
+    主文档入口为：**[FSharpForFunAndProfit翻译.md](./Docs/FSharpForFunAndProfit/FSharpForFunAndProfit翻译.md)**。一切版权归原作者 Scott Wlaschin 所有，[许可](https://fsharpforfunandprofit.com/about/license/)基于 MIT 协议
+
+  - **Godot 文件夹**：因为 Godot 中文版官方文档高阶内容仍有大量未汉化部分，所以根据英文版最新文档进行的中文翻译，边学习边做机翻润色。
+
+    主文档入口为：**[Godot官方文档英文版翻译.md](./Docs/Godot/Godot官方文档英文版翻译.md)**
+
+  - **[FSharpPlus 官方文档翻译.md](./Docs/FSharpPlus官方文档翻译.md)**: F#+（FSharpPlus） 的 [GitHub](https://github.com/fsprojects/FSharpPlus/) 文档以及[网站](https://github.com/fsprojects/FSharpPlus/)官方文档翻译，学习 Monad 相关在 F# 中实际落地实践、操作。
+
+  - **[Godot+F#相关文档翻译.md](./Docs/Godot+F#相关文档翻译.md)**: 关于 Godot 中落地 F# 的相关博客、文章翻译。文档内标明了每篇来源出处，版权均归原作者所有。
+
+  - **[Grokking函数式编程（11篇系列）翻译.md](./Docs/Grokking函数式编程（11篇系列）翻译.md)**: F# Monad 进阶博客系列"[Grokking Functional Programming (11 Part Series)](https://dev.to/choc13/series/12008)"中文翻译，版权归原作者所有。
+
+  - **[Unity中的GPU光线追踪.md](./Docs/Unity中的GPU光线追踪.md)**：由于[Three Eyed Games 原链接](http://blog.three-eyed-games.com/2018/05/03/gpu-ray-tracing-in-unity-part-1/)无法打开，而在网上搜集的 1 ~ 3 部分文章进行中文翻译。版权归原作者所有。
+
+- **MainGame 文件夹**：基于 Godot 引擎开发、学习的主体游戏部分
+
+  - 后续未提及的其余大部分为本人开发的内容、原型（如有疏漏或需要侵删，请联系我）
+  - **demo 文件夹**：
+    - **ConwaysGameOfLife 文件夹**：参考 hamsterbyte 的“Godot 4 - 着色器、计算着色器和并行性（全课）”[教程视频](https://www.youtube.com/watch?v=VQhi2w1E0iU&ab_channel=hamsterbyte)（[B 站搬运视频](https://www.bilibili.com/video/BV1Tu4y1c7hE)）实现
+    - **hexGlobal 文件夹**：参考 [Unity Hex Planet 项目](https://github.com/bart1259/UnityHexPlanet)，在 Godot C# 中的实现
+    - **PdcxsShadertoy 文件夹**：参考 B 站 pdcxs 27 篇的 [Shadertoy 教程](https://www.bilibili.com/video/BV1fN4y127Pw)实现
+  - **game 文件夹**:
+    - **HexGlobal 文件夹**：参考 [Unity Hex Planet 项目](https://github.com/bart1259/UnityHexPlanet)，在 Godot F# 中的实现
+    - **HexPlane 文件夹**：参考 Catlike Coding 网站的 Hex Map [教程](https://catlikecoding.com/unity/tutorials/hex-map/)和[项目](https://catlikecoding.com/unity/hex-map/)，在 Godot F# 中的实现
+    - **SebastianPlanet 文件夹**：参考 [Sebastian Lague](https://github.com/SebLague) 的“如何生成一颗星球”[教程视频](https://www.youtube.com/watch?v=OULxvDLojic&t=15s)（[B 站搬运视频](https://www.bilibili.com/video/BV16z4y1f7E2)）和[项目源码](https://github.com/SebLague/Procedural-Planets/tree/master)（MIT 协议），在 Godot F# 中的实现
+  - **resources 文件夹**：资产素材
+    - **CatlikeCoding 文件夹**：其中资产素材来自 [CatlikeCoding 网站](https://catlikecoding.com/)相关教程，学习过程中使用的到的素材。版权归原作者 Jasper Flick 所有。[许可](https://catlikecoding.com/unity/tutorials/license/)基于网站代码 MIT 协议和教程 CC BY-NC-SA 4.0 许可证。
+    - **kenney 文件夹**：其中资产素材来自 [Kenney.nl 网站](https://www.kenney.nl/)，许可为 CC0 许可证。
+
+
+
 # 实现目标
 
 ## 放置战略游戏
