@@ -3819,3 +3819,3978 @@ CPU 图显示，从圆环切换到波浪后，负载确实降低了。当切换�
 
 https://catlikecoding.com/unity/tutorials/basics/compute-shaders/
 
+*将位置存储在计算缓冲区中。*
+*让GPU完成大部分工作。*
+*按程序画许多立方体。*
+*将整个函数库复制到GPU。*
+
+这是关于学习使用 Unity [基础](https://catlikecoding.com/unity/tutorials/basics/)知识的系列教程中的第五个。这次我们将使用计算着色器来显著提高图形的分辨率。
+
+本教程使用 Unity 2020.3.6f1 编写。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/tutorial-image.jpg)
+
+*一百万个移动的立方体。*
+
+## 1 将工作转移到 GPU
+
+图形的分辨率越高，CPU 和 GPU 需要做的工作就越多，计算位置和渲染立方体。点数等于分辨率的平方，因此分辨率加倍会显著增加工作量。在分辨率为 100 的情况下，我们可能能够达到 60FPS，但我们能把它推多远？如果我们遇到瓶颈，我们能用不同的方法来克服它吗？
+
+### 1.1 分辨率 200
+
+让我们首先将 `Graph` 的最大分辨率从 100 倍提高到 200 倍，看看我们能得到什么性能。
+
+```c#
+	[SerializeField, Range(10, 200)]
+	int resolution = 10;
+```
+
+![inspector](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/moving-work-to-the-gpu/resolution-200-inspector.png)
+![game](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/moving-work-to-the-gpu/resolution-200-game.png)
+
+*分辨率设置为 200 的图形。*
+
+我们现在渲染 40000 点。在我的例子中，BRP 构建的平均帧速率降至 10FPS，URP 构建降至 15FPS。这对于流畅的体验来说太低了。
+
+![BRP](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/moving-work-to-the-gpu/resolution-200-profiler-drp.png) ![URP](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/moving-work-to-the-gpu/resolution-200-profiler-urp.png)
+
+*分析分辨率为 200 的构建，不包括 VSync、BRP 和 URP。*
+
+对构建进行分析表明，所有事情都需要大约四倍的时间，这是有道理的。
+
+### 1.2 GPU 图形
+
+排序、批处理，然后将 40000 个点的变换矩阵发送到 GPU 需要花费大量时间。一个矩阵由 16 个浮点数组成，每个浮点数为 4 个字节，每个矩阵总共 64 B。对于 40000 个点，即 256 万字节，大约 2.44MiB，每次绘制点时都必须复制到 GPU。URP 必须每帧执行两次此操作，一次用于阴影，另一次用于常规几何体。BRP 必须至少做三次，因为它只有额外的深度通过，除了主方向光之外，每个光都要再做一次。
+
+> **什么是 MiB？**
+>
+> 因为计算机硬件使用二进制数来寻址内存，所以它是按 2 的幂而不是 10 的幂进行分区的。MiB 是 mebibyte的后缀，即 2^20^=1024^2^=1048576 字节。这最初被称为兆字节，用 MB 表示，但现在应该表示 10^6^ 字节，与官方定义的 100 万字节相匹配。然而，MB、GB 等仍然经常被使用，而不是 MiB、GiB 等。
+
+一般来说，最好尽量减少 CPU 和 GPU 之间的通信和数据传输量。由于我们只需要点的位置来显示它们，如果这些数据只存在于 GPU 侧，那将是理想的。这将消除大量的数据传输。但随后 CPU 无法再计算位置，GPU 必须取而代之。幸运的是，它非常适合这项任务。
+
+让 GPU 计算位置需要不同的方法。我们将保持当前图形不变以进行比较，并创建一个新的图形。复制 `Graph` C# 资源文件并将其重命名为 `GPUGraph`。从新类中删除 `pointPrefab` 和 `points` 字段。然后还删除其 `Awake`、`UpdateFunction` 和 `UpdateFunctionTransition` 方法。我只标记了新类的已删除代码，而不是将所有内容标记为新代码。
+
+```c#
+using UnityEngine;
+
+public class GPUGraph : MonoBehaviour {
+
+	//[SerializeField]
+	//Transform pointPrefab;
+
+	[SerializeField, Range(10, 200)]
+	int resolution = 10;
+
+	[SerializeField]
+	FunctionLibrary.FunctionName function;
+
+	public enum TransitionMode { Cycle, Random }
+
+	[SerializeField]
+	TransitionMode transitionMode = TransitionMode.Cycle;
+
+	[SerializeField, Min(0f)]
+	float functionDuration = 1f, transitionDuration = 1f;
+
+	//Transform[] points;
+
+	float duration;
+
+	bool transitioning;
+
+	FunctionLibrary.FunctionName transitionFunction;
+
+	//void Awake () { … }
+
+	void Update () { … }
+
+	void PickNextFunction () { … }
+
+	//void UpdateFunction () { … }
+
+	//void UpdateFunctionTransition () { … }
+}
+```
+
+然后在 `Update` 结束时删除调用现在缺失的方法的代码。
+
+```c#
+	void Update () {
+		…
+
+		//if (transitioning) {
+		//	UpdateFunctionTransition();
+		//}
+		//else {
+		//	UpdateFunction();
+		//}
+	}
+```
+
+我们新的 `GPUGraph` 组件是 `Graph` 的一个被删除的版本，它公开了相同的配置选项，但去掉了前缀。它包含了从一个函数转换到另一个函数的逻辑，但除此之外没有做任何事情。使用此组件创建一个游戏对象，分辨率为 200，设置为瞬时过渡循环。停用原始图形对象，以便只有 GPU 版本保持活动状态。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/moving-work-to-the-gpu/gpu-graph-component.png)
+
+GPU 图形组件，设置为瞬时过渡。
+
+### 1.3 计算缓冲区
+
+为了在 GPU 上存储位置，我们需要为它们分配空间。我们通过创建 `ComputeBuffer` 对象来实现这一点。在 `GPUGraph` 中为位置缓冲区添加一个字段，并通过调用 `new ComputeBuffer()`（也称为构造函数）在新的 `Awake` 方法中创建对象。它的工作原理类似于分配一个新数组，但适用于对象或结构。
+
+```c#
+	ComputeBuffer positionsBuffer;
+
+	void Awake () {
+		positionsBuffer = new ComputeBuffer();
+	}
+```
+
+我们需要将缓冲区的元素数量作为参数传递，即分辨率的平方，就像 `Graph` 的 positions 数组一样。
+
+```c#
+		positionsBuffer = new ComputeBuffer(resolution * resolution);
+```
+
+计算缓冲区包含任意非类型化数据。我们必须通过第二个参数指定每个元素的确切大小（以字节为单位）。我们需要存储由三个浮点数组成的 3D 位置向量，因此元素大小是四字节的三倍。因此，40000 个位置需要 0.48MB 或大约 0.46MiB 的 GPU 内存。
+
+```c#
+		positionsBuffer = new ComputeBuffer(resolution * resolution, 3 * 4);
+```
+
+这为我们提供了一个计算缓冲区，但这些对象在热重新加载后无法生存，这意味着如果我们在播放模式下更改代码，它将消失。我们可以通过将 `Awake` 方法替换为 `OnEnable` 方法来处理这个问题，每次启用组件时都会调用该方法。这发生在它醒来后——除非它被禁用——以及热重新加载完成后。
+
+```c#
+	void OnEnable () {
+		positionsBuffer = new ComputeBuffer(resolution * resolution, 3 * 4);
+	}
+```
+
+除此之外，我们还应该添加一个配套的 `OnDisable` 方法，当组件被禁用时，该方法会被调用，如果图被破坏，在热重新加载之前也会发生这种情况。通过调用其 `Release` 方法释放缓冲区。这表示缓冲区占用的 GPU 内存可以立即释放。
+
+```c#
+	void OnDisable () {
+		positionsBuffer.Release();
+	}
+```
+
+由于在此之后我们将不再使用此特定对象实例，因此最好将字段显式设置为引用 `null`。如果我们的图在播放模式下被禁用或销毁，Unity 的内存垃圾回收过程可以在下次运行时回收该对象。
+
+```c#
+	void OnDisable () {
+		positionsBuffer.Release();
+		positionsBuffer = null;
+	}
+```
+
+> **如果我们不显式释放缓冲区，会发生什么？**
+>
+> 如果没有任何对象的引用，当垃圾收集器回收它时，它最终会被释放。但这种情况发生的时间是任意的。最好尽快明确地释放它，以避免堵塞内存。
+
+### 1.4 计算着色器
+
+为了计算 GPU 上的位置，我们必须为它编写一个脚本，特别是一个计算着色器。通过资源/创建/着色器/计算着色器创建一个。它将成为我们 `FunctionLibrary` 类的 GPU 等价物，因此也将其命名为 *FunctionLibrary*。虽然它被称为着色器并使用 HLSL 语法，但它作为一个通用程序运行，而不是用于渲染事物的常规着色器。因此，我将资源放置在 *Scripts* 文件夹中。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/moving-work-to-the-gpu/compute-shader-asset.png)
+
+*函数库计算着色器资源。*
+
+打开资产文件并删除其默认内容。计算着色器需要包含一个称为内核的主函数，通过 `#pragma kernel` 指令后跟一个名称表示，如我们的表面着色器的 `#pragma surface`。使用 `FunctionKernel` 名称将此指令添加为第一行，也是当前唯一的一行。
+
+```glsl
+#pragma kernel FunctionKernel
+```
+
+在指令下方定义函数。这是一个 `void` 函数，最初没有参数。
+
+```glsl
+#pragma kernel FunctionKernel
+
+void FunctionKernel () {}
+```
+
+### 1.5 计算线程
+
+当 GPU 被指示执行计算着色器函数时，它会将其工作划分为组，然后安排它们独立并行运行。每个组又由多个线程组成，这些线程执行相同的计算，但输入不同。我们必须通过在内核函数中添加 `numthreads` 属性来指定每个组应该有多少线程。它需要三个整数参数。最简单的选择是对所有三个参数使用 1，这使得每个组只运行一个线程。
+
+```glsl
+[numthreads(1, 1, 1)]
+void FunctionKernel () {}
+```
+
+GPU 硬件包含始终以锁步方式运行特定固定数量线程的计算单元。这些被称为扭曲或波阵面。如果一个组的线程数量小于扭曲大小，一些线程将闲置，浪费时间。如果线程数量超过了大小，那么 GPU 将为每组使用更多的扭曲。一般来说，64 个线程是一个很好的默认值，因为这与 AMD GPU 的扭曲大小相匹配，而 NVidia GPU 的扭曲尺寸为 32，因此后者每组将使用两个扭曲。实际上，硬件更复杂，可以用线程组做更多的事情，但这与我们的简单图无关。
+
+`numthreads` 的三个参数可用于在一维、二维或三维中组织线程。例如，（64,1,1）在一个维度上为我们提供了 64 个线程，而（8,8,1）提供了相同的数量，但表示为 2D 8×8 方形网格。当我们根据 2D UV 坐标定义点时，让我们使用后一种选项。
+
+```glsl
+[numthreads(8, 8, 1)]
+```
+
+每个线程都由一个由三个无符号整数组成的向量标识，我们可以通过在函数中添加 `uint3` 参数来访问该向量。
+
+```glsl
+void FunctionKernel (uint3 id) {}
+```
+
+> **什么是无符号整数？**
+>
+> 它是一个整数，没有数字符号的指示符，因此它是无符号的。无符号整数为零或正。因为无符号整数不需要使用位来指示符号，所以它们可以存储更大的值，但这通常并不重要。
+
+我们必须明确指出此参数用于线程标识符。我们通过在参数名称后写一个冒号，后跟 `SV_DispatchThreadID` 着色器语义关键字来实现这一点。
+
+```glsl
+void FunctionKernel (uint3 id: SV_DispatchThreadID) {}
+```
+
+### 1.6 UV 坐标
+
+如果我们知道图形的步长，我们可以将线程标识符转换为 UV 坐标。为它添加一个名为 *_Step* 的计算机着色器属性，就像我们向曲面着色器添加 *_Smoothness* 一样。
+
+```glsl
+float _Step;
+
+[numthreads(8, 8, 1)]
+void FunctionKernel (uint3 id: SV_DispatchThreadID) {}
+```
+
+然后创建一个 `GetUV` 函数，该函数将线程标识符作为参数，并将 UV 坐标作为 `float2` 返回。我们可以使用在 `Graph` 中循环点时应用的相同逻辑。取标识符的 XY 分量，加 0.5，乘以步长，然后减 1。
+
+```glsl
+float _Step;
+
+float2 GetUV (uint3 id) {
+	return (id.xy + 0.5) * _Step - 1.0;
+}
+```
+
+### 1.7 设置位置
+
+要存储位置，我们需要访问位置缓冲区。在 HLSL 中，计算缓冲区被称为结构化缓冲区。因为我们必须写入它，所以我们需要支持读写的版本，即 `RWStructuredBuffer`。为名为 *_Positions* 的对象添加着色器属性。
+
+```glsl
+RWStructuredBuffer _Positions;
+
+float _Step;
+```
+
+在这种情况下，我们必须指定缓冲区的元素类型。位置是 `float3` 值，我们直接在尖括号之间的 `RWStructuredBuffer` 后面写入。
+
+```glsl
+RWStructuredBuffer<float3> _Positions;
+```
+
+为了存储点的位置，我们需要根据线程标识符为其分配索引。我们需要知道这个图的分辨率。因此，添加一个 *_Resolution* 着色器属性，其 `uint` 类型与标识符的类型相匹配。
+
+```glsl
+RWStructuredBuffer<float3> _Positions;
+
+uint _Resolution;
+
+float _Step;
+```
+
+然后创建一个 `SetPosition` 函数，在给定标识符和要设置的位置的情况下设置位置。对于索引，我们将使用标识符的 X 分量加上它的 Y 分量乘以图形分辨率。通过这种方式，我们将 2D 数据顺序存储在 1D 数组中。
+
+```glsl
+float2 GetUV (uint3 id) {
+	return (id.xy + 0.5) * _Step - 1.0;
+}
+
+void SetPosition (uint3 id, float3 position) {
+	_Positions[id.x + id.y * _Resolution] = position;
+}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/moving-work-to-the-gpu/3x3-grid-indices.png)
+
+*3×3 网格的位置索引。*
+
+我们必须意识到的一件事是，我们每个小组都计算一个 8×8 点的网格。如果图的分辨率不是 8 的倍数，那么我们最终将得到一行一列的组，这些组将计算出一些超出界限的点。这些点的索引要么落在缓冲区之外，要么与有效索引冲突，这会破坏我们的数据。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/moving-work-to-the-gpu/3x3-grid-indices-out-of-bounds.png)
+
+*走出界限。*
+
+只有当 X 和 Y 标识符分量都小于分辨率时，才能通过存储无效位置来避免。
+
+```glsl
+void SetPosition (uint3 id, float3 position) {
+	if (id.x < _Resolution && id.y < _Resolution) {
+		_Positions[id.x + id.y * _Resolution] = position;
+	}
+}
+```
+
+### 1.8 波浪函数
+
+现在，我们可以在 `FunctionKernel` 中获取 UV 坐标，并使用我们创建的函数设置位置。首先使用零作为位置。
+
+```glsl
+[numthreads(8, 8, 1)]
+void FunctionKernel (uint3 id: SV_DispatchThreadID) {
+	float2 uv = GetUV(id);
+	SetPosition(id, 0.0);
+}
+```
+
+我们最初只支持 *Wave* 函数，这是我们库中最简单的函数。为了使其具有动画效果，我们需要知道时间，因此添加一个 *_Time* 属性。
+
+```glsl
+float _Step, _Time;
+```
+
+然后从 `FunctionLibrary` 类复制 `Wave` 方法，将其插入 `FunctionKernel` 上方。要将其转换为 HLSL 函数，请删除 `public static` 限定符，将 `Vector3` 替换为 `float3`，将 `Sin` 替换为 `sin`。
+
+```glsl
+float3 Wave (float u, float v, float t) {
+	float3 p;
+	p.x = u;
+	p.y = sin(PI * (u + v + t));
+	p.z = v;
+	return p;
+}
+```
+
+唯一缺少的是 `PI` 的定义。我们将通过为它定义一个宏来添加它。这是通过编写 `#define PI` 后跟数字来完成的，为此我们将使用 `3.14159265358979323846`。这比 `float` 值所能表示的要精确得多，但我们让着色器编译器使用适当的近似值。
+
+```glsl
+#define PI 3.14159265358979323846
+
+float3 Wave (float u, float v, float t) { … }
+```
+
+现在使用 `Wave` 函数计算 `FunctionKernel` 中的位置，而不是使用零。
+
+```glsl
+void FunctionKernel (uint3 id: SV_DispatchThreadID) {
+	float2 uv = GetUV(id);
+	SetPosition(id, Wave(uv.x, uv.y, _Time));
+}
+```
+
+### 1.9 分派计算着色器内核
+
+我们有一个核函数，用于计算和存储图中点的位置。下一步是在 GPU 上运行它。`GPUGraph` 需要访问计算着色器才能做到这一点，因此向其中添加一个可序列化的 `ComputeShader` 字段，然后将我们的资源连接到组件。
+
+```c#
+	[SerializeField]
+	ComputeShader computeShader;
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/moving-work-to-the-gpu/compute-shader-assigned.png)
+
+*计算指定的着色器。*
+
+我们需要设置计算着色器的一些属性。为此，我们需要知道 Unity 为它们使用的标识符。这些是可以通过调用带有名称字符串的 `Shader.PropertyToID` 检索的整数。这些标识符是按需声明的，在应用程序或编辑器运行时保持不变，因此我们可以直接将标识符存储在静态字段中。从 *_Positions* 属性开始。
+
+```c#
+	static int positionsId = Shader.PropertyToID("_Positions");
+```
+
+我们永远不会改变这些字段，我们可以通过向它们添加 `readonly` 限定符来表示。除了明确字段的意图外，这还会指示编译器在我们将某些内容分配给其他地方时产生错误。
+
+```c#
+	static readonly int positionsId = Shader.PropertyToID("_Positions");
+```
+
+> **我们难道不应该将 `FunctionLibrary.functions` 也标记为 `readonly` 吗？**
+>
+> 虽然这是有道理的，但 `readonly` 对于引用类型来说效果不佳，因为它只强制字段值本身不被更改。对象（在本例中为数组）本身仍然可以修改。因此，它将阻止分配一个完全不同的数组，但不会阻止更改其元素。我更喜欢只对 `int` 等原始类型使用 `readonly`。
+
+还存储 *_Resolution*、*_Step* 和 *_Time* 的标识符。
+
+```c#
+	static readonly int
+		positionsId = Shader.PropertyToID("_Positions"),
+		resolutionId = Shader.PropertyToID("_Resolution"),
+		stepId = Shader.PropertyToID("_Step"),
+		timeId = Shader.PropertyToID("_Time");
+```
+
+接下来，创建一个 `UpdateFunctionOnGPU` 方法，该方法计算步长并设置计算着色器的分辨率、步长和时间属性。这是通过调用 `SetInt` 进行解析，调用 `SetFloat` 进行其他两个属性的解析，并将标识符和值作为参数来实现的。
+
+```c#
+	void UpdateFunctionOnGPU () {
+		float step = 2f / resolution;
+		computeShader.SetInt(resolutionId, resolution);
+		computeShader.SetFloat(stepId, step);
+		computeShader.SetFloat(timeId, Time.time);
+	}
+```
+
+> **着色器的分辨率属性不是 `uint` 吗？**
+>
+> 是的，但只有一种方法可以设置正则整数，而不是无符号整数。这很好，因为正的 `int` 值相当于 `uint` 值。
+
+我们还必须设置位置缓冲区，它不复制任何数据，而是将缓冲区链接到内核。这是通过调用 `SetBuffer` 来实现的，它的工作原理与其他方法类似，除了它需要一个额外的参数。它的第一个参数是内核函数的索引，因为计算着色器可以包含多个内核，缓冲区可以链接到特定的内核。我们可以通过在计算着色器上调用 `FindKernel` 来获取内核索引，但我们的单个内核的索引始终为零，因此我们可以直接使用该值。
+
+```c#
+		computeShader.SetFloat(timeId, Time.time);
+		
+		computeShader.SetBuffer(0, positionsId, positionsBuffer);
+```
+
+设置缓冲区后，我们可以通过使用四个整数参数在计算着色器上调用 `Dispatch` 来运行内核。第一个是内核索引，另外三个是要运行的组的数量，也是按维度划分的。对所有维度使用 1 意味着只计算第一组 8×8 的位置。
+
+```c#
+		computeShader.SetBuffer(0, positionsId, positionsBuffer);
+		
+		computeShader.Dispatch(0, 1, 1, 1);
+```
+
+由于我们固定的 8×8 组大小，我们在 X 和 Y 维度上需要的组数量等于分辨率除以 8，四舍五入。我们可以通过执行 `float` 除法并将结果传递给 `Mathf.CeilToInt` 来实现这一点。
+
+```c#
+		int groups = Mathf.CeilToInt(resolution / 8f);
+		computeShader.Dispatch(0, groups, groups, 1);
+```
+
+要最终运行我们的内核，请在 `Update` 结束时调用 `UpdateFunctionOnGPU`。
+
+```c#
+	void Update () {
+		…
+
+		UpdateFunctionOnGPU();
+	}
+```
+
+现在，我们在播放模式下每帧计算所有图形的位置，即使我们没有注意到这一点，也没有对数据做任何处理。
+
+## 2 程序化绘制
+
+利用 GPU 上可用的位置，下一步是绘制点，而无需将任何变换矩阵从 CPU 发送到 GPU。因此，着色器必须从缓冲区中检索正确的位置，而不是依赖于标准矩阵。
+
+### 2.1 绘制许多网格
+
+因为 GPU 上已经存在这些位置，所以我们不需要在 CPU 端跟踪它们。我们甚至不需要他们的游戏对象。相反，我们将通过一个命令指示 GPU 多次使用特定材质绘制特定网格。要配置要绘制的内容，请在 `GPUGraph` 中添加可序列化的 `Material` 和 `Mesh` 字段。我们最初将使用我们现有的*点曲面*材质，这些材质已经用于使用BRP绘制点。对于网格，我们将使用默认立方体。
+
+```c#
+	[SerializeField]
+	Material material;
+
+	[SerializeField]
+	Mesh mesh;
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/procedural-drawing/material-mesh.png)
+
+*材质和网格配置。*
+
+程序绘图是通过调用 `Graphics.DrawMeshInstancedProcedural` 完成的，以网格、子网格索引和材质作为参数。子网格索引适用于网格由多个部分组成的情况，但对我们来说并非如此，因此我们使用索引零。在 `UpdateFunctionOnGPU` 结束时执行此操作。
+
+```c#
+	void UpdateFunctionOnGPU () {
+		…
+
+		Graphics.DrawMeshInstancedProcedural(mesh, 0, material);
+	}
+```
+
+> **我们不应该使用 `DrawMeshInstancedIndirect` 吗？**
+>
+> 当您不知道在 CPU 端绘制多少个实例，而是通过缓冲区用计算着色器提供这些信息时，`DrawMeshInstancedIndirect` 方法非常有用。
+
+因为这种绘图方式不使用游戏对象，Unity 不知道绘图发生在场景中的何处。我们必须通过提供一个边界框作为额外的参数来表明这一点。这是一个轴对齐的框，指示我们正在绘制的任何内容的空间边界。Unity 使用此功能来确定是否可以跳过绘图，因为它最终会出现在相机的视野之外。这被称为截锥剔除。因此，现在不是计算每个点的边界，而是一次计算整个图的边界。这对我们的图表来说很好，因为我们的想法是从整体上看待它。
+
+我们的图位于原点，点应保持在大小为 2 的立方体内。我们可以通过调用 `Bounds` 构造函数方法，将 `Vector3.zero` 和 `Vector3.one` 按 2 缩放作为参数，为其创建一个边界值。
+
+```c#
+		var bounds = new Bounds(Vector3.zero, Vector3.one * 2f);
+		Graphics.DrawMeshInstancedProcedural(mesh, 0, material, bounds);
+```
+
+但点也有大小，其中一半可能会在所有方向上超出界限。因此，我们也应该相应地提高界限。
+
+```c#
+		var bounds = new Bounds(Vector3.zero, Vector3.one * (2f + 2f / resolution));
+```
+
+我们必须向 `DrawMeshInstancedProcedural` 提供的最后一个参数是应该绘制多少个实例。这应该与位置缓冲区中的元素数量相匹配，我们可以通过其 `count` 属性检索。
+
+```c#
+		Graphics.DrawMeshInstancedProcedural(
+			mesh, 0, material, bounds, positionsBuffer.count
+		);
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/procedural-drawing/unit-cubes.png)
+
+*重叠的单位立方体。*
+
+> **为什么现在进入游戏模式会完全冻结 Unity 或不显示立方体？**
+>
+> 此时的行为取决于 Unity 版本。继续，一旦一切设置正确，着色器使用了位置，它应该会工作。
+
+当进入游戏模式时，我们现在会看到一个单色的立方体位于原点。每个点渲染一次相同的立方体，但使用单位变换矩阵，因此它们都重叠。性能比以前好得多，因为几乎不需要将数据复制到 GPU，所有点都是通过一次绘图调用绘制的。此外，Unity 不必对每个点进行任何筛选。它也不会根据点的视图空间深度对点进行排序，通常会先绘制离相机最近的点。深度排序使不透明几何体的渲染更加高效，因为它避免了过度绘制，但我们的程序化绘制命令只是一个接一个地渲染点。然而，消除的 CPU 工作和数据传输，加上 GPU 全速渲染所有立方体的能力，远远弥补了这一点。
+
+### 2.2 检索位置
+
+要检索我们存储在 GPU 上的点位置，我们必须创建一个新的着色器，最初用于 BRP。复制*点曲面*着色器并将其重命名为*点曲面 GPU*。调整其着色器菜单标签以匹配。此外，由于我们现在依赖于由计算着色器填充的结构化缓冲区，因此将着色器的目标级别提高到 4.5。这不是严格需要的，但表明我们需要计算着色器支持。
+
+```glsl
+Shader "Graph/Point Surface GPU" {
+
+	Properties {
+		_Smoothness ("Smoothness", Range(0,1)) = 0.5
+	}
+	
+	SubShader {
+		CGPROGRAM
+		#pragma surface ConfigureSurface Standard fullforwardshadows
+		#pragma target 4.5
+
+		…
+		ENDCG
+	}
+
+	FallBack "Diffuse"
+}
+```
+
+> **目标水平 4.5 是什么意思？**
+>
+> [这表明我们至少需要 OpenGL ES 3.1 的功能](https://docs.unity3d.com/Manual/SL-ShaderCompileTargets.html)。它不适用于 DX11 之前的旧 GPU，也不适用于 OpenGL ES 2.0 或 3.0。这也不包括 WebGL。WebGL 2.0 有一些实验性的计算着色器支持，但 Unity 目前不支持它。
+>
+> 当支持不足时运行 GPU 图最多只会导致所有点重叠，就像现在发生的那样。因此，如果你针对这样的平台，你就必须坚持旧的方法，或者将两者都包括在内，并在需要时以更低的分辨率退回 CPU 图。
+
+过程化渲染的工作方式类似于 GPU 实例化，但我们需要指定一个额外的选项，通过添加 `#pragma instancing_options` 指令来指示。在这种情况下，我们必须遵循 `procedural:ConfigureProcedural` 选项。
+
+```glsl
+		#pragma surface ConfigureSurface Standard fullforwardshadows
+		#pragma instancing_options procedural:ConfigureProcedural
+```
+
+这表示曲面着色器需要为每个顶点调用 `ConfigureProcedural` 函数。这是一个没有任何参数的 `void` 函数。将其添加到我们的着色器中。
+
+```glsl
+		void ConfigureProcedural () {}
+
+		void ConfigureSurface (Input input, inout SurfaceOutputStandard surface) {
+			surface.Albedo = saturate(input.worldPos * 0.5 + 0.5);
+			surface.Smoothness = _Smoothness;
+		}
+```
+
+默认情况下，此函数仅在常规绘制过程中被调用。要在渲染阴影时应用它，我们必须通过在 `#pragma surface` 指令中添加 `addshadow` 来指示我们需要一个自定义阴影过程。
+
+```glsl
+		#pragma surface ConfigureSurface Standard fullforwardshadows addshadow
+```
+
+现在添加我们在计算着色器中声明的相同位置缓冲区字段。这次我们只从中读取，因此给它 `StructuredBuffer` 类型，而不是 `RWStructuredBBuffer`。
+
+```glsl
+		StructuredBuffer<float3> _Positions;
+
+		void ConfigureProcedural () {}
+```
+
+但我们应该只对专门为程序绘图编译的着色器变体进行此操作。定义 `UNITY_PROCEDURAL_INSTANCING_ENABLED` 宏标签时就是这种情况。我们可以通过写 `#if define(UNITY_PROCEDURAL_INSTANCING_ENABLED)` 来检查这一点。这是一个预处理器指令，指示编译器在定义了标签的情况下仅包含以下行中的代码。这适用于只包含 `#endif` 指令的行。它的工作方式类似于 C# 中的条件块，除了在编译过程中包含或省略代码。最终代码中不存在分支。
+
+```glsl
+		#if defined(UNITY_PROCEDURAL_INSTANCING_ENABLED)
+			StructuredBuffer<float3> _Positions;
+		#endif
+```
+
+我们必须对将放入 `ConfigureProcedural` 函数中的代码执行相同的操作。
+
+```glsl
+		void ConfigureProcedural () {
+			#if defined(UNITY_PROCEDURAL_INSTANCING_ENABLED)
+			#endif
+		}
+```
+
+现在，我们可以通过用当前正在绘制的实例的标识符对位置缓冲区进行索引来检索点的位置。我们可以通过全局可访问的 `unity_InstanceID` 访问其标识符。
+
+```glsl
+		void ConfigureProcedural () {
+			#if defined(UNITY_PROCEDURAL_INSTANCING_ENABLED)
+				float3 position = _Positions[unity_InstanceID];
+			#endif
+		}
+```
+
+### 2.3 创建转换矩阵
+
+一旦我们有了位置，下一步就是为该点创建一个对象到世界的转换矩阵。为了使事情尽可能简单，我们将图固定在世界原点，不进行任何旋转或缩放。调整 *GPU Graph* 游戏对象的 `Transform` 组件不会产生任何效果，因为我们不会将其用于任何用途。
+
+我们只需要应用点的位置和规模。位置存储在 4×4 变换矩阵的最后一列，而比例存储在矩阵对角线中。矩阵的最后一个分量始终设置为 1。所有其他组件对我们来说都是零。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/procedural-drawing/transformation-matrix.png)
+
+*带位置和比例的变换矩阵。*
+
+变换矩阵用于将顶点从对象空间转换到世界空间。它通过 `unity_ObjectToWorld` 在全球范围内提供。因为我们是按程序绘制的，所以它是一个单位矩阵，所以我们必须替换它。首先将整个矩阵设置为零。
+
+```glsl
+				float3 position = _Positions[unity_InstanceID];
+
+				unity_ObjectToWorld = 0.0;
+```
+
+我们可以通过 `float4(position, 1.0)` 为位置偏移量构造一个列向量。我们可以通过将其分配给 `unity_ObjectToWorld._m03_m13_m23_m33` 将其设置为第四列。
+
+```glsl
+				unity_ObjectToWorld = 0.0;
+				unity_ObjectToWorld._m03_m13_m23_m33 = float4(position, 1.0);
+```
+
+然后将 `float _Step` 着色器属性添加到我们的着色器中，并将其分配给 `unity_ObjectToWorld._m00_m11_m22`。这正确地表达了我们的观点。
+
+```glsl
+		float _Step;
+
+		void ConfigureProcedural () {
+			#if defined(UNITY_PROCEDURAL_INSTANCING_ENABLED)
+				float3 position = _Positions[unity_InstanceID];
+
+				unity_ObjectToWorld = 0.0;
+				unity_ObjectToWorld._m03_m13_m23_m33 = float4(position, 1.0);
+				unity_ObjectToWorld._m00_m11_m22 = _Step;
+			#endif
+		}
+```
+
+还有一个 `unity_WorldToObject` 矩阵，其中包含用于变换法向量的逆变换。当施加非均匀变形时，需要正确地变换方向矢量。但是，由于这不适用于我们的图，我们可以忽略它。不过，我们应该通过在实例化选项 pragma 中添加 `assumeuniformscaling` 来告诉着色器。
+
+```glsl
+		#pragma instancing_options assumeuniformscaling procedural:ConfigureProcedural
+```
+
+现在创建一个使用此着色器的新材质，启用 GPU 实例化，并将其分配给我们的 GPU 图。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/procedural-drawing/using-point-surface-gpu-material.png)
+
+*使用 GPU 材质。*
+
+为了使其正确工作，我们必须像之前设置计算着色器一样设置材质的属性。在绘图之前，在 `UpdateFunctionOnGPU` 中对材质调用 `SetBuffer` 和 `SetFloat`。在这种情况下，我们不必为缓冲区提供内核索引。
+
+```c#
+		material.SetBuffer(positionsId, positionsBuffer);
+		material.SetFloat(stepId, step);
+		var bounds = new Bounds(Vector3.zero, Vector3.one * (2f + 2f / resolution));
+		Graphics.DrawMeshInstancedProcedural(
+			mesh, 0, material, bounds, positionsBuffer.count
+		);
+```
+
+*40000 个阴影立方体，用 BRP 绘制。*
+
+当我们进入游戏模式时，我们再次看到了我们的图表，但现在它的 40000 点以稳定的 60FPS 渲染。如果我关闭编辑器游戏窗口的 VSync，它的帧率会高达 245FPS。我们的程序方法显然比每点使用一个游戏对象快得多。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/procedural-drawing/profiler-drp-vsync.png)
+
+*使用 VSync 分析 BRP 构建。*
+
+评测构建表明，我们的 `GPUGraph` 组件几乎没有任何作用。它只指示 GPU 运行计算着色器内核，然后告诉 Unity 按程序绘制大量点。这不会立即发生。计算着色器已安排，一旦 GPU 空闲，它将立即运行。程序绘制命令稍后由 BRP 发送到 GPU。该命令发送三次，一次用于仅深度通道，一次为阴影，一次是最终绘制。GPU 将首先运行计算着色器，只有在完成后才能绘制场景，之后才能运行计算着色器的下一次调用。Unity 可以轻松获得 40000 点。
+
+### 2.4 追求一百万
+
+由于它可以很好地处理 40000 个点，让我们看看我们的 GPU 图是否可以处理一百万个点。但在此之前，我们必须了解异步着色器编译。这是 Unity 编辑器的一个功能，而不是构建。编辑器只在需要时编译着色器，而不是提前编译。这可以在编辑着色器时节省大量编译时间，但意味着着色器并不总是立即可用。当这种情况发生时，会临时使用统一的青色虚拟着色器，直到着色器编译过程完成，该过程并行运行。这通常很好，但虚拟着色器不适用于程序绘制。这将大大减缓绘图过程。如果在尝试渲染一百万个点时发生这种情况，它很可能会冻结，然后导致 Unity 崩溃，甚至可能导致整个机器崩溃。
+
+我们可以通过项目设置关闭异步着色器编译，但这对我们的*点表面 GPU* 着色器来说只是一个问题。幸运的是，我们可以通过向 Unity 添加 `#pragma editor_sync_compilation` 指令来告诉 Unity 对特定着色器使用同步编译。这将迫使 Unity 在第一次使用着色器之前立即停止并编译着色器，避免使用虚拟着色器。
+
+```glsl
+		#pragma surface ConfigureSurface Standard fullforwardshadows addshadow
+		#pragma instancing_options assumeuniformscaling procedural:ConfigureProcedural
+		#pragma editor_sync_compilation
+		#pragma target 4.5
+```
+
+现在，将 `GPUGraph` 的分辨率限制提高到 1000 是安全的。
+
+```c#
+	[SerializeField, Range(10, 1000)]
+	int resolution = 10;
+```
+
+让我们试试最大分辨率。
+
+![inspector](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/procedural-drawing/resolution-1000-inspector.png)
+![scene](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/procedural-drawing/resolution-1000-scene.png)
+
+*分辨率设置为 1000。*
+
+当在小窗口中查看时，它看起来并不漂亮——莫尔图案会出现，因为点太小了——但它会运行。对我来说，一百万个动画点以 24FPS 的速度渲染。编辑器和构建中的性能是相同的。此时编辑器开销微不足道，GPU 是瓶颈。此外，在我的情况下，是否启用 VSync 并没有明显的区别。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/procedural-drawing/profiler-drp-million-no-vsync.png)
+
+*分析一个构建渲染一百万点，没有 VSync。*
+
+当 VSync 被禁用时，很明显播放器循环的大部分时间都花在等待 GPU 完成上。GPU 确实是瓶颈。我们可以在不影响性能的情况下向 CPU 添加相当多的工作负载。
+
+请注意，我们正在渲染一百万个带有阴影的点，这要求 BRP 每帧绘制三次。禁用阴影会使我的平均帧速率在没有 VSync 的情况下提高到 65FPS 左右。
+
+当然，如果你发现帧率不够，你不需要把分辨率一直提高到 1000。将其减少到 700 可能已经使其在启用阴影的情况下以 60FPS 运行，并且看起来基本相同。但从现在开始，我将始终如一地使用分辨率 1000。
+
+### 2.5 URP
+
+为了了解 URP 的性能，我们还需要复制我们的 *Point URP* 着色器图，将其重命名为 *Point URP GPU*。着色器图不直接支持程序化绘图，但我们可以使用一些自定义代码使其工作。为了简化这一过程并重用一些代码，我们将创建一个 HLSL 包含文件资产。Unity 没有此菜单选项，因此只需复制一个表面着色器资源并将其重命名为 *PointGPU*。然后使用系统的文件浏览器将资源的文件扩展名从 *shader* 更改为 *hlsl*。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/procedural-drawing/point-gpu-hlsl-asset.png)
+
+*PointGPU HLSL 脚本资源。*
+
+清除文件内容，然后将位置缓冲区、比例和 `ConfigureProcedural` 函数的代码从 *Points Surface GPU* 复制到文件中。
+
+```glsl
+#if defined(UNITY_PROCEDURAL_INSTANCING_ENABLED)
+	StructuredBuffer<float3> _Positions;
+#endif
+
+float _Step;
+
+void ConfigureProcedural () {
+	#if defined(UNITY_PROCEDURAL_INSTANCING_ENABLED)
+		float3 position = _Positions[unity_InstanceID];
+
+		unity_ObjectToWorld = 0.0;
+		unity_ObjectToWorld._m03_m13_m23_m33 = float4(position, 1.0);
+		unity_ObjectToWorld._m00_m11_m22 = _Step;
+	#endif
+}
+```
+
+我们现在可以通过 `#include "PointGPU.hlsl"` 指令将此文件包含在*点表面 GPU* 着色器中，之后可以从中删除原始代码。
+
+```glsl
+		#include "PointGPU.hlsl"
+
+		struct Input {
+			float3 worldPos;
+		};
+
+		float _Smoothness;
+
+		//#if defined(UNITY_PROCEDURAL_INSTANCING_ENABLED)
+		//	StructuredBuffer<float3> _Positions;
+		//#endif
+
+		//float _Step;
+
+		//void ConfigureProcedural () { … }
+		
+		void ConfigureSurface (Input input, inout SurfaceOutputStandard surface) { … }
+```
+
+> **我们可以在 `CGPROGRAM` 着色器中包含 HLSL 文件吗？**
+>
+> 对。`CGPROGRAM` 块和 `HLSLPROGRAM` 块之间的唯一区别是，前者默认包含一些文件。这种差异与我们无关。
+
+我们将使用*自定义函数*节点将 HLSL 文件包含在着色器图中。这个想法是节点从文件中调用一个函数。虽然我们不需要这个功能，但除非我们将其连接到我们的图上，否则代码不会被包含在内。因此，我们将向 *PointGPU* 添加一个格式正确的虚拟函数，该函数只需传递 `float3` 值而不进行更改。
+
+使用两个名为 `In` 和 `Out` 的 `float3` 参数向 *PointGPU* 添加一个 `void ShaderGraphFunction_float` 函数。该函数只是将输入分配给输出。参数名称按照惯例大写，因为它们将对应于着色器图中使用的输入和输出标签。
+
+```glsl
+void ShaderGraphFunction_float (float3 In, float3 Out) {
+	Out = In;
+}
+```
+
+这假设 `Out` 参数是一个输出参数，我们必须在它前面写 `out` 声明它。
+
+```glsl
+void ShaderGraphFunction_float (float3 In, out float3 Out) {
+	Out = In;
+}
+```
+
+函数名的 `_float` 后缀是必需的，因为它表示函数的精度。着色器图提供两种精度模式，`float` 或 `half`。后者的大小是前者的一半，因此是两个字节而不是四个字节。节点使用的精度可以显式选择或设置为继承，这是默认值。为了确保我们的图适用于两种精度模式，还添加了一个使用半精度的变体函数。
+
+```glsl
+void ShaderGraphFunction_float (float3 In, out float3 Out) {
+	Out = In;
+}
+
+void ShaderGraphFunction_half (half3 In, out half3 Out) {
+	Out = In;
+}
+```
+
+现在将*自定义函数*节点添加到我们的*点 URP GPU*图中。默认情况下，其类型设置为“*文件*”。将 *PointGPU* 指定给其 *Source* 属性。使用 *ShaderGraphFunction* 作为其名称，不带精度后缀。然后将 *In* 添加到 *Inputs* 列表，将 *Out* 添加到 *Outputs* 列表，两者都作为 *Vector3*。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/procedural-drawing/custom-function-file.png)
+
+*通过文件自定义功能。*
+
+为了将我们的代码集成到图中，我们必须将节点连接到它。因为顶点阶段需要将其输出连接到*顶点*节点的*位置*。然后将“*位置*”节点集添加到对象空间，并将其连接到自定义节点的输入。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/procedural-drawing/vertex-position.png)
+
+*通过我们的函数传递的对象空间顶点位置。*
+
+现在，对象空间顶点位置通过我们的虚拟函数传递，我们的代码被包含在生成的着色器中。但是，为了启用过程渲染，我们还必须包含 `#pragma instancing_options` 和 `#pragma editor_sync_copilation` 编译器指令。这些必须直接注入生成的着色器源代码中，不能通过单独的文件包含。因此，添加另一个*自定义函数*节点，其输入和输出与之前相同，但这次其*类型*设置为*字符串*。将其名称设置为适当的值，如 *InjectPragmas*，然后将指令放入*正文*文本块中。主体充当函数的代码块，因此我们还必须在这里将输入分配给输出。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/procedural-drawing/custom-function-string.png)
+
+*通过字符串注入语法自定义函数。*
+
+为清楚起见，这是主体的代码：
+
+```glsl
+#pragma instancing_options assumeuniformscaling procedural:ConfigureProcedural
+#pragma editor_sync_compilation
+
+Out = In;
+```
+
+也可以在其他自定义函数节点之前或之后通过此节点传递顶点位置。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/procedural-drawing/with-pragmas.png)
+
+*带 pragmas 的着色器图。*
+
+创建一个启用实例化的材质，该材质使用 *Point URP GPU* 着色器，将其分配给我们的图形，然后进入播放模式。我现在在编辑器和构建中都获得了 36FPS 的帧率，并启用了阴影。这比 BRP 快 50%。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/procedural-drawing/profiler-urp-million-no-vsync.png)
+
+*分析 URP 构建。*
+
+同样，VSync 对平均帧速率没有影响。禁用阴影会将其增加到 69FPS，这与 BRP 大致相同，玩家循环只需要更少的时间。
+
+### 2.6 可变分辨率
+
+因为我们目前总是为缓冲区中的每个位置绘制一个点，在播放模式下降低分辨率会固定一些点。这是因为计算着色器只更新适合图形的点。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/procedural-drawing/stuck-points.png)
+
+*降低分辨率后卡住点。*
+
+无法调整计算缓冲区的大小。每次更改分辨率时，我们都可以创建一个新的缓冲区，但另一种更简单的方法是始终为最大分辨率分配一个缓冲区。这将使在游戏模式下轻松更改分辨率。
+
+首先将最大分辨率定义为常数，然后在 `resolution` 字段的 `Range` 属性中使用它。
+
+```c#
+	const int maxResolution = 1000;
+
+	…
+
+	[SerializeField, Range(10, maxResolution)]
+	int resolution = 10;
+```
+
+接下来，始终使用最大分辨率的平方作为缓冲区元素的数量。这意味着，无论图形分辨率如何，我们都会要求 12MB（大约 11.44MiB）的 GPU 内存。
+
+```c#
+	void OnEnable () {
+		positionsBuffer = new ComputeBuffer(maxResolution * maxResolution, 3 * 4);
+	}
+```
+
+最后，绘图时使用当前分辨率的平方，而不是缓冲区元素计数。
+
+```c#
+	void UpdateFunctionOnGPU () {
+		…
+		Graphics.DrawMeshInstancedProcedural(
+			mesh, 0, material, bounds, resolution * resolution
+		);
+	}
+```
+
+*分辨率在 10 到 1000 之间变化。*
+
+## 3 GPU 函数库
+
+现在我们基于 GPU 的方法功能齐全，让我们将整个函数库移植到我们的计算着色器。
+
+### 3.1 所有函数
+
+我们可以复制其他函数，就像我们复制和调整 `Wave` 一样。第二个是 `MultiWave`。与 `Wave` 的唯一显著区别是它包含 `float` 值。HLSL 中不存在 f 后缀，因此应从所有数字中删除。为了表明它们都是浮点值，我为它们显式地添加了一个点，例如 `2f` 变为 `2.0`。
+
+```glsl
+float3 MultiWave (float u, float v, float t) {
+	float3 p;
+	p.x = u;
+	p.y = sin(PI * (u + 0.5 * t));
+	p.y += 0.5 * sin(2.0 * PI * (v + t));
+	p.y += sin(PI * (u + v + 0.25 * t));
+	p.y *= 1.0 / 2.5;
+	p.z = v;
+	return p;
+}
+```
+
+对其余功能执行相同的操作。`Sqrt` 变为 `sqrt`，`Cos` 变为 `cos`。
+
+```glsl
+float3 Ripple (float u, float v, float t) {
+	float d = sqrt(u * u + v * v);
+	float3 p;
+	p.x = u;
+	p.y = sin(PI * (4.0 * d - t));
+	p.y /= 1.0 + 10.0 * d;
+	p.z = v;
+	return p;
+}
+
+float3 Sphere (float u, float v, float t) {
+	float r = 0.9 + 0.1 * sin(PI * (6.0 * u + 4.0 * v + t));
+	float s = r * cos(0.5 * PI * v);
+	float3 p;
+	p.x = s * sin(PI * u);
+	p.y = r * sin(0.5 * PI * v);
+	p.z = s * cos(PI * u);
+	return p;
+}
+
+float3 Torus (float u, float v, float t) {
+	float r1 = 0.7 + 0.1 * sin(PI * (6.0 * u + 0.5 * t));
+	float r2 = 0.15 + 0.05 * sin(PI * (8.0 * u + 4.0 * v + 2.0 * t));
+	float s = r2 * cos(PI * v) + r1;
+	float3 p;
+	p.x = s * sin(PI * u);
+	p.y = r2 * sin(PI * v);
+	p.z = s * cos(PI * u);
+	return p;
+}
+```
+
+### 3.2 宏
+
+我们现在必须为每个图函数创建一个单独的内核函数，但这需要大量的重复代码。我们可以通过创建着色器宏来避免这种情况，就像我们之前定义的 `PI` 一样。首先在 `FunctionKernel` 函数上方的行上写 `#define KERNEL_FUNCTION`。
+
+```glsl
+#define KERNEL_FUNCTION
+	[numthreads(8, 8, 1)]
+	void FunctionKernel (uint3 id: SV_DispatchThreadID) { … }
+```
+
+这些定义通常只适用于同一行后面写的任何内容，但我们可以通过在除最后一行之外的每一行末尾添加一个 `\` 反斜杠将其扩展到多行。
+
+```glsl
+#define KERNEL_FUNCTION \
+	[numthreads(8, 8, 1)] \
+	void FunctionKernel (uint3 id: SV_DispatchThreadID) { \
+		float2 uv = GetUV(id); \
+		SetPosition(id, Wave(uv.x, uv.y, _Time)); \
+	}
+```
+
+现在，当我们编写 `KERNEL_FUNCTION` 时，编译器将用 `FunctionKernel` 函数的代码替换它。为了使其适用于任意函数，我们在宏中添加了一个参数。这类似于函数的参数列表，但没有类型，并且必须将左括号附加到宏名称上。给它一个 `function` 参数，并使用它来代替 `Wave` 的显式调用。
+
+```glsl
+#define KERNEL_FUNCTION(function) \
+	[numthreads(8, 8, 1)] \
+	void FunctionKernel (uint3 id: SV_DispatchThreadID) { \
+		float2 uv = GetUV(id); \
+		SetPosition(id, function(uv.x, uv.y, _Time)); \
+	}
+```
+
+我们还必须更改内核函数的名称。我们将使用 `function` 参数作为前缀，后面跟着 `Kernel`。不过，我们必须将 `function` 标签分开，否则它将不会被识别为着色器参数。要组合这两个单词，请使用 `##` 宏连接运算符将它们连接起来。
+
+```glsl
+	void function##Kernel (uint3 id: SV_DispatchThreadID) { \
+```
+
+现在，通过编写带有适当参数的 `KERNEL_FUNCTION`，可以定义所有五个内核函数。
+
+```glsl
+#define KERNEL_FUNCTION(function) \
+	…
+
+KERNEL_FUNCTION(Wave)
+KERNEL_FUNCTION(MultiWave)
+KERNEL_FUNCTION(Ripple)
+KERNEL_FUNCTION(Sphere)
+KERNEL_FUNCTION(Torus)
+```
+
+我们还必须按照与 `FunctionLibrary.FunctionName` 匹配的顺序，为每个函数替换一个内核指令。
+
+```glsl
+#pragma kernel WaveKernel
+#pragma kernel MultiWaveKernel
+#pragma kernel RippleKernel
+#pragma kernel SphereKernel
+#pragma kernel TorusKernel
+```
+
+最后一步是使用当前函数作为 `GPUGraph.UpdateFunctionOnGPU` 中的内核索引，而不是总是使用零。
+
+```c#
+		var kernelIndex = (int)function;
+		computeShader.SetBuffer(kernelIndex, positionsId, positionsBuffer);
+		
+		int groups = Mathf.CeilToInt(resolution / 8f);
+		computeShader.Dispatch(kernelIndex, groups, groups, 1);
+```
+
+*所有功能分辨率为 1000，平面显示阴影。*
+
+计算着色器运行得如此之快，以至于显示哪个函数都无关紧要，所有函数的帧速率都是相同的。
+
+### 3.3 变形函数
+
+支持从一个函数到另一个函数的变形有点复杂，因为我们需要为每个独特的转换提供一个单独的内核。首先，将过渡进度的属性添加到计算着色器中，我们将使用它来混合函数。
+
+```glsl
+float _Step, _Time, _TransitionProgress;
+```
+
+然后复制内核宏，将其重命名为 `KERNEL_MORPH_FUNCTION`，并为其提供两个参数：`functionA` 和 `functionB`。将函数的名称更改为 `functionA##to##functionB##Kernel`，并使用 `lerp` 在它们根据进度计算的位置之间进行线性插值。我们也可以在这里使用 `smoothstep`，但我们只会在 CPU 上每帧计算一次。
+
+```glsl
+#define KERNEL_MORPH_FUNCTION(functionA, functionB) \
+	[numthreads(8, 8, 1)] \
+	void functionA##To##functionB##Kernel (uint3 id: SV_DispatchThreadID) { \
+		float2 uv = GetUV(id); \
+		float3 position = lerp( \
+			functionA(uv.x, uv.y, _Time), functionB(uv.x, uv.y, _Time), \
+			_TransitionProgress \
+		); \
+		SetPosition(id, position); \
+	}
+```
+
+每个函数都可以转换为所有其他函数，因此每个函数有四个转换。为所有这些添加内核函数。
+
+```glsl
+KERNEL_FUNCTION(Wave)
+KERNEL_FUNCTION(MultiWave)
+KERNEL_FUNCTION(Ripple)
+KERNEL_FUNCTION(Sphere)
+KERNEL_FUNCTION(Torus)
+
+KERNEL_MORPH_FUNCTION(Wave, MultiWave);
+KERNEL_MORPH_FUNCTION(Wave, Ripple);
+KERNEL_MORPH_FUNCTION(Wave, Sphere);
+KERNEL_MORPH_FUNCTION(Wave, Torus);
+
+KERNEL_MORPH_FUNCTION(MultiWave, Wave);
+KERNEL_MORPH_FUNCTION(MultiWave, Ripple);
+KERNEL_MORPH_FUNCTION(MultiWave, Sphere);
+KERNEL_MORPH_FUNCTION(MultiWave, Torus);
+
+KERNEL_MORPH_FUNCTION(Ripple, Wave);
+KERNEL_MORPH_FUNCTION(Ripple, MultiWave);
+KERNEL_MORPH_FUNCTION(Ripple, Sphere);
+KERNEL_MORPH_FUNCTION(Ripple, Torus);
+
+KERNEL_MORPH_FUNCTION(Sphere, Wave);
+KERNEL_MORPH_FUNCTION(Sphere, MultiWave);
+KERNEL_MORPH_FUNCTION(Sphere, Ripple);
+KERNEL_MORPH_FUNCTION(Sphere, Torus);
+
+KERNEL_MORPH_FUNCTION(Torus, Wave);
+KERNEL_MORPH_FUNCTION(Torus, MultiWave);
+KERNEL_MORPH_FUNCTION(Torus, Ripple);
+KERNEL_MORPH_FUNCTION(Torus, Sphere);
+```
+
+我们将定义内核，使其索引等于 `functionB + functionA * 5`，将不转换的内核视为在同一函数之间转换。因此，第一个内核是 *Wave*，接下来是从 *Wave* 转换到其他函数的四个内核。之后是从 *MultiWave* 开始的函数，其中第二个是非转换内核，以此类推。
+
+```glsl
+#pragma kernel WaveKernel
+#pragma kernel WaveToMultiWaveKernel
+#pragma kernel WaveToRippleKernel
+#pragma kernel WaveToSphereKernel
+#pragma kernel WaveToTorusKernel
+
+#pragma kernel MultiWaveToWaveKernel
+#pragma kernel MultiWaveKernel
+#pragma kernel MultiWaveToRippleKernel
+#pragma kernel MultiWaveToSphereKernel
+#pragma kernel MultiWaveToTorusKernel
+
+#pragma kernel RippleToWaveKernel
+#pragma kernel RippleToMultiWaveKernel
+#pragma kernel RippleKernel
+#pragma kernel RippleToSphereKernel
+#pragma kernel RippleToTorusKernel
+
+#pragma kernel SphereToWaveKernel
+#pragma kernel SphereToMultiWaveKernel
+#pragma kernel SphereToRippleKernel
+#pragma kernel SphereKernel
+#pragma kernel SphereToTorusKernel
+
+#pragma kernel TorusToWaveKernel
+#pragma kernel TorusToMultiWaveKernel
+#pragma kernel TorusToRippleKernel
+#pragma kernel TorusToSphereKernel
+#pragma kernel TorusKernel
+```
+
+回到 `GPUGraph`，为过渡进度着色器属性添加标识符。
+
+```c#
+	static readonly int
+		…
+		timeId = Shader.PropertyToID("_Time"),
+		transitionProgressId = Shader.PropertyToID("_TransitionProgress");
+```
+
+如果我们正在转换，请在 `UpdateFunctionOnGPU` 中设置它，否则不用麻烦。我们在这里应用了 smoothstep 函数，所以我们不必对 GPU 上的每个点都这样做。这是一个小的优化，但它是免费的，避免了大量的工作。
+
+```c#
+		computeShader.SetFloat(timeId, Time.time);
+		if (transitioning) {
+			computeShader.SetFloat(
+				transitionProgressId,
+				Mathf.SmoothStep(0f, 1f, duration / transitionDuration)
+			);
+		}
+```
+
+要选择正确的内核索引，请向其中添加五倍的转换函数，或者如果我们不转换，则添加五倍相同的函数。
+
+```c#
+		var kernelIndex =
+			(int)function + (int)(transitioning ? transitionFunction : function) * 5;
+```
+
+*连续随机变形。*
+
+对我来说，添加的过渡仍然不会影响帧率。很明显，渲染才是瓶颈，而不是位置的计算。
+
+### 3.4 函数计数属性
+
+为了计算内核索引，`GPUGraph` 需要知道有多少个函数。我们可以在返回它的 `FunctionLibrary` 中添加一个 `GetFunctionCount` 方法，而不是在 `GPUGraph` 中对其进行硬编码。这样做的好处是，如果我们要添加或删除一个函数，我们只需要更改两个 *FunctionLibrary* 文件——类和计算着色器。
+
+```c#
+	public static int GetFunctionCount () {
+		return 5;
+	}
+```
+
+我们甚至可以删除常量值并返回 `functions` 数组的长度，从而进一步减少我们以后必须更改的代码。
+
+```c#
+	public static int GetFunctionCount () {
+		return functions.Length;
+	}
+```
+
+函数计数是转换为属性的一个很好的候选者。要自己创建一个，请从 `GetFunctionCount` 中删除 `Get` 前缀，并删除其空参数列表。然后将 return 语句包装在嵌套的 `get` 代码块中。
+
+```c#
+	public static int FunctionCount {
+		get {
+			return functions.Length;
+		}
+	}
+```
+
+这定义了一个 getter 属性。由于它只返回一个值，我们可以通过将 `get` 块简化为表达式体来简化它，这是通过用 `get => functions.Length;` 替换它来完成的。
+
+```c#
+	public static int FunctionCount {
+		get => functions.Length;
+	}
+```
+
+因为没有 `set` 块，我们可以通过省略 `get` 来进一步简化属性。这将属性简化为一条线。
+
+```c#
+	public static int FunctionCount => functions.Length;
+```
+
+这也适用于适用的方法，在本例中为 `GetFunction` 和 `GetNextFunctionName`。
+
+```c#
+	public static Function GetFunction (FunctionName name) => functions[(int)name];
+
+	public static FunctionName GetNextFunctionName (FunctionName name) =>
+		(int)name < functions.Length - 1 ? name + 1 : 0;
+```
+
+在 `GPUGraph.UpdateFunctionOnGPU` 中使用新属性而不是常数值。
+
+```c#
+		var kernelIndex =
+			(int)function +
+			(int)(transitioning ? transitionFunction : function) *
+			FunctionLibrary.FunctionCount;
+```
+
+### 3.5 更多详情
+
+总之，由于分辨率的提高，我们的函数可以变得更加详细。例如，我们可以将*球体*扭曲的频率加倍。
+
+```glsl
+float3 Sphere (float u, float v, float t) {
+	float r = 0.9 + 0.1 * sin(PI * (12.0 * u + 8.0 * v + t));
+	…
+}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/procedural-drawing/detailed-sphere.png)
+
+*更详细的范围。*
+
+星形图案和*圆环*的扭曲也是如此。这将使扭曲看起来相对于主图案移动得更慢，因此也会稍微增加它们的时间因素。
+
+```glsl
+float3 Torus (float u, float v, float t) {
+	float r1 = 0.7 + 0.1 * sin(PI * (8.0 * u + 0.5 * t));
+	float r2 = 0.15 + 0.05 * sin(PI * (16.0 * u + 8.0 * v + 3.0 * t));
+	…
+}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/procedural-drawing/detailed-torus.png)
+
+*更详细的圆环。*
+
+为了保持两个函数库的同步，还需要调整 `FunctionLibrary` 类中的函数。这允许在基于游戏对象 CPU 和基于程序 GPU 的方法之间进行更诚实的比较。
+
+下一个教程是[工作](https://catlikecoding.com/unity/tutorials/basics/jobs/)。
+
+[license](https://catlikecoding.com/unity/tutorials/license/)
+
+[repository](https://bitbucket.org/catlikecodingunitytutorials/basics-05-compute-shaders/)
+
+[PDF](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/Compute-Shaders.pdf)
+
+
+
+# 工作：动画分形
+
+发布于 2020-12-15 更新于 2021-05-18
+
+https://catlikecoding.com/unity/tutorials/basics/jobs/
+
+*使用对象层次结构构建分形。*
+*理顺等级制度。*
+*摆脱游戏对象并按程序绘制。*
+*使用作业更新分形。*
+*并行更新分形的部分内容。*
+
+这是关于学习使用 Unity [基础](https://catlikecoding.com/unity/tutorials/basics/)知识的系列教程中的第六个。这次我们将创建一个动画分形。我们从常规的游戏对象层次结构开始，然后慢慢过渡到作业系统，在此过程中衡量性能。
+
+本教程使用 Unity 2020.3.6f1 编写。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/tutorial-image.jpg)
+
+*由 97656 个球体组成的分形。*
+
+## 1 分形
+
+一般来说，分形是一种具有自相似性的东西，简单来说，这意味着它的较小部分看起来与较大的部分相似。例如海岸线和许多植物。例如，一棵树的树枝可以看起来像树干，只是更小。同样，它的树枝也可以看起来像树枝的较小版本。还有数学和几何分形。一些例子是 Mandelbrot 和 Julia 集合、Koch 雪花、Menger 海绵和 Sierpiński 三角形。
+
+几何分形可以通过从初始形状开始，然后将其较小的副本附加到自身上来构建，这也会产生其较小的版本，以此类推。理论上，这可以永远持续下去，创造出无限数量的形状，但这些形状仍占据有限的空间。我们可以在 Unity 中创建这样的东西，但在性能下降太多之前，只能创建几个级别。
+
+我们将在与[上一教程](https://catlikecoding.com/unity/tutorials/basics/compute-shaders/)相同的项目中创建分形，只是没有图形。
+
+### 1.1 创建分形
+
+首先创建一个 `Fractal` 组件类型来表示我们的分形。给它一个可配置的深度整数来控制分形的最大深度。最小深度为 1，仅由初始形状组成。我们将使用 8 作为最大值，这相当高，但不应该太高，以免意外地使您的机器没有响应。深度为 4 是合理的默认值。
+
+```c#
+using UnityEngine;
+
+public class Fractal : MonoBehaviour {
+
+	[SerializeField, Range(1, 8)]
+	int depth = 4;
+}
+```
+
+我们将使用球体作为初始形状，可以通过 *GameObject/3D Object/Sphere* 创建。将它定位在世界原点，将我们的分形分量附加到它上面，并给它一个简单的材质。我最初使用 URP 将其变为黄色。从中删除 `SphereCollider` 组件，以使游戏对象尽可能简单。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/fractal/fractal-inspector.png)
+
+*分形检查器。*
+
+要将球体变成分形，我们必须生成它的克隆。这可以通过调用 `Instantiate` 方法并将其自身作为参数来实现。为了传递对 `Fractal` 实例本身的引用，我们可以使用 `this` 关键字，因此我们将调用 `Instantiate(this)`，我们将在进入播放模式后执行此操作以生成分形。
+
+我们可以在 `Awake` 方法中克隆分形，但克隆的 `Awake` 方法也会立即被调用，这会立即创建另一个实例，以此类推。这会一直持续到 Unity 崩溃，因为它递归调用了太多的方法，这会很快发生。
+
+为了避免立即递归，我们可以添加一个 `Start` 方法并在其中调用 `Instantite`。`Start` 是另一个 Unity 事件方法，它与 `Awake` 一样，在创建组件后也会被调用一次。不同之处在于，`Start` 不会立即被调用，而是在组件上第一次调用 `Update` 方法之前，无论它是否有一个 Update 方法。此时创建的新组件将在下一帧中首次更新。这意味着每帧只会发生一次实例化。
+
+```c#
+	void Start () {
+		Instantiate(this);
+	}
+```
+
+如果你现在进入播放模式，你会看到每一帧都会创建一个新的克隆。首先克隆原始分形，然后克隆第一个克隆，然后克隆第二个克隆，以此类推。此过程只会在您的机器内存不足时停止，因此您应该在此之前退出播放模式。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/fractal/infinite-clones.png)
+
+*创建无限的克隆。*
+
+为了强制执行最大深度，一旦达到最大深度，我们就必须中止实例化。最直接的方法是减小生成的子分形的配置深度。
+
+```c#
+	void Start () {
+		Fractal child = Instantiate(this);
+		child.depth = depth - 1;
+	}
+```
+
+然后，我们可以在 `Start` 开始时检查深度是否为 1 或更小。如果是这样，我们就不应该再深入下去，放弃这种方法。我们可以通过从它返回来实现这一点，单独使用 `return` 语句，因为这是一个 `void` 方法，它什么也不返回。
+
+```c#
+	void Start () {
+		if (depth <= 1) {
+			return;
+		}
+
+		Fractal child = Instantiate(this);
+		child.depth = depth - 1;
+	}
+```
+
+为了更容易看到配置的深度确实随着每个新的子分形而减小，让我们将它们的 `name` 属性设置为 Fractal，然后是空间和深度。整数可以通过加法运算符附加到文本字符串中。这将生成数字的文本表示，然后生成一个新的连接字符串。
+
+```c#
+	void Start () {
+		name = "Fractal " + depth;
+
+		…
+	}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/fractal/four-levels.png)
+
+*四个分形层次，深度逐渐减小。*
+
+深度确实会随着级别的增加而减少，一旦我们创建了正确数量的克隆，这个过程就会停止。为了使新的分形成为其直接父分形的真正子分形，我们必须将其父分形设置为生成它们的父分形。
+
+```c#
+		Fractal child = Instantiate(this);
+		child.depth = depth - 1;
+		child.transform.SetParent(transform, false);
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/fractal/fractal-hierarchy.png)
+
+*分形层次。*
+
+这为我们提供了一个简单的游戏对象层次结构，但它看起来仍然像一个球体，因为它们都重叠了。若要更改此设置，请将子对象变换的局部位置设置为 `Vector3.right`。这将它定位在其父对象的右侧一个单位处，因此我们所有的球体最终都会沿着 X 轴排成一行。
+
+```c#
+		child.transform.SetParent(transform, false);
+		child.transform.localPosition = Vector3.right;
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/fractal/spheres-in-a-row.png)
+
+*球体排成一排。*
+
+自相似性的概念是，较小的部分看起来像较大的部分，因此每个孩子都应该比父母小。我们只需将其大小减半，将其局部比例设置为统一的 0.5。由于规模也适用于儿童，这意味着在层次结构中，每一步的大小都是一半。
+
+```c#
+		child.transform.localPosition = Vector3.right;
+		child.transform.localScale = 0.5f * Vector3.one;
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/fractal/spheres-decreasing-size.png)
+
+*球体尺寸逐渐减小。*
+
+为了使球体再次接触，我们必须减小它们的偏移。父对象和子对象的局部半径过去都是 0.5，因此偏移 1 会使它们接触。由于孩子的大小减半，其局部半径现在为 0.25，因此偏移量应减小到 0.75。
+
+```c#
+		child.transform.localPosition = 0.75f * Vector3.right;
+		child.transform.localScale = 0.5f * Vector3.one;
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/fractal/spheres-touching.png)
+
+*触摸球体。*
+
+### 1.2 多个孩子
+
+每个级别只生育一个孩子会产生一条大小逐渐减小的球体线，这不是一个有趣的分形。因此，让我们在每一步添加第二个子项，通过复制创建子项的代码，重用 `child` 变量。唯一的区别是，我们将使用 `Vector3.up` 作为额外的子对象，这将使它的子对象位于父对象之上，而不是右侧。
+
+```c#
+		Fractal child = Instantiate(this);
+		child.depth = depth - 1;
+		child.transform.SetParent(transform, false);
+		child.transform.localPosition = 0.75f * Vector3.right;
+		child.transform.localScale = 0.5f * Vector3.one;
+
+		child = Instantiate(this);
+		child.depth = depth - 1;
+		child.transform.SetParent(transform, false);
+		child.transform.localPosition = 0.75f * Vector3.up;
+		child.transform.localScale = 0.5f* Vector3.one;
+```
+
+预计每个分形部分现在都将有两个孩子，深度可达四级。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/fractal/spheres-multiple-children-incorrect.png)
+
+*有多个孩子的球体，不正确*
+
+事实似乎并非如此。我们最终在分形的顶部有太多的层次。这是因为当我们克隆分形以创建其第二个子对象时，我们已经给了它第一个子对象。这个孩子现在也被克隆了，因为 `Instantiate` 复制了传递给它的整个游戏对象层次结构。
+
+解决方案是只有在创建了两个孩子之后才能建立亲子关系。为了使这更容易，让我们将子创建代码移动到一个单独的 `CreateChild` 方法中，该方法返回子分形。它做的一切都一样，除了它不设置父对象，偏移方向成为一个参数。
+
+```c#
+	Fractal CreateChild (Vector3 direction) {
+		Fractal child = Instantiate(this);
+		child.depth = depth - 1;
+		child.transform.localPosition = 0.75f * direction;
+		child.transform.localScale = 0.5f * Vector3.one;
+		return child;
+	}
+```
+
+从 `Start` 中删除子创建代码，改为使用向上和向右向量作为参数调用 `CreateChild` 两次。通过变量跟踪孩子，然后用这些变量设置他们的父母。
+
+```c#
+	void Start () {
+		name = "Fractal " + depth;
+
+		if (depth <= 1) {
+			return;
+		}
+
+		Fractal childA = CreateChild(Vector3.up);
+		Fractal childB = CreateChild(Vector3.right);
+		
+		childA.transform.SetParent(transform, false);
+		childB.transform.SetParent(transform, false);
+	}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/fractal/spheres-multiple-children-correct.png)
+
+*有多个孩子的球体，正确*
+
+### 1.3 重新定位（Reorientation）
+
+我们现在得到一个分形，每个部分只有两个子部分，除了最大深度处没有子部分的最小部分。这些孩子的位置总是一样的：一个在上面，一个在右边。然而，分形儿童依附于他们的父母，可以被认为是脱离了父母。因此，他们的取向也与父母有关，这是有道理的。对于子对象来说，其父对象是地面，这使得其偏移方向等于其局部上轴。
+
+我们可以通过添加 `Quaterion` 来支持每个零件的不同方向，我们将其分配给子零件的局部旋转，使其相对于其父零件的方向。
+
+```c#
+	Fractal CreateChild (Vector3 direction, Quaternion rotation) {
+		Fractal child = Instantiate(this);
+		child.depth = depth - 1;
+		child.transform.localPosition = 0.75f * direction;
+		child.transform.localRotation = rotation;
+		child.transform.localScale = 0.5f * Vector3.one;
+		return child;
+	}
+```
+
+在 `Start` 中，第一个子对象位于其父对象上方，因此其方向不会改变。我们可以用 `Quaternion.identity` 来表示这一点，这是表示没有旋转的恒等式四元数。第二个孩子在右边，所以我们必须绕 Z 轴顺时针旋转 90°。我们可以通过静态 `Quaternion.Euler` 方法来实现这一点，在给定 Euler 角度的情况下沿 X、Y 和 Z 轴创建旋转。前两个轴为零，Z 为 -90°。
+
+```c#
+		Fractal childA = CreateChild(Vector3.up, Quaternion.identity);
+		Fractal childB = CreateChild(Vector3.right, Quaternion.Euler(0f, 0f, -90f));
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/fractal/spheres-reoriented.png)
+
+*重新定向分形儿童。*
+
+### 1.4 完成分形
+
+让我们通过添加第三个子对象来继续生长分形，这次向左偏移，围绕 Z 轴旋转 90°。这就完成了我们在 XY 平面上的分形。
+
+```c#
+		Fractal childA = CreateChild(Vector3.up, Quaternion.identity);
+		Fractal childB = CreateChild(Vector3.right, Quaternion.Euler(0f, 0f, -90f));
+		Fractal childC = CreateChild(Vector3.left, Quaternion.Euler(0f, 0f, 90f));
+
+		childA.transform.SetParent(transform, false);
+		childB.transform.SetParent(transform, false);
+		childC.transform.SetParent(transform, false);
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/fractal/fractal-2d.png)
+
+*2D 分形。*
+
+> **我们还可以添加一个向下偏移的子项吗？**
+>
+> 是的，但这只对根分形部分有意义，因为在所有其他情况下，孩子最终会隐藏在父母的父母体内。为了简单起见，我不会只给根一个额外的孩子。
+
+我们通过添加另外两个子项，将分形带入第三维，这两个子项具有前后偏移，以及围绕 X 轴的 90° 和 -90° 旋转。
+
+```c#
+		Fractal childA = CreateChild(Vector3.up, Quaternion.identity);
+		Fractal childB = CreateChild(Vector3.right, Quaternion.Euler(0f, 0f, -90f));
+		Fractal childC = CreateChild(Vector3.left, Quaternion.Euler(0f, 0f, 90f));
+		Fractal childD = CreateChild(Vector3.forward, Quaternion.Euler(90f, 0f, 0f));
+		Fractal childE = CreateChild(Vector3.back, Quaternion.Euler(-90f, 0f, 0f));
+
+		childA.transform.SetParent(transform, false);
+		childB.transform.SetParent(transform, false);
+		childC.transform.SetParent(transform, false);
+		childD.transform.SetParent(transform, false);
+		childE.transform.SetParent(transform, false);
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/fractal/fractal-3d.png)
+
+*3D 分形。*
+
+一旦你确定分形是正确的，你可以尝试配置更大的深度，例如六个。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/fractal/fractal-depth-6.png)
+
+*深度 6  分形。*
+
+在这个深度，你可以注意到分形描述的金字塔的侧面显示了谢尔宾斯基（Sierpiński）三角形的图案。这在使用其他程序投影时最容易看到。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/fractal/sierpinski-triangle-pattern.png)
+
+*谢尔宾斯基三角形图案。*
+
+### 1.5 动画
+
+我们可以通过为分形设置动画来赋予它生命。创建无休止运动的最简单方法是在新的更新方法中沿其局部向上轴旋转每个部分。这可以通过在分形的 `Transform` 组件上调用 `Rotate` 来完成。这将随着时间的推移进行累积旋转，从而使其旋转。如果我们对第二个参数使用 `Time.deltaTime`，对另外两个参数使用零，那么我们最终的旋转速度为每秒一度。让我们将其缩放到每秒 22.5°，以便在 16 秒内实现完整的 360° 旋转。由于分形的四边对称性，该动画将每四秒钟循环一次。
+
+```c#
+	void Update () {
+		transform.Rotate(0f, 22.5f * Time.deltaTime, 0f);
+	}
+```
+
+*为分形设置动画。*
+
+分形的每个部分都以完全相同的方式旋转，但由于整个分形的递归性质，这会产生运动，分形越深，运动就越复杂。
+
+### 1.6 性能
+
+我们的动画分形可能是一个好主意，但它也应该运行得足够快。深度小于 6 的裂缝应该没有问题，但高于 6 的裂缝可能会出现问题。所以我介绍了一些建筑。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/fractal/profiler-build-urp-depth-6.png)
+
+*使用 URP 和分形深度 6 分析构建。*
+
+我分析了深度为 6、7 和 8 的分形的单独构建。我粗略估计了每帧调用 `Update` 方法的平均时间（以毫秒为单位），以及 URP 和 BRP 的平均每秒帧数。我关闭了 VSync，以便最好地了解它在我的机器上可能运行的速度。我还使用 *IL2CPP* 而不是 *Mono* 作为*脚本后端*，可以在播放器项目设置的*其他设置/配置*下找到。
+
+> **Mono 和 IL2CPP 有什么区别？**
+>
+> 后者通常生成比 Mono 运行时环境所能提供的更优化的本机代码。
+
+| 深度 | MS   | URP  | BRP  |
+| ---- | ---- | ---- | ---- |
+| 6    | 2    | 125  | 80   |
+| 7    | 8    | 24   | 15   |
+| 8    | 10   | 4    | 3    |
+
+事实证明，深度 6 没有问题，但我的机器在深度 7 上挣扎，而深度 8 是一场灾难。调用 `Update` 方法花费了太多时间。仅此一项就将帧速率限制在最多 25FPS，但 URP 的帧速率最终会低得多，为 4，BRP 为 3。
+
+Unity 的默认球体有很多顶点，因此尝试同样的实验是有意义的，但用立方体替换分形的网格，这样渲染成本要低得多。这样做之后，我得到了同样的结果，这表明 CPU 是瓶颈，而不是 GPU。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/fractal/fractal-depth-6-cubes.png)
+
+*深度 6 分形，使用立方体而不是球体。*
+
+请注意，使用立方体时，分形自相交，因为立方体比球体突出得多。深度 4 处的一些部分最终会接触到 1 级根部。因此，这些部分的向上子部分最终会穿透根部，而该级别的其他一些子部分会接触到 2 级部分，以此类推。
+
+## 2 平面层次结构
+
+我们分形的递归层次结构及其所有独立运动的部分是 Unity 努力解决的问题。它必须单独更新零件，计算它们的对象到世界的转换矩阵，然后剔除它们，最后用 GPU 实例化或 SRP 批处理器渲染它们。由于我们确切地知道分形是如何工作的，我们可以使用比 Unity 的通用方法更有效的策略。我们或许可以通过简化层次结构，摆脱其递归性质来提高性能。
+
+### 2.1 清理
+
+重构分形层次结构的第一步是删除当前的方法。删除 `Start`、`CreateChild` 和 `Update` 方法。
+
+```c#
+	//void Start () { … }
+
+	//Fractal CreateChild (Vector3 direction, Quaternion rotation) { … }
+
+	//void Update () { … }
+```
+
+我们将使用它作为所有分形部分的根容器，而不是复制根游戏对象。因此，从我们的分形游戏对象中删除 `MeshFilter` 和 `MeshRenderer` 组件。然后将网格和材质的配置字段添加到 `Fractal` 中。通过检查器将它们设置为我们之前使用的球体和材料。
+
+```c#
+	[SerializeField]
+	Mesh mesh;
+
+	[SerializeField]
+	Material material;
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/flat-hierarchy/adjusted-fractal.png)
+
+*调整后的分形游戏对象。*
+
+我们将对分形部分使用相同的方向和旋转。这次我们将把这些存储在静态数组中，以便以后轻松访问。
+
+```c#
+	static Vector3[] directions = {
+		Vector3.up, Vector3.right, Vector3.left, Vector3.forward, Vector3.back
+	};
+
+	static Quaternion[] rotations = {
+		Quaternion.identity,
+		Quaternion.Euler(0f, 0f, -90f), Quaternion.Euler(0f, 0f, 90f),
+		Quaternion.Euler(90f, 0f, 0f), Quaternion.Euler(-90f, 0f, 0f)
+	};
+```
+
+### 2.2 创建零件
+
+现在，我们将重新审视如何创建零件。为此添加一个新的 `CreatePart` 方法，最初是一个没有参数的 void 方法。
+
+```c#
+	void CreatePart () {}
+```
+
+在 `Awake` 方法中调用它。这次我们不需要防止无限递归，所以不需要等到 `Start`。
+
+```c#
+	void Awake () {
+		CreatePart();
+	}
+```
+
+我们将在 `CreatePart` 中手动构造一个新的游戏对象。这是通过调用 `GameObject` 构造函数方法完成的。通过提供该字符串作为参数，为其命名为 *Fractal Part*。用变量跟踪它，然后将分形根作为其父级。
+
+```c#
+	void CreatePart () {
+		var go = new GameObject("Fractal Part");
+		go.transform.SetParent(transform, false);
+	}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/flat-hierarchy/first-fractal-part.png)
+
+*分形与第一部分。*
+
+这为我们提供了一个只有 `Transform` 组件而没有其他组件的游戏对象。为了使其可见，我们必须通过在游戏对象上调用 `AddComponent` 来添加更多组件。做一次。
+
+```c#
+		var go = new GameObject("Fractal Part");
+		go.transform.SetParent(transform, false);
+		go.AddComponent();
+```
+
+`AddComponent` 是一种泛型方法，可以添加任何类型的组件。它就像一个方法模板，每个所需的组件类型都有一个特定的版本。我们通过在尖括号内将其附加到方法名称上来指定所需的类型。对 `MeshFilter` 执行此操作。
+
+```c#
+		go.AddComponent<MeshFilter>();
+```
+
+这将向游戏对象添加一个 `MeshFilter`，该对象也将返回。我们需要将我们的网格分配给它的 `mesh` 属性，这可以直接在方法调用的结果上完成。
+
+```c#
+		go.AddComponent<MeshFilter>().mesh = mesh;
+```
+
+对 `MeshRenderer` 组件执行相同的操作，设置其材质。
+
+```c#
+		go.AddComponent<MeshFilter>().mesh = mesh;
+		go.AddComponent<MeshRenderer>().material = material;
+```
+
+我们的分形部分现在被渲染，因此在进入游戏模式后会出现一个球体。
+
+### 2.3 存储信息
+
+与其让每个部分自行更新，我们不如从具有 `Fractal` 分量的单个根对象控制整个分形。这对 Unity 来说要容易得多，因为它只需要管理一个更新的游戏对象，而不是可能的数千个。但要做到这一点，我们需要跟踪单个 `Fractal` 组件中所有部分的数据。
+
+至少我们需要知道零件的方向和旋转。我们可以通过将它们存储在数组中来跟踪它们。但是，我们不会对向量和四元数使用单独的数组，而是通过创建一个新的 `FractalPart` 结构类型将它们组合在一起。这类似于定义一个类，但使用 `struct` 关键字而不是 `class`。因为我们只需要在 `Fractal` 中定义这种类型，所以在该类中定义它以及它的字段。出于同样的原因，不要公开。
+
+```c#
+public class Fractal : MonoBehaviour {
+	
+	struct FractalPart {
+		Vector3 direction;
+		Quaternion rotation;
+	}
+	
+	…
+}
+```
+
+这种类型将作为一个简单的数据容器，这些数据被捆绑在一起，并被视为一个值，而不是一个对象。为了使 `Fractal` 中的其他代码能够访问此嵌套类型中的字段，需要将其公开。请注意，这只会暴露 `Fractal` 中的字段，因为 `Fractal` 内部的结构本身是私有的。
+
+```c#
+	struct FractalPart {
+		public Vector3 direction;
+		public Quaternion rotation;
+	}
+```
+
+为了正确地定位、旋转和缩放分形部分，我们需要访问它的 `Transform` 组件，因此也需要在结构中添加一个字段作为对它的引用。
+
+```c#
+	struct FractalPart {
+		public Vector3 direction;
+		public Quaternion rotation;
+		public Transform transform;
+	}
+```
+
+现在我们可以在 `Fractal` 中为分形部分数组定义一个字段。
+
+```c#
+	FractalPart[] parts;
+```
+
+虽然可以将所有部分放在一个大数组中，但让我们给同一级别的所有部分自己的数组。这使得以后使用层次结构更容易。我们通过将 `parts` 字段转换为数组来跟踪所有这些数组。这样一个数组的元素类型是 `FractalPart[]`，因此它自己的类型被定义为后面跟着一对空方括号，就像任何其他数组一样。
+
+```c#
+	FractalPart[][] parts;
+```
+
+在 `Awake` 开始时创建这个新的顶级数组，其大小等于分形深度。在这种情况下，大小在第一对方括号内声明，第二对方括号应为空。
+
+```c#
+	void Awake () {
+		parts = new FractalPart[depth][];
+
+		CreatePart();
+	}
+```
+
+每个级别都有自己的数组，也是只有一个部分的分形的根级别。因此，首先为单个元素创建一个新的 `FractalPart` 数组，并将其分配给第一级。
+
+```c#
+		parts = new FractalPart[depth][];
+		parts[0] = new FractalPart[1];
+```
+
+之后，我们必须为其他级别创建一个数组。每一级都是上一级的五倍，因为我们给五个孩子。将级别数组创建变成一个循环，跟踪数组长度，并在每次迭代结束时将其乘以 5。
+
+```c#
+		parts = new FractalPart[depth][];
+		int length = 1;
+		for (int i = 0; i < parts.Length; i++) {
+			parts[i] = new FractalPart[length];
+			length *= 5;
+		}
+```
+
+因为长度是一个整数，我们只在循环中使用它，所以我们可以将它合并到 `for` 语句中，将初始化器和调整部分转换为逗号分隔的列表。
+
+```c#
+		parts = new FractalPart[depth][];
+		//int length = 1;
+		for (int i = 0, length = 1; i < parts.Length; i++, length *= 5) {
+			parts[i] = new FractalPart[length];
+			//length *= 5;
+		}
+```
+
+| Level 等级 | Parts 部分 | Cumulative 累积 |
+| ---------- | ---------- | --------------- |
+| 1          | 1          | 1               |
+| 2          | 5          | 6               |
+| 3          | 25         | 31              |
+| 4          | 125        | 156             |
+| 5          | 625        | 781             |
+| 6          | 3125       | 3906            |
+| 7          | 15625      | 19531           |
+| 8          | 78125      | 97656           |
+
+### 2.4 创建所有零件
+
+要检查我们是否正确创建了零件，请将级别索引的参数添加到 `CreatePart` 中，并将其附加到零件的名称中。请注意，级别指数从零开始并增加，而我们在之前的方法中减小了子级的配置深度。
+
+```c#
+	void CreatePart (int levelIndex) {
+		var go = new GameObject("Fractal Part " + levelIndex);
+		…
+	}
+```
+
+第一部分的水平指数为零。然后在所有级别上进行循环，从索引 1 开始，因为我们首先明确地完成了顶层的单个部分。我们将嵌套循环，因此为级别迭代器变量使用更具体的名称，如 `li`。
+
+```c#
+	void Awake () {
+		…
+
+		CreatePart(0);
+		for (int li = 1; li < parts.Length; li++) {}
+	}
+```
+
+每次级别迭代，首先存储对该级别零件数组的引用。然后循环该级别的所有部分并创建它们，这次使用 `fpi` 这样的名称作为分形部分迭代器变量。
+
+```c#
+		for (int li = 1; li < parts.Length; li++) {
+			FractalPart[] levelParts = parts[li];
+			for (int fpi = 0; fpi < levelParts.Length; fpi++) {
+				CreatePart(li);
+			}
+		}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/flat-hierarchy/all-fractal-parts.png)
+
+*所有分形部分，按级别创建。*
+
+由于孩子们有不同的方向和旋转，我们需要区分他们。我们通过向 `CreatePart` 添加一个子索引来实现这一点，我们也可以将其添加到游戏对象的名称中。
+
+```c#
+	void CreatePart (int levelIndex, int childIndex) {
+		var go = new GameObject("Fractal Part L" + levelIndex + " C" + childIndex);
+		…
+	}
+```
+
+根部分不是另一部分的子部分，因此我们使用索引零，因为它可以被视为地面的向上子部分。
+
+```c#
+		CreatePart(0, 0);
+```
+
+在每个级别的循环中，我们必须循环遍历五个子索引。我们可以通过在每次迭代中递增子索引，并在适当的时候将其重置为零来实现这一点。或者，我们可以在另一个嵌套循环中显式创建五个子循环。这要求我们每次迭代都将分形部分索引增加 5，而不仅仅是增加它。
+
+```c#
+		for (int li = 1; li < parts.Length; li++) {
+			FractalPart[] levelParts = parts[li];
+			for (int fpi = 0; fpi < levelParts.Length; fpi += 5) {
+				for (int ci = 0; ci < 5; ci++) {
+					CreatePart(li, ci);
+				}
+			}
+		}
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/flat-hierarchy/parts-level-child-index.png)
+
+*显示了级别和儿童索引。*
+
+我们还必须确保零件的尺寸正确。同一级别的所有部分具有相同的比例，这不会改变。因此，在创建每个零件时，我们只需要设置一次。将其参数添加到 `CreatePart` 中，并使用它来设置统一比例。
+
+```c#
+	void CreatePart (int levelIndex, int childIndex, float scale) {
+		var go = new GameObject("Fractal Part L" + levelIndex + " C" + childIndex);
+		go.transform.localScale = scale * Vector3.one;
+		…
+	}
+```
+
+根部分的比例为 1。之后，每个级别的刻度减半。
+
+```c#
+		float scale = 1f;
+		CreatePart(0, 0, scale);
+		for (int li = 1; li < parts.Length; li++) {
+			scale *= 0.5f;
+			FractalPart[] levelParts = parts[li];
+			for (int fpi = 0; fpi < levelParts.Length; fpi += 5) {
+				for (int ci = 0; ci < 5; ci++) {
+					CreatePart(li, ci, scale);
+				}
+			}
+		}
+```
+
+### 2.5 重建分形
+
+为了重建分形的结构，我们必须直接定位所有部分，这次是在世界空间中。由于我们没有使用变换层次结构，因此位置将随着分形的动画而变化，因此我们将在 `Update` 而不是 `Awake` 中不断设置它们。但首先我们需要存储零件的数据。
+
+首先更改 `CreatePart`，使其返回新的 `FractalPart` 结构值。
+
+```c#
+	FractalPart CreatePart (int levelIndex, int childIndex, float scale) {
+		…
+
+		return new FractalPart();
+	}
+```
+
+然后使用其子索引和静态数组，以及对其游戏对象的 `Transform` 组件的引用，设置该部分的方向和旋转。我们可以通过将新部分存储在变量中，设置其字段，然后返回它来实现这一点。另一种方法是使用对象或结构初始化器。这是一个花括号内的列表，位于构造函数调用的参数列表之后。
+
+```c#
+		return new FractalPart() {};
+```
+
+我们可以将任务分配给其中创建的任何字段或属性，作为逗号分隔的列表。
+
+```c#
+		return new FractalPart() {
+			direction = directions[childIndex],
+			rotation = rotations[childIndex],
+			transform = go.transform
+		};
+```
+
+如果构造函数方法调用没有参数，如果我们包含一个初始化器，我们可以跳过空参数列表。
+
+```c#
+		//return new FractalPart() {
+		return new FractalPart {
+			…
+		};
+```
+
+将返回的部分复制到 `Awake` 中的正确数组元素中。这是根部分第一个数组的第一个元素。对于其他部分，它是当前级别数组的元素，其索引等于分形部分索引。当我们以五步为单位增加该指数时，也必须添加子指数。
+
+```c#
+		parts[0][0] = CreatePart(0, 0, scale);
+		for (int li = 1; li < parts.Length; li++) {
+			scale *= 0.5f;
+			FractalPart[] levelParts = parts[li];
+			for (int fpi = 0; fpi < levelParts.Length; fpi += 5) {
+				for (int ci = 0; ci < 5; ci++) {
+					levelParts[fpi + ci] = CreatePart(li, ci, scale);
+				}
+			}
+		}
+```
+
+接下来，创建一个新的 `Update` 方法，迭代所有级别及其所有部分，将相关的分形部分数据存储在变量中。我们再次从第二层开始循环，因为根部分不移动，始终位于原点。
+
+```c#
+	void Update () {
+		for (int li = 1; li < parts.Length; li++) {
+			FractalPart[] levelParts = parts[li];
+			for (int fpi = 0; fpi < levelParts.Length; fpi++) {
+				FractalPart part = levelParts[fpi];
+			}
+		}
+	}
+```
+
+要相对于其父级定位零件，我们还需要访问父级的 `Transform` 组件。为此，还要跟踪父零件阵列。父元素是该数组中的元素，其索引等于当前部分的索引除以 5。这是有效的，因为我们执行整数除法，所以没有余数。因此，索引为 0-4 的部分得到父索引 0，索引为 5-9 的部分得到母索引 1，以此类推。
+
+```c#
+		for (int li = 1; li < parts.Length; li++) {
+			FractalPart[] parentParts = parts[li - 1];
+			FractalPart[] levelParts = parts[li];
+			for (int fpi = 0; fpi < levelParts.Length; fpi++) {
+				Transform parentTransform = parentParts[fpi / 5].transform;
+				FractalPart part = levelParts[fpi];
+			}
+		}
+```
+
+现在，我们可以设置零件相对于其指定父级的位置。首先，使其局部位置等于其父级位置，再加上零件的方向乘以其局部比例。由于比例是均匀的，我们可以用比例的 X 分量来满足。
+
+```c#
+				Transform parentTransform = parentParts[fpi / 5].transform;
+				FractalPart part = levelParts[fpi];
+				part.transform.localPosition =
+					parentTransform.localPosition +
+					part.transform.localScale.x * part.direction;
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/flat-hierarchy/parts-distance-incorrect.png)
+
+*零件彼此靠得太近。*
+
+这会使零件离其父级太近，因为我们正在按零件自己的比例缩放距离。由于每个级别的规模减半，我们必须将最终偏移量增加到 150%。
+
+```c#
+				part.transform.localPosition =
+					parentTransform.localPosition +
+					1.5f * part.transform.localScale.x * part.direction;
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/flat-hierarchy/parts-distance-correct.png)
+
+*零件之间的距离正确。*
+
+我们还必须应用零件的旋转。这是通过将其指定给对象的局部旋转来实现的。在确定其位置之前，让我们先这样做。
+
+```c#
+				part.transform.localRotation = part.rotation;		
+				part.transform.localPosition =
+					parentTransform.localPosition +
+					1.5f * part.transform.localScale.x * part.direction;
+```
+
+但我们也必须传播父对象的旋转。旋转可以通过四元数的乘法来堆叠。与常规的数字乘法不同，在这种情况下，顺序很重要。得到的四元数表示通过执行第二个四元数的旋转，然后应用第一个四元数来获得的旋转。因此，在变换层次结构中，首先执行子对象的旋转，然后执行父对象的旋转。因此，正确的四元数乘法顺序是父子。
+
+```c#
+				part.transform.localRotation =
+					parentTransform.localRotation * part.rotation;
+```
+
+最后，父对象的旋转也应影响其偏移的方向。我们可以通过执行四元数-向量乘法将四元数旋转应用于向量。
+
+```c#
+				part.transform.localPosition =
+					parentTransform.localPosition +
+					parentTransform.localRotation *
+						(1.5f * part.transform.localScale.x * part.direction);
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/flat-hierarchy/fractal-restored.png)
+
+*恢复分形。*
+
+### 2.6 再次制作动画
+
+为了使分形再次动画化，我们必须重新引入另一个旋转。这次我们将创建一个四元数来表示当前增量时间的旋转，其角速度与以前相同。在 `Update` 开始时执行此操作。
+
+```c#
+	void Update () {
+		Quaternion deltaRotation = Quaternion.Euler(0f, 22.5f * Time.deltaTime, 0f);
+		
+		…
+	}
+```
+
+让我们从根部分开始。在循环之前检索它，并将其旋转与增量旋转相乘。
+
+```c#
+		Quaternion deltaRotation = Quaternion.Euler(0f, 22.5f * Time.deltaTime, 0f);
+		
+		FractalPart rootPart = parts[0][0];
+		rootPart.rotation *= deltaRotation;
+```
+
+`FractalPart` 是一个结构体，它是一种值类型，因此更改它的局部变量不会更改其他任何内容。我们必须将它复制回它的数组元素——替换旧数据——以记住它的旋转已经改变。
+
+```c#
+		FractalPart rootPart = parts[0][0];
+		rootPart.rotation *= deltaRotation;
+		parts[0][0] = rootPart;
+```
+
+我们还必须调整根的 `Transform` 组件的旋转。这将使分形再次旋转，但仅围绕其根部旋转。
+
+```c#
+		FractalPart rootPart = parts[0][0];
+		rootPart.rotation *= deltaRotation;
+		rootPart.transform.localRotation = rootPart.rotation;
+		parts[0][0] = rootPart;
+```
+
+为了旋转所有其他部分，我们还必须将相同的增量旋转纳入它们的旋转中。当所有事物都围绕其局部上轴旋转时，增量旋转是最右侧的操作数。在应用角色游戏对象的最终旋转之前执行此操作。同时将调整后的零件数据复制回末尾的数组。
+
+```c#
+			for (int fpi = 0; fpi < levelParts.Length; fpi++) {
+				Transform parentTransform = parentParts[fpi / 5].transform;
+				FractalPart part = levelParts[fpi];
+				part.rotation *= deltaRotation;
+				part.transform.localRotation =
+					parentTransform.localRotation * part.rotation;
+				part.transform.localPosition =
+					parentTransform.localPosition +
+					parentTransform.localRotation *
+						(1.5f * part.transform.localScale.x * part.direction);
+				levelParts[fpi] = part;
+			}
+```
+
+### 2.7 再次性能
+
+此时，我们的分形显示和动画与以前完全一样，但有一个新的平面对象层次结构和一个负责更新整个事物的组件。让我们再次分析一下，使用相同的构建设置，这种新方法是否表现更好。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/flat-hierarchy/profiler-build-urp-depth-6.png)
+
+*使用 URP 和分形深度 6 分析构建。*
+
+| 深度 | MS   | URP  | BRP  |
+| ---- | ---- | ---- | ---- |
+| 6    | 2    | 150  | 95   |
+| 7    | 8    | 32   | 17   |
+| 8    | 43   | 5    | 3    |
+
+与递归方法相比，平均帧速率到处都在增加。使用 URP 的深度 7 现在对我来说达到了 30FPS。更新期间花费的时间没有明显减少，甚至在深度 8 时似乎有所增加，但这在渲染过程中被更简单的层次结构所补偿。使用多维数据集可以获得大致相同的性能。
+
+我们可以得出结论，我们的新方法无疑是一种改进，但仅凭其本身仍不足以支持深度为 7 或 8 的分形。
+
+## 3 程序图
+
+因为我们的分形目前具有平坦的对象层次结构，所以它具有与我们之前教程中的图形相同的结构设计：一个具有许多几乎相同子对象的单个对象。通过按程序渲染图形的点，而不是为每个点使用单独的游戏对象，我们设法显著提高了其性能。这表明我们可以将同样的方法应用于分形。
+
+即使对象层次是平的，分形部分仍然具有递归层次关系。这使得它与具有独立点的图有着根本的不同。这种层次依赖性使其不适合迁移到计算着色器。但仍然可以通过一个程序命令绘制同一级别的所有部分，避免了数千个游戏对象的开销。
+
+> **是否可以使用计算着色器更新分形？**
+>
+> 是的，但这很不方便，因为父部件必须在孩子之前更新。这种依赖性要求将工作分为多个连续的阶段，就像我们一次迭代一个级别一样。由于大多数级别没有很多部分——从 GPU 的角度来看——它的并行处理能力无法得到有效利用。
+>
+> 可以应用混合方法：除最后一个级别外，所有级别都使用 CPU，然后最后一个使用 GPU。但本教程主要关注 CPU，最后我们会发现 GPU 将是瓶颈，而不是 CPU。
+
+### 3.1 删除游戏对象
+
+我们首先移除游戏对象。这也意味着我们不再有 `Transform` 组件来存储世界位置和旋转。相反，我们将把这些存储在 `FractalPart` 的其他字段中。
+
+```c#
+	struct FractalPart { 
+		public Vector3 direction, worldPosition;
+		public Quaternion rotation, worldRotation;
+		//public Transform transform;
+	}
+```
+
+从 `CreatePart` 中删除所有游戏对象代码。我们只需要保留其子索引参数，因为其他参数仅在创建游戏对象时使用。
+
+```c#
+	FractalPart CreatePart (int childIndex) {
+		//var go = new GameObject("Fractal Part L" + levelIndex + " C" + childIndex);
+		//go.transform.localScale = scale * Vector3.one;
+		//go.transform.SetParent(transform, false);
+		//go.AddComponent<MeshFilter>().mesh = mesh;
+		//go.AddComponent<MeshRenderer>().material = material;
+
+		return new FractalPart {
+			direction = directions[childIndex],
+			rotation = rotations[childIndex] //,
+			//transform = go.transform
+		};
+	}
+```
+
+我们现在还可以将该方法简化为一个表达式。
+
+```c#
+	FractalPart CreatePart (int childIndex) => new FractalPart {
+		direction = directions[childIndex],
+		rotation = rotations[childIndex]
+	};
+```
+
+相应地调整 `Awake` 中的代码。从现在开始，我们不再处理规模问题。
+
+```c#
+		//float scale = 1f;
+		parts[0][0] = CreatePart(0);
+		for (int li = 1; li < parts.Length; li++) {
+			//scale *= 0.5f;
+			FractalPart[] levelParts = parts[li];
+			for (int fpi = 0; fpi < levelParts.Length; fpi += 5) {
+				for (int ci = 0; ci < 5; ci++) {
+					levelParts[fpi + ci] = CreatePart(ci);
+				}
+			}
+		}
+```
+
+在 `Update` 中，我们现在必须将根的旋转指定给其世界旋转场，而不是 `Transform` 组件旋转。
+
+```c#
+		FractalPart rootPart = parts[0][0];
+		rootPart.rotation *= deltaRotation;
+		rootPart.worldRotation = rootPart.rotation;
+		parts[0][0] = rootPart;
+```
+
+所有其他零件的旋转和位置都需要进行相同的调整。我们在这里还重新介绍了递减的规模。
+
+```c#
+		float scale = 1f;
+		for (int li = 1; li < parts.Length; li++) {
+			scale *= 0.5f;
+			FractalPart[] parentParts = parts[li - 1];
+			FractalPart[] levelParts = parts[li];
+			for (int fpi = 0; fpi < levelParts.Length; fpi++) {
+				//Transform parentTransform = parentParts[fpi / 5].transform;
+				FractalPart parent = parentParts[fpi / 5];
+				FractalPart part = levelParts[fpi];
+				part.rotation *= deltaRotation;
+				part.worldRotation = parent.worldRotation * part.rotation;
+				part.worldPosition =
+					parent.worldPosition +
+					parent.worldRotation * (1.5f * scale * part.direction);
+				levelParts[fpi] = part;
+			}
+		}
+```
+
+### 3.2 变换矩阵
+
+`Transform` 组件提供用于渲染的变换矩阵。由于我们的零件不再有这些组件，我们需要自己创建矩阵。我们将按级别将它们存储在数组中，就像我们存储零件一样。为此添加一个 `Matrix4x4[][]` 字段，并在 `Awake` 中创建其所有数组以及其他数组。
+
+```c#
+	FractalPart[][] parts;
+
+	Matrix4x4[][] matrices;
+
+	void Awake () {
+		parts = new FractalPart[depth][];
+		matrices = new Matrix4x4[depth][];
+		for (int i = 0, length = 1; i < parts.Length; i++, length *= 5) {
+			parts[i] = new FractalPart[length];
+			matrices[i] = new Matrix4x4[length];
+		}
+
+		…
+	}
+```
+
+创建变换矩阵的最简单方法是调用静态 `Matrix4x4.TRS` 方法，并将位置、旋转和缩放作为参数。它返回一个 `Matrix4x4` 结构，我们可以将其复制到数组中。第一个是 `Update` 中的根矩阵，根据其世界位置、世界旋转和1的比例创建。
+
+```c#
+		parts[0][0] = rootPart;
+		matrices[0][0] = Matrix4x4.TRS(
+			rootPart.worldPosition, rootPart.worldRotation, Vector3.one
+		);
+```
+
+> **TRS 是什么意思？**
+>
+> 它代表平移旋转比例。在这种情况下，翻译意味着重新定位或偏移。
+
+在循环中以相同的方式创建所有其他矩阵，这次使用可变比例。
+
+```c#
+			scale *= 0.5f;
+			FractalPart[] parentParts = parts[li - 1];
+			FractalPart[] levelParts = parts[li];
+			Matrix4x4[] levelMatrices = matrices[li];
+			for (int fpi = 0; fpi < levelParts.Length; fpi++) {
+				…
+				
+				levelMatrices[fpi] = Matrix4x4.TRS(
+					part.worldPosition, part.worldRotation, scale * Vector3.one
+				);
+			}
+```
+
+此时进入游戏模式并不会向我们显示分形，因为我们还没有将零件可视化。但我们确实计算了它们的变换矩阵。如果我们让播放模式运行一段时间，分形深度为 6 或更大，Unity 将在某个时候开始记录错误。这些错误告诉 use 四元数到矩阵的转换失败，因为输入的四元数无效。
+
+由于浮点精度限制，转换失败。当我们不断地将四元数相乘时，连续的微小误差会加剧，直到结果不再被识别为有效的旋转。它是由我们每次更新累积的许多非常小的旋转引起的。
+
+解决方案是每次更新都从新的四元数开始。我们可以通过将自旋角作为单独的浮场存储在 `FractalPart` 中来实现这一点，而不是调整其局部旋转。
+
+```c#
+	struct FractalPart { 
+		public Vector3 direction, worldPosition;
+		public Quaternion rotation, worldRotation;
+		public float spinAngle;
+	}
+```
+
+在 `Update` 中，我们恢复到使用自旋增量角的旧方法，然后将其添加到根的自旋角中。根的世界旋转等于其配置的旋转，该旋转应用于围绕 Y 轴的新旋转之上，该新旋转等于其当前的旋转角度。
+
+```c#
+		//Quaternion deltaRotation = Quaternion.Euler(0f, 22.5f * Time.deltaTime, 0f);
+		float spinAngleDelta = 22.5f * Time.deltaTime;
+		FractalPart rootPart = parts[0][0];
+		//rootPart.rotation *= deltaRotation;
+		rootPart.spinAngle += spinAngleDelta;
+		rootPart.worldRotation =
+			rootPart.rotation * Quaternion.Euler(0f, rootPart.spinAngle, 0f);
+		parts[0][0] = rootPart;
+```
+
+所有其他部分也是如此，它们的父级世界旋转应用在顶部。
+
+```c#
+				//part.rotation *= deltaRotation;
+				part.spinAngle += spinAngleDelta;
+				part.worldRotation =
+					parent.worldRotation *
+					(part.rotation * Quaternion.Euler(0f, part.spinAngle, 0f));
+```
+
+### 3.3 计算缓冲区
+
+为了渲染这些部分，我们需要将它们的矩阵发送到 GPU。我们将为此使用计算缓冲区，就像我们为图所做的那样。不同之处在于，这次 CPU 将填充缓冲区，而不是 GPU，我们每层使用一个单独的缓冲区。为缓冲区数组添加一个字段，并在 `Awake` 中创建它们。4×4 矩阵有 16 个浮点值，因此缓冲区的步长是 16 乘以 4 字节。
+
+```c#
+	ComputeBuffer[] matricesBuffers;
+
+	void Awake () {
+		parts = new FractalPart[depth][];
+		matrices = new Matrix4x4[depth][];
+		matricesBuffers = new ComputeBuffer[depth];
+		int stride = 16 * 4;
+		for (int i = 0, length = 1; i < parts.Length; i++, length *= 5) {
+			parts[i] = new FractalPart[length];
+			matrices[i] = new Matrix4x4[length];
+			matricesBuffers[i] = new ComputeBuffer(length, stride);
+		}
+
+		…
+	}
+```
+
+我们还必须在新的 `OnDisable` 方法中释放缓冲区。要使此功能适用于热重新加载，请将 `Awake` 更改为 `OnEnable`。
+
+```c#
+	void OnEnable () {
+		parts = new FractalPart[depth][];
+		matrices = new Matrix4x4[depth][];
+		matricesBuffers = new ComputeBuffer[depth];
+		…
+	}
+
+	void OnDisable () {
+		for (int i = 0; i < matricesBuffers.Length; i++) {
+			matricesBuffers[i].Release();
+		}
+	}
+```
+
+为了保持整洁，还需要删除 `OnDisable` 末尾的所有数组引用。无论如何，我们都会在 `OnEnable` 中创建新的。
+
+```c#
+	void OnDisable () {
+		for (int i = 0; i < matricesBuffers.Length; i++) {
+			matricesBuffers[i].Release();
+		}
+		parts = null;
+		matrices = null;
+		matricesBuffers = null;
+	}
+```
+
+这也使得在播放模式下通过检查器轻松支持更改分形深度成为可能，方法是添加一个 `OnValidate` 方法，该方法只需依次调用 `OnDisable` 和 `OnEnable`，重置分形。`OnValidate` 方法在通过检查器或撤消/重做操作对组件进行更改后被调用。
+
+```c#
+	void OnValidate () {
+		OnDisable();
+		OnEnable();
+	}
+```
+
+然而，这只有在我们处于游戏模式并且分形当前处于活动状态时才能工作。我们可以通过 `!=` 不等运算符检查其中一个数组是否为 `null` 来验证这一点。
+
+```c#
+	void OnValidate () {
+		if (parts != null) {
+			OnDisable();
+			OnEnable();
+		}
+	}
+```
+
+此外，如果我们通过检查器禁用组件，`OnValidate` 也会被调用。这将触发分形重置，然后再次禁用。我们还可以通过其 `enabled` 属性检查 `Fractal` 组件是否启用来避免这种情况。只有当这两个条件都为真时，我们才能重置分形。我们将这些检查组合在一起，使用布尔 `&&` AND 运算符形成一个条件表达式。
+
+```c#
+		if (parts != null && enabled) {
+			OnDisable();
+			OnEnable();
+		}
+```
+
+最后，要将矩阵上传到 GPU，请在 `Update` 结束时调用所有缓冲区上的 `SetData`，并将相应的矩阵数组作为参数。
+
+```c#
+	void Update () {
+		…
+
+		for (int i = 0; i < matricesBuffers.Length; i++) {
+			matricesBuffers[i].SetData(matrices[i]);
+		}
+	}
+```
+
+> **我们难道不应该避免向 GPU 发送数据吗？**
+>
+> 尽可能多，是的。但在这种情况下，我们别无选择，我们必须以某种方式将矩阵发送到 GPU，这是最有效的方法。
+
+### 3.4 着色器
+
+我们现在必须再次创建一个支持程序绘制的着色器。为了将对象设置为世界矩阵，我们可以从图的 *PointGPU.hlsl* 中获取代码，将其复制到新的 *FractalGPU.hlsl* 文件中，并使其适应我们的分形。这意味着它使用 `float4x4` 矩阵缓冲区，而不是 `float3` 位置缓冲区。我们可以直接复制矩阵，而不必在着色器中构造它。
+
+```glsl
+#if defined(UNITY_PROCEDURAL_INSTANCING_ENABLED)
+	StructuredBuffer<float4x4> _Matrices;
+#endif
+
+//float _Step;
+
+void ConfigureProcedural () {
+	#if defined(UNITY_PROCEDURAL_INSTANCING_ENABLED)
+		unity_ObjectToWorld = _Matrices[unity_InstanceID];
+	#endif
+}
+
+void ShaderGraphFunction_float (float3 In, out float3 Out) {
+	Out = In;
+}
+
+void ShaderGraphFunction_half (half3 In, out half3 Out) {
+	Out = In;
+}
+```
+
+我们分形的 URP 着色器图也是 *Point URP GPU* 着色器图的简化副本。顶点位置节点完全相同，除了我们现在必须依赖 *FractalGPU* HLSL 文件。而不是基于世界位置着色，一个单一的*基础颜色*属性就足够了。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/procedural-drawing/shader-graph.png)
+
+*分形着色器图。*
+
+BRP 曲面着色器也比其图形等效着色器更简单。它需要一个不同的名称，包括正确的文件，以及反照率的 *BaseColor* 颜色属性。颜色属性的工作原理类似于平滑度，除了使用 `Color` 而不是范围和四分量默认值。即使不再需要，我也在 `Input` 结构中保留了世界位置，因为空结构无法编译。
+
+```glsl
+Shader "Fractal/Fractal Surface GPU" {
+
+	Properties {
+		_BaseColor ("Base Color", Color) = (1.0, 1.0, 1.0, 1.0)
+		_Smoothness ("Smoothness", Range(0,1)) = 0.5
+	}
+	
+	SubShader {
+		CGPROGRAM
+		#pragma surface ConfigureSurface Standard fullforwardshadows addshadow
+		#pragma instancing_options assumeuniformscaling procedural:ConfigureProcedural
+		#pragma editor_sync_compilation
+
+		#pragma target 4.5
+		
+		#include "FractalGPU.hlsl"
+
+		struct Input {
+			float3 worldPos;
+		};
+
+		float4 _BaseColor;
+		float _Smoothness;
+
+		void ConfigureSurface (Input input, inout SurfaceOutputStandard surface) {
+			surface.Albedo = _BaseColor.rgb;
+			surface.Smoothness = _Smoothness;
+		}
+		ENDCG
+	}
+
+	FallBack "Diffuse"
+}
+```
+
+### 3.5 绘图
+
+最后，为了再次绘制分形，我们必须跟踪 `Fractal` 中矩阵缓冲区的标识符。
+
+```c#
+	static readonly int matricesId = Shader.PropertyToID("_Matrices");
+```
+
+然后在 `Update` 结束时调用 `Graphics.DrawMeshInstancedProcedural`，每个级别一次，使用正确的缓冲区。我们只需对所有级别使用相同的边界：边长为 3 的立方体。
+
+```c#
+		var bounds = new Bounds(Vector3.zero, 3f * Vector3.one);
+		for (int i = 0; i < matricesBuffers.Length; i++) {
+			ComputeBuffer buffer = matricesBuffers[i];
+			buffer.SetData(matrices[i]);
+			material.SetBuffer(matricesId, buffer);
+			Graphics.DrawMeshInstancedProcedural(mesh, 0, material, bounds, buffer.count);
+		}
+```
+
+> **为什么使用 3 作为边界大小？**
+>
+> 根的直径为 1。下一层的直径为 0.5，向各个方向延伸。因此，前两层的最大直径为 1+0.5+0.5=2。第三级在两侧增加 0.25，因此总直径变为 2.5，以此类推。因此，具有较大深度的分形的直径等于 $1+1+\frac{1}{2}+\frac 1 4+\frac 1 8+...=2+\sum\limits^n_{i=1}\frac 1 {2^i}$
+>
+> 对于具有无限深度的理论分形，总和会永远持续下去，但这是一个众所周知的收敛无穷序列：$\lim\limits_{n\rightarrow\infin}\sum\limits^n_{i=1}\frac 1{2^i}=1$。这很直观，因为从 0 到 1 的每一步都是你仍然需要走的距离的一半，所以你每一步的距离都会越来越近，但在有限的步数内永远不会达到 1。因此，我们的分形保证适合三个单位宽的边界框。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/procedural-drawing/only-deepest-level.png)
+
+*只有最深的层次。*
+
+我们的分形再次出现，但看起来只有最深的层次被渲染。帧调试器将显示所有级别都会被渲染，但它们都错误地使用了上一级别的矩阵。这是因为绘图命令会排队等待稍后执行。因此，我们最后设置的缓冲区是所有缓冲区都会使用的缓冲区。
+
+解决方案是将每个缓冲区链接到特定的绘图命令。我们可以通过 `MaterialPropertyBlock` 对象来实现这一点。为它添加一个静态字段，并在 `OnEnable` 中创建一个新的实例（如果还不存在）。
+
+```c#
+	static MaterialPropertyBlock propertyBlock;
+
+	…
+	
+	void OnEnable () {
+		…
+
+		if (propertyBlock == null) {
+			propertyBlock = new MaterialPropertyBlock();
+		}
+	}
+```
+
+仅当当前值为空时分配某物可以通过使用 `??=` 简化为单个表达式空合并分配。
+
+```c#
+		//if (propertyBlock == null) {
+		propertyBlock ??= new MaterialPropertyBlock();
+		//}
+```
+
+在 `Update` 中，将缓冲区设置在特性块上，而不是直接设置在材质上。然后将该块作为附加参数传递给 `Graphics.DrawMeshInstancedProcedural`。这将使 Unity 复制块当时的配置，并将其用于特定的绘图命令，推翻为材质设置的配置。
+
+```c#
+			ComputeBuffer buffer = matricesBuffers[i];
+			buffer.SetData(matrices[i]);
+			propertyBlock.SetBuffer(matricesId, buffer);
+			Graphics.DrawMeshInstancedProcedural(
+				mesh, 0, material, bounds, buffer.count, propertyBlock
+			);
+		}
+```
+
+> **为什么场景窗口中的分形会闪烁？**
+>
+> 这是一个编辑器定时错误，可能发生在场景窗口中，但不会发生在游戏窗口或构建中。打开游戏窗口的 VSync 可以使它变得更好或更坏，具体取决于您的编辑器布局。
+
+### 3.6 性能
+
+现在我们的分形再次完成，让我们再次测量它的性能，最初是在渲染球体时。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/procedural-drawing/profiler-build-urp-depth-6.png)
+
+*使用 URP 和分形深度 6 分析构建。*
+
+| 深度 | MS   | URP  | BRP  |
+| ---- | ---- | ---- | ---- |
+| 6    | 0.7  | 160  | 96   |
+| 7    | 3    | 54   | 35   |
+| 8    | 13   | 11   | 7    |
+
+现在 `Update` 需要更少的时间。在 FPS 方面，深度 6 和 8 略有改善，而深度 7 的渲染速度几乎是以前的两倍。URP 接近 60FPS。当我们尝试立方体时，我们看到了显著的改进。
+
+| 深度 | MS   | URP  | BRP  |
+| ---- | ---- | ---- | ---- |
+| 6    | 0.4  | 470  | 175  |
+| 7    | 2    | 365  | 155  |
+| 8    | 11   | 86   | 85   |
+
+帧率大幅提高，这清楚地表明 GPU 现在是瓶颈。更新时间也减少了一点。这可能是因为在渲染球体时，设置缓冲区数据更加停滞，因为 CPU 被迫等待 GPU 完成从缓冲区的读取。
+
+### 3.7 移动游戏对象
+
+创建我们自己的变换矩阵的一个副作用是，我们的分形现在忽略了其游戏对象的变换。我们可以通过在 `Update` 中将游戏对象的旋转和位置合并到根对象矩阵中来解决这个问题。
+
+```c#
+		rootPart.worldRotation =
+			transform.rotation *
+			(rootPart.rotation * Quaternion.Euler(0f, rootPart.spinAngle, 0f));
+		rootPart.worldPosition = transform.position;
+```
+
+我们还可以应用游戏对象的比例。然而，如果游戏对象是包含非均匀比例和旋转的复杂层次结构的一部分，它可能会受到非仿射变换的影响，从而导致剪切。在这种情况下，它没有明确的规模。因此，`Transform` 组件没有简单的世界空间比例属性。它们具有 `lossyScale` 属性，以表明它可能不是一个精确的仿射尺度。我们将简单地使用该比例的 X 分量，忽略任何不均匀的比例。
+
+```c#
+		float objectScale = transform.lossyScale.x;
+		matrices[0][0] = Matrix4x4.TRS(
+			rootPart.worldPosition, rootPart.worldRotation, objectScale * Vector3.one
+		);
+
+		float scale = objectScale;
+```
+
+还将调整后的世界位置和比例应用于边界。
+
+```c#
+		var bounds = new Bounds(rootPart.worldPosition, 3f * objectScale * Vector3.one);
+```
+
+## 4 工作系统
+
+目前，我们的 C# 代码已经快到了极限，但我们可以利用 Unity 的作业系统切换到另一种方法。这应该能够进一步减少我们的 `Update` 时间，提高性能或为更多代码的运行腾出空间，而不会减慢速度。
+
+作业系统的想法是尽可能有效地利用 CPU 的并行处理能力，利用其多核和特殊的 SIMD 指令，即单指令多数据。这是通过将工作定义为单独的作业来实现的。这些作业的编写方式类似于常规 C# 代码，但随后使用 Unity 的 Burst 编译器进行编译，该编译器通过强制执行常规 C# 没有的一些结构约束来执行积极的优化和并行化。
+
+### 4.1 Burst 包
+
+Burst 作为一个单独的包存在，因此请通过包管理器安装 Unity 版本的最新版本。就我而言，这是 Burst 1.4.8 版本。它依赖于数学包版本 1.2.1，因此该包也将被安装或升级到版本 1.2.1。
+
+要为 `Fractal` 创建作业，我们必须使用  `Unity.Burst`, `Unity.Collections` 和 `Unity.Jobs` 中的代码。
+
+```c#
+using Unity.Burst;
+using Unity.Collections;
+using Unity.Jobs;
+using UnityEngine;
+```
+
+### 4.2 本机数组
+
+作业不能处理对象，只允许使用简单值和结构类型。仍然可以使用数组，但我们必须将它们转换为通用的 `NativeArray` 类型。这是一个包含指向本机内存的指针的结构体，本机内存存在于 C# 代码使用的常规托管内存堆之外。因此，它避开了默认的内存管理开销。
+
+要创建分形部分的原生数组，我们需要使用 `NativeArray<FractalPart>` 类型。当我们使用多个这样的数组时，我们真正需要的是一个数组。对于多个矩阵数组也是如此。
+
+```c#
+	NativeArray<FractalPart>[] parts;
+
+	NativeArray<Matrix4x4>[] matrices;
+```
+
+我们现在必须在 `OnEnable` 开始时创建新的本机数组数组。
+
+```c#
+		parts = new NativeArray<FractalPart>[depth];
+		matrices = new NativeArray<Matrix4x4>[depth];
+```
+
+并使用相应 `NativeArray` 类型的构造函数方法为每个级别创建新的本机数组，该方法需要两个参数。第一个参数是数组的大小。第二个参数指示本机数组预计存在多长时间。由于我们每帧都使用相同的数组，因此必须使用 `Allocator.Persistent`。
+
+```c#
+		for (int i = 0, length = 1; i < parts.Length; i++, length *= 5) {
+			parts[i] = new NativeArray<FractalPart>(length, Allocator.Persistent);
+			matrices[i] = new NativeArray<Matrix4x4>(length, Allocator.Persistent);
+			matricesBuffers[i] = new ComputeBuffer(length, stride);
+		}
+```
+
+我们还必须更改零件创建循环中的变量类型以匹配。
+
+```c#
+		parts[0][0] = CreatePart(0);
+		for (int li = 1; li < parts.Length; li++) {
+			NativeArray<FractalPart> levelParts = parts[li];
+			…
+		}
+```
+
+在 `Update` 内部的循环中也是如此。
+
+```c#
+			NativeArray<FractalPart> parentParts = parts[li - 1];
+			NativeArray<FractalPart> levelParts = parts[li];
+			NativeArray<Matrix4x4> levelMatrices = matrices[li];
+```
+
+最后，就像计算缓冲区一样，我们必须在 `OnDisable` 中明确地释放它们的内存。我们通过在本机数组上调用 `Dispose` 来实现这一点。
+
+```c#
+		for (int i = 0; i < matricesBuffers.Length; i++) {
+			matricesBuffers[i].Release();
+			parts[i].Dispose();
+			matrices[i].Dispose();
+		}
+```
+
+在这一点上，分形仍然是一样的。唯一的区别是，我们现在使用的是本机数组，而不是托管 C# 数组。这可能会表现得更糟，因为从托管 C# 代码访问本机数组会有一点额外的开销。一旦我们使用 Burst 编译的作业，这种开销就不会存在。
+
+### 4.3 工作结构
+
+要定义作业，我们必须创建一个实现作业接口的结构类型。实现一个接口就像扩展一个类，除了接口要求你自己包含特定的功能，而不是继承现有的功能。我们将在 `Fractal` 中创建一个 `UpdateFractalLevelJob` 结构，该结构实现了 `IJobFor`，这是最灵活的作业接口类型。
+
+```c#
+public class Fractal : MonoBehaviour {
+	
+	struct UpdateFractalLevelJob : IJobFor {}
+	
+	…
+}
+```
+
+> **为什么接口命名为 `IJobFor`？**
+>
+> 惯例是在所有接口类型前加上代表接口的 *I*，因此该接口名为 *JobFor*，前缀为 *I*。这是一个作业界面，特别是用于 `for` 循环内部运行的功能。
+
+`IJobFor` 接口要求我们添加一个 `Execute` 方法，该方法有一个整数参数并且不返回任何值。该参数表示 `for` 循环的迭代器变量。接口强制执行的所有内容都必须是公共的，因此此方法必须是公开的。
+
+```c#
+	struct UpdateFractalLevelJob : IJobFor {
+
+		public void Execute (int i) {}
+	}
+```
+
+这个想法是 `Execute` 方法替换了 `Update` 方法最内层循环的代码。为了实现这一点，必须将该代码所需的所有变量作为字段添加到 `UpdateFractalLevelJob` 中。将其公开，以便我们稍后设置。
+
+```c#
+	struct UpdateFractalLevelJob : IJobFor {
+
+		public float spinAngleDelta;
+		public float scale;
+
+		public NativeArray<FractalPart> parents;
+		public NativeArray<FractalPart> parts;
+
+		public NativeArray<Matrix4x4> matrices;
+
+		public void Execute (int i) {}
+	}
+```
+
+我们可以更进一步，使用 `ReadOnly` 和 `WriteOnly` 属性来指示我们只需要部分访问一些本机数组。最里面的循环只从父数组读取，只写入矩阵数组。它既可以从 parts 数组读取数据，也可以向 parts 数组写入数据，这是默认假设，因此没有相应的属性。
+
+```c#
+		[ReadOnly]
+		public NativeArray<FractalPart> parents;
+
+		public NativeArray<FractalPart> parts;
+
+		[WriteOnly]
+		public NativeArray<Matrix4x4> matrices;
+```
+
+如果多个进程并行修改相同的数据，那么谁先做什么就变得任意了。如果两个进程设置了相同的数组元素，则最后一个进程获胜。如果一个进程得到的元素与另一个进程设置的元素相同，它要么得到旧值，要么得到新值。最终结果取决于我们无法控制的确切时间，这可能会导致难以检测和修复的不一致行为。这些现象被称为竞态条件。`ReadOnly` 属性表示此数据在作业执行期间保持不变，这意味着进程可以安全地并行读取，因为结果始终相同。
+
+编译器强制作业不写入 `ReadOnly` 数据，也不从 `WriteOnly` 数据读取。如果我们无意中这样做，编译器会让我们知道我们犯了语义错误。
+
+### 4.4 正在执行作业
+
+`Execute` 方法将替换 `Update` 方法的最内层循环。将相关代码复制到方法中，并在需要时对其进行调整，使其使用作业的字段和参数。
+
+```c#
+		public void Execute (int i) {
+			FractalPart parent = parents[i / 5];
+			FractalPart part = parts[i];
+			part.spinAngle += spinAngleDelta;
+			part.worldRotation =
+				parent.worldRotation *
+				(part.rotation * Quaternion.Euler(0f, part.spinAngle, 0f));
+			part.worldPosition =
+				parent.worldPosition +
+				parent.worldRotation * (1.5f * scale * part.direction);
+			parts[i] = part;
+
+			matrices[i] = Matrix4x4.TRS(
+				part.worldPosition, part.worldRotation, scale * Vector3.one
+			);
+		}
+```
+
+更改 `Update`，以便我们创建一个新的 `UpdateFractalLevelJob` 值，并在级别循环中设置其所有字段。然后更改最内层的循环，使其调用作业的 `Execute` 方法。这样，我们保持了完全相同的功能，但代码迁移到了作业中。
+
+```c#
+		for (int li = 1; li < parts.Length; li++) {
+			scale *= 0.5f;
+			var job = new UpdateFractalLevelJob {
+				spinAngleDelta = spinAngleDelta,
+				scale = scale,
+				parents = parts[li - 1],
+				parts = parts[li],
+				matrices = matrices[li]
+			};
+			//NativeArray<FractalPart> parentParts = parts[li - 1];
+			//NativeArray<FractalPart> levelParts = parts[li];
+			//NativeArray<Matrix4x4> levelMatrices = matrices[li];
+			for (int fpi = 0; fpi < parts[li].Length; fpi++) {
+				job.Execute(fpi);
+			}
+		}
+```
+
+但我们不必为每次迭代都显式调用 `Execute` 方法。这个想法是，我们安排作业，让它自己执行循环。这是通过调用带有两个参数的 `Schedule` 来实现的。第一个是我们想要多少次迭代，这等于我们正在处理的零件数组的长度。第二个是 `JobHandle` 结构值，用于强制作业之间的顺序依赖关系。我们最初将使用此结构的默认值——通过 `default` 关键字——它不强制任何约束。
+
+```c#
+			var job = new UpdateFractalLevelJob {
+				…
+			};
+			job.Schedule(parts[li].Length, default);
+			//for (int fpi = 0; fpi < parts[li].Length; fpi++) {
+			//	job.Execute(fpi);
+			//}
+```
+
+`Schedule` 不会立即运行作业，它只会为以后的处理调度作业。它返回一个 `JobHandle` 值，可用于跟踪作业的进度。我们可以通过在句柄上调用 `Complete` 来延迟代码的进一步执行，直到作业完成。
+
+```c#
+			job.Schedule(parts[li].Length, default).Complete();
+```
+
+### 4.5 行程安排
+
+此时，我们正在安排并立即等待每个级别的作业完成。结果是，即使我们已经切换到使用作业，我们的分形仍然像以前一样以顺序的方式更新。我们可以通过将完成时间推迟到我们安排好所有作业之后来稍微放松一下。我们通过使作业相互依赖来实现这一点，在安排时将最后一个作业句柄传递给下一个作业。然后，我们在完成循环后调用 `Complete`，这会触发整个作业序列的执行。
+
+```c#
+		JobHandle jobHandle = default;
+		for (int li = 1; li < parts.Length; li++) {
+			scale *= 0.5f;
+			var job = new UpdateFractalLevelJob {
+				…
+			};
+			//job.Schedule(parts[li].Length, default).Complete();
+			jobHandle = job.Schedule(parts[li].Length, jobHandle);
+		}
+		jobHandle.Complete();
+```
+
+此时，我们不再需要将单个作业存储在变量中，只需要跟踪最后一个句柄。
+
+```c#
+			jobHandle = new UpdateFractalLevelJob {
+				…
+			}.Schedule(parts[li].Length, jobHandle);
+			//jobHandle = job.Schedule(parts[li].Length, jobHandle);
+```
+
+分析器将向我们显示作业最终可以在工作线程而不是主线程上运行。但它们也可能在主线程上运行，因为主线程无论如何都需要等待作业完成，所以此时作业运行的位置没有什么不同。计划作业也可能最终在不同的线程上运行，尽管它们仍然具有顺序依赖关系。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/job-system/scheduled-on-worker-thread.png)
+
+*使用 URP 和分形深度 8 分析构建；主线程等待工作线程完成。*
+
+将所有作业捆绑在一起运行，只等待最后一个作业完成的好处是，这可以延迟等待完成。一个常见的例子是在 `Update` 中安排所有作业，做一些其他事情，并通过在 `LateUpdate` 方法中这样做来延迟调用  `Complete`，`LateUpdate` 方法在所有常规 `Update` 方法完成后调用。也可以将完成时间推迟到下一帧，甚至更晚。但我们不会这样做，因为我们需要完成每一帧的任务，除了之后将矩阵上传到 GPU 外，没有其他事情可做。
+
+### 4.6 Burst 编译
+
+在所有这些变化之后，我们还没有看到任何性能改进。这是因为我们目前没有使用Burst编译器。我们必须通过将 `BurstCompile` 属性附加到 Unity 来明确指示 Unity 使用 Burst 编译我们的作业结构体。
+
+```c#
+	[BurstCompile]
+	struct UpdateFractalLevelJob : IJobFor { … }
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/job-system/burst-compiled.png)
+
+*用 Burst 编译。*
+
+帧调试器现在指示我们正在使用作业的 Burst 编译版本。由于 Burst 应用了优化，它们运行得更快一些，但目前还没有太大收益。
+
+您可能会注意到，在编辑器中进入播放模式后，性能要差得多。这是因为 Burst 编译是在编辑器中按需进行的，就像着色器编译一样。当作业首次运行时，它将由 Burst 编译，同时使用常规 C# 编译版本运行作业。Burst 编译完成后，编辑器将切换到运行 Burst 版本。我们可以通过将 `BurstCompile` 属性的 `CompileSynchronously` 属性设置为 `true`，强制编辑器在需要时立即编译作业的 Burst 版本——暂停 Unity 直到编译完成。属性的属性可以通过将其赋值包含在参数列表中来设置。
+
+```c#
+	[BurstCompile(CompileSynchronously = true)]
+```
+
+就像着色器编译一样，这不会影响构建，因为所有内容都是在构建过程中编译的。
+
+### 4.7 Burst 检视栏
+
+您可以通过 *Jobs/Burst/Open Inspector...* 打开的 *Burst 检查器*窗口检查 Burst 生成的汇编代码。这向您展示了 Burst 为项目中的所有作业生成的低级指令。我们的工作将作为 *Fractal.UpdateFractalLevelJob - (IForJob)* 被列入*编译目标*列表。
+
+我不会详细分析生成的代码，性能改进必须不言而喻。但切换到最右侧的显示模式是有用的，即 *.LVM IR 优化诊断*，了解 Burst 的功能。目前，它包含了我的以下评论：
+
+```
+Remark: IJobFor.cs:43:0: loop not vectorized: loop control flow is not understood by vectorizer
+Remark: NativeArray.cs:162:0: Stores SLP vectorized with cost -3 and with tree size 2
+```
+
+第一句话意味着 Burst 无法使用 SIMD 指令重写代码以合并多个迭代。最简单的例子是一个类似 `data[i] = 2f * data[i]` 的作业。使用 SIMD 指令，Burst 可以改变这一点，因此可以一次对多个索引执行此操作，在理想情况下最多可以同时对八个索引执行。以这种方式合并操作被称为矢量化，因为单个值上的指令被矢量上的指令所取代。
+
+当 Burst 指示不理解控制流时，这意味着存在复杂的条件块。我们没有这些，但默认情况下启用了 Burst 安全检查，该检查强制执行读/写属性并检测作业之间的其他依赖性问题，例如尝试并行运行两个写入同一数组的作业。这些检查用于开发，并从构建中删除。我们还可以通过禁用*安全检查*开关来停用它们，以便 Burst 检查器查看最终结果。您还可以通过*作业/突发/安全检查*菜单为每个作业或整个项目禁用它们。您通常会在编辑器中启用安全检查，并在构建中测试性能，除非您想最大限度地提高编辑器性能。
+
+```
+Remark: IJobFor.cs:43:0: loop not vectorized: call instruction cannot be vectorized
+Remark: NativeArray.cs:148:0: Stores SLP vectorized with cost -3 and with tree size 2
+```
+
+如果没有安全检查，Burst 仍然无法对循环进行矢量化，这一次是因为调用指令会妨碍。这意味着有一个Burst无法优化的方法调用，它永远无法被矢量化。
+
+第二句话表明，Burst 找到了一种将多个独立操作矢量化为单个 SIMD 指令的方法。例如，多个独立值的加法被合并为一个向量加法。-3 的成本表明，这有效地消除了三条指令。
+
+> **SLP 是什么意思？**
+>
+> 这是超词级并行性（superword-level parallelism）的简写。
+
+### 4.8 数学库
+
+我们目前使用的代码没有针对 Burst 进行优化。Burst 无法优化的调用指令对应于我们调用的静态 `Quaternion` 方法。Burst 专门针对 Unity 的数学库进行了优化，该库在设计时考虑了矢量化。
+
+数学库代码包含在 `Unity.Mathematics` 命名空间中。
+
+```c#
+using Unity.Jobs;
+using Unity.Mathematics;
+using UnityEngine;
+```
+
+该库的设计类似于着色器数学代码。这个想法是静态使用 `Unity.Mathematics.math` 类型，就像我们静态使用函数库中的 `UnityEngine.Mathf` 用于我们的图。
+
+```c#
+using Unity.Mathematics;
+using UnityEngine;
+
+using static Unity.Mathematics.math;
+```
+
+然而，当尝试调用 `float4x4` 和 `quaternion` 类型上的某些方法时，这将导致冲突，因为 `math` 的方法与这些类型的名称完全相同。这将使编译器抱怨我们试图调用方法上的方法，这是不可能的。为了避免这种情况，添加 `using` 语句来指示当我们编写这些单词时，默认情况下它们应该被解释为类型。这是通过 `using` 后跟标签、赋值和完全限定类型来编写的。我们只是使用标签的类型名称，尽管也可以使用不同的标签。
+
+```c#
+using static Unity.Mathematics.math;
+using float4x4 = Unity.Mathematics.float4x4;
+using quaternion = Unity.Mathematics.quaternion;
+```
+
+现在，将 `Vector3` 的所有用法替换为 `float3`，除了我们在 `Update` 中用于缩放边界的向量。我不会列出所有这些更改，我们稍后会修复错误。然后用四元数替换所有四元数的用法。请注意，唯一的区别是数学类型没有大写。之后，将 `Matrix4x4` 的所有用法替换为 `float4x4`。
+
+完成后，用 `math` 中的相应方法替换 `directions` 数组的矢量方向属性。
+
+```c#
+	static float3[] directions = {
+		up(), right(), left(), forward(), back()
+	};
+```
+
+我们还必须调整 `rotations` 数组的初始化。数学库使用弧度而不是度数，因此将 `90f` 的所有实例更改为 `0.5f * PI`。此外，四元数有单独的方法来创建围绕 X、Y或 Z 轴的旋转，这些方法比通用的 `Euler` 方法更有效。
+
+```c#
+	static quaternion[] rotations = {
+		quaternion.identity,
+		quaternion.RotateZ(-0.5f * PI), quaternion.RotateZ(0.5f * PI),
+		quaternion.RotateX(0.5f * PI), quaternion.RotateX(-0.5f * PI)
+	};
+```
+
+我们还必须将更新中的自旋角增量转换为弧度。
+
+```c#
+		float spinAngleDelta = 0.125f * PI * Time.deltaTime;
+```
+
+下一步是调整 `UpdateFractalLevelJob.Execute`。首先，用更快的 `RotateY` 变体替换 `Euler` 方法调用。然后用 `mul` 方法的调用替换所有涉及四元数的乘法。最后，我们可以通过调用 `math.float3` 方法，将 scale 作为单个参数来创建一个统一的 scale 向量。
+
+```c#
+			part.worldRotation = mul(parent.worldRotation,
+				mul(part.rotation, quaternion.RotateY(part.spinAngle))
+			);
+			part.worldPosition =
+				parent.worldPosition +
+				mul(parent.worldRotation, 1.5f * scale * part.direction);
+			parts[i] = part;
+
+			matrices[i] = float4x4.TRS(
+				part.worldPosition, part.worldRotation, float3(scale)
+			);
+```
+
+以相同的方式调整 `Update` i 中根部分的更新代码。
+
+```c#
+		rootPart.worldRotation = mul(transform.rotation,
+			mul(rootPart.rotation, quaternion.RotateY(rootPart.spinAngle))
+		);
+		rootPart.worldPosition = transform.position;
+		parts[0][0] = rootPart;
+		float objectScale = transform.lossyScale.x;
+		matrices[0][0] = float4x4.TRS(
+			rootPart.worldPosition, rootPart.worldRotation, float3(objectScale)
+		);
+```
+
+> **`Transform` 位置和旋转的类型是否错误？**
+>
+> 确实如此，但 `Vector3` 和 `float3` 类型之间以及 `Quaternion` 和 `quaternion` 类型之间存在隐式转换。
+
+此时，Burst 检查员将不再抱怨调用指令。它仍然无法对循环进行矢量化，因为返回类型不能被矢量化。这是因为我们的数据太大，无法对循环的多次迭代进行矢量化。这很好，Burst 仍然可以对单个迭代的许多操作进行矢量化，因为我们使用了 Mathematics 库，尽管 Burst 检查器不会提及这一点。
+
+```
+Remark: quaternion.cs:330:0: loop not vectorized: instruction return type cannot be vectorized
+Remark: NativeArray.cs:162:0: Stores SLP vectorized with cost -6 and with tree size 2
+```
+
+此时，对于深度为 8 的分形，更新在构建中平均只需要 5.5 毫秒。因此，与非作业方法相比，我们的更新速度大约翻了一番。通过向 `BurstCompile` 构造函数方法传递两个参数，启用更多的 Burst 优化，我们可以走得更快。这些是常规构造函数参数，必须在属性赋值之前编写。
+
+我们将使用 `FloatPrecision.Standard` 作为第一个参数和 `FloatMode.Fast` 作为第二个参数。快速模式允许 Burst 对数学运算进行重新排序，例如将 `a + b * c` 重写为 `b * c + a`。这可以提高性能，因为有 madd ——乘法-加法——指令，比单独的加法指令和乘法更快。默认情况下，着色器编译器会执行此操作。通常，重新排序操作在逻辑上没有区别，但由于浮点限制，更改顺序会产生略有不同的结果。你可以假设这些差异并不重要，所以除非你有充分的理由不这样做，否则一定要启用这种优化。
+
+```c#
+	[BurstCompile(FloatPrecision.Standard, FloatMode.Fast, CompileSynchronously = true)]
+```
+
+结果是更新持续时间进一步缩短，平均降至约 4.5ms。
+
+> **`FloatPrecision` 怎么样？**
+>
+> `FloatPrecision` 参数控制 `sin` 和 `cos` 方法的精度。我们不直接使用它们，但在创建四元数时会使用它们。降低三角精度可以加快速度，但对我来说并没有明显的区别。
+
+### 4.9 发送更少的数据
+
+变换矩阵的最后一行总是包含相同的向量：（0,0,0,1）。由于它总是相同的，我们可以丢弃它，将矩阵数据的大小减少 25%。这意味着内存使用量减少，从 CPU 到 GPU 的数据传输也减少。
+
+首先，将 `float4x4` 的所有用法替换为 `float3x4`，它表示一个有三行四列的矩阵。然后在 `OnEnable` 中将计算缓冲区的步幅从 16 个浮点数减小到 12 个浮点数。
+
+```c#
+		int stride = 12 * 4;
+```
+
+`float3x4` 没有 `TRS` 方法，我们必须在 `Execute` 中自己组装矩阵。这是通过首先创建一个用于旋转和缩放的 3×3 矩阵，通过调用带有旋转的 `float3x3`，然后将缩放因子分解到其中来实现的。最后一个矩阵是通过调用带有四列向量的 `float3x4` 来创建的，这四列向量是 3×3 矩阵的三列，存储在其 `c0`、`c1` 和 `c2` 字段中，后面是零件的位置。
+
+```c#
+			float3x3 r = float3x3(part.worldRotation) * scale;
+			matrices[i] = float3x4(r.c0, r.c1, r.c2, part.worldPosition);
+```
+
+在 `Update` 中对根部分执行相同的操作。
+
+```c#
+		float3x3 r = float3x3(rootPart.worldRotation) * objectScale;
+		matrices[0][0] = float3x4(r.c0, r.c1, r.c2, rootPart.worldPosition);
+```
+
+由于我们没有在 `float3x4` 类型上调用方法，因此与 `math.float3x4` 方法没有冲突，因此我们不需要为它或 `float4x4` 使用 `using` 语句。
+
+```c#
+//using float3x4 = Unity.Mathematics.float3x4;
+```
+
+最后，调整 `ConfigureProcedural`，使我们逐行复制矩阵，并添加缺少的矩阵。
+
+```glsl
+#if defined(UNITY_PROCEDURAL_INSTANCING_ENABLED)
+	StructuredBuffer<float3x4> _Matrices;
+#endif
+
+void ConfigureProcedural () {
+	#if defined(UNITY_PROCEDURAL_INSTANCING_ENABLED)
+		float3x4 m = _Matrices[unity_InstanceID];
+		unity_ObjectToWorld._m00_m01_m02_m03 = m._m00_m01_m02_m03;
+		unity_ObjectToWorld._m10_m11_m12_m13 = m._m10_m11_m12_m13;
+		unity_ObjectToWorld._m20_m21_m22_m23 = m._m20_m21_m22_m23;
+		unity_ObjectToWorld._m30_m31_m32_m33 = float4(0.0, 0.0, 0.0, 1.0);
+	#endif
+}
+```
+
+更改后，我的平均 `Update` 持续时间缩短到 4ms。因此，我只存储和传输了最少量的数据，就获得了半毫秒的时间。
+
+### 4.10 使用多核
+
+我们已经达到了单个 CPU 核心的优化终点，但我们还可以更进一步。更新图时，所有父部分都必须在更新子部分之前进行更新，因此我们无法摆脱作业之间的顺序依赖关系。但同一级别的所有部分都是独立的，可以按任何顺序更新，甚至可以并行更新。这意味着我们可以将单个作业的工作分散到多个 CPU 核上。这是通过在作业上调用 `ScheduleParallel` 而不是 `Schedule` 来实现的。此方法需要一个新的第二个参数，用于指示批计数。让我们先将其设置为 1，看看会发生什么。
+
+```c#
+			jobHandle = new UpdateFractalLevelJob {
+				…
+			}.ScheduleParallel(parts[li].Length, 1, jobHandle);
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/jobs/job-system/multiple-threads.png)
+
+*在多个线程上运行。*
+
+我们的作业现在被分解并在多个 CPU 核上运行，这些 CPU 核并行更新我们的分形部分。在我的例子中，这将总更新时间平均缩短到 1.9ms。减少多少取决于有多少 CPU 核可用，这受到硬件的限制，以及有多少其他进程占用了一个线程。
+
+批计数控制迭代如何分配给线程。每个线程循环一批，执行一点簿记，然后循环另一批，直到工作完成。经验法则是，当 `Execute` 做的工作很少时，你应该尝试大批量计数，而当 `Execute` 做了很多工作时，你可以尝试小批量计数。在我们的例子中，`Execute` 做了很多工作，因此批处理计数 1 是一个合理的默认值。但是，当我们给每个部分 5 个孩子时，让我们试试批处理计数为 5。
+
+```c#
+			jobHandle = new UpdateFractalLevelJob {
+				…
+			}.ScheduleParallel(parts[li].Length, 5, jobHandle);
+```
+
+这进一步将我的平均 `Update` 时间缩短到 1.7ms。使用更大的批次计数并没有进一步改善情况，甚至让它有点慢，所以我把它保持在 5。
+
+### 4.11 最终性能
+
+如果我们现在评估我们完全 Burst 优化的分形的性能，我们会发现更新持续时间变得微不足道。GPU 始终是瓶颈。渲染球体时，我们不会得到比以前更高的帧率。但是，在渲染立方体时，我们现在使用深度为 8 的分形的两个 RP 都超过了 100FPS。
+
+| 深度 | MS   | URP  | BRP  |
+| ---- | ---- | ---- | ---- |
+| 6    | 0.1  | 480  | 180  |
+| 7    | 0.26 | 360  | 160  |
+| 8    | 1.7  | 160  | 110  |
+
+下一个教程是[有机多样性](https://catlikecoding.com/unity/tutorials/basics/organic-variety/)。
+
+[license](https://catlikecoding.com/unity/tutorials/license/)
+
+[repository](https://bitbucket.org/catlikecodingunitytutorials/basics-06-jobs/)
+
+[PDF](https://catlikecoding.com/unity/tutorials/basics/jobs/Jobs.pdf)
+
+
+
+# 有机多样性：使人工变得自然
+
+发布于 2021-01-20 更新于 2021-05-18
+
+https://catlikecoding.com/unity/tutorials/basics/organic-variety/
+
+*根据深度为分形着色。*
+*应用基于随机序列的品种。*
+*介绍看起来不同的叶子。*
+*使分形像重力一样下垂。*
+*增加旋转的多样性，有时会反转。*
+
+这是关于学习使用 Unity [基础](https://catlikecoding.com/unity/tutorials/basics/)知识的系列教程中的第七篇。在文中，我们将调整分形，使其看起来更自然，而不是数学。
+
+本教程使用 Unity 2020.3.6f1 编写。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/tutorial-image.jpg)
+
+*一种经过修改的分形，看起来很有机。*
+
+## 1 颜色渐变
+
+我们在[上一教程](https://catlikecoding.com/unity/tutorials/basics/jobs/)中创建的分形显然是应用数学的结果。它看起来僵硬、精确、正式和统一。它看起来不是有机的，也不是活的。然而，在一定程度上，通过一些改变，我们可以使数学看起来有机。我们通过引入多样性和明显的随机性，以及模拟某种有机行为来实现这一点。
+
+使分形更加多样化的最直接方法是用一系列颜色替换其均匀颜色，最简单的方法是基于每个绘制实例的级别。
+
+### 1.1 重载颜色
+
+我们之前为 BRP 表面着色器和 URP 都提供了一个*基础颜色*属性，我们目前通过调整材质来配置该属性，但我们可以通过代码覆盖它。为此，请在 `Fractal` 中跟踪其标识符。
+
+```c#
+	static readonly int
+		baseColorId = Shader.PropertyToID("_BaseColor"),
+		matricesId = Shader.PropertyToID("_Matrices");
+```
+
+然后在 `Update` 内部的绘图循环中的属性块上调用 `SetColor`。我们首先将颜色设置为白色，乘以当前循环迭代器值除以缓冲区长度减 1。这将使第一级为黑色，最后一级为白色。
+
+```c#
+		for (int i = 0; i < matricesBuffers.Length; i++) {
+			ComputeBuffer buffer = matricesBuffers[i];
+			buffer.SetData(matrices[i]);
+			propertyBlock.SetColor(
+				baseColorId, Color.white * (i / (matricesBuffers.Length - 1))
+			);
+			propertyBlock.SetBuffer(matricesId, buffer);
+			Graphics.DrawMeshInstancedProcedural(
+				mesh, 0, material, bounds, buffer.count, propertyBlock
+			);
+		}
+```
+
+为了给所有中间级别一个灰色阴影，这必须是浮点除法，而不是没有小数部分的整数除法。我们可以通过将除数中的 1 相减作为浮点减法来确保这一点。然后，计算的其余部分也变为浮点运算。
+
+```c#
+			propertyBlock.SetColor(
+				baseColorId, Color.white * (i / (matricesBuffers.Length - 1f))
+			);
+```
+
+如果使用 URP，请确保颜色的参考设置为 *_BaseColor*。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/color-gradient/shader-graph-property-reference.png)
+
+*带有 _BaseColor 的着色器图。*
+
+结果是一个灰度分形，在 BRP 和 URP 中，从根实例的黑色到叶实例的白色。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/color-gradient/gradient-fractal-grayscale.png)
+
+*灰度梯度分形。*
+
+请注意，需要在除数中减去 1 才能达到最深层的白色。但是，如果分形的深度设置为 1，这将导致除以零，从而产生无效的颜色。为了避免这种情况，我们应该将最小深度增加到 2。
+
+```c#
+	[SerializeField, Range(2, 8)]
+	int depth = 4;
+```
+
+### 1.2 颜色之间的插值
+
+我们不仅限于灰度或单色渐变。我们可以通过我们之前用作插值器的因子调用静态 `Color.Lerp` 在任何两种颜色之间进行插值。这样我们就可以在 `Update` 中创建任何双色渐变，例如从黄色到红色。
+
+```c#
+			propertyBlock.SetColor(
+				baseColorId, Color.Lerp(
+					Color.yellow, Color.red, i / (matricesBuffers.Length - 1f)
+				)
+			);
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/color-gradient/gradient-fractal-yellow-green.png)
+
+*黄红色梯度分形。*
+
+### 1.3 可配置梯度
+
+我们可以更进一步，支持任意渐变，这些渐变可以有两种以上的配置颜色，也可以有不均匀的分布。这是通过依赖 Unity 的 `Gradient` 类型来实现的。使用它为 `Fractal` 添加可配置的渐变。
+
+```c#
+	[SerializeField]
+	Material material;
+
+	[SerializeField]
+	Gradient gradient;
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/color-gradient/gradient-property.png)
+
+*渐变属性，设置为白-红-黑。*
+
+要使用渐变，请替换对 `Color.Lerp` 的调用。在 `Update` 中调用 `Evaluate` 对梯度进行更新，同样使用相同的插值器值。
+
+```c#
+			propertyBlock.SetColor(
+				baseColorId, gradient.Evaluate(i / (matricesBuffers.Length - 1f))
+			);
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/color-gradient/gradient-fractal-configurable.png)
+
+*白-红-黑可配置梯度分形。*
+
+## 2 任意颜色
+
+用渐变着色的分形看起来比用均匀颜色着色的分形更有趣，但它的着色显然是公式化的。有机物的颜色通常是随机的，或者看起来是随机的。对于我们的分形，这意味着单个网格实例应该表现出各种颜色。
+
+### 2.1 颜色着色器功能
+
+为了同时为我们的表面着色器和着色器图做工作，我们将通过 *FractalGPU* HLSL 文件提供实例颜色。首先在其中声明 *_BaseColor* 属性字段，然后是一个只返回该字段的 `GetFractalColor` 函数。将其放置在着色器图函数上方。
+
+```glsl
+float4 _BaseColor;
+
+float4 GetFractalColor () {
+	return _BaseColor;
+}
+
+void ShaderGraphFunction_float (float3 In, out float3 Out) {
+	Out = In;
+}
+```
+
+然后从曲面着色器中删除现在冗余的属性，并在 `ConfigureSurface` 中调用 `GetFractalColor`，而不是直接访问该字段。
+
+```glsl
+		//float4 _BaseColor;
+		float _Smoothness;
+
+		void ConfigureSurface (Input input, inout SurfaceOutputStandard surface) {
+			surface.Albedo = GetFractalColor().rgb;
+			surface.Smoothness = _Smoothness;
+		}
+```
+
+然后从曲面着色器中删除现在冗余的属性，并在 `ConfigureSurface` 中调用 `GetFractalColor`，而不是直接访问该字段。
+
+```glsl
+		//float4 _BaseColor;
+		float _Smoothness;
+
+		void ConfigureSurface (Input input, inout SurfaceOutputStandard surface) {
+			surface.Albedo = GetFractalColor().rgb;
+			surface.Smoothness = _Smoothness;
+		}
+```
+
+由于我们不再依赖材质检查器来配置颜色，我们也可以将其从 `Properties` 块中删除。
+
+```glsl
+	Properties {
+		//_BaseColor ("Albedo", Base Color) = (1.0, 1.0, 1.0, 1.0)
+		_Smoothness ("Smoothness", Range(0,1)) = 0.5
+	}
+```
+
+我们将通过向为其创建的着色器图函数添加输出参数，将分形颜色暴露给着色器图。
+
+```glsl
+void ShaderGraphFunction_float (float3 In, out float3 Out, out float4 FractalColor) {
+	Out = In;
+	FractalColor = GetFractalColor();
+}
+
+void ShaderGraphFunction_half (half3 In, out half3 Out, out half4 FractalColor) {
+	Out = In;
+	FractalColor = GetFractalColor();
+}
+```
+
+在着色器图本身中，我们首先必须删除“*基础颜色*”属性。它可以通过右键单击黑板上的标签打开的上下文菜单删除。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/arbitrary-colors/shader-graph-only-smoothness.png)
+
+*仅平滑特性。*
+
+然后将输出添加到我们的自定义函数节点。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/arbitrary-colors/shader-graph-fractalcolor-output.png)
+
+*自定义函数的额外 FractalColor 输出。*
+
+最后将新输出连接到 *Fragment* 节点的 *Base Color*。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/arbitrary-colors/shader-graph-fractal-color.png)
+
+*使用 FractalColor 为片段着色。*
+
+### 2.2 基于实例标识符的颜色
+
+为了为每个实例引入多样性，我们必须以某种方式使 `GetFractalColor` 依赖于所绘制内容的实例标识符。由于这是一个从零开始递增的整数，最简单的测试是返回按三个数量级缩小的实例标识符，从而产生灰度梯度。
+
+```glsl
+float4 GetFractalColor () {
+	return unity_InstanceID * 0.001;
+}
+```
+
+但现在我们还必须确保仅对启用了过程实例化的着色器变体访问实例标识符，就像我们在 `ConfigureProcedural` 中所做的那样。
+
+```glsl
+float4 GetFractalColor () {
+	#if defined(UNITY_PROCEDURAL_INSTANCING_ENABLED)
+		return unity_InstanceID * 0.001;
+	#endif
+}
+```
+
+在这种情况下，不同之处在于我们总是必须返回一些东西，即使这可能没有多大意义。因此，我们将简单地返回非实例化着色器变体的配置颜色。这是通过在 `#endif` 之前插入 `#else` 指令并返回其间的颜色来实现的。
+
+```glsl
+	#if defined(UNITY_PROCEDURAL_INSTANCING_ENABLED)
+		return unity_InstanceID * 0.001;
+	#else
+		return _BaseColor;
+	#endif
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/arbitrary-colors/colored-by-instance-id.png)
+
+*按实例标识符着色。*
+
+这表明这种方法是有效的，尽管它看起来很糟糕。例如，我们可以通过每五个实例重复一次来使梯度变得合理。为此，我们将通过 `%` 运算符使用实例标识符模 5。这将标识符序列转换为重复序列 0、1、2、3、4、0、1，2，3，4 等。然后我们将其缩小到四分之一，使范围从 0-4 变为 0-1。
+
+```c#
+		return (unity_InstanceID % 5.0) / 4.0;
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/arbitrary-colors/colored-modulo-5.png)
+
+*彩色模 5。*
+
+即使梯度有规律地循环，但第一次偶然检查时，结果的颜色已经显得任意，因为它与分形的几何结构并不完全匹配。唯一明显的模式是，中心列始终是黑色的，因为它由每个级别的第一个实例组成。当序列与几何体对齐时，这种现象也会在更深层次上表现出来。
+
+我们可以通过调整序列的长度来改变模式，例如将其增加到 10。这增加了更多的颜色变化，使黑色列出现的频率降低，尽管这确实使它们更加突出。
+
+```c#
+		return (unity_InstanceID % 10.0) / 9.0;
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/arbitrary-colors/colored-modulo-10.png)
+
+*有色模 10。*
+
+### 2.3 Weyl 序列
+
+创建重复渐变的一种稍微不同的方法是使用 Weyl 序列。简单地说，这些是 0X 模1、1X 模1、2X 模 1 和 3X 模 1 等形式的序列。因此，我们只得到 0-1 范围内的分数值，不包括 1。如果 X 是一个无理数，那么这个序列将在该范围内均匀分布。
+
+我们真的不需要完美的分布，只需要足够的多样性。对于 X，0-1 范围内的随机值就足够了。例如，让我们考虑 0.381：
+
+0.000, 0.381, 0.762, 0.143, 0.524, 0.905, 0.286, 0.667, 0.048, 0.429, 0.810, 0.191, 0.572, 0.953, 0.334, 0.715, 0.096, 0.477, 0.858, 0.239, 0.620, 0.001, 0.382, 0.763, 0.144, 0.525.
+
+我们得到的是重复的三步但有时是两步的递增梯度，这些梯度都有点不同。该模式在 21 步后重复，但偏移了 0.001。其他值将产生不同的模式，具有不同的梯度，可以更长、更短和相反。
+
+在着色器中，我们可以通过一次乘法创建这个序列，并将结果馈送到 `frac` 函数。
+
+```c#
+		return frac(unity_InstanceID * 0.381);
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/arbitrary-colors/colored-sequence-381.png)
+
+*基于 0.381 的彩色序列。*
+
+### 2.4 随机因子和偏移
+
+使用分数序列的结果看起来是可以接受的，除了我们仍然得到那些黑色的列。我们可以通过在序列中为每个级别添加不同的偏移量来消除这些问题，甚至可以为每个级别使用不同的序列。为了支持这一点，为两个序列号添加一个着色器属性向量，第一个是乘数，第二个是偏移量，然后在 `GetFractalColor` 中使用它们。在隔离值的小数部分之前，必须添加偏移量，以便对序列应用包裹移位。
+
+```glsl
+float2 _SequenceNumbers;
+
+float4 GetFractalColor () {
+	#if defined(UNITY_PROCEDURAL_INSTANCING_ENABLED)
+		return frac(unity_InstanceID * _SequenceNumbers.x + _SequenceNumbers.y);
+	#else
+		return _BaseColor;
+	#endif
+}
+```
+
+在 `Fractal` 中跟踪着色器属性的标识符。
+
+```c#
+	static readonly int
+		baseColorId = Shader.PropertyToID("_BaseColor"),
+		matricesId = Shader.PropertyToID("_Matrices"),
+		sequenceNumbersId = Shader.PropertyToID("_SequenceNumbers");
+```
+
+然后为每个级别添加一个序列号数组，最初设置为等于我们当前的配置，即 0.381 和 0。我们使用 `Vector4` 类型，因为即使我们使用更少的组件，也只能向 GPU 发送四个组件向量。
+
+```c#
+	Vector4[] sequenceNumbers;
+
+	void OnEnable () {
+		…
+		sequenceNumbers = new Vector4[depth];
+		int stride = 12 * 4;
+		for (int i = 0, length = 1; i < parts.Length; i++, length *= 5) {
+			…
+			sequenceNumbers[i] = new Vector4(0.381f, 0f);
+		}
+
+		…
+	}
+
+	void OnDisable () {
+		…
+		sequenceNumbers = null;
+	}
+```
+
+通过在属性块上调用 `SetVector`，在 `Update` 中为每个级别设置绘制循环中的序列号。
+
+```c#
+			propertyBlock.SetBuffer(matricesId, buffer);
+			propertyBlock.SetVector(sequenceNumbersId, sequenceNumbers[i]);
+```
+
+最后，为了使序列任意且每级不同，我们用随机值替换固定配置的序列号。我们将使用 `UnityEngine.Random`，但这种类型与 `Unity.Mathematics.Random` 冲突，因此我们将显式使用适当的类型。
+
+```c#
+using quaternion = Unity.Mathematics.quaternion;
+using Random = UnityEngine.Random;
+```
+
+然后，要获得随机值，只需将这两个常数替换为 `Random.value`，这将产生一个 0-1 范围内的值。
+
+```c#
+			sequenceNumbers[i] = new Vector4(Random.value, Random.value);
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/arbitrary-colors/colored-sequence-random.png)
+
+*带有随机因子和偏移的彩色序列。*
+
+### 2.5 两个梯度
+
+为了将随机序列与我们现有的渐变相结合，我们将引入第二个渐变，并将两者的颜色发送到 GPU。因此，用 A 和 B 颜色的属性替换单色属性。
+
+```c#
+	static readonly int
+		//baseColorId = Shader.PropertyToID("_BaseColor"),
+		colorAId = Shader.PropertyToID("_ColorA"),
+		colorBId = Shader.PropertyToID("_ColorB"),
+		matricesId = Shader.PropertyToID("_Matrices"),
+		sequenceNumbersId = Shader.PropertyToID("_SequenceNumbers");
+```
+
+还将单个可配置梯度替换为 A 和 B 梯度。
+
+```c#
+	[SerializeField]
+	//Gradient gradient;
+	Gradient gradientA, gradientB;
+```
+
+然后在 `Update` 的绘制循环中计算两个渐变并设置它们的颜色。
+
+```c#
+			float gradientInterpolator = i / (matricesBuffers.Length - 1f);
+			propertyBlock.SetColor(colorAId, gradientA.Evaluate(gradientInterpolator));
+			propertyBlock.SetColor(colorBId, gradientB.Evaluate(gradientInterpolator));
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/arbitrary-colors/two-gradient-properties.png)
+
+*两个渐变属性。*
+
+还将 *FractalGPU* 中的单色属性替换为两个。
+
+```glsl
+//float4 _BaseColor;
+float4 _ColorA, _ColorB;
+```
+
+并使用 `lerp` 在 `GetFractalColor` 中使用序列结果作为插值器在它们之间进行插值。
+
+```glsl
+		return lerp(
+			_ColorA, _ColorB,
+			frac(unity_InstanceID * _SequenceNumbers.x + _SequenceNumbers.y)
+		);
+```
+
+最后，对于 `#else` 的情况，只需返回 A 颜色。
+
+```glsl
+	#else
+		return _ColorA;
+	#endif
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/arbitrary-colors/colored-two-gradients.png)
+
+*用两个渐变着色。*
+
+请注意，结果不是每个实例的两种颜色之间的二元选择，而是混合。
+
+## 3 叶子
+
+植物的一个共同特征是它们的四肢是特化的。例如叶子、花和水果。我们可以通过使最深的层次不同于其他层次，将这一特征添加到分形中。从现在开始，我们将把它视为叶子级别，即使它可能不代表实际的叶子。
+
+### 3.1 叶子颜色
+
+为了使分形的叶子实例与众不同，我们会给它们一个不同的颜色。虽然我们可以简单地通过渐变来实现这一点，但单独配置叶子颜色更方便，将渐变专用于树干、树枝和细枝。因此，在 `Fractal` 中添加两种叶子颜色的配置选项。
+
+```c#
+	[SerializeField]
+	Gradient gradientA, gradientB;
+
+	[SerializeField]
+	Color leafColorA, leafColorB;
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/leaves/leaf-color-properties.png)
+
+*叶色属性。*
+
+在 `Update` 中，在绘制循环之前确定叶子索引，该索引等于最后一个索引。
+
+```c#
+		int leafIndex = matricesBuffers.Length - 1;
+		for (int i = 0; i < matricesBuffers.Length; i++) { … }
+```
+
+然后，在循环内部，直接使用叶级别的配置颜色，同时仍然评估所有其他级别的渐变。此外，由于我们现在提前一步结束梯度，因此在计算插值器时，我们必须从缓冲区长度中减去 2 而不是 1。
+
+```c#
+			Color colorA, colorB;
+			if (i == leafIndex) {
+				colorA = leafColorA;
+				colorB = leafColorB;
+			}
+			else {
+				float gradientInterpolator = i / (matricesBuffers.Length - 2f);
+				colorA = gradientA.Evaluate(gradientInterpolator);
+				colorB = gradientB.Evaluate(gradientInterpolator);
+			}
+			propertyBlock.SetColor(colorAId, colorA);
+			propertyBlock.SetColor(colorBId, colorB);
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/leaves/colored-leaves.png)
+
+*具有明显叶子颜色的分形。*
+
+请注意，这一变化迫使我们再次增加最小分形深度。
+
+```c#
+	[SerializeField, Range(3, 8)]
+	int depth = 4;
+```
+
+### 3.2 叶网格
+
+现在我们以不同的方式处理最低级别，我们还可以使用不同的网格来绘制它。为它添加一个配置字段。这使得可以对叶子使用立方体，而对其他所有东西使用球体。
+
+```c#
+	[SerializeField]
+	Mesh mesh, leafMesh;
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/leaves/leaf-mesh-property.png)
+
+*叶网格属性，设置为立方体。*
+
+在 `Update` 中调用 `Graphics.DrawMeshInstancedProcedural` 时使用适当的网格。
+
+```c#
+			Mesh instanceMesh;
+			if (i == leafIndex) {
+				colorA = leafColorA;
+				colorB = leafColorB;
+				instanceMesh = leafMesh;
+			}
+			else {
+				float gradientInterpolator = i / (matricesBuffers.Length - 2f);
+				colorA = gradientA.Evaluate(gradientInterpolator);
+				colorB = gradientB.Evaluate(gradientInterpolator);
+				instanceMesh = mesh;
+			}
+			…
+			Graphics.DrawMeshInstancedProcedural(
+				instanceMesh, 0, material, bounds, buffer.count, propertyBlock
+			);
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/leaves/cube-leaves.png)
+
+*叶子的立方体。*
+
+除了看起来更有趣之外，使用立方体作为叶子还可以显著提高性能，因为现在大多数实例都是立方体。我们最终得到的帧速率介于只绘制球体和只绘制立方体之间。
+
+| 深度 | URP  | BRP  |
+| ---- | ---- | ---- |
+| 6    | 360  | 150  |
+| 7    | 125  | 90   |
+| 8    | 48   | 31   |
+
+### 3.3 平滑度
+
+除了不同的颜色，我们还可以给叶子不同的光滑度。事实上，我们可以根据第二个序列改变平滑度，就像改变颜色一样。要配置第二个序列，我们需要做的就是在 `OnEnable` 中用随机值填充序列号向量的其他两个分量。
+
+```c#
+			sequenceNumbers[i] =
+				new Vector4(Random.value, Random.value, Random.value, Random.value);
+```
+
+然后，我们将在 `GetFractalColor` 中分别插值 RGB 和 A 通道，使用 A 通道的另外两个配置数字。
+
+```glsl
+float4 _SequenceNumbers;
+
+float4 GetFractalColor () {
+	#if defined(UNITY_PROCEDURAL_INSTANCING_ENABLED)
+			float4 color;
+		color.rgb = lerp(
+			_ColorA.rgb, _ColorB.rgb,
+			frac(unity_InstanceID * _SequenceNumbers.x + _SequenceNumbers.y)
+		);
+		color.a = lerp(
+			_ColorA.a, _ColorB.a,
+			frac(unity_InstanceID * _SequenceNumbers.z + _SequenceNumbers.w)
+		);
+		return color;
+	#else
+		return _ColorA;
+	#endif
+}
+```
+
+我们这样做是因为从现在开始，我们将使用颜色的 A 通道来设置平滑度，这是可能的，因为我们不将其用于透明度。这意味着在我们的着色器图中，我们将使用 *Split* 节点从 *FractalColor* 中提取 alpha 通道，并将其链接到 *Fragment* 的*平滑度*输入。然后从黑板上删除平滑度属性。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/leaves/shader-graph-smoothness.png)
+
+*衍生平滑度。*
+
+请注意，当您将光标悬停在节点上时，可以通过右上角出现的箭头按钮最小化着色器图节点以隐藏未使用的输入和输出。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/leaves/shader-graph-minimized-node.png)
+
+*最小化拆分节点。*
+
+我们在曲面着色器中以相同的方式设置平滑度。
+
+```glsl
+		void ConfigureSurface (Input input, inout SurfaceOutputStandard surface) {
+			surface.Albedo = GetFractalColor().rgb;
+			surface.Smoothness = GetFractalColor().a;
+		}
+```
+
+> **我们不应该重用 `GetFractalColor` 的一次调用的结果吗？**
+>
+> 是的，但我们已经在这么做了。着色器编译器识别并优化掉重复的工作。请注意，这总是发生在着色器上，但通常不会发生在常规 C# 代码上。
+
+我们还可以从曲面着色器中删除整个 `Properties` 块。
+
+```glsl
+	//Properties {
+		//_Smoothness ("Smoothness", Range(0,1)) = 0.5
+	//}
+```
+
+当我们使用颜色的阿尔法通道来控制平滑度时，我们现在必须调整颜色以考虑到这一点。例如，我将叶子平滑度设置为 50% 和 90%。请注意，平滑度的选择与颜色无关，即使它们是通过相同的属性配置在一起的。我们只是利用了迄今为止尚未使用的现有渠道。
+
+![inspector](https://catlikecoding.com/unity/tutorials/basics/organic-variety/leaves/black-leaves-smoothness-inspector.png)
+
+*黑叶，光滑度不一。*
+
+我们还必须对默认设置为 100% alpha 的渐变进行此操作。我将它们设置为255中的80-90和140-160。我还调整了颜色，使分形更像树。
+
+![inspector](https://catlikecoding.com/unity/tutorials/basics/organic-variety/leaves/color-configuration.png)
+![fractal](https://catlikecoding.com/unity/tutorials/basics/organic-variety/leaves/coloration-depth-6.png)
+
+*颜色看起来像植物。*
+
+当分形深度设置为最大值时，效果最令人信服。
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/leaves/coloration-depth-8.png)
+
+*颜色相同，深度为 8。*
+
+## 4 下垂
+
+虽然我们的分形已经看起来更有机了，但这只适用于它的颜色。它的结构仍然坚固而完美。这是从侧面最容易看到的，场景窗口处于正交模式，旋转在 `Update` 中暂时设置为零。
+
+```c#
+		float spinAngleDelta = 0.125f * PI * Time.deltaTime * 0f;
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/sagging/rigid.png)
+
+*完全刚性的结构。*
+
+有机结构并非如此完美。除了生长过程中增加的不规则性外，植物最明显的品质是它们受到重力的影响。由于自身重量，所有东西都会至少有点下垂。我们的分形没有经历这一点，但我们可以通过调整每个部分的旋转来近似这一现象。
+
+### 4.1 下垂旋转轴
+
+我们可以通过旋转所有东西来模拟下垂，使其指向下方一点。因此，我们必须围绕某个轴旋转每个实例，使其局部向上轴看起来像是被向下拉。第一步是确定零件在世界空间中的上轴。这是指向远离其父轴的轴。我们通过将上矢量旋转零件的初始世界旋转来找到它。这必须不考虑零件之前的下垂，否则它会积聚，一切都会很快直线下降。因此，在调整零件的世界旋转之前，我们在执行开始时根据零件的固定局部旋转和其父级的世界空间旋转进行旋转。
+
+```c#
+		public void Execute (int i) {
+			FractalPart parent = parents[i / 5];
+			FractalPart part = parts[i];
+			part.spinAngle += spinAngleDelta;
+
+			float3 upAxis = mul(mul(parent.worldRotation, part.rotation), up());
+
+			part.worldRotation = mul(parent.worldRotation,
+				mul(part.rotation, quaternion.RotateY(part.spinAngle))
+			);
+			…
+		}
+```
+
+如果一个零件没有指向正上方，那么它自己的向上轴将与世界向上轴不同。通过围绕另一个轴旋转，可以从世界向上轴旋转到零件的向上轴。这个轴——我们将其命名为凹陷轴——是通过 `cross` 方法求出两个轴的叉积而得到的。
+
+```c#
+			float3 upAxis = mul(mul(parent.worldRotation, part.rotation), up());
+			float3 sagAxis = cross(up(), upAxis);
+```
+
+叉积的结果是一个垂直于其两个参数的向量。矢量的长度取决于原始矢量的相对方向和长度。因为我们使用的是单位长度向量，所以凹陷轴的长度等于操作数之间角度的正弦。因此，为了得到一个合适的单位长度轴，我们必须将其调整为单位长度，为此我们可以使用 `normalize` 方法。
+
+```c#
+			float3 sagAxis = cross(up(), upAxis);
+			sagAxis = normalize(sagAxis);
+```
+
+### 4.2 应用下垂
+
+现在我们有了凹陷轴，我们可以通过用轴和角度调用 `quaternion.AxisAngle` 来构造凹陷旋转，单位为弧度。让我们创建一个 45° 的旋转，即四分之一 π 弧度。
+
+```c#
+			sagAxis = normalize(sagAxis);
+
+			quaternion sagRotation = quaternion.AxisAngle(sagAxis, PI * 0.25f);
+```
+
+要应用下垂，我们必须使零件的世界旋转不再直接基于其父级。相反，我们通过将下垂旋转应用于父级的世界旋转来引入新的基础旋转。
+
+```c#
+			quaternion sagRotation = quaternion.AxisAngle(sagAxis, PI * 0.25f);
+			quaternion baseRotation = mul(sagRotation, parent.worldRotation);
+
+			part.worldRotation = mul(baseRotation,
+				mul(part.rotation, quaternion.RotateY(part.spinAngle))
+			);
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/sagging/top-missing.png)
+
+*顶部不见了。*
+
+这造成了明显的差异，这显然是不正确的。最极端的错误是分形的顶部似乎缺失了。这是因为当一个部分指向正上方时，它与世界上轴线之间的角度为零。叉积的结果是一个长度为零的向量，归一化失败。我们通过检查凹陷向量的大小（其长度）是否大于零来解决这个问题。如果是这样，我们应用下垂，否则我们不应用下垂，直接使用父对象的旋转。这在物理上是有意义的，因为如果一个部分指向正上方，它就处于平衡状态，不会下垂。
+
+向量的长度（也称为大小）可以通过长度法找到。之后，如果需要，可以将向量除以其大小，使其成为单位长度，这也是归一化的作用。
+
+```c#
+			//sagAxis = normalize(sagAxis);
+
+			float sagMagnitude = length(sagAxis);
+			quaternion baseRotation;
+			if (sagMagnitude > 0f) {
+				sagAxis /= sagMagnitude;
+				quaternion sagRotation = quaternion.AxisAngle(sagAxis, PI * 0.25f);
+				baseRotation = mul(sagRotation, parent.worldRotation);
+			}
+			else {
+				baseRotation = parent.worldRotation;
+			}
+		
+			part.worldRotation = mul(baseRotation,
+				mul(part.rotation, quaternion.RotateY(part.spinAngle))
+			);
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/sagging/with-top-malformed.png)
+
+*有顶部，但畸形。*
+
+分形仍然是畸形的，因为我们现在有效地将每个部分的方向应用了两次。首先是下垂时，然后是向特定方向偏移时。我们通过始终沿零件的局部上轴偏移来解决这个问题。
+
+```c#
+			part.worldPosition =
+				parent.worldPosition +
+				//mul(parent.worldRotation, (1.5f * scale * part.direction));
+				mul(part.worldRotation, float3(0f, 1.5f * scale, 0f));
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/sagging/uniform-sagging.png)
+
+*均匀下垂 45°。*
+
+请注意，这意味着我们不再需要跟踪每个部分的方向向量，并且可以删除与之相关的所有代码。
+
+```c#
+	struct FractalPart {
+		//public float3 direction, worldPosition;
+		public float3 worldPosition;
+		public quaternion rotation, worldRotation;
+		public float spinAngle;
+	}
+	
+	…
+
+	//static float3[] directions = {
+	//	up(), right(), left(), forward(), back()
+	//};
+
+	…
+
+	FractalPart CreatePart (int childIndex) => new FractalPart {
+		//direction = directions[childIndex],
+		rotation = rotations[childIndex]
+	};
+```
+
+### 4.3 调制下垂
+
+凹陷似乎有效，但在分形运动时观察它很重要，所以让它再次旋转。
+
+```c#
+		float spinAngleDelta = 0.125f * PI * Time.deltaTime; // * 0f;
+```
+
+*持续 45° 下垂。*
+它大多有效。无论零件的方向如何，它似乎都会被向下拉动。但方向突然发生了变化。当下垂的方向改变时，就会发生这种情况。因为我们使用固定的下垂角度，所以唯一的选择是沿正向或负向下垂，或者根本不下垂。这也意味着，对于几乎笔直向下指向的零件，下垂旋转最终会过冲，而不是向上拉动它们。
+
+解决方案是让下垂量取决于世界上轴和零件上轴之间的角度。如果零件几乎笔直地向上或向下指向，则几乎不应出现下垂，而如果零件完全侧向指向，则下垂应达到最大值，以 90° 的角度伸出。下垂量与角度之间的关系不必是线性的。事实上，使用角度的正弦曲线会产生很好的结果。这就是我们已经拥有的交叉乘积的大小。因此，使用它来调节下垂旋转角度。
+
+```c#
+				quaternion sagRotation =
+					quaternion.AxisAngle(sagAxis, PI * 0.25f * sagMagnitude);
+```
+
+*调节性下垂。*
+
+由于下垂是在世界空间中计算的，因此整个分形的方向会影响它。因此，通过稍微旋转分形游戏对象，我们也可以使其顶部下垂。
+
+*分形围绕 Z 轴旋转了 20°。*
+
+### 4.4 最大凹陷角度
+
+既然下垂有效，让我们配置最大下垂角度，通过暴露两个值来定义一个范围，再次增加多样性。我们使用度来配置这些角度，因为这比使用弧度更容易，最大值为 90°，默认值为 15° 和 25°。
+
+```c#
+	[SerializeField]
+	Color leafColorA, leafColorB;
+
+	[SerializeField, Range(0f, 90f)]
+	float maxSagAngleA = 15f, maxSagAngleB = 25f;
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/sagging/max-sag-angles.png)
+
+*最大下垂角度。*
+
+在 `FractalPart` 中添加最大凹陷角度，并在 `CreatePart` 中通过以两个配置的角度作为参数的范围调用 `Random.Range` 对其进行初始化。结果可以通过 `radians` 方法转换为弧度。
+
+```c#
+	struct FractalPart {
+		public float3 worldPosition;
+		public quaternion rotation, worldRotation;
+		public float maxSagAngle, spinAngle;
+	}
+
+	…
+
+	FractalPart CreatePart (int childIndex) => new FractalPart {
+		maxSagAngle = radians(Random.Range(maxSagAngleA, maxSagAngleB)),
+		rotation = rotations[childIndex]
+	};
+```
+
+> **A 角必须小于 B 角吗？**
+>
+> 虽然这是明智的，但并不需要。`Random.Range` 方法只是使用一个随机值在其两个参数之间进行插值。
+
+然后使用零件的最大下垂角度，而不是执行中的恒定 45°。
+
+```c#
+				quaternion sagRotation =
+					quaternion.AxisAngle(sagAxis, part.maxSagAngle * sagMagnitude)
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/sagging/variable-max-sage-angle.png)
+
+*最大凹陷角度可变 15-25°，深度 8。*
+
+## 5 旋转
+
+在这一点上，我们已经调整了分形，使其看起来至少有点有机。我们将进行的最后一项增强是为其旋转行为增加多样性。
+
+### 5.1 变速
+
+就像我们为最大下垂角度所做的那样，引入旋转速度范围的配置选项，单位为度每秒。这些速度应为零或更大。
+
+```c#
+	[SerializeField, Range(0f, 90f)]
+	float maxSagAngleA = 15f, maxSagAngleB = 25f;
+
+	[SerializeField, Range(0f, 90f)]
+	float spinVelocityA = 20f, spinVelocityB = 25f;
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/spin/spin-velocities.png)
+
+*旋转速度。*
+
+在  `FractalPart` 中添加一个自旋速度场，并在 `CreatePart` 中随机初始化它。
+
+```c#
+	struct FractalPart {
+		public float3 worldPosition;
+		public quaternion rotation, worldRotation;
+		public float maxSagAngle, spinAngle, spinVelocity;
+	}
+
+	…
+
+	FractalPart CreatePart (int childIndex) => new FractalPart {
+		maxSagAngle = radians(Random.Range(maxSagAngleA, maxSagAngleB)),
+		rotation = rotations[childIndex],
+		spinVelocity = radians(Random.Range(spinVelocityA, spinVelocityB))
+	};
+```
+
+接下来，在 `UpdateFractalLevelJob` 中删除均匀自旋角增量字段，将其替换为增量时间字段。然后在 `Execute` 中应用零件自身的旋转速度。
+
+```c#
+		//public float spinAngleDelta;
+		public float scale;
+		public float deltaTime;
+
+		…
+		
+		public void Execute (int i) {
+			FractalPart parent = parents[i / 5];
+			FractalPart part = parts[i];
+			part.spinAngle += part.spinVelocity * deltaTime;
+
+			…
+		}
+```
+
+之后，调整 `Update`，使其不再使用均匀的旋转角度增量，而是将时间增量传递给作业。
+
+```c#
+		//float spinAngleDelta = 0.125f * PI * Time.deltaTime;
+		float deltaTime = Time.deltaTime;
+		FractalPart rootPart = parts[0][0];
+		rootPart.spinAngle += rootPart.spinVelocity * deltaTime;
+		…
+		for (int li = 1; li < parts.Length; li++) {
+			scale *= 0.5f;
+			jobHandle = new UpdateFractalLevelJob {
+				//spinAngleDelta = spinAngleDelta,
+				deltaTime = deltaTime,
+				…
+			}.ScheduleParallel(parts[li].Length, 5, jobHandle);
+		}
+```
+
+*0 到 90 之间的可变自旋速度。*
+
+### 5.2 反向旋转
+
+我们可以做的另一件事是反转某些部件的旋转方向。这可以通过允许负自旋速度的配置来实现。然而，如果我们想混合正速度和负速度，那么我们的两个配置值必须具有不同的符号。因此，该范围穿过零，低速不可避免。我们无法配置分形，使其速度在 20-25 的范围内，但要么是正的，要么是负的。
+
+解决方案是分别配置速度和方向。首先将速度重命名为速度，以表示它们没有方向。然后为反向旋转机会添加另一个配置选项，表示为概率，即 0-1 范围内的值。
+
+```c#
+	[SerializeField, Range(0f, 90f)]
+	float spinSpeedA = 20f, spinSpeedB = 25f;
+
+	[SerializeField, Range(0f, 1f)]
+	float reverseSpinChance = 0.25f;
+	
+	…
+
+	FractalPart CreatePart (int childIndex) => return new FractalPart {
+		maxSagAngle = radians(Random.Range(maxSagAngleA, maxSagAngleB)),
+		rotation = rotations[childIndex],
+		spinVelocity = radians(Random.Range(spinSpeedA, spinSpeedB))
+	};
+```
+
+![img](https://catlikecoding.com/unity/tutorials/basics/organic-variety/spin/reverse-spin-chance.png)
+
+*速度和反向旋转机会。*
+
+我们可以通过检查随机值是否小于反向旋转机会来选择 `CreatePart` 中的旋转方向。如果是这样，我们将速度乘以 -1，否则乘以 1。
+
+```c#
+		spinVelocity =
+			(Random.value < reverseSpinChance ? -1f : 1f) *
+			radians(Random.Range(spinSpeedA, spinSpeedB))
+```
+
+*不同的旋转方向，速度总是 45°。*
+
+请注意，现在分形的某些部分可能看起来相对静止。当相反的自旋速度相互抵消时，就会发生这种情况。
+
+### 5.3 性能
+
+在完成了自上一教程以来所做的所有调整后，我们再次审视了性能。事实证明，更新时间增加了，深度 6 和 7 大约翻了一番，而深度 8 增加了 40%。与上次测量相比，这并没有对帧率产生负面影响，因为它的速度太快了。
+
+| 深度 | MS   | URP  | BRP  |
+| ---- | ---- | ---- | ---- |
+| 6    | 0.20 | 365  | 145  |
+| 7    | 0.45 | 130  | 91   |
+| 8    | 2.40 | 48   | 31   |
+
+想知道下一个教程什么时候发布吗？关注我的 [Patreon](https://www.patreon.com/catlikecoding) 页面！
+
+[license](https://catlikecoding.com/unity/tutorials/license/)
+
+[repository](https://bitbucket.org/catlikecodingunitytutorials/basics-07-organic-variety/)
+
+[PDF](https://catlikecoding.com/unity/tutorials/basics/organic-variety/Organic-Variety.pdf)
