@@ -164,7 +164,7 @@ https://catlikecoding.com/unity/tutorials/
 
 [![Hex Map](https://catlikecoding.com/unity/tutorials/hex-map/part-26/tutorial-image.jpg)](https://catlikecoding.com/unity/tutorials/hex-map/)
 
-### 2.15 [游行广场](https://catlikecoding.com/unity/tutorials/marching-squares-series/)
+### 2.15 [行进平方](https://catlikecoding.com/unity/tutorials/marching-squares-series/)
 
 一个关于使用2D网格绘制和重建形状的旧系列。为什么不使用行进立方体？因为2D和3D的概念是相同的，处理二维已经足够复杂了。
 
@@ -272,6 +272,8 @@ https://catlikecoding.com/unity/tutorials/license/
 
 # 基础
 
+https://catlikecoding.com/unity/tutorials/basics/
+
 这些教程介绍了如何使用 Unity。
 
 该系列已于 2021 年 5 月 18 日升级到 Unity 2020。
@@ -287,6 +289,26 @@ https://catlikecoding.com/unity/tutorials/license/
 
 
 ## [跳转系列独立 Markdown](./CatlikeCoding网站翻译-基础.md)
+
+
+
+# 伪随机噪声
+
+https://catlikecoding.com/unity/tutorials/pseudorandom-noise/
+
+关于生成和使用伪随机噪声的系列文章。
+
+1. [哈希](https://catlikecoding.com/unity/tutorials/pseudorandom-noise/hashing/)
+2. [哈希空间](https://catlikecoding.com/unity/tutorials/pseudorandom-noise/hashing-space/)
+3. [值噪声](https://catlikecoding.com/unity/tutorials/pseudorandom-noise/value-noise/)
+4. [柏林噪声](https://catlikecoding.com/unity/tutorials/pseudorandom-noise/perlin-noise/)
+5. [噪声变种](https://catlikecoding.com/unity/tutorials/pseudorandom-noise/noise-variants/)
+6. [Voronoi 噪声](https://catlikecoding.com/unity/tutorials/pseudorandom-noise/voronoi-noise/)
+7. [Simplex 噪声](https://catlikecoding.com/unity/tutorials/pseudorandom-noise/simplex-noise/)
+
+
+
+## [跳转系列独立 Markdown](./CatlikeCoding网站翻译-伪随机噪声.md)
 
 
 

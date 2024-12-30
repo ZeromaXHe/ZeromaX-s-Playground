@@ -1,4 +1,4 @@
-# [返回主 Markdown](./CatlikeCoding网站翻译-基础.md)
+# [返回主 Markdown](./CatlikeCoding网站翻译.md)
 
 # 游戏对象和脚本：创建一个钟表
 
@@ -6877,7 +6877,7 @@ https://catlikecoding.com/unity/tutorials/basics/organic-variety/
 
 使分形更加多样化的最直接方法是用一系列颜色替换其均匀颜色，最简单的方法是基于每个绘制实例的级别。
 
-### 1.1 重载颜色
+### 1.1 重写颜色
 
 我们之前为 BRP 表面着色器和 URP 都提供了一个*基础颜色*属性，我们目前通过调整材质来配置该属性，但我们可以通过代码覆盖它。为此，请在 `Fractal` 中跟踪其标识符。
 
