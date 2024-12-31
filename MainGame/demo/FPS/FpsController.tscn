@@ -1,7 +1,9 @@
-[gd_scene load_steps=10 format=3 uid="uid://br1bqd6e63dww"]
+[gd_scene load_steps=12 format=3 uid="uid://br1bqd6e63dww"]
 
 [ext_resource type="Script" path="res://demo/FPS/FpsController.cs" id="1_ou4fy"]
 [ext_resource type="Script" path="res://demo/FPS/Reticule.cs" id="2_rt15r"]
+[ext_resource type="Theme" uid="uid://cpndn0jvmxhp1" path="res://Tres/Themes/FPS/DebugTheme.tres" id="3_fvvcj"]
+[ext_resource type="Script" path="res://demo/FPS/DebugPanel.cs" id="4_tq5od"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_13me6"]
 
@@ -206,3 +208,20 @@ width = 2.0
 [node name="Left" type="Line2D" parent="UserInterface/Reticle"]
 points = PackedVector2Array(-5, 0, -15, 0)
 width = 2.0
+
+[node name="DebugPanel" type="PanelContainer" parent="UserInterface"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 210.0
+offset_bottom = 50.0
+theme = ExtResource("3_fvvcj")
+script = ExtResource("4_tq5od")
+
+[node name="MarginContainer" type="MarginContainer" parent="UserInterface/DebugPanel"]
+layout_mode = 2
+
+[node name="PropertyContainer" type="VBoxContainer" parent="UserInterface/DebugPanel/MarginContainer"]
+unique_name_in_owner = true
+layout_mode = 2

@@ -1,11 +1,12 @@
 namespace FrontEnd4IdleStrategyFS.FPS
 
+open FrontEnd4IdleStrategyFS.Global
 open Godot
 open FrontEndCommonFS.Util
 
 type FpsControllerFS() as this =
     inherit CharacterBody3D()
-
+    let fpsGlobalNode = lazy this.GetNode<FpsGlobalNodeFS> "/root/FpsGlobalNode"
     let mutable speed = 0f
     let mutable mouseInput = false
     let mutable mouseRotation = Vector3.Zero
@@ -72,7 +73,7 @@ type FpsControllerFS() as this =
                 uncrouchCheck ()
             }
             |> Async.Start
-    
+
     member val speedDefault = 5f with get, set
     member val speedCrouch = 2f with get, set
     member val togCrouch = false with get, set // 貌似这里默认为 true 的话，场景里面为 false 会改不到实际值？
@@ -118,6 +119,8 @@ type FpsControllerFS() as this =
                 uncrouchCheck ()
 
     override this._PhysicsProcess delta =
+        fpsGlobalNode.Value.debug.AddProperty "MovementSpeed" speed 1
+        fpsGlobalNode.Value.debug.AddProperty "MouseRotation" mouseRotation 2
         let mutable velocity = this.Velocity
         // 根据鼠标移动，更新摄像机移动
         updateCamera <| float32 delta

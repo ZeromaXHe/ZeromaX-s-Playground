@@ -9,6 +9,7 @@
         <Compile Include="Global\Adaptor\AStar2DAdapter.fs" />
         <Compile Include="Global\Adaptor\TileMapLayerAdapter.fs" />
         <Compile Include="Global\GlobalNodeFS.fs" />
+        <Compile Include="Global\FpsGlobalNodeFS.fs" />
         <Compile Include="Display\InGame\MainMenuFS.fs" />
         <Compile Include="Display\InGame\MarchingLineFS.fs" />
         <Compile Include="Display\InGame\TileGuiFS.fs" />
@@ -17,6 +18,7 @@
         <Compile Include="ConwaysGameOfLife\DispatcherFS.fs" />
         <Compile Include="FPS\FpsControllerFS.fs" />
         <Compile Include="FPS\ReticuleFS.fs" />
+        <Compile Include="FPS\DebugPanelFS.fs" />
     </ItemGroup>
 
     <ItemGroup>
