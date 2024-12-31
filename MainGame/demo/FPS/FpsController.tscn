@@ -1,0 +1,33 @@
+[gd_scene load_steps=5 format=3 uid="uid://br1bqd6e63dww"]
+
+[ext_resource type="Script" path="res://demo/FPS/FpsController.cs" id="1_ou4fy"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_13me6"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3ugpv"]
+albedo_color = Color(1, 0, 0, 1)
+roughness = 0.3
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_ow7vg"]
+material = SubResource("StandardMaterial3D_3ugpv")
+
+[node name="FpsController" type="CharacterBody3D" node_paths=PackedStringArray("CameraController")]
+script = ExtResource("1_ou4fy")
+TiltLowerLimit = -1.571
+TiltUpperLimit = 1.571
+CameraController = NodePath("CameraController/Camera3D")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("CapsuleShape3D_13me6")
+
+[node name="PlaceholderMesh" type="MeshInstance3D" parent="CollisionShape3D"]
+mesh = SubResource("CapsuleMesh_ow7vg")
+
+[node name="CameraController" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+
+[node name="Camera3D" type="Camera3D" parent="CameraController"]
+
+[node name="ReflectionProbe" type="ReflectionProbe" parent="CameraController/Camera3D"]
+update_mode = 1
