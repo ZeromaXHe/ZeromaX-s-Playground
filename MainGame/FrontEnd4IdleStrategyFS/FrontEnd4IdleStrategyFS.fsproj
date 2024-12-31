@@ -16,6 +16,7 @@
         <Compile Include="Display\InGame\InGameMenuFS.fs" />
         <Compile Include="ConwaysGameOfLife\DispatcherFS.fs" />
         <Compile Include="FPS\FpsControllerFS.fs" />
+        <Compile Include="FPS\ReticuleFS.fs" />
     </ItemGroup>
 
     <ItemGroup>
