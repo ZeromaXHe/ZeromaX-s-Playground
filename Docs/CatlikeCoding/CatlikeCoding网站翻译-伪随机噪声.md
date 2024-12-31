@@ -3752,3 +3752,33 @@ return (gx * x + gy * y + gz * z) * (1f / 0.56290f);
 [repository](https://bitbucket.org/catlikecodingunitytutorials/pseudorandom-noise-04-perlin-noise/)
 
 [PDF](https://catlikecoding.com/unity/tutorials/pseudorandom-noise/perlin-noise/Perlin-Noise.pdf)
+
+
+
+# 噪声变体：分形和平铺
+
+发布于 2021-07-07 更新于 2022-03-10
+
+https://catlikecoding.com/unity/tutorials/pseudorandom-noise/noise-variants/
+
+*组合多个八度音阶的噪声以创建分形图案。*
+*介绍 Perlin 的湍流版本并评估噪声。*
+*添加创建平铺噪波的选项。*
+
+这是关于[伪随机噪声](https://catlikecoding.com/unity/tutorials/pseudorandom-noise/)的系列教程中的第五篇。它添加了分形噪声、湍流和平铺。
+
+![img](https://catlikecoding.com/unity/tutorials/pseudorandom-noise/noise-variants/tutorial-image.jpg)
+
+本教程使用 Unity 2020.3.12f1 编写。
+
+一个显示六个八度音阶的间隙 3 分形 3D Perlin 噪声的圆环。
+
+## 1 分形噪声
+
+到目前为止，我们只使用了 Perlin 的单个样本或每个点的值噪声。结果看起来是随机的，但图案的所有特征都有相同的大小。有很多种，但它是基于一个统一的晶格。所有变化都存在于一个单一的尺度上，由域变换决定。噪音在更大和更小的尺度上缺乏多样性，这暴露了它的人工性质。
+
+我们可以通过以不同的尺度再次采样噪声来引入第二频率的变化。最简单的方法是在基本尺度上对其进行采样，也可以在两倍的尺度上进行采样。两个样本的总和产生了一种具有大规模和小规模变化的噪声。我们可以乘以这个倍数，在更大的域尺度上，每个额外的样本都会添加更小的特征。由于较小的特征与较大的特征相似，因此产生的模式将表现出自相似性，因此这种结果被称为分形噪声。
+
+### 1.1 噪音设置
+
+为了支持分形噪声，我们必须添加更多的配置选项来控制它。为了便于将配置传递给噪声，我们将首先创建一个公共 `Noise.Settings` 结构体，最初只包含一个种子整数字段。由于此结构纯粹是为了方便地对配置选项进行分组，我们将字段设置为公共字段，并将该结构用 `System.Serializable` 特性标记为可序列化。这样 Unity 就可以保存配置，并且很容易访问其内容。

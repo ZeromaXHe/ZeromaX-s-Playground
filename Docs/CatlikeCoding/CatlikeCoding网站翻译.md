@@ -34,6 +34,117 @@ https://catlikecoding.com/jasper-flick/
 
 
 
+# Godot Engine 4 教程：学习如何使用游戏引擎
+
+https://catlikecoding.com/godot/
+
+这些教程教您如何使用 [Godot Engine 4](https://godotengine.org/)。我所有的教程都是写的，没有广告。
+
+## 1 教程系列
+
+我已经为 Unity 工作和编写教程很长时间了。现在我也在为 Godot 写这些。我才刚刚开始，所以内容最初会有点稀疏。
+
+1. [介绍](https://catlikecoding.com/godot/introduction/)
+2. [真正的俯视视角 2D](https://catlikecoding.com/godot/true-top-down-2d/)
+
+## 2 成为我的赞助人
+
+您的支持使这些教程成为可能！如果你喜欢它们并想看到更多，请通过 [Patreon](https://www.patreon.com/catlikecoding) 或 [Ko-fi](https://ko-fi.com/catlikecoding) 每月捐款成为我的赞助人。这也让你可以访问我的 Discord 服务器。
+
+## 3 问题与答案
+
+有问题吗？以下是一些常见的例子。单击或触摸问题以查看答案。你也可以通过各种方式[联系我](https://catlikecoding.com/jasper-flick/)。
+
+**为什么要成为支持者？**
+
+因为纸箱没有电源插座和互联网连接，所以住在纸箱里不是一种选择。饥饿或冻死也是生产力的杀手。因此，我需要一些方法来资助创建这些教程所需的时间和精力。
+
+要成为我作品的常客，请通过 [Ko-fi](https://ko-fi.com/catlikecoding) 或 [Patreon](https://www.patreon.com/catlikecoding) 订阅。这也使您可以访问我的 Discord 服务器。
+
+如果你不能或不想成为我的常客，但真的想访问我的 Discord 服务器，你可以向我发出个人邀请。
+
+**我可以一次性捐款吗？**
+
+是的，您可以通过 [Ko-fi](https://ko-fi.com/catlikecoding) 进行一次性捐款，Ko-fi 支持多种付款方式。您还可以使用 PayPal 应用程序：
+
+![PayPal QR code](https://catlikecoding.com/images/paypal-qrcode.webp)
+
+**我可以收到新教程的通知吗？**
+
+此页面有一个 [Atom 提要](https://catlikecoding.com/godot/feed.atom)，新闻阅读器应用程序应该自动发现。
+
+您也可以通过 [Ko-fi](https://ko-fi.com/catlikecoding) 或 [Patreon](https://www.patreon.com/catlikecoding) 收到通知。
+
+除此之外，我还会在 [Bluesky](https://bsky.app/profile/catlikecoding.com)、[Mastodon](https://mastodon.gamedev.place/@catlikecoding)、[tumblr](https://www.tumblr.com/blog/catlikecoding)、[Twitter](http://twitter.com/catlikecoding)、[reddit](https://www.reddit.com/user/catlikecoding) 和其他一些地方发布更新。
+
+**网站设置是如何工作的？**
+
+你可以选择一个**深色**或**浅色**的网站**主题**，无论你喜欢什么。这将更改所有页面的颜色、代码突出显示和一些屏幕截图。默认的**自动**主题根据您的浏览器和系统设置选择深色或浅色。
+
+如果启用了**粗体和斜体代码**，则在突出显示某些代码片段时使用字体样式。例如，评论和功能将以斜体显示，关键字将以粗体显示。
+
+如果启用了**代码连字**，则某些代码符号组合将在视觉上合并。例如，`->` 变为 `->`，`==` 变为 `==`。这是 [JetBrains Mono](https://www.jetbrains.com/lp/mono/) 字体的一个特性。
+
+如果启用了**可见代码选项卡**，则代码选项卡将以垂直线显示，每个缩进级别一条。
+
+这些设置保存在浏览器的本地存储中。
+
+**为什么是文字教程而不是视频教程？**
+
+由于我的教程侧重于编程，它们主要是关于编写代码的，因此使用文本似乎很自然。理解代码可能需要大量的来回跳跃、暂停、查找、实验等，所有这些都需要按照自己的节奏进行。我认为文字比视频更方便。
+
+**我可以将你的教程代码用于商业项目吗？**
+
+对。请参阅[许可证](https://catlikecoding.com/unity/tutorials/license/)页面。
+
+毫无疑问，从这些教程到可行的商业产品的道路是漫长的。
+
+**我可以重新分发或翻译你的教程吗？**
+
+是的，有限制。请参阅[许可证](https://catlikecoding.com/unity/tutorials/license/)页面。
+
+**我可以获得教程的 PDF 版本吗？**
+
+您可以使用浏览器的打印选项，然后选择另存为 PDF。这些页面的样式在打印时看起来很美观。在移动设备上，打印是共享选项之一。
+
+
+
+# 介绍：从头开始
+
+https://catlikecoding.com/godot/introduction/
+
+如何通过构建时钟并使用它来开始使用 Godot Engine 4。我们尽可能简单地开始，并逐步引入更高级的概念。
+
+本系列面向游戏开发新手，但对 Godot 不熟悉的高级开发人员也会发现它很有用。
+
+1. [制作钟](https://catlikecoding.com/godot/introduction/1-making-a-clock/)
+2. [给钟编程](https://catlikecoding.com/godot/introduction/2-programming-a-clock/)
+3. [很多钟](https://catlikecoding.com/godot/introduction/3-many-clocks/)
+4. [有环的钟](https://catlikecoding.com/godot/introduction/4-clocks-with-rings/)
+5. [迁移到 C#](https://catlikecoding.com/godot/introduction/5-migrating-to-c-sharp/)
+
+
+
+# 真正的俯视视角 2D：一个简单的像素艺术游戏
+
+https://catlikecoding.com/godot/true-top-down-2d/
+
+这是一个教程系列，介绍了使用 Godot Engine 4 创建简单的真正的俯视视角 2D 游戏的过程。
+
+本系列面向游戏开发新手，但对 Godot 不熟悉的高级开发人员也会发现它很有用。
+
+假设您已经完成了[介绍系列](https://catlikecoding.com/godot/introduction/)或熟悉 Godot Engine 4。
+
+1. [瓦片地图](https://catlikecoding.com/godot/true-top-down-2d/1-tile-map/)
+2. [玩家角色](https://catlikecoding.com/godot/true-top-down-2d/2-player-character/)
+3. [可移动对象](https://catlikecoding.com/godot/true-top-down-2d/3-movable-objects/)
+4. [光和阴影](https://catlikecoding.com/godot/true-top-down-2d/4-light-and-shadow/)
+5. [探测器](https://catlikecoding.com/godot/true-top-down-2d/5-detectors/)
+
+这是一项正在进行的工作。更多部分将在适当的时候添加。
+
+
+
 # Unity
 
 https://catlikecoding.com/unity/
@@ -312,6 +423,228 @@ https://catlikecoding.com/unity/tutorials/pseudorandom-noise/
 
 
 
+# 程序化网格
+
+https://catlikecoding.com/unity/tutorials/procedural-meshes/
+
+关于生成程序化网格的系列。
+
+1. [创建网格](https://catlikecoding.com/unity/tutorials/procedural-meshes/creating-a-mesh/)
+2. [方格网格](https://catlikecoding.com/unity/tutorials/procedural-meshes/square-grid/)
+3. [修改网格](https://catlikecoding.com/unity/tutorials/procedural-meshes/modified-grid/)
+4. [三角网格](https://catlikecoding.com/unity/tutorials/procedural-meshes/triangle-grid/)
+5. [UV 球](https://catlikecoding.com/unity/tutorials/procedural-meshes/uv-sphere/)
+6. [立方球](https://catlikecoding.com/unity/tutorials/procedural-meshes/cube-sphere/)
+7. [无缝立方球](https://catlikecoding.com/unity/tutorials/procedural-meshes/seamless-cube-sphere/)
+8. [八面球](https://catlikecoding.com/unity/tutorials/procedural-meshes/octasphere/)
+9. [测地线八面球](https://catlikecoding.com/unity/tutorials/procedural-meshes/geodesic-octasphere/)
+10. [二十面球](https://catlikecoding.com/unity/tutorials/procedural-meshes/icosphere/)
+
+此系列将取代“[网格基础](https://catlikecoding.com/unity/tutorials/mesh-basics/)”。
+
+
+
+# 伪随机曲面
+
+https://catlikecoding.com/unity/tutorials/pseudorandom-surfaces/
+
+关于生成伪随机曲面的系列。
+
+1. [表面高度](https://catlikecoding.com/unity/tutorials/pseudorandom-surfaces/surface-elevation/)
+2. [Simplex 导数](https://catlikecoding.com/unity/tutorials/pseudorandom-surfaces/simplex-derivatives/)
+3. [Perlin 导数](https://catlikecoding.com/unity/tutorials/pseudorandom-surfaces/perlin-derivatives/)
+4. [Voronoi 导数](https://catlikecoding.com/unity/tutorials/pseudorandom-surfaces/voronoi-derivatives/)
+5. [球面高度](https://catlikecoding.com/unity/tutorials/pseudorandom-surfaces/spherical-elevation/)
+6. [表面流](https://catlikecoding.com/unity/tutorials/pseudorandom-surfaces/surface-flow/)
+
+
+
+# 原型
+
+https://catlikecoding.com/unity/tutorials/prototypes/
+
+关于创建小游戏原型的系列。
+
+1. [Paddle Square](https://catlikecoding.com/unity/tutorials/prototypes/paddle-square/)
+2. [扫雷](https://catlikecoding.com/unity/tutorials/prototypes/minecomb/)
+3. [跑者 2](https://catlikecoding.com/unity/tutorials/prototypes/runner-2/)
+4. [迷宫 2](https://catlikecoding.com/unity/tutorials/prototypes/maze-2/)
+5. [方块蛇](https://catlikecoding.com/unity/tutorials/prototypes/serpensquares/)
+6. [匹配 3](https://catlikecoding.com/unity/tutorials/prototypes/match-3/)
+7. [弹球射击](https://catlikecoding.com/unity/tutorials/prototypes/bouncy-ball-shooter/)
+
+
+
+# 移动
+
+https://catlikecoding.com/unity/tutorials/movement/
+
+关于控制角色移动的系列。
+
+1. [滑动球](https://catlikecoding.com/unity/tutorials/movement/sliding-a-sphere/)
+2. [物理](https://catlikecoding.com/unity/tutorials/movement/physics/)
+3. [表面接触](https://catlikecoding.com/unity/tutorials/movement/surface-contact/)
+4. [环绕摄像头](https://catlikecoding.com/unity/tutorials/movement/orbit-camera/)
+5. [自定义重力](https://catlikecoding.com/unity/tutorials/movement/custom-gravity/)
+6. [复杂重力](https://catlikecoding.com/unity/tutorials/movement/complex-gravity/)
+7. [移动地面](https://catlikecoding.com/unity/tutorials/movement/moving-the-ground/)
+8. [攀爬](https://catlikecoding.com/unity/tutorials/movement/climbing/)
+9. [游泳](https://catlikecoding.com/unity/tutorials/movement/swimming/)
+10. [反应性环境](https://catlikecoding.com/unity/tutorials/movement/reactive-environment/)
+11. [滚动](https://catlikecoding.com/unity/tutorials/movement/rolling/)
+
+
+
+# 对象管理
+
+https://catlikecoding.com/unity/tutorials/object-management/
+
+处理创建、保留跟踪、保存和加载对象的一系列教程。
+
+1. [持久化对象](https://catlikecoding.com/unity/tutorials/object-management/persisting-objects/)
+2. [对象多样性](https://catlikecoding.com/unity/tutorials/object-management/object-variety/)
+3. [重用对象](https://catlikecoding.com/unity/tutorials/object-management/reusing-objects/)
+4. [多场景](https://catlikecoding.com/unity/tutorials/object-management/multiple-scenes/)
+5. [生成区域](https://catlikecoding.com/unity/tutorials/object-management/spawn-zones/)
+6. [更多游戏状态](https://catlikecoding.com/unity/tutorials/object-management/more-game-state/)
+7. [设置形状](https://catlikecoding.com/unity/tutorials/object-management/configuring-shapes/)
+8. [更多工厂](https://catlikecoding.com/unity/tutorials/object-management/more-factories/)
+9. [形状行为](https://catlikecoding.com/unity/tutorials/object-management/shape-behavior/)
+10. [卫星](https://catlikecoding.com/unity/tutorials/object-management/satellites/)
+11. [生命周期](https://catlikecoding.com/unity/tutorials/object-management/lifecycle/)
+12. [更多复杂级别](https://catlikecoding.com/unity/tutorials/object-management/more-complex-levels/)
+
+
+
+# 塔防
+
+https://catlikecoding.com/unity/tutorials/tower-defense/
+
+创建一个简单基于网格的塔防游戏的系列。
+
+1. [棋盘](https://catlikecoding.com/unity/tutorials/tower-defense/the-board/)
+2. [敌人](https://catlikecoding.com/unity/tutorials/tower-defense/enemies/)
+3. [塔](https://catlikecoding.com/unity/tutorials/tower-defense/towers/)
+4. [弹道](https://catlikecoding.com/unity/tutorials/tower-defense/ballistics/)
+5. [场景](https://catlikecoding.com/unity/tutorials/tower-defense/scenarios/)
+6. [动画]()
+
+
+
+# 流
+
+https://catlikecoding.com/unity/tutorials/flow/
+
+涵盖创建像水表面的流效应的教程集合。
+
+1. [扭曲纹理](https://catlikecoding.com/unity/tutorials/flow/texture-distortion/)
+2. [方向流](https://catlikecoding.com/unity/tutorials/flow/directional-flow/)
+3. [波浪](https://catlikecoding.com/unity/tutorials/flow/waves/)
+4. [通过水看](https://catlikecoding.com/unity/tutorials/flow/looking-through-water/)
+
+
+
+# 自定义 SRP
+
+https://catlikecoding.com/unity/tutorials/custom-srp/
+
+关于在 Unity 中创建自定义可脚本化渲染管道的教程集。该系列是用 Unity 2019 制作的，并已升级到 Unity 2022。它现在将以[项目形式](https://catlikecoding.com/unity/custom-srp/)继续。
+
+1. [自定义渲染管道](https://catlikecoding.com/unity/tutorials/custom-srp/custom-render-pipeline/)
+2. [绘制调用](https://catlikecoding.com/unity/tutorials/custom-srp/draw-calls/)
+3. [方向光](https://catlikecoding.com/unity/tutorials/custom-srp/directional-lights/)
+4. [方向阴影](https://catlikecoding.com/unity/tutorials/custom-srp/directional-shadows/)
+5. [烘焙光](https://catlikecoding.com/unity/tutorials/custom-srp/baked-light/)
+6. [阴影掩码](https://catlikecoding.com/unity/tutorials/custom-srp/shadow-masks/)
+7. [LOD 和反射](https://catlikecoding.com/unity/tutorials/custom-srp/lod-and-reflections/)
+8. [复杂映射](https://catlikecoding.com/unity/tutorials/custom-srp/complex-maps/)
+9. [点和探照光源](https://catlikecoding.com/unity/tutorials/custom-srp/point-and-spot-lights/)
+10. [点和探照阴影](https://catlikecoding.com/unity/tutorials/custom-srp/point-and-spot-shadows/)
+11. [后处理](https://catlikecoding.com/unity/tutorials/custom-srp/post-processing/)
+12. [HDR](https://catlikecoding.com/unity/tutorials/custom-srp/hdr/)
+13. [颜色分级](https://catlikecoding.com/unity/tutorials/custom-srp/color-grading/)
+14. [多摄像头](https://catlikecoding.com/unity/tutorials/custom-srp/multiple-cameras/)
+15. [粒子](https://catlikecoding.com/unity/tutorials/custom-srp/particles/)
+16. [渲染缩放](https://catlikecoding.com/unity/tutorials/custom-srp/render-scale/)
+17. [FXAA](https://catlikecoding.com/unity/tutorials/custom-srp/fxaa/)
+
+
+
+# 自定义 SRP：项目和教程
+
+https://catlikecoding.com/unity/custom-srp/
+
+本页介绍了自定义 SRP 项目，该项目是项目形式的[自定义 SRP 教程系列](https://catlikecoding.com/unity/tutorials/custom-srp/)的延续。原始系列是为 Unity 2019 创建的，Unity 2018 有一个前身。
+
+我已经将教程系列升级到 Unity 2022。它的最后一个教程是这个项目的起点。从现在开始，该项目将随版本更新，每个版本都有一个附带的教程，指导您完成所有更改。与正式版本一样，它们是固定的，除了修复拼写错误外，永远不会被更改，取而代之的是新版本。除了展示 SRP 的特性和功能外，这还展示了如何处理项目发布和维护代码。
+
+[项目存储库](https://bitbucket.org/catlikecoding-projects/custom-srp-project/src/master/)包含所有版本。主分支中已经包含了尚未发布版本的前沿代码（如果可用）。
+
+第一个重大变化是切换到 Unity 的渲染图 API。然后添加了平铺的 Forward+ 渲染。下一个重要步骤是迁移到我们刚刚制作的 Unity 6。
+
+您可以浏览原始教程系列，也可以从您选择的发布版本开始，然后从那里开始工作，浏览旧教程以获取所需的任何解释。已发布的教程按从高到低的版本列出。
+
+- [1.0.0 现代化](https://catlikecoding.com/unity/custom-srp/1-0-0/)
+- [2.0.0 渲染图](https://catlikecoding.com/unity/custom-srp/2-0-0/)
+- [2.1.0 渲染队列](https://catlikecoding.com/unity/custom-srp/2-1-0/)
+- [2.2.0 摄像头纹理](https://catlikecoding.com/unity/custom-srp/2-2-0/)
+- [2.3.0 阴影纹理](https://catlikecoding.com/unity/custom-srp/2-3-0/)
+- [2.4.0 后 FX 通道](https://catlikecoding.com/unity/custom-srp/2-4-0/)
+- [2.5.0 结构缓冲区](https://catlikecoding.com/unity/custom-srp/2-5-0/)
+- [3.0.0 简单瓦片 Forward+](https://catlikecoding.com/unity/custom-srp/3-0-0/)
+- [3.1.0 Forward+ 设置](https://catlikecoding.com/unity/custom-srp/3-1-0/)
+- [3.2.0 简化](https://catlikecoding.com/unity/custom-srp/3-2-0/)
+- [4.0.0 Unity 6](https://catlikecoding.com/unity/custom-srp/4-0-0/)
+
+
+
+# 渲染
+
+https://catlikecoding.com/unity/tutorials/rendering/
+
+关于理解 Unity 默认渲染管道的系列文章。网格如何变成看起来像真实物体的像素。请注意，这些教程很旧，涵盖了 Unity 的内置渲染管道，该管道正在淘汰中。了解这些概念和技术仍然有用，但具体的方法可能会被认为是不推荐的。
+
+1. [矩阵](https://catlikecoding.com/unity/tutorials/rendering/part-1/)
+2. [着色器基础](https://catlikecoding.com/unity/tutorials/rendering/part-2/)
+3. [组合纹理](https://catlikecoding.com/unity/tutorials/rendering/part-3/)
+4. [第一束光](https://catlikecoding.com/unity/tutorials/rendering/part-4/)
+5. [多束光](https://catlikecoding.com/unity/tutorials/rendering/part-5/)
+6. [颠簸度](https://catlikecoding.com/unity/tutorials/rendering/part-6/)
+7. [阴影](https://catlikecoding.com/unity/tutorials/rendering/part-7/)
+8. [反射](https://catlikecoding.com/unity/tutorials/rendering/part-8/)
+9. [复杂材质](https://catlikecoding.com/unity/tutorials/rendering/part-9/)
+10. [更多复杂性](https://catlikecoding.com/unity/tutorials/rendering/part-10/)
+11. [透明](https://catlikecoding.com/unity/tutorials/rendering/part-11/)
+12. [半透明阴影](https://catlikecoding.com/unity/tutorials/rendering/part-12/)
+13. [延迟着色](https://catlikecoding.com/unity/tutorials/rendering/part-13/)
+14. [雾](https://catlikecoding.com/unity/tutorials/rendering/part-14/)
+15. [延迟光](https://catlikecoding.com/unity/tutorials/rendering/part-15/)
+16. [静态光](https://catlikecoding.com/unity/tutorials/rendering/part-16/)
+17. [混合光](https://catlikecoding.com/unity/tutorials/rendering/part-17/)
+18. [实时 GI 和 LOD 组](https://catlikecoding.com/unity/tutorials/rendering/part-18/)
+19. [GPU 实例化](https://catlikecoding.com/unity/tutorials/rendering/part-19/)
+20. [视差](https://catlikecoding.com/unity/tutorials/rendering/part-20/)
+
+
+
+# 高级渲染
+
+https://catlikecoding.com/unity/tutorials/advanced-rendering/
+
+这些教程涵盖了更复杂或更专业的渲染技术，超越了 Unity 的标准着色器。它们以“渲染”系列中完成的工作为基础。
+
+请记住，这些教程很旧，使用 Unity 的内置渲染管道，以及几何着色器等过时的技术。
+
+1. [平面和线框着色](https://catlikecoding.com/unity/tutorials/advanced-rendering/flat-and-wireframe-shading/)
+2. [曲面细分](https://catlikecoding.com/unity/tutorials/advanced-rendering/tessellation/)
+3. [表面位移](https://catlikecoding.com/unity/tutorials/advanced-rendering/surface-displacement/)
+4. [辉光](https://catlikecoding.com/unity/tutorials/advanced-rendering/bloom/)
+5. [景深](https://catlikecoding.com/unity/tutorials/advanced-rendering/depth-of-field/)
+6. [FXAA](https://catlikecoding.com/unity/tutorials/advanced-rendering/fxaa/)
+7. [三角映射](https://catlikecoding.com/unity/tutorials/advanced-rendering/triplanar-mapping/)
+
+
+
 # 六边形地图
 
 https://catlikecoding.com/unity/tutorials/hex-map/
@@ -388,3 +721,46 @@ https://catlikecoding.com/unity/hex-map/
 
 
 
+# 行进平方
+
+https://catlikecoding.com/unity/tutorials/marching-squares-series/
+
+一个关于使用 2D 网格绘制和重建形状的旧系列。为什么不使用行进立方体？因为 2D 和 3D 的概念是一样的，处理二维已经足够复杂了。
+
+1. [分割空间](https://catlikecoding.com/unity/tutorials/marching-squares/)
+2. [分享和交叉](https://catlikecoding.com/unity/tutorials/marching-squares-2/)
+3. [保持尖锐](https://catlikecoding.com/unity/tutorials/marching-squares-3/)
+4. [立起墙壁](https://catlikecoding.com/unity/tutorials/marching-squares-4/)
+5. [成为彩色](https://catlikecoding.com/unity/tutorials/marching-squares-5/)
+
+
+
+# 网格基础
+
+https://catlikecoding.com/unity/tutorials/mesh-basics/
+
+程序网格的旧介绍。从简单的网格到可变形的球。
+
+1. [程序化网格](https://catlikecoding.com/unity/tutorials/procedural-grid/)
+2. [圆角立方体](https://catlikecoding.com/unity/tutorials/rounded-cube/)
+3. [立方体球](https://catlikecoding.com/unity/tutorials/cube-sphere/)
+4. [网格变形](https://catlikecoding.com/unity/tutorials/mesh-deformation/)
+
+该系列已被[程序网格](https://catlikecoding.com/unity/tutorials/procedural-meshes/)所取代。
+
+
+
+# 旧教程
+
+https://catlikecoding.com/unity/tutorials/old-tutorials/
+
+这些教程大多都很旧，是用 Unity 4 或 5 制作的，没有更新到更高版本。它们可能仍然有价值，但你必须自己做出调整。
+
+1. [旋流管](https://catlikecoding.com/unity/tutorials/swirly-pipe/)
+2. [迷宫](https://catlikecoding.com/unity/tutorials/maze/)
+3. [曲线和样条曲线](https://catlikecoding.com/unity/tutorials/curves-and-splines/)
+4. [跑者](https://catlikecoding.com/unity/tutorials/runner/)
+5. [八面体球](https://catlikecoding.com/unity/tutorials/octahedron-sphere/)
+6. [自定义数据](https://catlikecoding.com/unity/tutorials/editor/custom-data/)
+7. [自定义列表](https://catlikecoding.com/unity/tutorials/editor/custom-list/)
+8. [星星](https://catlikecoding.com/unity/tutorials/editor/star/)
