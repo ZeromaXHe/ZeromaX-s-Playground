@@ -9,6 +9,7 @@
         <Compile Include="Util\BackEndUtil.fs" />
         <Compile Include="Util\ObservableSyncContextUtil.fs" />
         <Compile Include="Util\Vector3Util.fs" />
+        <Compile Include="Util\AwaitUtil.fs" />
         <Compile Include="Constant\Constants.fs" />
         <Compile Include="DataStructure\Octree.fs" />
         <Compile Include="DataStructure\GeodesicPoints.fs" />

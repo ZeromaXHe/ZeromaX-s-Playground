@@ -6,6 +6,41 @@ namespace ZeromaXPlayground.demo.FPS;
 public partial class FpsController : FpsControllerFS
 {
     [Export]
+    public float SpeedDefault
+    {
+        get => speedDefault;
+        set => speedDefault = value;
+    }
+
+    [Export]
+    public float SpeedCrouch
+    {
+        get => speedCrouch;
+        set => speedCrouch = value;
+    }
+
+    [Export]
+    public bool TogCrouch
+    {
+        get => togCrouch;
+        set => togCrouch = value;
+    }
+
+    [Export]
+    public float JumpVelocity
+    {
+        get => jumpVelocity;
+        set => jumpVelocity = value;
+    }
+
+    [Export(PropertyHint.Range, "5.0, 10.0, 0.1")]
+    public float CrouchSpeed
+    {
+        get => crouchSpeed;
+        set => crouchSpeed = value;
+    }
+
+    [Export]
     public float MouseSensitivity
     {
         get => mouseSensitivity;
@@ -31,6 +66,20 @@ public partial class FpsController : FpsControllerFS
     {
         get => cameraController;
         set => cameraController = value;
+    }
+
+    [Export]
+    public AnimationPlayer AnimationPlayer
+    {
+        get => animationPlayer;
+        set => animationPlayer = value;
+    }
+
+    [Export]
+    public ShapeCast3D CrouchShapeCast
+    {
+        get => crouchShapeCast;
+        set => crouchShapeCast = value;
     }
 
     // 请忽略 IDE 冗余提示，需要保留此处和 partial

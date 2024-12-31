@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://cicnwv0ja2lb2"]
+[gd_scene load_steps=13 format=3 uid="uid://cicnwv0ja2lb2"]
 
 [ext_resource type="PackedScene" uid="uid://br1bqd6e63dww" path="res://demo/FPS/FpsController.tscn" id="1_383ey"]
 
@@ -19,7 +19,7 @@ glow_enabled = true
 albedo_color = Color(0.190625, 0.190625, 0.190625, 1)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_u8kb7"]
-size = Vector3(10, 0.2, 10)
+size = Vector3(30, 0.2, 30)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_po23h"]
 albedo_color = Color(1, 1, 0, 1)
@@ -33,6 +33,12 @@ albedo_color = Color(0.227451, 0.513726, 0, 1)
 [sub_resource type="BoxShape3D" id="BoxShape3D_pem1y"]
 size = Vector3(2, 1, 2)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_koxig"]
+size = Vector3(6, 0.5, 4)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_vccc4"]
+size = Vector3(6, 0.5, 4)
+
 [node name="FpsDemo" type="Node3D"]
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
@@ -44,7 +50,7 @@ environment = SubResource("Environment_c1fa4")
 
 [node name="Floor" type="CSGBox3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
-size = Vector3(10, 0.2, 10)
+size = Vector3(30, 0.2, 30)
 material = SubResource("StandardMaterial3D_il24n")
 
 [node name="StaticBody3D" type="StaticBody3D" parent="Floor"]
@@ -73,3 +79,23 @@ material = SubResource("StandardMaterial3D_g7mp4")
 shape = SubResource("BoxShape3D_pem1y")
 
 [node name="FpsController" parent="." instance=ExtResource("1_383ey")]
+
+[node name="HighPlatform" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 2, 5)
+size = Vector3(6, 0.5, 4)
+material = SubResource("StandardMaterial3D_po23h")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="HighPlatform"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="HighPlatform/StaticBody3D"]
+shape = SubResource("BoxShape3D_koxig")
+
+[node name="LowPlatform" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 1.5, 5)
+size = Vector3(6, 0.5, 4)
+material = SubResource("StandardMaterial3D_po23h")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="LowPlatform"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="LowPlatform/StaticBody3D"]
+shape = SubResource("BoxShape3D_vccc4")
