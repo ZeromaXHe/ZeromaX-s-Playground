@@ -1,0 +1,66 @@
+[gd_resource type="Resource" script_class="Weapons" load_steps=9 format=3 uid="uid://c6tts23j8mo8f"]
+
+[ext_resource type="Script" path="res://demo/FPS/Weapons/Weapons.cs" id="1_wq765"]
+[ext_resource type="Shader" path="res://Shaders/FPS/weapon.gdshader" id="1_yr0ch"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_nw28b"]
+render_priority = 0
+shader = ExtResource("1_yr0ch")
+shader_parameter/albedo = Color(0.471875, 0.113545, 0.113545, 1)
+shader_parameter/point_size = 1.0
+shader_parameter/roughness = 0.6
+shader_parameter/metallic_texture_channel = null
+shader_parameter/specular = 0.5
+shader_parameter/metallic = 0.8
+shader_parameter/uv1_scale = Vector3(1, 1, 1)
+shader_parameter/uv1_offset = Vector3(0, 0, 0)
+shader_parameter/uv2_scale = Vector3(1, 1, 1)
+shader_parameter/uv2_offset = Vector3(0, 0, 0)
+shader_parameter/fov = 77.0
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_u1dlw"]
+material = SubResource("ShaderMaterial_nw28b")
+top_radius = 0.02
+bottom_radius = 0.02
+height = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_k1rhl"]
+render_priority = 0
+shader = ExtResource("1_yr0ch")
+shader_parameter/albedo = Color(0.71875, 0.71875, 0.71875, 1)
+shader_parameter/point_size = null
+shader_parameter/roughness = 0.3
+shader_parameter/metallic_texture_channel = null
+shader_parameter/specular = 0.7
+shader_parameter/metallic = 0.95
+shader_parameter/uv1_scale = null
+shader_parameter/uv1_offset = null
+shader_parameter/uv2_scale = null
+shader_parameter/uv2_offset = null
+shader_parameter/fov = 77.0
+
+[sub_resource type="BoxMesh" id="BoxMesh_12sk6"]
+material = SubResource("ShaderMaterial_k1rhl")
+size = Vector3(0.02, 0.07, 0.3)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_8oigg"]
+top_radius = 0.02
+bottom_radius = 0.02
+height = 1.0
+
+[sub_resource type="BoxMesh" id="BoxMesh_ns33r"]
+size = Vector3(0.02, 0.07, 0.3)
+
+[resource]
+script = ExtResource("1_wq765")
+Name = &"Crowbar2"
+Position = Vector3(-0.3, -0.315, -0.33)
+Rotation = Vector3(-4.4, 184, -5.5)
+Position2 = Vector3(0, 0.45, 0.15)
+Rotation2 = Vector3(0, 0, 0)
+Mesh = SubResource("CylinderMesh_u1dlw")
+ShadowMesh = SubResource("CylinderMesh_8oigg")
+Mesh2 = SubResource("BoxMesh_12sk6")
+ShadowMesh2 = SubResource("BoxMesh_ns33r")
+Shadow = true
+DamageAmount = 0.0

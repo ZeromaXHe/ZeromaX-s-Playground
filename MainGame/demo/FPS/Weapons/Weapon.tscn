@@ -1,0 +1,77 @@
+[gd_scene load_steps=10 format=3 uid="uid://bx86kplov473t"]
+
+[ext_resource type="Script" path="res://demo/FPS/Weapons/Weapon.cs" id="1_fybri"]
+[ext_resource type="Resource" uid="uid://c6tts23j8mo8f" path="res://Tres/FPS/Weapons/Crowbar2.tres" id="2_pj3j1"]
+[ext_resource type="Shader" path="res://Shaders/FPS/weapon.gdshader" id="3_b2qgn"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_nw28b"]
+render_priority = 0
+shader = ExtResource("3_b2qgn")
+shader_parameter/albedo = Color(0.471875, 0.113545, 0.113545, 1)
+shader_parameter/point_size = 1.0
+shader_parameter/roughness = 0.6
+shader_parameter/metallic_texture_channel = null
+shader_parameter/specular = 0.5
+shader_parameter/metallic = 0.8
+shader_parameter/uv1_scale = Vector3(1, 1, 1)
+shader_parameter/uv1_offset = Vector3(0, 0, 0)
+shader_parameter/uv2_scale = Vector3(1, 1, 1)
+shader_parameter/uv2_offset = Vector3(0, 0, 0)
+shader_parameter/fov = 77.0
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_u1dlw"]
+material = SubResource("ShaderMaterial_nw28b")
+top_radius = 0.02
+bottom_radius = 0.02
+height = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_k1rhl"]
+render_priority = 0
+shader = ExtResource("3_b2qgn")
+shader_parameter/albedo = Color(0.71875, 0.71875, 0.71875, 1)
+shader_parameter/point_size = null
+shader_parameter/roughness = 0.3
+shader_parameter/metallic_texture_channel = null
+shader_parameter/specular = 0.7
+shader_parameter/metallic = 0.95
+shader_parameter/uv1_scale = null
+shader_parameter/uv1_offset = null
+shader_parameter/uv2_scale = null
+shader_parameter/uv2_offset = null
+shader_parameter/fov = 77.0
+
+[sub_resource type="BoxMesh" id="BoxMesh_12sk6"]
+material = SubResource("ShaderMaterial_k1rhl")
+size = Vector3(0.02, 0.07, 0.3)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_8oigg"]
+top_radius = 0.02
+bottom_radius = 0.02
+height = 1.0
+
+[sub_resource type="BoxMesh" id="BoxMesh_ns33r"]
+size = Vector3(0.02, 0.07, 0.3)
+
+[node name="Weapon" type="Node3D"]
+script = ExtResource("1_fybri")
+WeaponType = ExtResource("2_pj3j1")
+
+[node name="WeaponMesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(-0.993485, -0.0902853, -0.0695508, -0.0955633, 0.992463, 0.076719, 0.0621, 0.0828657, -0.994624, -0.215, -0.315, -0.33)
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_u1dlw")
+
+[node name="WeaponMesh2" type="MeshInstance3D" parent="WeaponMesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0.15)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_12sk6")
+
+[node name="WeaponShadow" type="MeshInstance3D" parent="."]
+transform = Transform3D(-0.993485, -0.0902853, -0.0695508, -0.0955633, 0.992463, 0.076719, 0.0621, 0.0828657, -0.994624, -0.215, -0.315, -0.33)
+cast_shadow = 3
+mesh = SubResource("CylinderMesh_8oigg")
+
+[node name="WeaponShadow2" type="MeshInstance3D" parent="WeaponShadow"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0.15)
+cast_shadow = 3
+mesh = SubResource("BoxMesh_ns33r")

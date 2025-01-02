@@ -1,6 +1,7 @@
-[gd_scene load_steps=25 format=3 uid="uid://br1bqd6e63dww"]
+[gd_scene load_steps=26 format=3 uid="uid://br1bqd6e63dww"]
 
 [ext_resource type="Script" path="res://demo/FPS/FpsController.cs" id="1_ou4fy"]
+[ext_resource type="PackedScene" uid="uid://bx86kplov473t" path="res://demo/FPS/Weapons/Weapon.tscn" id="2_n863f"]
 [ext_resource type="Script" path="res://demo/FPS/Reticule.cs" id="2_rt15r"]
 [ext_resource type="Theme" uid="uid://cpndn0jvmxhp1" path="res://Tres/Themes/FPS/DebugTheme.tres" id="3_fvvcj"]
 [ext_resource type="Script" path="res://demo/FPS/DebugPanel.cs" id="4_tq5od"]
@@ -532,9 +533,15 @@ mesh = SubResource("CapsuleMesh_ow7vg")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
 
 [node name="Camera3D" type="Camera3D" parent="CameraController"]
+cull_mask = 1048573
 
 [node name="ReflectionProbe" type="ReflectionProbe" parent="CameraController/Camera3D"]
 update_mode = 1
+
+[node name="WeaponRig" type="Node3D" parent="CameraController/Camera3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.15)
+
+[node name="Weapon" parent="CameraController/Camera3D/WeaponRig" instance=ExtResource("2_n863f")]
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {
@@ -636,3 +643,23 @@ script = ExtResource("11_dcbna")
 
 [node name="FallingPlayerState" type="Node" parent="PlayerStateMachine"]
 script = ExtResource("12_rxkql")
+
+[node name="WeaponViewport" type="SubViewportContainer" parent="."]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+stretch = true
+
+[node name="SubViewport" type="SubViewport" parent="WeaponViewport"]
+transparent_bg = true
+handle_input_locally = false
+size = Vector2i(1152, 648)
+render_target_update_mode = 0
+
+[node name="Camera3D" type="Camera3D" parent="WeaponViewport/SubViewport"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+visible = false
+cull_mask = 1048574
