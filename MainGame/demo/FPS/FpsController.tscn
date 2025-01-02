@@ -276,13 +276,7 @@ _data = {
 
 [node name="FpsController" type="CharacterBody3D" node_paths=PackedStringArray("CameraController", "AnimationPlayer", "CrouchShapeCast")]
 script = ExtResource("1_ou4fy")
-SpeedDefault = 5.0
-SpeedSprinting = 7.0
-SpeedCrouch = 2.0
-Acceleration = 0.1
-Deceleration = 0.25
 JumpVelocity = 4.5
-CrouchSpeed = 7.0
 MouseSensitivity = 0.5
 TiltLowerLimit = -1.571
 TiltUpperLimit = 1.571
@@ -383,14 +377,11 @@ layout_mode = 2
 script = ExtResource("5_yg66r")
 CurrentState = NodePath("IdlePlayerState")
 
-[node name="IdlePlayerState" type="Node" parent="PlayerStateMachine" node_paths=PackedStringArray("_animationPlayer")]
+[node name="IdlePlayerState" type="Node" parent="PlayerStateMachine"]
 script = ExtResource("6_ykm37")
-_animationPlayer = NodePath("../../AnimationPlayer")
 
-[node name="WalkingPlayerState" type="Node" parent="PlayerStateMachine" node_paths=PackedStringArray("_animationPlayer")]
+[node name="WalkingPlayerState" type="Node" parent="PlayerStateMachine"]
 script = ExtResource("7_h8g0b")
-_animationPlayer = NodePath("../../AnimationPlayer")
 
-[node name="SprintingPlayerState" type="Node" parent="PlayerStateMachine" node_paths=PackedStringArray("_animationPlayer")]
+[node name="SprintingPlayerState" type="Node" parent="PlayerStateMachine"]
 script = ExtResource("8_1h6ui")
-_animationPlayer = NodePath("../../AnimationPlayer")

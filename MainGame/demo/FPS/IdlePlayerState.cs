@@ -1,25 +1,26 @@
-using FrontEnd4IdleStrategyFS.Global;
 using Godot;
 
 namespace ZeromaXPlayground.demo.FPS;
 
-public partial class IdlePlayerState : State
+public partial class IdlePlayerState : PlayerMovementState
 {
     // 没法多继承，所以这里先都直接在 C# 代码写逻辑了
-    [Export] private AnimationPlayer _animationPlayer;
+    [Export] private float _speed = 5.0f;
+    [Export] private float _acceleration = 0.1f;
+    [Export] private float _deceleration = 0.25f;
 
     public override void Enter()
     {
-        _animationPlayer.Pause();
+        AnimationPlayer.Pause();
     }
 
     public override void Update(double delta)
     {
         // GD.Print("IdlePlayerState Update");
-        if (FpsGlobalNodeFS.Instance.player.Velocity.Length() > 0.0
-            && FpsGlobalNodeFS.Instance.player.IsOnFloor())
-        {
+        Player.UpdateGravity((float)delta);
+        Player.UpdateInput(_speed, _acceleration, _deceleration);
+        Player.UpdateVelocity();
+        if (Player.Velocity.Length() > 0.0 && Player.IsOnFloor())
             EmitSignal(TransitionSignal, "WalkingPlayerState");
-        }
     }
 }

@@ -1,6 +1,7 @@
 namespace FrontEnd4IdleStrategyFS.FPS
 
 open FrontEnd4IdleStrategyFS.Global
+open FrontEndCommonFS.Util
 open Godot
 open Godot.Collections
 
@@ -32,12 +33,23 @@ type StateMachineFS() =
             match child with
             | :? StateFS as c ->
                 states[child.Name] <- c
-
-                c.Connect(c.TransitionSignal, Callable.From this.OnChildTransition)
-                |> ignore
+                c.Connect(c.TransitionSignal, Callable.From this.OnChildTransition) |> ignore
             | _ -> GD.PushWarning("状态机包含不兼容子节点")
 
-        this.currentState.Enter()
+        async {
+            let! _ =
+                // 这里会报错：
+                // SignalAwaiter.cs:18 @ Godot.SignalAwaiter..ctor(Godot.GodotObject, Godot.StringName, Godot.GodotObject):
+                // Caller thread can't call this function in this node (/root/FpsDemo/FpsController).
+                // Use call_deferred() or call_thread_group() instead.
+                // 但好像不影响游戏运行
+                this.ToSignal(this.Owner, Node.SignalName.Ready)
+                |> AwaitUtil.awaiterToTask
+                |> Async.AwaitTask
+
+            this.currentState.Enter()
+        }
+        |> Async.Start
 
     override this._Process delta =
         this.currentState.Update delta
