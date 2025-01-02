@@ -74,6 +74,7 @@ type FpsControllerFS() as this =
             |> Async.Start
 
     member val speedDefault = 5f with get, set
+    member val speedSprinting = 7f with get, set
     member val speedCrouch = 2f with get, set
     member val acceleration = 0.1f with get, set
     member val deceleration = 0.25f with get, set
@@ -89,6 +90,12 @@ type FpsControllerFS() as this =
 
     interface IPlayer with
         override this.speedDefault = this.speedDefault
+        override this.speedSprinting = this.speedSprinting
+
+        override this.speed
+            with get () = speed
+            and set v = speed <- v
+
         override this.Velocity = this.Velocity
         override this.IsOnFloor() = this.IsOnFloor()
 

@@ -13,6 +13,13 @@ public partial class FpsController : FpsControllerFS
     }
 
     [Export]
+    public float SpeedSprinting
+    {
+        get => speedSprinting;
+        set => speedSprinting = value;
+    }
+
+    [Export]
     public float SpeedCrouch
     {
         get => speedCrouch;

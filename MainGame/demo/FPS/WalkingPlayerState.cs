@@ -12,6 +12,7 @@ public partial class WalkingPlayerState : State
     public override void Enter()
     {
         _animationPlayer.Play("Walking", -1.0, 1.0f);
+        FpsGlobalNodeFS.Instance.player.speed = FpsGlobalNodeFS.Instance.player.speedDefault;
     }
 
     public override void Update(double delta)
@@ -29,5 +30,13 @@ public partial class WalkingPlayerState : State
         var alpha = Mathf.Remap(spd, 0.0f, FpsGlobalNodeFS.Instance.player.speedDefault,
             0.0f, 1.0f);
         _animationPlayer.SpeedScale = Mathf.Lerp(0.0f, _topAnimSpeed, alpha);
+    }
+
+    public override void _Input(InputEvent @event)
+    {
+        if (@event.IsActionPressed("sprint") && FpsGlobalNodeFS.Instance.player.IsOnFloor())
+        {
+            EmitSignal(TransitionSignal, "SprintingPlayerState");
+        }
     }
 }

@@ -7,6 +7,8 @@ type IDebug =
 
 type IPlayer =
     abstract speedDefault: float32
+    abstract speedSprinting: float32
+    abstract speed: float32 with get, set
     abstract Velocity: Vector3
     abstract IsOnFloor: unit -> bool
 
