@@ -37,6 +37,8 @@ public partial class WalkingPlayerState : PlayerMovementState
             EmitSignal(TransitionSignal, "IdlePlayerState");
         if (Input.IsActionJustPressed("jump") && Player.IsOnFloor())
             EmitSignal(TransitionSignal, "JumpingPlayerState");
+        if (Player.Velocity.Y < -3.0 && !Player.IsOnFloor())
+            EmitSignal(TransitionSignal, "FallingPlayerState");
     }
 
     private void SetAnimationSpeed(float spd)

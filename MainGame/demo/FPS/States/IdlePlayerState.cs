@@ -33,5 +33,7 @@ public partial class IdlePlayerState : PlayerMovementState
             EmitSignal(TransitionSignal, "WalkingPlayerState");
         if (Input.IsActionJustPressed("jump") && Player.IsOnFloor())
             EmitSignal(TransitionSignal, "JumpingPlayerState");
+        if (Player.Velocity.Y < -3.0 && !Player.IsOnFloor())
+            EmitSignal(TransitionSignal, "FallingPlayerState");
     }
 }
