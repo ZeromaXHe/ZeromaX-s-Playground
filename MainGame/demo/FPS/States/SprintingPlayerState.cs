@@ -1,3 +1,4 @@
+using FrontEnd4IdleStrategyFS.FPS;
 using Godot;
 
 namespace ZeromaXPlayground.demo.FPS.States;
@@ -10,7 +11,7 @@ public partial class SprintingPlayerState : PlayerMovementState
     [Export] private float _deceleration = 0.25f;
     [Export] private float _topAnimSpeed = 1.6f;
 
-    public override void Enter()
+    public override void Enter(StateFS previousState)
     {
         Animation.Play("Sprinting", 0.5, 1.0f);
     }
@@ -26,8 +27,10 @@ public partial class SprintingPlayerState : PlayerMovementState
         Player.UpdateInput(_speed, _acceleration, _deceleration);
         Player.UpdateVelocity();
         SetAnimationSpeed(Player.Velocity.Length());
-        if (Input.IsActionJustReleased("sprint"))
-            EmitSignal(TransitionSignal, "WalkingPlayerState");
+        if (Input.IsActionJustReleased("sprint") || Player.Velocity.Length() == 0)
+            EmitSignal(TransitionSignal, "IdlePlayerState");
+        if (Input.IsActionJustPressed("crouch") && Player.Velocity.Length() > 6)
+            EmitSignal(TransitionSignal, "SlidingPlayerState");
     }
 
     private void SetAnimationSpeed(float spd)

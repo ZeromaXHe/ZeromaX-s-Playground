@@ -16,6 +16,7 @@ type FpsControllerFS() as this =
 
     let updateCamera delta =
         // GD.Print $"updating camera... tilt:{tiltInput}, rotation:{rotationInput}"
+        this.currentRotation <- rotationInput
         mouseRotation.X <- mouseRotation.X + tiltInput * delta
         mouseRotation.X <- Mathf.Clamp(mouseRotation.X, this.tiltLowerLimit, this.tiltUpperLimit)
         mouseRotation.Y <- mouseRotation.Y + rotationInput * delta
@@ -44,6 +45,7 @@ type FpsControllerFS() as this =
     member val cameraController: Camera3D = null with get, set
     member val animationPlayer: AnimationPlayer = null with get, set
     member val crouchShapeCast: ShapeCast3D = null with get, set
+    member val currentRotation = 0f with get, set
 
     member this.UpdateGravity delta =
         let mutable velocity = this.Velocity

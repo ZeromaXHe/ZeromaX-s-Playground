@@ -18,7 +18,7 @@ type StateMachineFS() =
 
             if newState <> this.currentState then
                 this.currentState.Exit()
-                newState.Enter()
+                newState.Enter(this.currentState)
                 this.currentState <- newState
         else
             GD.PushWarning("State 不存在")
@@ -47,7 +47,7 @@ type StateMachineFS() =
                 |> AwaitUtil.awaiterToTask
                 |> Async.AwaitTask
 
-            this.currentState.Enter()
+            this.currentState.Enter(this.currentState)
         }
         |> Async.Start
 

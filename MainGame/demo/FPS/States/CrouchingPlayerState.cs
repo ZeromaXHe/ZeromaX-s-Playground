@@ -1,3 +1,4 @@
+using FrontEnd4IdleStrategyFS.FPS;
 using Godot;
 
 namespace ZeromaXPlayground.demo.FPS.States;
@@ -13,6 +14,7 @@ public partial class CrouchingPlayerState : PlayerMovementState
     private float _crouchingSpeed = 4.0f;
 
     private ShapeCast3D _crouchShapeCast;
+    private bool _release;
 
     public override void _Ready()
     {
@@ -20,13 +22,21 @@ public partial class CrouchingPlayerState : PlayerMovementState
         _crouchShapeCast = GetNode<ShapeCast3D>("%ShapeCast3D");
     }
 
-    public override void Enter()
+    public override void Enter(StateFS previousState)
     {
-        Animation.Play("Crouch", -1.0, _crouchingSpeed);
+        Animation.SpeedScale = 1.0f;
+        if ("SlidingPlayerState".Equals(previousState.Name))
+        {
+            Animation.CurrentAnimation = "Crouch";
+            Animation.Seek(1.0, true);
+        }
+        else
+            Animation.Play("Crouch", -1.0, _crouchingSpeed);
     }
 
     public override void Exit()
     {
+        _release = false;
     }
 
     public override void Update(double delta)
@@ -36,6 +46,11 @@ public partial class CrouchingPlayerState : PlayerMovementState
         Player.UpdateVelocity();
         if (Input.IsActionJustReleased("crouch"))
             Uncrouch();
+        else if (!Input.IsActionPressed("crouch") && !_release)
+        {
+            _release = true;
+            Uncrouch();
+        }
     }
 
     private async void Uncrouch()

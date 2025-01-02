@@ -1,3 +1,4 @@
+using FrontEnd4IdleStrategyFS.FPS;
 using Godot;
 
 namespace ZeromaXPlayground.demo.FPS.States;
@@ -9,7 +10,7 @@ public partial class IdlePlayerState : PlayerMovementState
     [Export] private float _acceleration = 0.1f;
     [Export] private float _deceleration = 0.25f;
 
-    public override void Enter()
+    public override void Enter(StateFS previousState)
     {
         Animation.Pause();
     }
