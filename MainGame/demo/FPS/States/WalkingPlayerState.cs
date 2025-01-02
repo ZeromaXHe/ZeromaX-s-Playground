@@ -11,8 +11,10 @@ public partial class WalkingPlayerState : PlayerMovementState
     [Export] private float _acceleration = 0.1f;
     [Export] private float _deceleration = 0.25f;
 
-    public override void Enter(StateFS previousState)
+    public override async void Enter(StateFS previousState)
     {
+        if (Animation.IsPlaying() && "JumpEnd".Equals(Animation.CurrentAnimation))
+            await ToSignal(Player.AnimationPlayer, AnimationMixer.SignalName.AnimationFinished);
         Animation.Play("Walking", -1.0, 1.0f);
     }
 
@@ -33,6 +35,8 @@ public partial class WalkingPlayerState : PlayerMovementState
             EmitSignal(TransitionSignal, "CrouchingPlayerState");
         if (Player.Velocity.Length() == 0.0)
             EmitSignal(TransitionSignal, "IdlePlayerState");
+        if (Input.IsActionJustPressed("jump") && Player.IsOnFloor())
+            EmitSignal(TransitionSignal, "JumpingPlayerState");
     }
 
     private void SetAnimationSpeed(float spd)

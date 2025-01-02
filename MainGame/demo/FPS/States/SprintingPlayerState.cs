@@ -11,8 +11,10 @@ public partial class SprintingPlayerState : PlayerMovementState
     [Export] private float _deceleration = 0.25f;
     [Export] private float _topAnimSpeed = 1.6f;
 
-    public override void Enter(StateFS previousState)
+    public override async void Enter(StateFS previousState)
     {
+        if (Animation.IsPlaying() && "JumpEnd".Equals(Animation.CurrentAnimation))
+            await ToSignal(Player.AnimationPlayer, AnimationMixer.SignalName.AnimationFinished);
         Animation.Play("Sprinting", 0.5, 1.0f);
     }
 
@@ -31,6 +33,8 @@ public partial class SprintingPlayerState : PlayerMovementState
             EmitSignal(TransitionSignal, "IdlePlayerState");
         if (Input.IsActionJustPressed("crouch") && Player.Velocity.Length() > 6)
             EmitSignal(TransitionSignal, "SlidingPlayerState");
+        if (Input.IsActionJustPressed("jump") && Player.IsOnFloor())
+            EmitSignal(TransitionSignal, "JumpingPlayerState");
     }
 
     private void SetAnimationSpeed(float spd)

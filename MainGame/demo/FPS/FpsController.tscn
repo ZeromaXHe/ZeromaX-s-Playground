@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3 uid="uid://br1bqd6e63dww"]
+[gd_scene load_steps=24 format=3 uid="uid://br1bqd6e63dww"]
 
 [ext_resource type="Script" path="res://demo/FPS/FpsController.cs" id="1_ou4fy"]
 [ext_resource type="Script" path="res://demo/FPS/Reticule.cs" id="2_rt15r"]
@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://demo/FPS/States/SprintingPlayerState.cs" id="8_1h6ui"]
 [ext_resource type="Script" path="res://demo/FPS/States/CrouchingPlayerState.cs" id="9_crhoi"]
 [ext_resource type="Script" path="res://demo/FPS/States/SlidingPlayerState.cs" id="10_4f53w"]
+[ext_resource type="Script" path="res://demo/FPS/States/JumpingPlayerState.cs" id="11_dcbna"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_13me6"]
 
@@ -235,6 +236,17 @@ tracks/13/keys = {
 "update": 0,
 "values": [75.0]
 }
+tracks/14/type = "bezier"
+tracks/14/imported = false
+tracks/14/enabled = true
+tracks/14/path = NodePath("CameraController:rotation:x")
+tracks/14/interp = 1
+tracks/14/loop_wrap = true
+tracks/14/keys = {
+"handle_modes": PackedInt32Array(0),
+"points": PackedFloat32Array(0, -0.25, 0, 0.25, 0),
+"times": PackedFloat32Array(0)
+}
 
 [sub_resource type="Animation" id="Animation_37s8f"]
 resource_name = "Sliding"
@@ -429,9 +441,67 @@ tracks/2/keys = {
 "times": PackedFloat32Array(0, 0.5, 1, 1.5, 2)
 }
 
+[sub_resource type="Animation" id="Animation_cn3t3"]
+resource_name = "JumpStart"
+length = 0.55
+step = 0.05
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("CameraController:position")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.55),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0, 1.5, 0), Vector3(0, 1.45, 0), Vector3(0, 1.5, 0)]
+}
+tracks/1/type = "bezier"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("CameraController:rotation:x")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"handle_modes": PackedInt32Array(0, 0, 0),
+"points": PackedFloat32Array(0, -0.25, 0, 0.1, 0, -0.0148909, -0.1, 0, 0.25, 0, 0, -0.1, 0, 0.25, 0),
+"times": PackedFloat32Array(0, 0.2, 0.55)
+}
+
+[sub_resource type="Animation" id="Animation_4df8r"]
+resource_name = "JumpEnd"
+length = 0.4
+step = 0.05
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("CameraController:position")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.085, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0, 1.5, 0), Vector3(0, 1.45, 0), Vector3(0, 1.5, 0)]
+}
+tracks/1/type = "bezier"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("CameraController:rotation:x")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"handle_modes": PackedInt32Array(0, 0, 0),
+"points": PackedFloat32Array(6.8084e-05, -0.25, 0, 0, -0.008, -0.024, -0.025, 0, 0.063, 0.001, -0.000165651, -0.256, -0.001, 0, 0),
+"times": PackedFloat32Array(0, 0.085, 0.4)
+}
+
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_jmhju"]
 _data = {
 "Crouch": SubResource("Animation_vureg"),
+"JumpEnd": SubResource("Animation_4df8r"),
+"JumpStart": SubResource("Animation_cn3t3"),
 "RESET": SubResource("Animation_i0vj3"),
 "Sliding": SubResource("Animation_37s8f"),
 "Sprinting": SubResource("Animation_bblg7"),
@@ -469,6 +539,7 @@ update_mode = 1
 libraries = {
 "": SubResource("AnimationLibrary_jmhju")
 }
+blend_times = [&"JumpEnd", &"JumpStart", 0.1, &"JumpEnd", &"Walking", 0.5]
 
 [node name="ShapeCast3D" type="ShapeCast3D" parent="."]
 unique_name_in_owner = true
@@ -558,3 +629,6 @@ script = ExtResource("9_crhoi")
 
 [node name="SlidingPlayerState" type="Node" parent="PlayerStateMachine"]
 script = ExtResource("10_4f53w")
+
+[node name="JumpingPlayerState" type="Node" parent="PlayerStateMachine"]
+script = ExtResource("11_dcbna")
