@@ -19,6 +19,8 @@
         <Compile Include="FPS\FpsControllerFS.fs" />
         <Compile Include="FPS\ReticuleFS.fs" />
         <Compile Include="FPS\DebugPanelFS.fs" />
+        <Compile Include="FPS\StateFS.fs" />
+        <Compile Include="FPS\StateMachineFS.fs" />
     </ItemGroup>
 
     <ItemGroup>

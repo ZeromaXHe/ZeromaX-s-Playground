@@ -6,7 +6,6 @@ open Godot
 type DebugPanelFS() as this =
     inherit PanelContainer()
     let propertyContainer = lazy this.GetNode<VBoxContainer> "%PropertyContainer"
-    let fpsGlobalNode = lazy this.GetNode<FpsGlobalNodeFS> "/root/FpsGlobalNode"
     let mutable framesPerSecond: string = null
 
     let addProperty (title: string) value order =
@@ -33,7 +32,7 @@ type DebugPanelFS() as this =
             this.Visible <- not this.Visible
 
     override this._Ready() =
-        fpsGlobalNode.Value.debug <- this
+        FpsGlobalNodeFS.Instance.debug <- this
         this.Visible <- false
 
     override this._Process(delta) =
@@ -43,4 +42,4 @@ type DebugPanelFS() as this =
             // 获取帧率
             // framesPerSecond <- string <| Engine.GetFramesPerSecond() // 每秒更新一次
             framesPerSecond <- $"%.2f{1.0 / delta}"
-            fpsGlobalNode.Value.debug.AddProperty "FPS" framesPerSecond 0
+            FpsGlobalNodeFS.Instance.debug.AddProperty "FPS" framesPerSecond 0

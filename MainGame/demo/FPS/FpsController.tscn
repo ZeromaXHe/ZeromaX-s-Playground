@@ -1,9 +1,12 @@
-[gd_scene load_steps=12 format=3 uid="uid://br1bqd6e63dww"]
+[gd_scene load_steps=15 format=3 uid="uid://br1bqd6e63dww"]
 
 [ext_resource type="Script" path="res://demo/FPS/FpsController.cs" id="1_ou4fy"]
 [ext_resource type="Script" path="res://demo/FPS/Reticule.cs" id="2_rt15r"]
 [ext_resource type="Theme" uid="uid://cpndn0jvmxhp1" path="res://Tres/Themes/FPS/DebugTheme.tres" id="3_fvvcj"]
 [ext_resource type="Script" path="res://demo/FPS/DebugPanel.cs" id="4_tq5od"]
+[ext_resource type="Script" path="res://demo/FPS/StateMachine.cs" id="5_yg66r"]
+[ext_resource type="Script" path="res://demo/FPS/IdlePlayerState.cs" id="6_ykm37"]
+[ext_resource type="Script" path="res://demo/FPS/WalkingPlayerState.cs" id="7_h8g0b"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_13me6"]
 
@@ -225,3 +228,13 @@ layout_mode = 2
 [node name="PropertyContainer" type="VBoxContainer" parent="UserInterface/DebugPanel/MarginContainer"]
 unique_name_in_owner = true
 layout_mode = 2
+
+[node name="PlayerStateMachine" type="Node" parent="." node_paths=PackedStringArray("CurrentState")]
+script = ExtResource("5_yg66r")
+CurrentState = NodePath("IdlePlayerState")
+
+[node name="IdlePlayerState" type="Node" parent="PlayerStateMachine"]
+script = ExtResource("6_ykm37")
+
+[node name="WalkingPlayerState" type="Node" parent="PlayerStateMachine"]
+script = ExtResource("7_h8g0b")

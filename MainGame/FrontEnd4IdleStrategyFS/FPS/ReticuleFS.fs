@@ -5,7 +5,6 @@ open Godot
 
 type ReticuleFS() as this =
     inherit CenterContainer()
-    let fpsGlobalNode = lazy this.GetNode<FpsGlobalNodeFS> "/root/FpsGlobalNode"
 
     let adjustReticuleLines () =
         let vel = this.playerController.GetRealVelocity()
@@ -42,6 +41,7 @@ type ReticuleFS() as this =
         this.DrawCircle(Vector2(0f, 0f), this.dotRadius, this.dotColor)
 
     override this._Ready() = this.QueueRedraw()
+
     override this._Process _ =
-        fpsGlobalNode.Value.debug.AddProperty "ReticuleColor" this.dotColor 3
+        FpsGlobalNodeFS.Instance.debug.AddProperty "ReticuleColor" this.dotColor 4
         adjustReticuleLines ()

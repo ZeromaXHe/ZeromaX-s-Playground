@@ -6,7 +6,6 @@ open FrontEndCommonFS.Util
 
 type FpsControllerFS() as this =
     inherit CharacterBody3D()
-    let fpsGlobalNode = lazy this.GetNode<FpsGlobalNodeFS> "/root/FpsGlobalNode"
     let mutable speed = 0f
     let mutable mouseInput = false
     let mutable mouseRotation = Vector3.Zero
@@ -86,6 +85,9 @@ type FpsControllerFS() as this =
     member val animationPlayer: AnimationPlayer = null with get, set
     member val crouchShapeCast: ShapeCast3D = null with get, set
 
+    interface IPlayer with
+        override this.Velocity = this.Velocity
+    
     override this._UnhandledInput event =
         mouseInput <-
             event :? InputEventMouseMotion
@@ -119,8 +121,8 @@ type FpsControllerFS() as this =
                 uncrouchCheck ()
 
     override this._PhysicsProcess delta =
-        fpsGlobalNode.Value.debug.AddProperty "MovementSpeed" speed 1
-        fpsGlobalNode.Value.debug.AddProperty "MouseRotation" mouseRotation 2
+        FpsGlobalNodeFS.Instance.debug.AddProperty "MovementSpeed" speed 2
+        FpsGlobalNodeFS.Instance.debug.AddProperty "MouseRotation" mouseRotation 3
         let mutable velocity = this.Velocity
         // 根据鼠标移动，更新摄像机移动
         updateCamera <| float32 delta
@@ -150,6 +152,7 @@ type FpsControllerFS() as this =
         this.MoveAndSlide() |> ignore
 
     override this._Ready() =
+        FpsGlobalNodeFS.Instance.player <- this
         // 获取鼠标输入
         Input.MouseMode <- Input.MouseModeEnum.Captured
         // 设置默认速度
