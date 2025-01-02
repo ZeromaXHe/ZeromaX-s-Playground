@@ -9,6 +9,6 @@ type StateFS() =
     abstract TransitionSignal: StringName with get
 
     abstract Enter: unit -> unit
-    member this.Exit() = ()
+    abstract Exit: unit -> unit
     abstract Update: float -> unit
     member this.PhysicsUpdate(delta: float) = ()

@@ -1,5 +1,7 @@
-using Godot;
 using FrontEnd4IdleStrategyFS.FPS;
+using Godot;
+
+namespace ZeromaXPlayground.demo.FPS.States;
 
 public partial class StateMachine : StateMachineFS
 {

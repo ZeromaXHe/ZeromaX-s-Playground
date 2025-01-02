@@ -1,13 +1,14 @@
-[gd_scene load_steps=18 format=3 uid="uid://br1bqd6e63dww"]
+[gd_scene load_steps=19 format=3 uid="uid://br1bqd6e63dww"]
 
 [ext_resource type="Script" path="res://demo/FPS/FpsController.cs" id="1_ou4fy"]
 [ext_resource type="Script" path="res://demo/FPS/Reticule.cs" id="2_rt15r"]
 [ext_resource type="Theme" uid="uid://cpndn0jvmxhp1" path="res://Tres/Themes/FPS/DebugTheme.tres" id="3_fvvcj"]
 [ext_resource type="Script" path="res://demo/FPS/DebugPanel.cs" id="4_tq5od"]
-[ext_resource type="Script" path="res://demo/FPS/StateMachine.cs" id="5_yg66r"]
-[ext_resource type="Script" path="res://demo/FPS/IdlePlayerState.cs" id="6_ykm37"]
-[ext_resource type="Script" path="res://demo/FPS/WalkingPlayerState.cs" id="7_h8g0b"]
-[ext_resource type="Script" path="res://demo/FPS/SprintingPlayerState.cs" id="8_1h6ui"]
+[ext_resource type="Script" path="res://demo/FPS/States/StateMachine.cs" id="5_yg66r"]
+[ext_resource type="Script" path="res://demo/FPS/States/IdlePlayerState.cs" id="6_ykm37"]
+[ext_resource type="Script" path="res://demo/FPS/States/WalkingPlayerState.cs" id="7_h8g0b"]
+[ext_resource type="Script" path="res://demo/FPS/States/SprintingPlayerState.cs" id="8_1h6ui"]
+[ext_resource type="Script" path="res://demo/FPS/States/CrouchingPlayerState.cs" id="9_crhoi"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_13me6"]
 
@@ -305,6 +306,7 @@ libraries = {
 }
 
 [node name="ShapeCast3D" type="ShapeCast3D" parent="."]
+unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
 shape = SubResource("SphereShape3D_0wdj8")
 target_position = Vector3(0, 0.5, 0)
@@ -385,3 +387,6 @@ script = ExtResource("7_h8g0b")
 
 [node name="SprintingPlayerState" type="Node" parent="PlayerStateMachine"]
 script = ExtResource("8_1h6ui")
+
+[node name="CrouchingPlayerState" type="Node" parent="PlayerStateMachine"]
+script = ExtResource("9_crhoi")

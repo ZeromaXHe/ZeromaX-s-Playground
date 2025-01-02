@@ -1,18 +1,23 @@
 using Godot;
 
-namespace ZeromaXPlayground.demo.FPS;
+namespace ZeromaXPlayground.demo.FPS.States;
 
-public partial class WalkingPlayerState : PlayerMovementState
+public partial class SprintingPlayerState : PlayerMovementState
 {
     // 没法多继承，所以这里先都直接在 C# 代码写逻辑了
-    [Export] private float _topAnimSpeed = 2.2f;
-    [Export] private float _speed = 5.0f;
+    [Export] private float _speed = 7.0f;
     [Export] private float _acceleration = 0.1f;
     [Export] private float _deceleration = 0.25f;
+    [Export] private float _topAnimSpeed = 1.6f;
 
     public override void Enter()
     {
-        AnimationPlayer.Play("Walking", -1.0, 1.0f);
+        Animation.Play("Sprinting", 0.5, 1.0f);
+    }
+
+    public override void Exit()
+    {
+        Animation.SpeedScale = 1.0f;
     }
 
     public override void Update(double delta)
@@ -21,15 +26,13 @@ public partial class WalkingPlayerState : PlayerMovementState
         Player.UpdateInput(_speed, _acceleration, _deceleration);
         Player.UpdateVelocity();
         SetAnimationSpeed(Player.Velocity.Length());
-        if (Player.Velocity.Length() == 0.0)
-            EmitSignal(TransitionSignal, "IdlePlayerState");
-        if (Input.IsActionPressed("sprint") && Player.IsOnFloor())
-            EmitSignal(TransitionSignal, "SprintingPlayerState");
+        if (Input.IsActionJustReleased("sprint"))
+            EmitSignal(TransitionSignal, "WalkingPlayerState");
     }
 
     private void SetAnimationSpeed(float spd)
     {
         var alpha = Mathf.Remap(spd, 0.0f, _speed, 0.0f, 1.0f);
-        AnimationPlayer.SpeedScale = Mathf.Lerp(0.0f, _topAnimSpeed, alpha);
+        Animation.SpeedScale = Mathf.Lerp(0.0f, _topAnimSpeed, alpha);
     }
 }
