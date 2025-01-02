@@ -8,9 +8,7 @@ type StateFS() =
 
     abstract TransitionSignal: StringName with get
 
-    member this.Enter() = ()
+    abstract Enter: unit -> unit
     member this.Exit() = ()
-
     abstract Update: float -> unit
-
     member this.PhysicsUpdate(delta: float) = ()

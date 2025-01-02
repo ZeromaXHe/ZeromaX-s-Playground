@@ -3,10 +3,12 @@ namespace FrontEnd4IdleStrategyFS.Global
 open Godot
 
 type IDebug =
-    abstract member AddProperty<'a>: title: string -> value: 'a -> order: int -> unit
+    abstract AddProperty<'a>: title: string -> value: 'a -> order: int -> unit
 
 type IPlayer =
-    abstract member Velocity: Vector3
+    abstract speedDefault: float32
+    abstract Velocity: Vector3
+    abstract IsOnFloor: unit -> bool
 
 type FpsGlobalNodeFS() =
     inherit Node()

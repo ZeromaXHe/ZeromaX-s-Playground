@@ -20,6 +20,20 @@ public partial class FpsController : FpsControllerFS
     }
 
     [Export]
+    public float Acceleration
+    {
+        get => acceleration;
+        set => acceleration = value;
+    }
+
+    [Export]
+    public float Deceleration
+    {
+        get => deceleration;
+        set => deceleration = value;
+    }
+
+    [Export]
     public bool TogCrouch
     {
         get => togCrouch;

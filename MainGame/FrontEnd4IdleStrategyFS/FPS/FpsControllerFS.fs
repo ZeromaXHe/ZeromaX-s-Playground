@@ -75,6 +75,8 @@ type FpsControllerFS() as this =
 
     member val speedDefault = 5f with get, set
     member val speedCrouch = 2f with get, set
+    member val acceleration = 0.1f with get, set
+    member val deceleration = 0.25f with get, set
     member val togCrouch = false with get, set // 貌似这里默认为 true 的话，场景里面为 false 会改不到实际值？
     member val jumpVelocity = 4.5f with get, set
     member val crouchSpeed = 7.0f with get, set
@@ -86,8 +88,10 @@ type FpsControllerFS() as this =
     member val crouchShapeCast: ShapeCast3D = null with get, set
 
     interface IPlayer with
+        override this.speedDefault = this.speedDefault
         override this.Velocity = this.Velocity
-    
+        override this.IsOnFloor() = this.IsOnFloor()
+
     override this._UnhandledInput event =
         mouseInput <-
             event :? InputEventMouseMotion
@@ -142,11 +146,11 @@ type FpsControllerFS() as this =
             (this.Transform.Basis * Vector3(inputDir.X, 0f, inputDir.Y)).Normalized()
 
         if direction <> Vector3.Zero then
-            velocity.X <- direction.X * speed
-            velocity.Z <- direction.Z * speed
+            velocity.X <- Mathf.Lerp(this.Velocity.X, direction.X * speed, this.acceleration)
+            velocity.Z <- Mathf.Lerp(this.Velocity.Z, direction.Z * speed, this.acceleration)
         else
-            velocity.X <- Mathf.MoveToward(velocity.X, 0f, speed)
-            velocity.Z <- Mathf.MoveToward(velocity.Z, 0f, speed)
+            velocity.X <- Mathf.MoveToward(velocity.X, 0f, this.deceleration)
+            velocity.Z <- Mathf.MoveToward(velocity.Z, 0f, this.deceleration)
 
         this.Velocity <- velocity
         this.MoveAndSlide() |> ignore
