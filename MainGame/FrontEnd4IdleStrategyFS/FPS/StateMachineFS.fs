@@ -38,18 +38,17 @@ type StateMachineFS() =
 
         async {
             let! _ =
-                // 这里会报错：
-                // SignalAwaiter.cs:18 @ Godot.SignalAwaiter..ctor(Godot.GodotObject, Godot.StringName, Godot.GodotObject):
-                // Caller thread can't call this function in this node (/root/FpsDemo/FpsController).
-                // Use call_deferred() or call_thread_group() instead.
-                // 但好像不影响游戏运行
                 this.ToSignal(this.Owner, Node.SignalName.Ready)
                 |> AwaitUtil.awaiterToTask
                 |> Async.AwaitTask
 
             this.currentState.Enter(this.currentState)
         }
-        |> Async.Start
+        // 这里用 Async.Start 会报错，不能使用新线程，而必须使用 StartImmediate 用当前线程：
+        // SignalAwaiter.cs:18 @ Godot.SignalAwaiter..ctor(Godot.GodotObject, Godot.StringName, Godot.GodotObject):
+        // Caller thread can't call this function in this node (/root/FpsDemo/FpsController).
+        // Use call_deferred() or call_thread_group() instead.
+        |> Async.StartImmediate
 
     override this._Process delta =
         this.currentState.Update delta

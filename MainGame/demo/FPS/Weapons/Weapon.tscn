@@ -63,9 +63,10 @@ size = Vector3(0.02, 0.07, 0.3)
 script = ExtResource("1_fybri")
 WeaponType = ExtResource("2_pj3j1")
 SwayNoise = SubResource("NoiseTexture2D_sxaao")
+SwaySpeed = 1.2
 
 [node name="WeaponMesh" type="MeshInstance3D" parent="."]
-transform = Transform3D(-0.994342, -0.09197, -0.0531443, -0.0956071, 0.992919, 0.0705178, 0.0462824, 0.0751998, -0.996094, -0.299193, -0.318014, -0.33)
+transform = Transform3D(-0.994216, -0.0924307, -0.0546948, -0.0956732, 0.993605, 0.0599756, 0.0488014, 0.0648616, -0.9967, -0.296948, -0.317927, -0.33)
 cast_shadow = 0
 mesh = SubResource("CylinderMesh_u1dlw")
 

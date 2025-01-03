@@ -52,6 +52,7 @@
         <Compile Include="SebastianPlanet\PlanetFS.fs" />
         <Compile Include="SebastianPlanet\PropertyListToolTestFS.fs" />
         <Compile Include="PdcxsShadertoy\ShadertoyTestFS.fs" />
+        <Compile Include="FPS\WeaponFS.fs" />
     </ItemGroup>
 
     <ItemGroup>
