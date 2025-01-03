@@ -57,7 +57,7 @@ script = ExtResource("1_fybri")
 WeaponType = ExtResource("2_pj3j1")
 
 [node name="WeaponMesh" type="MeshInstance3D" parent="."]
-transform = Transform3D(-0.993485, -0.0902853, -0.0695508, -0.0955633, 0.992463, 0.076719, 0.0621, 0.0828657, -0.994624, -0.215, -0.315, -0.33)
+transform = Transform3D(-0.993485, -0.0902854, -0.0695499, -0.0955633, 0.992463, 0.076719, 0.0620991, 0.0828656, -0.994624, -0.3, -0.315, -0.33)
 cast_shadow = 0
 mesh = SubResource("CylinderMesh_u1dlw")
 
@@ -67,7 +67,7 @@ cast_shadow = 0
 mesh = SubResource("BoxMesh_12sk6")
 
 [node name="WeaponShadow" type="MeshInstance3D" parent="."]
-transform = Transform3D(-0.993485, -0.0902853, -0.0695508, -0.0955633, 0.992463, 0.076719, 0.0621, 0.0828657, -0.994624, -0.215, -0.315, -0.33)
+transform = Transform3D(-0.993485, -0.0902853, -0.0695508, -0.0955633, 0.992463, 0.076719, 0.0621, 0.0828657, -0.994624, -0.3, -0.315, -0.33)
 cast_shadow = 3
 mesh = SubResource("CylinderMesh_8oigg")
 
