@@ -1,12 +1,19 @@
-[gd_scene load_steps=10 format=3 uid="uid://bx86kplov473t"]
+[gd_scene load_steps=12 format=3 uid="uid://bx86kplov473t"]
 
 [ext_resource type="Script" path="res://demo/FPS/Weapons/Weapon.cs" id="1_fybri"]
 [ext_resource type="Resource" uid="uid://c6tts23j8mo8f" path="res://Tres/FPS/Weapons/Crowbar2.tres" id="2_pj3j1"]
-[ext_resource type="Shader" path="res://Shaders/FPS/weapon.gdshader" id="3_b2qgn"]
+[ext_resource type="Shader" path="res://Shaders/FPS/weapon.gdshader" id="3_w1fig"]
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_sgs38"]
+noise_type = 3
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_sxaao"]
+seamless = true
+noise = SubResource("FastNoiseLite_sgs38")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_nw28b"]
 render_priority = 0
-shader = ExtResource("3_b2qgn")
+shader = ExtResource("3_w1fig")
 shader_parameter/albedo = Color(0.471875, 0.113545, 0.113545, 1)
 shader_parameter/point_size = 1.0
 shader_parameter/roughness = 0.6
@@ -27,7 +34,7 @@ height = 1.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_k1rhl"]
 render_priority = 0
-shader = ExtResource("3_b2qgn")
+shader = ExtResource("3_w1fig")
 shader_parameter/albedo = Color(0.71875, 0.71875, 0.71875, 1)
 shader_parameter/point_size = null
 shader_parameter/roughness = 0.3
@@ -55,9 +62,10 @@ size = Vector3(0.02, 0.07, 0.3)
 [node name="Weapon" type="Node3D"]
 script = ExtResource("1_fybri")
 WeaponType = ExtResource("2_pj3j1")
+SwayNoise = SubResource("NoiseTexture2D_sxaao")
 
 [node name="WeaponMesh" type="MeshInstance3D" parent="."]
-transform = Transform3D(-0.993485, -0.0902854, -0.0695499, -0.0955633, 0.992463, 0.076719, 0.0620991, 0.0828656, -0.994624, -0.3, -0.315, -0.33)
+transform = Transform3D(-0.994342, -0.09197, -0.0531443, -0.0956071, 0.992919, 0.0705178, 0.0462824, 0.0751998, -0.996094, -0.299193, -0.318014, -0.33)
 cast_shadow = 0
 mesh = SubResource("CylinderMesh_u1dlw")
 
@@ -67,7 +75,7 @@ cast_shadow = 0
 mesh = SubResource("BoxMesh_12sk6")
 
 [node name="WeaponShadow" type="MeshInstance3D" parent="."]
-transform = Transform3D(-0.993485, -0.0902853, -0.0695508, -0.0955633, 0.992463, 0.076719, 0.0621, 0.0828657, -0.994624, -0.3, -0.315, -0.33)
+transform = Transform3D(-0.993484, -0.0902853, -0.0695508, -0.0955632, 0.992463, 0.076719, 0.0621, 0.0828657, -0.994624, -0.3, -0.315, -0.33)
 cast_shadow = 3
 mesh = SubResource("CylinderMesh_8oigg")
 

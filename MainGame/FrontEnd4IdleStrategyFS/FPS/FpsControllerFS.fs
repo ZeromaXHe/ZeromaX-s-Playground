@@ -47,6 +47,9 @@ type FpsControllerFS() as this =
     member val crouchShapeCast: ShapeCast3D = null with get, set
     member val currentRotation = 0f with get, set
 
+    interface IPlayer with
+        override this.GlobalPosition = this.GlobalPosition
+
     member this.UpdateGravity delta =
         let mutable velocity = this.Velocity
         velocity.Y <- velocity.Y + this.GetGravity().Y * delta
@@ -95,6 +98,7 @@ type FpsControllerFS() as this =
         updateCamera <| float32 delta
 
     override this._Ready() =
+        FpsGlobalNodeFS.Instance.player <- this
         // 获取鼠标输入
         Input.MouseMode <- Input.MouseModeEnum.Captured
         // 将 CharacterBody3D 添加为 Crouch ShapeCast 的碰撞检查排除项

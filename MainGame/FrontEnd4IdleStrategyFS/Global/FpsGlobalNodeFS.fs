@@ -6,7 +6,7 @@ type IDebug =
     abstract AddProperty<'a>: title: string -> value: 'a -> order: int -> unit
 
 type IPlayer =
-    abstract speed: float32 with get, set
+    abstract GlobalPosition: Vector3
 
 type FpsGlobalNodeFS() =
     inherit Node()
