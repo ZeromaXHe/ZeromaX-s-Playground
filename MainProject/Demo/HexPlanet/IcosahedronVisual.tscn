@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bixpqc0xv1fed"]
+
+[ext_resource type="Script" path="res://Demo/HexPlanet/IcosahedronVisual.cs" id="1_hiry2"]
+
+[node name="IcosahedronVisual" type="Node3D"]
+script = ExtResource("1_hiry2")

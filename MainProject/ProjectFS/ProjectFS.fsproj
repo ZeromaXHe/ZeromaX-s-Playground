@@ -1,0 +1,15 @@
+﻿<Project Sdk="Godot.NET.Sdk/4.3.0">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Compile Include="HexPlanet\Icosahedron.fs" />
+      <Compile Include="HexPlanet\Icosphere.fs" />
+      <Compile Include="HexPlanet\IcosahedronVisualFS.fs" />
+      <Compile Include="HexPlanet\HexPlanetManagerFS.fs" />
+    </ItemGroup>
+
+</Project>
