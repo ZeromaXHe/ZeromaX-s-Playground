@@ -1,20 +1,67 @@
 using Godot;
-using ProjectFS.HexPlanet;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Core;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 
 [Tool]
-public partial class HexPlanetManager : HexPlanetManagerFS
+public partial class HexPlanetManager : Node3D
 {
-    [Export(PropertyHint.Range, "5, 1000")]
-    public override float Radius { get; set; } = 10f;
+    [Export]
+    private bool Regenerate
+    {
+        get => _regenerate;
+        set
+        {
+            if (!value) return;
+            UpdateRenderObjects();
+            _regenerate = false;
+        }
+    }
 
-    [Export(PropertyHint.Range, "1, 15")] public override int Subdivision { get; set; } = 4;
+    private bool _regenerate = false;
 
-    [Export(PropertyHint.Range, "0.1f, 1f")]
-    public override float HexSize { get; set; } = 1f;
+    public HexPlanetNode HexPlanet;
+    private HexPlanetNode _prevHexPlanet;
+    private Node3D _hexChunkRenders;
 
-    // 不能省略 partial 和 _Ready 这些，否则分部类生成代码不生效。请忽视 IDE 的省略提示
-    public override void _Ready() => base._Ready();
-    public override void _Process(double delta) => base._Process(delta);
+    public override void _Ready()
+    {
+        HexPlanet = GetNode<HexPlanetNode>("HexPlanet");
+        _hexChunkRenders = GetNode<Node3D>("HexChunkRenders");
+
+        UpdateRenderObjects();
+    }
+
+    // Called when the whole sphere must be regenerated
+    public void UpdateRenderObjects()
+    {
+        // 删除所有子节点 Delete all children
+        if (_hexChunkRenders == null)
+        {
+            GD.Print("_hexChunkRenders is null");
+            return;
+        }
+        else
+            foreach (var child in _hexChunkRenders.GetChildren())
+            {
+                child.QueueFree();
+            }
+
+        if (HexPlanet == null)
+        {
+            return;
+        }
+
+        HexPlanetHexGenerator.GeneratePlanetTilesAndChunks(HexPlanet);
+
+        for (var i = 0; i < HexPlanet.Chunks.Count; i++)
+        {
+            var chunkRenderer = new Components.HexChunkRenderer();
+            chunkRenderer.Name = "Chunk " + i;
+            chunkRenderer.Position = Vector3.Zero;
+            chunkRenderer.SetHexChunk(HexPlanet, i);
+            chunkRenderer.UpdateMesh();
+            _hexChunkRenders.AddChild(chunkRenderer);
+        }
+    }
 }

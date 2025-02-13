@@ -1,6 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://cau1rm86t1or4"]
+[gd_scene load_steps=9 format=3 uid="uid://cau1rm86t1or4"]
 
 [ext_resource type="Script" path="res://Scenes/HexPlanet/HexPlanetManager.cs" id="1_414p1"]
+[ext_resource type="Script" path="res://Scenes/HexPlanet/Core/HexPlanetNode.cs" id="2_d4x85"]
+[ext_resource type="Script" path="res://Scenes/HexPlanet/Core/TerrainGenerator/PerlinTerrainGenerator.cs" id="3_m5jvw"]
+[ext_resource type="Script" path="res://Scenes/HexPlanet/Components/CameraOrbit.cs" id="4_2qy60"]
+[ext_resource type="Script" path="res://Scenes/HexPlanet/Components/TileRayCast.cs" id="5_lwov6"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_0av13"]
 sky_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
@@ -15,10 +19,8 @@ sky = SubResource("Sky_f6b3v")
 tonemap_mode = 2
 glow_enabled = true
 
-[node name="HexPlanetManager" type="Node3D"]
+[node name="HexPlanetManager" type="Node3D" groups=["HexPlanetManager"]]
 script = ExtResource("1_414p1")
-Radius = 100.0
-Subdivision = 15
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_w5fo6")
@@ -26,3 +28,26 @@ environment = SubResource("Environment_w5fo6")
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(-0.866023, -0.433016, 0.250001, 0, 0.499998, 0.866027, -0.500003, 0.749999, -0.43301, 0, 0, 0)
 shadow_enabled = true
+
+[node name="HexPlanet" type="Node3D" parent="."]
+script = ExtResource("2_d4x85")
+Subdivisions = 5
+ChunkSubdivisions = 3
+
+[node name="PerlinTerrainGenerator" type="Node3D" parent="HexPlanet"]
+script = ExtResource("3_m5jvw")
+MaxHeight = 30.0
+
+[node name="Test" type="Node3D" parent="HexPlanet"]
+
+[node name="HexChunkRenders" type="Node3D" parent="."]
+
+[node name="CameraOrbit" type="Camera3D" parent="." node_paths=PackedStringArray("Origin")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 500)
+script = ExtResource("4_2qy60")
+Origin = NodePath("../CameraOrigin")
+
+[node name="CameraOrigin" type="Marker3D" parent="."]
+
+[node name="TileRayCast" type="Node3D" parent="."]
+script = ExtResource("5_lwov6")

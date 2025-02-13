@@ -6,7 +6,4 @@
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <RootNamespace>ZeromaXsPlaygroundProject</RootNamespace>
   </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="ProjectFS\ProjectFS.fsproj" />
-  </ItemGroup>
 </Project>
