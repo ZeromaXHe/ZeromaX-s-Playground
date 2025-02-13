@@ -189,9 +189,11 @@ module Icosphere =
         && Mathf.Abs(a.Position.Z - b.Position.Z) <= pointComparisonAccuracy
 
     let cachePoint (database: DataBase) point =
+        // TODO：这样检查点是否重复效率很低，考虑引入八叉树之类的？
         let existingPoint = database.Points |> Seq.tryFind (isPointOverlapping point)
 
         if existingPoint.IsSome then
+            database.PointFaces.Remove point.Id |> ignore
             existingPoint.Value
         else
             database.Points.Add point
@@ -229,8 +231,7 @@ module Icosphere =
             for i in 1 .. database.Sphere.Subdivision do
                 let previousPoints = bottomSide
 
-                bottomSide <-
-                    subdividePoint database leftSide[i] rightSide[i] i (cachePoint database)
+                bottomSide <- subdividePoint database leftSide[i] rightSide[i] i (cachePoint database)
 
                 for j in 0 .. i - 1 do
                     // 不需要存储面，它们的点会持有他们的引用
@@ -244,6 +245,7 @@ module Icosphere =
     let resolveNeighborTiles tile allTiles =
         let neighborIds = tile.NeighborCenters |> Seq.map _.Id |> List
         tile.Neighbors.Clear()
+        // TODO: 效率低，待优化
         tile.Neighbors.AddRange(allTiles |> Seq.filter (fun tile -> neighborIds.Contains tile.Center.Id))
 
     let private constructTiles database =
@@ -254,20 +256,20 @@ module Icosphere =
         for tile in database.Tiles do
             resolveNeighborTiles tile database.Tiles
 
-    let private storeMeshDetails database =
+    let storeMeshDetails database (surfaceTool: SurfaceTool) =
         let points = List<Point>()
-        let vertices = database.MeshDetails.Vertices
-        let triangles = database.MeshDetails.Triangles
 
         for tile in database.Tiles do
+            surfaceTool.SetColor <| Color.FromHsv(GD.Randf(), GD.Randf(), GD.Randf())
+            let heightMultiplier = float32 <| GD.RandRange(1, 1.05)
             for point in tile.Points do
                 points.Add point
-                vertices.Add point.Position
+                surfaceTool.AddVertex (point.Position * heightMultiplier)
 
             for face in tile.Faces do
                 for p in database.FacePoints[face.Id] do
                     let vertexIndex = points |> Seq.findIndex (fun vertex -> vertex.Id = p.Id)
-                    triangles.Add vertexIndex
+                    surfaceTool.AddIndex vertexIndex
 
     let initHexasphere radius divisions hexSize =
         let sphere =
@@ -289,5 +291,4 @@ module Icosphere =
         constructIcosahedron database
         subdivideIcosahedron database
         constructTiles database
-        storeMeshDetails database
         database

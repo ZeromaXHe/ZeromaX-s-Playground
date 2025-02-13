@@ -8,6 +8,9 @@
     <ItemGroup>
       <Compile Include="HexPlanet\Icosahedron.fs" />
       <Compile Include="HexPlanet\Icosphere.fs" />
+      <Compile Include="HexPlanet\FacePoint.fs" />
+      <Compile Include="HexPlanet\Tile.fs" />
+      <Compile Include="HexPlanet\Hexasphere.fs" />
       <Compile Include="HexPlanet\IcosahedronVisualFS.fs" />
       <Compile Include="HexPlanet\HexPlanetManagerFS.fs" />
     </ItemGroup>
