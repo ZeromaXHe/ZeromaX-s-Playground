@@ -1,67 +1,62 @@
 using Godot;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Core;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 
 [Tool]
 public partial class HexPlanetManager : Node3D
 {
-    [Export]
-    private bool Regenerate
-    {
-        get => _regenerate;
-        set
-        {
-            if (!value) return;
-            UpdateRenderObjects();
-            _regenerate = false;
-        }
-    }
+    [Export(PropertyHint.Range, "5, 1000")]
+    private float _radius = 10f;
 
-    private bool _regenerate = false;
+    [Export(PropertyHint.Range, "1, 100")] private int _divisions = 4;
 
-    public HexPlanetNode HexPlanet;
-    private HexPlanetNode _prevHexPlanet;
-    private Node3D _hexChunkRenders;
+    [Export(PropertyHint.Range, "0.1f, 1f")]
+    private float _hexSize = 1f;
+
+    private SurfaceTool _surfaceTool;
+    private MeshInstance3D _meshIns;
+    private HexasphereService _hexasphereService;
+
+    private float _oldRadius;
+    private int _oldDivisions;
+    private float _oldHexSize;
+    private float _lastUpdated;
 
     public override void _Ready()
     {
-        HexPlanet = GetNode<HexPlanetNode>("HexPlanet");
-        _hexChunkRenders = GetNode<Node3D>("HexChunkRenders");
-
-        UpdateRenderObjects();
+        _meshIns = new MeshInstance3D();
+        AddChild(_meshIns);
+        _surfaceTool = new SurfaceTool();
+        DrawHexasphereMesh();
     }
 
-    // Called when the whole sphere must be regenerated
-    public void UpdateRenderObjects()
+    public override void _Process(double delta)
     {
-        // 删除所有子节点 Delete all children
-        if (_hexChunkRenders == null)
+        _lastUpdated += (float)delta;
+        if (_lastUpdated < 1f) return;
+        if (Mathf.Abs(_oldRadius - _radius) > 0.001f || _oldDivisions != _divisions ||
+            Mathf.Abs(_oldHexSize - _hexSize) > 0.001f)
         {
-            GD.Print("_hexChunkRenders is null");
-            return;
+            DrawHexasphereMesh();
         }
-        else
-            foreach (var child in _hexChunkRenders.GetChildren())
-            {
-                child.QueueFree();
-            }
+    }
 
-        if (HexPlanet == null)
-        {
-            return;
-        }
+    private void DrawHexasphereMesh()
+    {
+        _oldRadius = _radius;
+        _oldDivisions = _divisions;
+        _oldHexSize = _hexSize;
+        _lastUpdated = 0f;
 
-        HexPlanetHexGenerator.GeneratePlanetTilesAndChunks(HexPlanet);
+        _hexasphereService = new HexasphereService(_radius, _divisions, _hexSize);
 
-        for (var i = 0; i < HexPlanet.Chunks.Count; i++)
-        {
-            var chunkRenderer = new Components.HexChunkRenderer();
-            chunkRenderer.Name = "Chunk " + i;
-            chunkRenderer.Position = Vector3.Zero;
-            chunkRenderer.SetHexChunk(HexPlanet, i);
-            chunkRenderer.UpdateMesh();
-            _hexChunkRenders.AddChild(chunkRenderer);
-        }
+        _surfaceTool.Clear();
+        _surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
+        _hexasphereService.BuildFaces(_surfaceTool);
+        _surfaceTool.GenerateNormals();
+        var material = new StandardMaterial3D();
+        material.VertexColorUseAsAlbedo = true;
+        _surfaceTool.SetMaterial(material);
+        _meshIns.Mesh = _surfaceTool.Commit();
     }
 }
