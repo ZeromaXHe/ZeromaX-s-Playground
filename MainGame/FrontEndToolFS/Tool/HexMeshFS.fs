@@ -1,5 +1,6 @@
 namespace FrontEndToolFS.Tool
 
+open System
 open FrontEndToolFS.HexPlane
 open Godot
 open Microsoft.FSharp.Core
@@ -110,6 +111,7 @@ type HexMeshFS() =
         this.surfaceTool <- new SurfaceTool()
         vIndex <- 0
         this.surfaceTool.Begin(Mesh.PrimitiveType.Triangles)
+        this.surfaceTool.SetSmoothGroup UInt32.MaxValue
 
         if this.useCellData then
             this.surfaceTool.SetCustomFormat(0, SurfaceTool.CustomFormat.RgbFloat)
