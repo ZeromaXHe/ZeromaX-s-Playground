@@ -1,4 +1,6 @@
 using Godot;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 
@@ -22,11 +24,11 @@ public partial class HexPlanetManager : Node3D
     private float _oldHexSize;
     private float _lastUpdated;
 
+    private Node3D _tiles;
+
     public override void _Ready()
     {
-        _meshIns = new MeshInstance3D();
-        AddChild(_meshIns);
-        _surfaceTool = new SurfaceTool();
+        _tiles = GetNode<Node3D>("Tiles");
         DrawHexasphereMesh();
     }
 
@@ -48,15 +50,16 @@ public partial class HexPlanetManager : Node3D
         _oldHexSize = _hexSize;
         _lastUpdated = 0f;
 
+        foreach (var child in _tiles.GetChildren())
+        {
+            child.QueueFree();
+        }
         _hexasphereService = new HexasphereService(_radius, _divisions, _hexSize);
-
-        _surfaceTool.Clear();
-        _surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
-        _hexasphereService.BuildFaces(_surfaceTool);
-        _surfaceTool.GenerateNormals();
-        var material = new StandardMaterial3D();
-        material.VertexColorUseAsAlbedo = true;
-        _surfaceTool.SetMaterial(material);
-        _meshIns.Mesh = _surfaceTool.Commit();
+        foreach (var tile in _hexasphereService.GetAllTiles())
+        {
+            var tileNode = new TileNode();
+            tileNode.InitTileNode(_hexasphereService.GetRepo(), tile.Id, _radius, _hexSize);
+            _tiles.AddChild(tileNode);
+        }
     }
 }

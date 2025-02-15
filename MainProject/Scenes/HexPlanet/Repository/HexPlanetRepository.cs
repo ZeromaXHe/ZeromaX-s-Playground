@@ -3,7 +3,7 @@ using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 
-namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
+namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repository;
 
 public class HexPlanetRepository
 {
@@ -43,10 +43,9 @@ public class HexPlanetRepository
     public IEnumerable<Face> GetPointFacesByPointId(int id) =>
         _pointIdToFaceId.GetValueOrDefault(id).Select(GetFaceById);
 
-    public Tile AddTile(int centerId, List<int> hexFaceIds, List<int> neighborCenterIds, float radius, float size)
+    public Tile AddTile(int centerId, List<int> hexFaceIds, List<int> neighborCenterIds, float height = 0f)
     {
-        var sizeClamped = Mathf.Clamp(size, 0.01f, 1f);
-        var tile = new Tile(centerId, hexFaceIds, neighborCenterIds, radius, sizeClamped, _tiles.Count);
+        var tile = new Tile(centerId, hexFaceIds, neighborCenterIds, height, _tiles.Count);
         _tiles.Add(tile.Id, tile);
         _tileCenterIdIndex.Add(centerId, tile.Id);
         return tile;

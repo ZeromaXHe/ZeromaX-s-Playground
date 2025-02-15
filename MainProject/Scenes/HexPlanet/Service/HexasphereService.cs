@@ -4,8 +4,10 @@ using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Constant;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repository;
 
-namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
+namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 
 public class HexasphereService
 {
@@ -86,9 +88,13 @@ public class HexasphereService
                         newPoint = existingPoint;
                 }
 
-                newPoint ??= _repo.AddPoint(v);
-                if (checkFrameExist)
-                    _framePointIds.Add(newPoint.Id);
+                if (newPoint == null)
+                {
+                    newPoint = _repo.AddPoint(v);
+                    if (checkFrameExist)
+                        _framePointIds.Add(newPoint.Id);
+                }
+
                 segments.Add(newPoint);
             }
 
@@ -135,7 +141,7 @@ public class HexasphereService
             var neighborCenters = GetNeighbourCenterIds(hexFaces, point)
                 .Select(c => c.Id)
                 .ToList();
-            _repo.AddTile(point.Id, hexFaces.Select(f => f.Id).ToList(), neighborCenters, _radius, _hexSize);
+            _repo.AddTile(point.Id, hexFaces.Select(f => f.Id).ToList(), neighborCenters, GD.Randf() * _radius * 0.1f);
         }
 
         return;
@@ -186,6 +192,10 @@ public class HexasphereService
         }
     }
 
+    public IEnumerable<Tile> GetAllTiles() => _repo.GetAllTiles();
+    
+    public HexPlanetRepository GetRepo() => _repo;
+    
     public void BuildFaces(SurfaceTool surfaceTool)
     {
         var time = Time.GetTicksMsec();
@@ -197,8 +207,8 @@ public class HexasphereService
             {
                 var face = _repo.GetFaceById(faceId);
                 var center = _repo.GetPointById(tile.CenterId);
-                var pos = center.Position.Lerp(GetCenter(face), tile.Size);
-                points.Add(ProjectToShpere(pos, tile.Radius, 0.5f));
+                var pos = center.Position.Lerp(GetCenter(face), _hexSize);
+                points.Add(ProjectToShpere(pos, _radius, 0.5f));
             }
 
             surfaceTool.SetColor(Color.FromHsv(GD.Randf(), GD.Randf(), GD.Randf()));
