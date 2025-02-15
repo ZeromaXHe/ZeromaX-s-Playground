@@ -18,7 +18,7 @@ glow_enabled = true
 [node name="HexPlanetManager" type="Node3D"]
 script = ExtResource("1_414p1")
 _radius = 100.0
-_divisions = 30
+_divisions = 10
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_w5fo6")

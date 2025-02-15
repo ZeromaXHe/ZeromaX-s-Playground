@@ -1,29 +1,30 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repository;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 
 public partial class TileNode : MeshInstance3D
 {
     private int _id;
-    private HexPlanetRepository _repo;
     private int _verticesCount;
 
-    public void InitTileNode(HexPlanetRepository repo, int id, float radius, float size)
+    public void InitTileNode(int id, float radius, float size)
     {
         _id = id;
-        _repo = repo;
 
-        var tile = _repo.GetTileByCenterId(_id);
+        var tile = Tile.GetByCenterId(_id);
         var surfaceTool = new SurfaceTool();
         surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
-        var points = GetTilePoints(tile, radius, size);
+        surfaceTool.SetSmoothGroup(uint.MaxValue);
+        var points = tile.GetPoints(radius, size);
         var scale = (radius + tile.Height) / radius;
         BuildFlatFace(surfaceTool, points, scale);
-        BuildCliffFaces(surfaceTool, points, scale, tile, radius, size);
+        if (Math.Abs(size - 1f) < 0.00001f)
+            BuildCliffFaces(surfaceTool, points, scale, tile, radius, size);
         surfaceTool.GenerateNormals();
         var material = new StandardMaterial3D();
         material.VertexColorUseAsAlbedo = true;
@@ -34,26 +35,24 @@ public partial class TileNode : MeshInstance3D
     private void BuildCliffFaces(SurfaceTool surfaceTool, List<Vector3> points, float scale, Tile tile, float radius,
         float size)
     {
-        var tileCenter = _repo.GetPointById(tile.CenterId).Position;
+        var tileCenter = Point.GetById(tile.CenterId).Position;
         var lowerNeighbors = tile.NeighborCenterIds
-            .Select(_repo.GetTileByCenterId)
+            .Select(Tile.GetByCenterId)
             .Where(t => t.Height < tile.Height);
         var commonPoints = new List<Vector3>();
         foreach (var lower in lowerNeighbors)
         {
-            var lowerPoints = GetTilePoints(lower, radius, size);
+            var lowerPoints = lower.GetPoints(radius, size);
             commonPoints.Clear();
             foreach (var lowerP in lowerPoints)
             {
-                foreach (var p in points)
+                foreach (var p in points.Where(p => p.IsEqualApprox(lowerP)))
                 {
-                    if (p.IsEqualApprox(lowerP))
-                    {
-                        commonPoints.Add(p);
-                        break;
-                    }
+                    commonPoints.Add(p);
+                    break;
                 }
             }
+
             if (commonPoints.Count != 2)
             {
                 GD.Print("Error: tile has no 2 common points with lower neighbor");
@@ -69,62 +68,13 @@ public partial class TileNode : MeshInstance3D
             surfaceTool.AddVertex(v1);
             surfaceTool.AddVertex(v2);
             surfaceTool.AddVertex(v3);
-            var normal1 = GetNormal(v0, v1, v2);
-            var center1 = (v0 + v1 + v2) / 3f;
-            surfaceTool.AddIndex(_verticesCount);
-            if (IsNormalPointingAwayFromOrigin(center1, normal1, tileCenter))
-            {
-                surfaceTool.AddIndex(_verticesCount + 2);
-                surfaceTool.AddIndex(_verticesCount + 1);
-            }
-            else
-            {
-                surfaceTool.AddIndex(_verticesCount + 1);
-                surfaceTool.AddIndex(_verticesCount + 2);
-            }
-            var normal2 = GetNormal(v3, v1, v2);
-            var center2 = (v3 + v1 + v2) / 3f;
-            surfaceTool.AddIndex(_verticesCount + 3);
-            if (IsNormalPointingAwayFromOrigin(center2, normal2, tileCenter))
-            {
-                surfaceTool.AddIndex(_verticesCount + 2);
-                surfaceTool.AddIndex(_verticesCount + 1);
-            }
-            else
-            {
-                surfaceTool.AddIndex(_verticesCount + 1);
-                surfaceTool.AddIndex(_verticesCount + 2);
-            }
+            AddFaceIndex(surfaceTool, tileCenter, v0, _verticesCount,
+                v1, _verticesCount + 1, v2, _verticesCount + 2);
+            AddFaceIndex(surfaceTool, tileCenter, v1, _verticesCount + 1,
+                v2, _verticesCount + 2, v3, _verticesCount + 3);
+
             _verticesCount += 4;
         }
-    }
-
-    private List<Vector3> GetTilePoints(Tile tile, float radius, float size)
-    {
-        var points = new List<Vector3>();
-        foreach (var faceId in tile.HexFaceIds)
-        {
-            var face = _repo.GetFaceById(faceId);
-            var center = _repo.GetPointById(tile.CenterId);
-            var pos = center.Position.Lerp(GetCenter(face), size);
-            points.Add(ProjectToShpere(pos, radius, 1f));
-        }
-
-        return points;
-
-        Vector3 GetCenter(Face face)
-        {
-            var center = _repo.GetFacePointsById(face.Id)
-                .Select(p => p.Position)
-                .Aggregate(Vector3.Zero, (a, b) => a + b);
-            return center / 3f;
-        }
-    }
-
-    private static Vector3 ProjectToShpere(Vector3 p, float radius, float t)
-    {
-        var projectionPoint = radius / p.Length();
-        return p * projectionPoint * t;
     }
 
     private void BuildFlatFace(SurfaceTool surfaceTool, List<Vector3> points, float scale)
@@ -136,43 +86,29 @@ public partial class TileNode : MeshInstance3D
             _verticesCount++;
         }
 
-        AddFaceIndex(points[0], 0, points[1], 1, points[2], 2, surfaceTool);
-        AddFaceIndex(points[0], 0, points[2], 2, points[3], 3, surfaceTool);
-        AddFaceIndex(points[0], 0, points[3], 3, points[4], 4, surfaceTool);
+        AddFaceIndex(surfaceTool, Vector3.Zero, points[0], 0, points[1], 1, points[2], 2);
+        AddFaceIndex(surfaceTool, Vector3.Zero, points[0], 0, points[2], 2, points[3], 3);
+        AddFaceIndex(surfaceTool, Vector3.Zero, points[0], 0, points[3], 3, points[4], 4);
         if (points.Count > 5)
-            AddFaceIndex(points[0], 0, points[4], 4, points[5], 5, surfaceTool);
-        return;
+            AddFaceIndex(surfaceTool, Vector3.Zero, points[0], 0, points[4], 4, points[5], 5);
+    }
 
-        static void AddFaceIndex(Vector3 v0, int i0, Vector3 v1, int i1, Vector3 v2, int i2, SurfaceTool surfaceTool)
+    private static void AddFaceIndex(SurfaceTool surfaceTool, Vector3 origin, Vector3 v0, int i0, Vector3 v1, int i1,
+        Vector3 v2, int i2)
+    {
+        var center = (v0 + v1 + v2) / 3f;
+        // 决定缠绕顺序
+        var normal = Math3dUtil.GetNormal(v0, v1, v2);
+        surfaceTool.AddIndex(i0);
+        if (Math3dUtil.IsNormalAwayFromOrigin(center, normal, origin))
         {
-            var center = (v0 + v1 + v2) / 3f;
-            // 决定缠绕顺序
-            var normal = GetNormal(v0, v1, v2);
-            surfaceTool.AddIndex(i0);
-            if (IsNormalPointingAwayFromOrigin(center, normal))
-            {
-                surfaceTool.AddIndex(i2);
-                surfaceTool.AddIndex(i1);
-            }
-            else
-            {
-                surfaceTool.AddIndex(i1);
-                surfaceTool.AddIndex(i2);
-            }
+            surfaceTool.AddIndex(i2);
+            surfaceTool.AddIndex(i1);
+        }
+        else
+        {
+            surfaceTool.AddIndex(i1);
+            surfaceTool.AddIndex(i2);
         }
     }
-
-    private static Vector3 GetNormal(Vector3 v1, Vector3 v2, Vector3 v3)
-    {
-        var side1 = v2 - v1;
-        var side2 = v3 - v1;
-        var cross = side1.Cross(side2);
-        return cross / cross.Length();
-    }
-
-    private static bool IsNormalPointingAwayFromOrigin(Vector3 surface, Vector3 normalVec) =>
-        Vector3.Zero.DistanceTo(surface) < Vector3.Zero.DistanceTo(surface + normalVec);
-
-    private static bool IsNormalPointingAwayFromOrigin(Vector3 surface, Vector3 normalVec, Vector3 origin) =>
-        (surface - origin).Dot(normalVec) > 0;
 }
