@@ -33,11 +33,14 @@ public partial class HexPlanetManager : Node3D
 
     private FogVolume _atmosphereFog;
     private Node3D _tiles;
+    private OrbitCamera _orbitCamera;
 
     public override void _Ready()
     {
         _atmosphereFog = GetNode<FogVolume>("%AtmosphereFog");
         _tiles = GetNode<Node3D>("%Tiles");
+        // 此处要求 OrbitCamera 也是 [Tool]，否则编辑器里会转型失败
+        _orbitCamera = GetNode<OrbitCamera>("%OrbitCamera");
         DrawHexasphereMesh();
     }
 
@@ -86,7 +89,9 @@ public partial class HexPlanetManager : Node3D
         _oldHexSize = HexSize;
         _lastUpdated = 0f;
         ClearOldData();
+        _orbitCamera.Reset(Radius);
         InitHexasphere();
+        _atmosphereFog.Size = Vector3.One * Radius * 2.7f;
         EmitSignal(SignalName.NewPlanetGenerated);
     }
 
@@ -114,8 +119,6 @@ public partial class HexPlanetManager : Node3D
 
         time2 = Time.GetTicksMsec();
         GD.Print($"InitTileNodes cost: {time2 - time} ms");
-
-        _atmosphereFog.Size = Vector3.One * Radius * 2.7f;
     }
 
     private void SubdivideIcosahedron()
