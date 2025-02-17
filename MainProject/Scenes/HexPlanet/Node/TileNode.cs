@@ -9,26 +9,46 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 
 public partial class TileNode : MeshInstance3D
 {
-    public int Id { get; private set; }
+    private int _id = -1;
+
+    public int Id
+    {
+        get => _id;
+        private set
+        {
+            if (value == _id)
+                return;
+            if (Repo.TryGetValue(_id, out var node) && node == this)
+                Repo.Remove(_id);
+            _id = value;
+            Repo[value] = this;
+        }
+    }
+
     private int _verticesCount;
 
     private static readonly Material DefaultMaterial = new StandardMaterial3D { VertexColorUseAsAlbedo = true };
+    private static readonly Dictionary<int, TileNode> Repo = new();
 
     public void UpdateHeight(float height, float radius, float size)
     {
-        Tile.GetById(Id).Height = height;
-        // BUG: 隔壁地块的 MeshInstance3D 不会更新，需要重新创建
+        var tile = Tile.GetById(Id);
+        tile.Height = height;
         InitTileNode(Id, radius, size);
+        foreach (var neighbor in tile.NeighborCenterIds.Select(nid => Repo[Tile.GetByCenterId(nid).Id]))
+        {
+            neighbor.InitTileNode(neighbor.Id, radius, size);
+        }
     }
 
     public void InitTileNode(int id, float radius, float size)
     {
+        _verticesCount = 0;
         Id = id;
-
         // 清理之前的碰撞体
         foreach (var child in GetChildren())
             child.QueueFree();
-        
+
         var tile = Tile.GetById(Id);
         var surfaceTool = new SurfaceTool();
         surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
