@@ -43,6 +43,14 @@
     - **CatlikeCoding 文件夹**：其中资产素材来自 [CatlikeCoding 网站](https://catlikecoding.com/)相关教程，学习过程中使用的到的素材。版权归原作者 Jasper Flick 所有。[许可](https://catlikecoding.com/unity/tutorials/license/)基于网站代码 MIT 协议和教程 CC BY-NC-SA 4.0 许可证。
     - **kenney 文件夹**：其中资产素材来自 [Kenney.nl 网站](https://www.kenney.nl/)，许可为 CC0 许可证。
 
+- **MainProject 文件夹**：主要的项目文件夹
+
+  - **Assets 文件夹**
+    - **HexPlanet**
+      - **milkyway panorama eso0932a.jpg**：图片来源于 [ESO 网站](https://www.eso.org/public/images/eso0932a/)，版权归属 **Credit:** ESO/S. Brunier。图片基于 [CC 4.0 许可证](https://www.eso.org/public/outreach/copyright/)使用。
+      - **euvi_aia304_2012_carrington_searchweb.png**：图片来源于 [NASA 网站](https://svs.gsfc.nasa.gov/30362)，版权归属 credit: NASA JPL。图片基于 [NASA 图像和媒体使用指南](https://www.nasa.gov/nasa-brand-center/images-and-media/)使用
+
+
 
 
 # 实现目标

@@ -1,30 +1,75 @@
-[gd_scene load_steps=5 format=3 uid="uid://cau1rm86t1or4"]
+[gd_scene load_steps=10 format=3 uid="uid://cau1rm86t1or4"]
 
 [ext_resource type="Script" path="res://Scenes/HexPlanet/HexPlanetManager.cs" id="1_414p1"]
+[ext_resource type="Texture2D" uid="uid://cl2t2bb55vdp4" path="res://Assets/HexPlanet/milkyway panorama eso0932a.jpg" id="2_2766p"]
+[ext_resource type="Texture2D" uid="uid://vq27noxhc0y4" path="res://Assets/HexPlanet/euvi_aia304_2012_carrington_searchweb.png" id="3_5cymy"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_0av13"]
-sky_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
-ground_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_qqijy"]
+render_priority = 1
+transparency = 1
+albedo_texture = ExtResource("3_5cymy")
+emission_enabled = true
+emission = Color(1, 1, 1, 1)
+emission_energy_multiplier = 16.0
+emission_operator = 1
+emission_texture = ExtResource("3_5cymy")
+
+[sub_resource type="SphereMesh" id="SphereMesh_edaov"]
+material = SubResource("StandardMaterial3D_qqijy")
+radius = 100.0
+height = 200.0
+
+[sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_a52yq"]
+panorama = ExtResource("2_2766p")
+energy_multiplier = 0.05
 
 [sub_resource type="Sky" id="Sky_f6b3v"]
-sky_material = SubResource("ProceduralSkyMaterial_0av13")
+sky_material = SubResource("PanoramaSkyMaterial_a52yq")
 
 [sub_resource type="Environment" id="Environment_w5fo6"]
 background_mode = 2
 sky = SubResource("Sky_f6b3v")
+sky_rotation = Vector3(0.523599, 0, 0)
+ambient_light_source = 2
+ambient_light_color = Color(0.0625, 0.0625, 0.0625, 1)
 tonemap_mode = 2
 glow_enabled = true
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.0
+volumetric_fog_length = 512.0
+
+[sub_resource type="FogMaterial" id="FogMaterial_gfubo"]
+density = 0.004
 
 [node name="HexPlanetManager" type="Node3D"]
 script = ExtResource("1_414p1")
 _radius = 100.0
-_divisions = 10
+_divisions = 20
+
+[node name="SunPivot" type="Node3D" parent="."]
+transform = Transform3D(-1, 4.37114e-08, -7.57103e-08, 0, 0.866025, 0.5, 8.74228e-08, 0.5, -0.866025, 0, 0, 0)
+
+[node name="SunDist" type="Node3D" parent="SunPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3000)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="SunPivot/SunDist"]
+shadow_enabled = true
+shadow_bias = 0.03
+shadow_normal_bias = 0.0
+directional_shadow_max_distance = 1200.0
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="SunPivot/SunDist"]
+mesh = SubResource("SphereMesh_edaov")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_w5fo6")
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-transform = Transform3D(-0.866023, -0.433016, 0.250001, 0, 0.499998, 0.866027, -0.500003, 0.749999, -0.43301, 0, 0, 0)
-shadow_enabled = true
-
 [node name="Tiles" type="Node3D" parent="."]
+
+[node name="AtmosphereFog" type="FogVolume" parent="."]
+size = Vector3(270, 270, 270)
+shape = 0
+material = SubResource("FogMaterial_gfubo")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(-0.0163914, -0.287396, 0.957671, 0, 0.9578, 0.287435, -0.999866, 0.00471146, -0.0156997, 443.586, 133.138, -7.27197)
