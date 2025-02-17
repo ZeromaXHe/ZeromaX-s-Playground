@@ -16,7 +16,7 @@ public class Tile(
     public int CenterId { get; } = centerId;
     public List<int> HexFaceIds { get; } = hexFaceIds;
     public List<int> NeighborCenterIds { get; } = neighborCenterIds;
-    public float Height { get; } = height;
+    public float Height { get; set; } = height;
 
     public List<Vector3> GetPoints(float radius, float size)
     {
@@ -40,8 +40,8 @@ public class Tile(
     {
         Repo.Clear();
         CenterIdIndex.Clear();
-    } 
-    
+    }
+
     public static Tile Add(int centerId, List<int> hexFaceIds, List<int> neighborCenterIds, float height = 0f)
     {
         var tile = new Tile(centerId, hexFaceIds, neighborCenterIds, height, Repo.Count);
@@ -50,12 +50,15 @@ public class Tile(
         return tile;
     }
 
+    public static Tile GetById(int id) => Repo.GetValueOrDefault(id);
+
     public static Tile GetByCenterId(int centerId) =>
         CenterIdIndex.TryGetValue(centerId, out var tileId)
             ? Repo.GetValueOrDefault(tileId)
             : null;
 
     public static IEnumerable<Tile> GetAll() => Repo.Values;
+    public static int GetCount() => Repo.Count;
 
     #endregion
 }

@@ -10,13 +10,16 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 [Tool]
 public partial class HexPlanetManager : Node3D
 {
-    [Export(PropertyHint.Range, "5, 1000")]
-    private float _radius = 10f;
+    [Signal]
+    public delegate void NewPlanetGeneratedEventHandler();
 
-    [Export(PropertyHint.Range, "1, 100")] private int _divisions = 4;
+    [Export(PropertyHint.Range, "5, 1000")]
+    public float Radius { get; set; } = 10f;
+
+    [Export(PropertyHint.Range, "1, 100")] public int Divisions { get; set; } = 4;
 
     [Export(PropertyHint.Range, "0.1f, 1f")]
-    private float _hexSize = 1f;
+    public float HexSize { get; private set; } = 1f;
 
     private SurfaceTool _surfaceTool;
     private MeshInstance3D _meshIns;
@@ -28,11 +31,13 @@ public partial class HexPlanetManager : Node3D
 
     private readonly HashSet<int> _framePointIds = [];
 
+    private FogVolume _atmosphereFog;
     private Node3D _tiles;
 
     public override void _Ready()
     {
-        _tiles = GetNode<Node3D>("Tiles");
+        _atmosphereFog = GetNode<FogVolume>("%AtmosphereFog");
+        _tiles = GetNode<Node3D>("%Tiles");
         DrawHexasphereMesh();
     }
 
@@ -40,11 +45,28 @@ public partial class HexPlanetManager : Node3D
     {
         _lastUpdated += (float)delta;
         if (_lastUpdated < 1f) return;
-        if (Mathf.Abs(_oldRadius - _radius) > 0.001f || _oldDivisions != _divisions ||
-            Mathf.Abs(_oldHexSize - _hexSize) > 0.001f)
+        if (Mathf.Abs(_oldRadius - Radius) > 0.001f || _oldDivisions != Divisions ||
+            Mathf.Abs(_oldHexSize - HexSize) > 0.001f)
         {
             DrawHexasphereMesh();
         }
+    }
+
+    public TileNode GetTileNodeUnderCursor()
+    {
+        var spaceState = GetWorld3D().DirectSpaceState;
+        var camera = GetViewport().GetCamera3D();
+        var mousePos = GetViewport().GetMousePosition();
+        var origin = camera.ProjectRayOrigin(mousePos);
+        var end = origin + camera.ProjectRayNormal(mousePos) * 2000f;
+        var query = PhysicsRayQueryParameters3D.Create(origin, end);
+        var result = spaceState.IntersectRay(query);
+        if (result is { Count: > 0 } && result.TryGetValue("collider", out var collider))
+        {
+            return collider.As<StaticBody3D>().GetParent<TileNode>();
+        }
+
+        return null;
     }
 
     private void ClearOldData()
@@ -56,21 +78,22 @@ public partial class HexPlanetManager : Node3D
         foreach (var child in _tiles.GetChildren())
             child.QueueFree();
     }
-    
+
     private void DrawHexasphereMesh()
     {
-        _oldRadius = _radius;
-        _oldDivisions = _divisions;
-        _oldHexSize = _hexSize;
+        _oldRadius = Radius;
+        _oldDivisions = Divisions;
+        _oldHexSize = HexSize;
         _lastUpdated = 0f;
         ClearOldData();
         InitHexasphere();
+        EmitSignal(SignalName.NewPlanetGenerated);
     }
 
     private void InitHexasphere()
     {
         var time = Time.GetTicksMsec();
-        GD.Print($"InitHexasphere with radius {_radius}, divisions {_divisions}, start at: {time}");
+        GD.Print($"InitHexasphere with radius {Radius}, divisions {Divisions}, start at: {time}");
 
         SubdivideIcosahedron();
         var time2 = Time.GetTicksMsec();
@@ -85,12 +108,14 @@ public partial class HexPlanetManager : Node3D
         foreach (var tile in Tile.GetAll())
         {
             var tileNode = new TileNode();
-            tileNode.InitTileNode(tile.Id, _radius, _hexSize);
+            tileNode.InitTileNode(tile.Id, Radius, HexSize);
             _tiles.AddChild(tileNode);
         }
 
         time2 = Time.GetTicksMsec();
         GD.Print($"InitTileNodes cost: {time2 - time} ms");
+
+        _atmosphereFog.Size = Vector3.One * Radius * 2.7f;
     }
 
     private void SubdivideIcosahedron()
@@ -110,12 +135,12 @@ public partial class HexPlanetManager : Node3D
             var p1 = points[indices[idx + 1]];
             var p2 = points[indices[idx + 2]];
             var bottomSide = new List<Point> { p0 };
-            var leftSide = Subdivide(p0, p1, _divisions, true);
-            var rightSide = Subdivide(p0, p2, _divisions, true);
-            for (var i = 1; i <= _divisions; i++)
+            var leftSide = Subdivide(p0, p1, Divisions, true);
+            var rightSide = Subdivide(p0, p2, Divisions, true);
+            for (var i = 1; i <= Divisions; i++)
             {
                 var previousPoints = bottomSide;
-                bottomSide = Subdivide(leftSide[i], rightSide[i], i, i == _divisions);
+                bottomSide = Subdivide(leftSide[i], rightSide[i], i, i == Divisions);
                 for (var j = 0; j < i; j++)
                 {
                     Face.Add(previousPoints[j], bottomSide[j], bottomSide[j + 1]);
@@ -166,7 +191,8 @@ public partial class HexPlanetManager : Node3D
             var neighborCenters = GetNeighbourCenterIds(hexFaces, point)
                 .Select(c => c.Id)
                 .ToList();
-            Tile.Add(point.Id, hexFaces.Select(f => f.Id).ToList(), neighborCenters, GD.Randf() * _radius * 0.1f);
+            var height = GD.Randf() * Radius * 0.1f;
+            Tile.Add(point.Id, hexFaces.Select(f => f.Id).ToList(), neighborCenters, height);
         }
 
         return;

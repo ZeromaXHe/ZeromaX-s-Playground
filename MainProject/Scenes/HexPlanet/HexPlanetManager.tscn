@@ -43,8 +43,8 @@ density = 0.004
 
 [node name="HexPlanetManager" type="Node3D"]
 script = ExtResource("1_414p1")
-_radius = 100.0
-_divisions = 20
+Radius = 100.0
+Divisions = 20
 
 [node name="SunPivot" type="Node3D" parent="."]
 transform = Transform3D(-1, 4.37114e-08, -7.57103e-08, 0, 0.866025, 0.5, 8.74228e-08, 0.5, -0.866025, 0, 0, 0)
@@ -65,11 +65,13 @@ mesh = SubResource("SphereMesh_edaov")
 environment = SubResource("Environment_w5fo6")
 
 [node name="Tiles" type="Node3D" parent="."]
+unique_name_in_owner = true
 
 [node name="AtmosphereFog" type="FogVolume" parent="."]
+unique_name_in_owner = true
 size = Vector3(270, 270, 270)
 shape = 0
 material = SubResource("FogMaterial_gfubo")
 
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(-0.0163914, -0.287396, 0.957671, 0, 0.9578, 0.287435, -0.999866, 0.00471146, -0.0156997, 443.586, 133.138, -7.27197)
+transform = Transform3D(0.00666132, -0.341265, 0.939944, 0, 0.939964, 0.341272, -0.999977, -0.00227332, 0.0062614, 232.645, 84.4679, 1.54975)

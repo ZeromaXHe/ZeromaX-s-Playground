@@ -9,14 +9,27 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 
 public partial class TileNode : MeshInstance3D
 {
-    private int _id;
+    public int Id { get; private set; }
     private int _verticesCount;
+
+    private static readonly Material DefaultMaterial = new StandardMaterial3D { VertexColorUseAsAlbedo = true };
+
+    public void UpdateHeight(float height, float radius, float size)
+    {
+        Tile.GetById(Id).Height = height;
+        // BUG: 隔壁地块的 MeshInstance3D 不会更新，需要重新创建
+        InitTileNode(Id, radius, size);
+    }
 
     public void InitTileNode(int id, float radius, float size)
     {
-        _id = id;
+        Id = id;
 
-        var tile = Tile.GetByCenterId(_id);
+        // 清理之前的碰撞体
+        foreach (var child in GetChildren())
+            child.QueueFree();
+        
+        var tile = Tile.GetById(Id);
         var surfaceTool = new SurfaceTool();
         surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
         surfaceTool.SetSmoothGroup(uint.MaxValue);
@@ -26,10 +39,9 @@ public partial class TileNode : MeshInstance3D
         if (Math.Abs(size - 1f) < 0.00001f)
             BuildCliffFaces(surfaceTool, points, scale, tile, radius, size);
         surfaceTool.GenerateNormals();
-        var material = new StandardMaterial3D();
-        material.VertexColorUseAsAlbedo = true;
-        surfaceTool.SetMaterial(material);
+        surfaceTool.SetMaterial(DefaultMaterial);
         Mesh = surfaceTool.Commit();
+        CreateTrimeshCollision();
     }
 
     private void BuildCliffFaces(SurfaceTool surfaceTool, List<Vector3> points, float scale, Tile tile, float radius,
