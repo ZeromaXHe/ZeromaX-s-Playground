@@ -13,10 +13,11 @@ public class Tile(
     int id = -1)
 {
     public int Id { get; } = id;
-    public int CenterId { get; } = centerId;
+    public int CenterId { get; } = centerId; // 注意，此处对应的是中心点投射到单位球上的 Point id。
     public List<int> HexFaceIds { get; } = hexFaceIds;
     public List<int> NeighborCenterIds { get; } = neighborCenterIds;
     public float Height { get; set; } = height;
+    public Color Color { get; set; } = Colors.White;
 
     public List<Vector3> GetPoints(float radius, float size)
     {

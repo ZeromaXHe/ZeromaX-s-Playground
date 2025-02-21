@@ -6,6 +6,9 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 public partial class HexPlanetGui : Control
 {
     [Export] private HexPlanetManager _hexPlanetManager;
+    [Export] private Color[] _colors;
+
+    #region on-ready nodes
 
     private SubViewportContainer _subViewportContainer;
     private LineEdit _radiusLineEdit;
@@ -13,6 +16,11 @@ public partial class HexPlanetGui : Control
     private Label _tileCountLabel;
     private LineEdit _idLineEdit;
     private LineEdit _heightLineEdit;
+    private OptionButton _colorOptionButton;
+
+    #endregion
+
+    private Color _activeColor;
 
     private int? _chosenTileId;
 
@@ -45,7 +53,9 @@ public partial class HexPlanetGui : Control
         _tileCountLabel = GetNode<Label>("%TileCountLabel");
         _idLineEdit = GetNode<LineEdit>("%IdLineEdit");
         _heightLineEdit = GetNode<LineEdit>("%HeightLineEdit");
+        _colorOptionButton = GetNode<OptionButton>("%ColorOptionButton");
 
+        SelectColor(0);
         UpdateNewPlanetInfo();
         _hexPlanetManager.NewPlanetGenerated += UpdateNewPlanetInfo;
 
@@ -79,6 +89,8 @@ public partial class HexPlanetGui : Control
             }
             else _heightLineEdit.Text = "-"; // 应该不会进入这个分支，控制了此时不可编辑
         };
+
+        _colorOptionButton.ItemSelected += index => SelectColor((int)index);
     }
 
     private void UpdateNewPlanetInfo()
@@ -96,6 +108,17 @@ public partial class HexPlanetGui : Control
         {
             // 在 SubViewportContainer 上按下鼠标左键时，获取鼠标位置地块并更新
             ChosenTileId = _hexPlanetManager.GetTileIdUnderCursor();
+            if (ChosenTileId != null)
+            {
+                Tile.GetById((int)ChosenTileId).Color = _activeColor;
+                _hexPlanetManager.BuildMesh();
+            }
         }
+    }
+
+    private void SelectColor(int index)
+    {
+        if (_colors != null && index < _colors.Length)
+            _activeColor = _colors[index];
     }
 }

@@ -12,6 +12,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_88ajj")
 _hexPlanetManager = NodePath("SubViewportContainer/SubViewport/HexPlanetManager")
+_colors = PackedColorArray(1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1)
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="."]
 unique_name_in_owner = true
@@ -108,3 +109,30 @@ text = "0"
 
 [node name="HSeparator2" type="HSeparator" parent="LeftPanel/VBox"]
 layout_mode = 2
+
+[node name="EditLabel" type="Label" parent="LeftPanel/VBox"]
+layout_mode = 2
+text = "编辑"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="EditGrid" type="GridContainer" parent="LeftPanel/VBox"]
+layout_mode = 2
+columns = 2
+
+[node name="ColorLabel" type="Label" parent="LeftPanel/VBox/EditGrid"]
+layout_mode = 2
+text = "颜色："
+
+[node name="ColorOptionButton" type="OptionButton" parent="LeftPanel/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 0
+item_count = 4
+popup/item_0/text = "黄色"
+popup/item_1/text = "绿色"
+popup/item_1/id = 1
+popup/item_2/text = "蓝色"
+popup/item_2/id = 2
+popup/item_3/text = "白色"
+popup/item_3/id = 3
