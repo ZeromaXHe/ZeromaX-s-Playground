@@ -27,12 +27,14 @@ public partial class OrbitCamera : Node3D
     private float _focusBaseMultiplier = 1.1f;
     private float _focusBackZoom = 0.2f;
     private float _lightRangeMultiplier = 1f;
+
     [Export] private float _stickMinZoom = 1f;
     [Export] private float _stickMaxZoom = 0.2f;
     [Export] private float _swivelMinZoom = -90f;
     [Export] private float _swivelMaxZoom = -45f;
     [Export] private float _moveSpeedMinZoom = 0.8f;
     [Export] private float _moveSpeedMaxZoom = 0.2f;
+    private float _antiStuckSpeedMultiplier = 1f; // 用于防止速度过低的时候相机卡死
     [Export] private float _rotationSpeed = 180f;
 
     private Node3D _focusBase;
@@ -97,11 +99,17 @@ public partial class OrbitCamera : Node3D
         {
             var direction = (Vector3.Right * xDelta + Vector3.Back * zDelta).Normalized();
             var damping = Mathf.Max(Mathf.Abs(xDelta), Mathf.Abs(zDelta));
-            var distance = Mathf.Lerp(_moveSpeedMinZoom, _moveSpeedMaxZoom, Zoom) * Radius * damping * (float)delta;
+            var distance = Mathf.Lerp(_moveSpeedMinZoom, _moveSpeedMaxZoom, Zoom) * Radius
+                * _antiStuckSpeedMultiplier * damping * (float)delta;
             var target = _focusBase.GlobalPosition - GlobalPosition +
                          _focusBackStick.GlobalBasis * (direction * distance);
-            // BUG: 现在在速度很慢，半径很大的时候，容易在南北极卡住
+            // 现在在速度很慢，半径很大的时候，容易在南北极卡住（游戏开始后，只按 WS 即可走到南北极）
+            // 所以检查一下按下移动键后，是否没能真正移动。如果没移动，则每帧放大速度 1.5 倍
+            var prePos = _focusBase.GlobalPosition;
             LookAt(target, _focusBase.GlobalBasis.Z);
+            _antiStuckSpeedMultiplier = prePos.IsEqualApprox(_focusBase.GlobalPosition)
+                ? _antiStuckSpeedMultiplier * 1.5f
+                : 1f;
         }
     }
 
