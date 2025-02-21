@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://cau1rm86t1or4"]
+[gd_scene load_steps=12 format=3 uid="uid://cau1rm86t1or4"]
 
 [ext_resource type="Script" path="res://Scenes/HexPlanet/HexPlanetManager.cs" id="1_414p1"]
 [ext_resource type="Texture2D" uid="uid://cl2t2bb55vdp4" path="res://Assets/HexPlanet/milkyway panorama eso0932a.jpg" id="2_2766p"]
@@ -42,6 +42,10 @@ volumetric_fog_length = 512.0
 [sub_resource type="FogMaterial" id="FogMaterial_gfubo"]
 density = 0.004
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7r8rk"]
+transparency = 1
+albedo_color = Color(0, 1, 0, 0.498039)
+
 [node name="HexPlanetManager" type="Node3D"]
 script = ExtResource("1_414p1")
 Radius = 100.0
@@ -76,3 +80,7 @@ material = SubResource("FogMaterial_gfubo")
 
 [node name="OrbitCamera" parent="." instance=ExtResource("4_btp1q")]
 unique_name_in_owner = true
+
+[node name="SelectTileViewer" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+material_override = SubResource("StandardMaterial3D_7r8rk")

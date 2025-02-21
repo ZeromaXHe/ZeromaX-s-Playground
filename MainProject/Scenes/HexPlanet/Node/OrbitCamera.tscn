@@ -17,12 +17,15 @@ unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0, -110)
 
 [node name="FocusBox" type="CSGBox3D" parent="FocusBase"]
+unique_name_in_owner = true
 material = SubResource("StandardMaterial3D_3cikn")
 
 [node name="FocusBackStick" type="Node3D" parent="FocusBase"]
 unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 20)
 
 [node name="BackBox" type="CSGBox3D" parent="FocusBase/FocusBackStick"]
+unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
 material = SubResource("StandardMaterial3D_f2s32")
 
@@ -38,6 +41,6 @@ transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 
 
 [node name="Stick" type="Node3D" parent="FocusBase/FocusBackStick/Swivel"]
 unique_name_in_owner = true
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 45)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 20)
 
 [node name="Camera3D" type="Camera3D" parent="FocusBase/FocusBackStick/Swivel/Stick"]

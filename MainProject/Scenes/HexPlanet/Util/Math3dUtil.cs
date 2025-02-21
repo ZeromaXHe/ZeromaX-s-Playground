@@ -19,4 +19,23 @@ public static class Math3dUtil
         var projectionPoint = radius / p.Length();
         return p * projectionPoint * scale;
     }
+
+    public static void AddFaceIndex(SurfaceTool surfaceTool, Vector3 origin, Vector3 v0, int i0, Vector3 v1, int i1,
+        Vector3 v2, int i2)
+    {
+        var center = (v0 + v1 + v2) / 3f;
+        // 决定缠绕顺序
+        var normal = GetNormal(v0, v1, v2);
+        surfaceTool.AddIndex(i0);
+        if (IsNormalAwayFromOrigin(center, normal, origin))
+        {
+            surfaceTool.AddIndex(i2);
+            surfaceTool.AddIndex(i1);
+        }
+        else
+        {
+            surfaceTool.AddIndex(i1);
+            surfaceTool.AddIndex(i2);
+        }
+    }
 }

@@ -16,11 +16,14 @@ public partial class OrbitCamera : Node3D
             _radius = value;
             if (!_ready) return;
             _focusBase.Position = Vector3.Forward * value * _focusBaseMultiplier;
+            _focusBox.Size = Vector3.One * value * _boxSizeMultiplier;
+            _backBox.Size = Vector3.One * value * _boxSizeMultiplier;
             _light.SpotRange = value * _lightRangeMultiplier;
             _light.Position = Vector3.Up * value * _lightRangeMultiplier * 0.5f;
         }
     }
 
+    private float _boxSizeMultiplier = 0.01f;
     private float _focusBaseMultiplier = 1.1f;
     private float _focusBackZoom = 0.2f;
     private float _lightRangeMultiplier = 1f;
@@ -33,7 +36,9 @@ public partial class OrbitCamera : Node3D
     [Export] private float _rotationSpeed = 180f;
 
     private Node3D _focusBase;
+    private CsgBox3D _focusBox;
     private Node3D _focusBackStick;
+    private CsgBox3D _backBox;
     private SpotLight3D _light;
     private Node3D _swivel;
     private Node3D _stick;
@@ -47,7 +52,8 @@ public partial class OrbitCamera : Node3D
         {
             _zoom = value;
             if (!_ready) return;
-            _focusBackStick.Position = _focusBackStick.Basis * Vector3.Back * Mathf.Lerp(0f, _focusBackZoom * Radius, value);
+            _focusBackStick.Position =
+                _focusBackStick.Basis * Vector3.Back * Mathf.Lerp(0f, _focusBackZoom * Radius, value);
             var distance = Mathf.Lerp(_stickMinZoom, _stickMaxZoom, value) * Radius;
             _stick.Position = Vector3.Back * distance;
             var angle = Mathf.Lerp(_swivelMinZoom, _swivelMaxZoom, value);
@@ -60,7 +66,9 @@ public partial class OrbitCamera : Node3D
     public override void _Ready()
     {
         _focusBase = GetNode<Node3D>("%FocusBase");
+        _focusBox = GetNode<CsgBox3D>("%FocusBox");
         _focusBackStick = GetNode<Node3D>("%FocusBackStick");
+        _backBox = GetNode<CsgBox3D>("%BackBox");
         _light = GetNode<SpotLight3D>("%Light");
         _swivel = GetNode<Node3D>("%Swivel");
         _stick = GetNode<Node3D>("%Stick");
@@ -90,7 +98,9 @@ public partial class OrbitCamera : Node3D
             var direction = (Vector3.Right * xDelta + Vector3.Back * zDelta).Normalized();
             var damping = Mathf.Max(Mathf.Abs(xDelta), Mathf.Abs(zDelta));
             var distance = Mathf.Lerp(_moveSpeedMinZoom, _moveSpeedMaxZoom, Zoom) * Radius * damping * (float)delta;
-            var target = _focusBase.GlobalPosition - GlobalPosition + _focusBackStick.GlobalBasis * (direction * distance);
+            var target = _focusBase.GlobalPosition - GlobalPosition +
+                         _focusBackStick.GlobalBasis * (direction * distance);
+            // BUG: 现在在速度很慢，半径很大的时候，容易在南北极卡住
             LookAt(target, _focusBase.GlobalBasis.Z);
         }
     }

@@ -1,6 +1,5 @@
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 
@@ -15,18 +14,18 @@ public partial class HexPlanetGui : Control
     private LineEdit _idLineEdit;
     private LineEdit _heightLineEdit;
 
-    private TileNode _chosenTileNode;
+    private int? _chosenTileId;
 
-    private TileNode ChosenTileNode
+    private int? ChosenTileId
     {
-        get => _chosenTileNode;
+        get => _chosenTileId;
         set
         {
-            _chosenTileNode = value;
-            if (_chosenTileNode != null)
+            _chosenTileId = value;
+            if (_chosenTileId != null)
             {
-                _idLineEdit.Text = _chosenTileNode.Id.ToString();
-                _heightLineEdit.Text = $"{Tile.GetById(_chosenTileNode.Id).Height:F2}";
+                _idLineEdit.Text = _chosenTileId.ToString();
+                _heightLineEdit.Text = $"{Tile.GetById((int)_chosenTileId).Height:F2}";
                 _heightLineEdit.Editable = true;
             }
             else
@@ -68,10 +67,17 @@ public partial class HexPlanetGui : Control
 
         _heightLineEdit.TextSubmitted += text =>
         {
-            if (float.TryParse(text, out var height))
-                ChosenTileNode.UpdateHeight(height, _hexPlanetManager.Radius, _hexPlanetManager.HexSize);
-            else
-                _heightLineEdit.Text = $"{Tile.GetById(ChosenTileNode.Id).Height:F2}";
+            if (_chosenTileId != null)
+            {
+                var chosenTileId = (int)_chosenTileId;
+                if (float.TryParse(text, out var height))
+                {
+                    Tile.GetById(chosenTileId).Height = height;
+                    _hexPlanetManager.BuildMesh();
+                }
+                else _heightLineEdit.Text = $"{Tile.GetById(chosenTileId).Height:F2}";
+            }
+            else _heightLineEdit.Text = "-"; // 应该不会进入这个分支，控制了此时不可编辑
         };
     }
 
@@ -80,7 +86,7 @@ public partial class HexPlanetGui : Control
         _radiusLineEdit.Text = $"{_hexPlanetManager.Radius:F2}";
         _divisionLineEdit.Text = $"{_hexPlanetManager.Divisions}";
         _tileCountLabel.Text = $"总数：{Tile.GetCount()}";
-        ChosenTileNode = null;
+        ChosenTileId = null;
     }
 
     public override void _Input(InputEvent @event)
@@ -89,7 +95,7 @@ public partial class HexPlanetGui : Control
             && GetViewport().GuiGetHoveredControl() == _subViewportContainer)
         {
             // 在 SubViewportContainer 上按下鼠标左键时，获取鼠标位置地块并更新
-            ChosenTileNode = _hexPlanetManager.GetTileNodeUnderCursor();
+            ChosenTileId = _hexPlanetManager.GetTileIdUnderCursor();
         }
     }
 }
