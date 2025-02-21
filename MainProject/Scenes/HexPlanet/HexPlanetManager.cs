@@ -19,16 +19,12 @@ public partial class HexPlanetManager : Node3D
 
     [Export(PropertyHint.Range, "1, 100")] public int Divisions { get; set; } = 4;
 
-    [Export(PropertyHint.Range, "0.1f, 1f")]
-    public float HexSize { get; private set; } = 1f;
-
     private bool _ready;
     private HexMesh _hexMesh;
     private MeshInstance3D _meshIns;
 
     private float _oldRadius;
     private int _oldDivisions;
-    private float _oldHexSize;
     private float _lastUpdated;
 
     private readonly HashSet<int> _framePointIds = [];
@@ -60,12 +56,8 @@ public partial class HexPlanetManager : Node3D
     {
         _lastUpdated += (float)delta;
         if (!_ready || _lastUpdated < 1f) return;
-        if (Mathf.Abs(_oldRadius - Radius) > 0.001f || _oldDivisions != Divisions ||
-            Mathf.Abs(_oldHexSize - HexSize) > 0.001f)
-        {
+        if (Mathf.Abs(_oldRadius - Radius) > 0.001f || _oldDivisions != Divisions)
             DrawHexasphereMesh();
-        }
-
         if (!Engine.IsEditorHint())
             UpdateSelectTileViewer();
         _lastUpdated = 0f; // 每一秒检查一次
@@ -112,15 +104,31 @@ public partial class HexPlanetManager : Node3D
         var surfaceTool = new SurfaceTool();
         surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
         surfaceTool.SetSmoothGroup(uint.MaxValue);
-        var points = tile.GetPoints(Radius, HexSize);
-        foreach (var point in points)
-            surfaceTool.AddVertex(point * scale);
-        Math3dUtil.AddFaceIndex(surfaceTool, Vector3.Zero, points[0], 0, points[1], 1, points[2], 2);
-        Math3dUtil.AddFaceIndex(surfaceTool, Vector3.Zero, points[0], 0, points[2], 2, points[3], 3);
-        Math3dUtil.AddFaceIndex(surfaceTool, Vector3.Zero, points[0], 0, points[3], 3, points[4], 4);
-        if (points.Count > 5)
-            Math3dUtil.AddFaceIndex(surfaceTool, Vector3.Zero, points[0], 0, points[4], 4, points[5], 5);
+        var points = tile.GetCorners(Radius * scale, 1f).ToList();
+        foreach (var p in points)
+            surfaceTool.AddVertex(p);
+        for (var i = 1; i < points.Count - 1; i++)
+            AddFaceIndex(surfaceTool, Vector3.Zero, points[0], 0, points[i], i, points[i + 1], i + 1);
         return surfaceTool.Commit();
+
+        static void AddFaceIndex(SurfaceTool surfaceTool, Vector3 origin, Vector3 v0, int i0, Vector3 v1, int i1,
+            Vector3 v2, int i2)
+        {
+            var center = (v0 + v1 + v2) / 3f;
+            // 决定缠绕顺序
+            var normal = Math3dUtil.GetNormal(v0, v1, v2);
+            surfaceTool.AddIndex(i0);
+            if (Math3dUtil.IsNormalAwayFromOrigin(center, normal, origin))
+            {
+                surfaceTool.AddIndex(i2);
+                surfaceTool.AddIndex(i1);
+            }
+            else
+            {
+                surfaceTool.AddIndex(i1);
+                surfaceTool.AddIndex(i2);
+            }
+        }
     }
 
     private Godot.Collections.Dictionary GetTileCollisionResult()
@@ -167,7 +175,6 @@ public partial class HexPlanetManager : Node3D
     {
         _oldRadius = Radius;
         _oldDivisions = Divisions;
-        _oldHexSize = HexSize;
         _lastUpdated = 0f;
         ClearOldData();
         _orbitCamera.Reset(Radius);
@@ -269,8 +276,7 @@ public partial class HexPlanetManager : Node3D
             var neighborCenters = GetNeighbourCenterIds(hexFaces, point)
                 .Select(c => c.Id)
                 .ToList();
-            var height = GD.Randf() * Radius * 0.1f;
-            Tile.Add(point.Id, hexFaces.Select(f => f.Id).ToList(), neighborCenters, height);
+            Tile.Add(point.Id, hexFaces.Select(f => f.Id).ToList(), neighborCenters);
         }
 
         return;
@@ -312,7 +318,7 @@ public partial class HexPlanetManager : Node3D
         // 清理之前的碰撞体
         foreach (var child in _meshIns.GetChildren())
             child.QueueFree();
-        _meshIns.Mesh = _hexMesh.BuildMesh(Radius, HexSize);
+        _meshIns.Mesh = _hexMesh.BuildMesh(Radius);
         _meshIns.CreateTrimeshCollision();
         GD.Print($"BuildMesh cost: {Time.GetTicksMsec() - time} ms");
     }
