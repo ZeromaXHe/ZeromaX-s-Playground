@@ -84,7 +84,7 @@ public partial class HexPlanetManager : Node3D
                 //     $"Generating New _selectTileViewer Mesh! {centerId}, result: {results[0]}, position: {position}, dist: {string.Join(", ", distances)}");
                 _selectTileCenterId = centerId;
                 var tile = Tile.GetByCenterId((int)_selectTileCenterId);
-                _selectTileViewer.Mesh = GenFlatTileMesh(tile, 1.1f);
+                _selectTileViewer.Mesh = GenFlatTileMesh(tile, 1f + HexMetrics.MaxHeightRadiusRatio);
             }
             else
             {

@@ -1,5 +1,6 @@
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 
@@ -17,10 +18,12 @@ public partial class HexPlanetGui : Control
     private LineEdit _idLineEdit;
     private LineEdit _heightLineEdit;
     private OptionButton _colorOptionButton;
+    private VSlider _elevationVSlider;
 
     #endregion
 
     private Color _activeColor;
+    private int _activeElevation;
 
     private int? _chosenTileId;
 
@@ -54,6 +57,7 @@ public partial class HexPlanetGui : Control
         _idLineEdit = GetNode<LineEdit>("%IdLineEdit");
         _heightLineEdit = GetNode<LineEdit>("%HeightLineEdit");
         _colorOptionButton = GetNode<OptionButton>("%ColorOptionButton");
+        _elevationVSlider = GetNode<VSlider>("%ElevationVSlider");
 
         SelectColor(0);
         UpdateNewPlanetInfo();
@@ -90,8 +94,17 @@ public partial class HexPlanetGui : Control
             else _heightLineEdit.Text = "-"; // 应该不会进入这个分支，控制了此时不可编辑
         };
 
-        _colorOptionButton.ItemSelected += index => SelectColor((int)index);
+        _colorOptionButton.ItemSelected += SelectColor;
+        _elevationVSlider.ValueChanged += SetElevation;
     }
+
+    private void SelectColor(long index)
+    {
+        // if (_colors != null && index < _colors.Length)
+        _activeColor = _colors[index];
+    }
+
+    private void SetElevation(double elevation) => _activeElevation = (int)elevation;
 
     private void UpdateNewPlanetInfo()
     {
@@ -99,6 +112,7 @@ public partial class HexPlanetGui : Control
         _divisionLineEdit.Text = $"{_hexPlanetManager.Divisions}";
         _tileCountLabel.Text = $"总数：{Tile.GetCount()}";
         ChosenTileId = null;
+        Tile.UnitHeight = _hexPlanetManager.Radius * HexMetrics.MaxHeightRadiusRatio / (float)_elevationVSlider.MaxValue;
     }
 
     public override void _Input(InputEvent @event)
@@ -109,16 +123,15 @@ public partial class HexPlanetGui : Control
             // 在 SubViewportContainer 上按下鼠标左键时，获取鼠标位置地块并更新
             ChosenTileId = _hexPlanetManager.GetTileIdUnderCursor();
             if (ChosenTileId != null)
-            {
-                Tile.GetById((int)ChosenTileId).Color = _activeColor;
-                _hexPlanetManager.BuildMesh();
-            }
+                EditTile(Tile.GetById((int)ChosenTileId));
         }
     }
 
-    private void SelectColor(int index)
+    private void EditTile(Tile tile)
     {
-        if (_colors != null && index < _colors.Length)
-            _activeColor = _colors[index];
+        tile.Color = _activeColor;
+        tile.Elevation = _activeElevation;
+        _hexPlanetManager.BuildMesh();
+        ChosenTileId = tile.Id; // 刷新 GUI 地块信息
     }
 }

@@ -15,7 +15,15 @@ public class Tile(
     public int CenterId { get; } = centerId; // 注意，此处对应的是中心点投射到单位球上的 Point id。
     public List<int> HexFaceIds { get; } = hexFaceIds;
     public List<int> NeighborCenterIds { get; } = neighborCenterIds;
-    public float Height { get; set; } //= GD.Randf() * 100f * 0.1f;
+    public int Elevation { get; set; } = GD.RandRange(0, 10);
+    public static float UnitHeight { get; set; } = 1f;
+
+    public float Height
+    {
+        get => Elevation * UnitHeight;
+        set => Elevation = (int)(value / UnitHeight);
+    }
+
     public Color Color { get; set; } = Color.FromHsv(GD.Randf(), GD.Randf(), GD.Randf());
 
     // 获取地块的形状角落顶点

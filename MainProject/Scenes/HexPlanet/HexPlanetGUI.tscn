@@ -136,3 +136,16 @@ popup/item_2/text = "蓝色"
 popup/item_2/id = 2
 popup/item_3/text = "白色"
 popup/item_3/id = 3
+
+[node name="ElevationLabel" type="Label" parent="LeftPanel/VBox/EditGrid"]
+layout_mode = 2
+text = "高度："
+
+[node name="ElevationVSlider" type="VSlider" parent="LeftPanel/VBox/EditGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+size_flags_horizontal = 4
+max_value = 10.0
+tick_count = 10
+ticks_on_borders = true
