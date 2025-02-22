@@ -30,29 +30,20 @@ public class HexMesh
 
     private void Triangulate(Tile tile)
     {
-        var corners = tile.GetCorners(_radius + tile.Height, 1f).ToList();
-        var rightVSeq = Math3dUtil.IsRightVSeq(Vector3.Zero,
-            tile.GetCentroid(_radius + tile.Height), corners[0], corners[1]);
-        for (var i = 0; i < corners.Count; i++)
-        {
-            var c1 = corners[i];
-            var c2 = corners[(i + 1) % corners.Count];
-            if (rightVSeq)
-                Triangulate(tile, c2, c1);
-            else
-                Triangulate(tile, c1, c2);
-        }
+        // var corners = tile.GetCorners(_radius + tile.Height, 1f).ToList();
+        for (var i = 0; i < tile.HexFaceIds.Count; i++)
+            Triangulate(tile, i, (i + 1) % tile.HexFaceIds.Count);
     }
 
-    // Godot 缠绕顺序是正面顺时针，所以从 c1 到 c2 相对于 tile 重心顺时针
-    private void Triangulate(Tile tile, Vector3 c1, Vector3 c2)
+    // Godot 缠绕顺序是正面顺时针，所以从 i1 对应角落到 i2 对应角落相对于 tile 重心需要是顺时针
+    private void Triangulate(Tile tile, int i1, int i2)
     {
-        var centroid = tile.GetCentroid(_radius + tile.Height);
-        var v1 = centroid.Lerp(c1, HexMetrics.SolidFactor);
-        var v2 = centroid.Lerp(c2, HexMetrics.SolidFactor);
+        var v1 = tile.GetCorner(i1, _radius + tile.Height, HexMetrics.SolidFactor);
+        var v2 = tile.GetCorner(i2, _radius + tile.Height, HexMetrics.SolidFactor);
         var e = new EdgeVertices(v1, v2);
+        var centroid = tile.GetCentroid(_radius + tile.Height);
         TriangulateEdgeFan(centroid, e, tile.Color);
-        TriangulateConnection(tile, c1, c2, e);
+        TriangulateConnection(tile, i1, i2, e);
     }
 
     private void TriangulateEdgeFan(Vector3 center, EdgeVertices edge, Color color)
@@ -69,43 +60,39 @@ public class HexMesh
         AddQuad([e1.V3, e1.V4, e2.V3, e2.V4], QuadColor(c1, c2));
     }
 
-    private void TriangulateConnection(Tile tile, Vector3 c1, Vector3 c2, EdgeVertices e)
+    private void TriangulateConnection(Tile tile, int i1, int i2, EdgeVertices e)
     {
-        var centroid = tile.GetCentroid(_radius + tile.Height);
-        var neighbor = tile.GetNeighborByDirection(centroid.DirectionTo(c1), centroid.DirectionTo(c2));
+        var neighbor = tile.GetNeighborByDirection(i1, i2);
         // 连接将由更低的地块或相同高度时 Id 更大的地块生成
         if (tile.Height > neighbor.Height ||
             (Mathf.Abs(tile.Height - neighbor.Height) < 0.00001f && tile.Id < neighbor.Id)) return;
-        var neighborCenter = neighbor.GetCenter(_radius + neighbor.Height);
-        var cn1 = Math3dUtil.ProjectToSphere(c1, _radius + neighbor.Height);
-        var cn2 = Math3dUtil.ProjectToSphere(c2, _radius + neighbor.Height);
-        var vn1 = neighborCenter.Lerp(cn1, HexMetrics.SolidFactor);
-        var vn2 = neighborCenter.Lerp(cn2, HexMetrics.SolidFactor);
+        var vn1 = neighbor.GetCornerByFaceId(tile.HexFaceIds[i1],
+            _radius + neighbor.Height, HexMetrics.SolidFactor);
+        var vn2 = neighbor.GetCornerByFaceId(tile.HexFaceIds[i2],
+            _radius + neighbor.Height, HexMetrics.SolidFactor);
         var en = new EdgeVertices(vn1, vn2);
         if (HexMetrics.GetEdgeType(tile.Elevation, neighbor.Elevation) == HexEdgeType.Slope)
             TriangulateEdgeTerraces(e, tile, en, neighbor);
         else
             TriangulateEdgeStrip(e, tile.Color, en, neighbor.Color);
 
-        var otherNeighbor1 = tile.GetNeighborsByDirection(c1 - centroid, neighbor.Id)[0];
+        var otherNeighbor1 = tile.GetNeighborsByDirection(i1, neighbor.Id)[0];
         if (tile.Height < otherNeighbor1.Height
             || (Mathf.Abs(tile.Height - otherNeighbor1.Height) < 0.00001f && tile.Id > otherNeighbor1.Id))
         {
             // 连接角落的三角形由周围 3 个地块中最低或者一样高时 Id 最大的生成
-            var onCentroid = otherNeighbor1.GetCentroid(_radius + otherNeighbor1.Height);
-            var con1 = Math3dUtil.ProjectToSphere(c1, _radius + otherNeighbor1.Height);
-            var von1 = onCentroid.Lerp(con1, HexMetrics.SolidFactor);
+            var von1 = otherNeighbor1.GetCornerByFaceId(tile.HexFaceIds[i1],
+                _radius + otherNeighbor1.Height, HexMetrics.SolidFactor);
             TriangulateCorner(e.V1, tile, von1, otherNeighbor1, vn1, neighbor);
         }
 
-        var otherNeighbor2 = tile.GetNeighborsByDirection(c2 - centroid, neighbor.Id)[0];
+        var otherNeighbor2 = tile.GetNeighborsByDirection(i2, neighbor.Id)[0];
         if (tile.Height < otherNeighbor2.Height
             || (Mathf.Abs(tile.Height - otherNeighbor2.Height) < 0.00001f && tile.Id > otherNeighbor2.Id))
         {
             // 连接角落的三角形由周围 3 个地块中最低或者一样高时 Id 最大的生成
-            var onCentroid = otherNeighbor2.GetCentroid(_radius + otherNeighbor2.Height);
-            var con2 = Math3dUtil.ProjectToSphere(c2, _radius + otherNeighbor2.Height);
-            var von2 = onCentroid.Lerp(con2, HexMetrics.SolidFactor);
+            var von2 = otherNeighbor2.GetCornerByFaceId(tile.HexFaceIds[i2],
+                _radius + otherNeighbor2.Height, HexMetrics.SolidFactor);
             TriangulateCorner(e.V4, tile, vn2, neighbor, von2, otherNeighbor2);
         }
     }

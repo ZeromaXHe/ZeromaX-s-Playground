@@ -14,9 +14,11 @@ public partial class HexPlanetManager : Node3D
     [Signal]
     public delegate void NewPlanetGeneratedEventHandler();
 
-    [Export(PropertyHint.Range, "5, 1000")] public float Radius { get; set; } = 10f;
+    [Export(PropertyHint.Range, "5, 1000")]
+    public float Radius { get; set; } = 10f;
+
     [Export(PropertyHint.Range, "1, 100")] public int Divisions { get; set; } = 4;
-    [Export] private Texture2D _noiseSource; 
+    [Export] private Texture2D _noiseSource;
 
     private bool _ready;
     private HexMesh _hexMesh;
@@ -105,7 +107,7 @@ public partial class HexPlanetManager : Node3D
         var surfaceTool = new SurfaceTool();
         surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
         surfaceTool.SetSmoothGroup(uint.MaxValue);
-        var points = tile.GetCorners(Radius * scale, 1f).ToList();
+        var points = tile.GetCorners(Radius * scale).ToList();
         foreach (var p in points)
             surfaceTool.AddVertex(p);
         for (var i = 1; i < points.Count - 1; i++)
@@ -286,8 +288,14 @@ public partial class HexPlanetManager : Node3D
         {
             var faces = center.FaceIds.Select(Face.GetById).ToList();
             if (faces.Count == 0) return faces;
-            var orderedList = new List<Face> { faces[0] };
-            var currentFace = orderedList[0];
+            // 第二个面必须保证和第一个面形成顺时针方向，从而保证所有都是顺时针
+            var second =
+                faces.First(face =>
+                    face.Id != faces[0].Id
+                    && face.IsAdjacentTo(faces[0])
+                    && Math3dUtil.IsRightVSeq(Vector3.Zero, center.Position, faces[0].Center, face.Center));
+            var orderedList = new List<Face> { faces[0], second };
+            var currentFace = orderedList[1];
             while (orderedList.Count < faces.Count)
             {
                 var existingIds = orderedList.Select(face => face.Id).ToList();
