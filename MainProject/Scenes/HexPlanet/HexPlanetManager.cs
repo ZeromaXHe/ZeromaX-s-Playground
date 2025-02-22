@@ -14,10 +14,9 @@ public partial class HexPlanetManager : Node3D
     [Signal]
     public delegate void NewPlanetGeneratedEventHandler();
 
-    [Export(PropertyHint.Range, "5, 1000")]
-    public float Radius { get; set; } = 10f;
-
+    [Export(PropertyHint.Range, "5, 1000")] public float Radius { get; set; } = 10f;
     [Export(PropertyHint.Range, "1, 100")] public int Divisions { get; set; } = 4;
+    [Export] private Texture2D _noiseSource; 
 
     private bool _ready;
     private HexMesh _hexMesh;
@@ -43,6 +42,8 @@ public partial class HexPlanetManager : Node3D
         // 此处要求 OrbitCamera 也是 [Tool]，否则编辑器里会转型失败
         _orbitCamera = GetNode<OrbitCamera>("%OrbitCamera");
         _selectTileViewer = GetNode<MeshInstance3D>("%SelectTileViewer");
+
+        HexMetrics.NoiseSource = _noiseSource.GetImage();
 
         _hexMesh = new HexMesh();
         _meshIns = new MeshInstance3D();

@@ -14,17 +14,32 @@ public class Tile(
     public int Id { get; } = id;
     public int CenterId { get; } = centerId; // 注意，此处对应的是中心点投射到单位球上的 Point id。
     public List<int> HexFaceIds { get; } = hexFaceIds;
+
+    // 单位重心（顶点坐标的算术平均）
+    public Vector3 UnitCentroid { get; } = hexFaceIds
+        .Select(id => Face.GetById(id).Center.Normalized())
+        .Aggregate((v1, v2) => v1 + v2) / hexFaceIds.Count;
+
     public List<int> NeighborCenterIds { get; } = neighborCenterIds;
     public int Elevation { get; set; } = GD.RandRange(0, 10);
     public static float UnitHeight { get; set; } = 1f;
 
     public float Height
     {
-        get => Elevation * UnitHeight;
-        set => Elevation = (int)(value / UnitHeight);
+        get => (Elevation + GetPerturbHeight()) * UnitHeight;
+        set => Elevation = Mathf.Clamp((int)((value - GetPerturbHeight()) / UnitHeight), 0,
+            HexMetrics.ElevationStep);
     }
 
     public Color Color { get; set; } = Color.FromHsv(GD.Randf(), GD.Randf(), GD.Randf());
+
+    private float GetPerturbHeight()
+    {
+        var radius = UnitHeight / HexMetrics.MaxHeightRadiusRatio * HexMetrics.ElevationStep;
+        return HexMetrics.SampleNoise(GetCenter(radius)).Y * 2f * HexMetrics.ElevationPerturbStrength;
+    }
+
+    public Vector3 GetCentroid(float radius) => UnitCentroid * radius;
 
     // 获取地块的形状角落顶点
     public IEnumerable<Vector3> GetCorners(float radius, float size) =>
@@ -59,37 +74,34 @@ public class Tile(
     }
 
     /// <summary>
-    /// 根据中心到两个角落的向量，获取该方向上的邻居。
+    /// 根据重心到两个角落的向量，获取该方向上的邻居。
     /// </summary>
-    /// <param name="dir1">中心到角落向量 1</param>
-    /// <param name="dir2">中心到角落向量 2</param>
+    /// <param name="dir1">重心到角落方向向量 1</param>
+    /// <param name="dir2">重心到角落方向向量 2</param>
     /// <returns>一个共边的邻居</returns>
     public Tile GetNeighborByDirection(Vector3 dir1, Vector3 dir2)
     {
-        var v1 = dir1.Normalized();
-        var v2 = dir2.Normalized();
-        var center = GetCenter(1f);
-        return (from neighbor in GetNeighbors()
-                let commonPoints = GetNeighborCommonCorners(neighbor, 1f)
-                let v3 = (commonPoints[0] - center).Normalized()
-                let v4 = (commonPoints[1] - center).Normalized()
-                // 这里误差有点大，不能用 IsEqualApprox() 判断。打断点看有的误差为 0.03 多，暂时先用 0.05 判定
-                where (v3.DistanceTo(v1) < 0.05f || v3.DistanceTo(v2) < 0.05f)
-                      && (v4.DistanceTo(v1) < 0.05f || v4.DistanceTo(v2) < 0.05f)
-                select neighbor)
-            .FirstOrDefault();
+        // return (from neighbor in GetNeighbors()
+        //         let commonPoints = GetNeighborCommonCorners(neighbor, 1f)
+        //         let v1 = (commonPoints[0] - UnitCentroid).Normalized()
+        //         let v2 = (commonPoints[1] - UnitCentroid).Normalized()
+        //         // 这里误差有点大，不能用 IsEqualApprox() 判断。打断点看有的误差为 0.03 多，暂时先用 0.05 判定
+        //         where (v1.DistanceTo(dir1) < 0.05f || v1.DistanceTo(dir2) < 0.05f)
+        //               && (v2.DistanceTo(dir1) < 0.05f || v2.DistanceTo(dir2) < 0.05f)
+        //         select neighbor)
+        //     .FirstOrDefault();
         // LINQ 暂时不知道怎么调试
-        // foreach (var neighbor in GetNeighbors())
-        // {
-        //     var commonPoints = GetNeighborCommonCorners(neighbor, 1f);
-        //     var v3 = (commonPoints[0] - center).Normalized();
-        //     var v4 = (commonPoints[1] - center).Normalized();
-        //     if ((v3.DistanceTo(v1) < 0.05f || v3.DistanceTo(v2) < 0.05f)
-        //         && (v4.DistanceTo(v1) < 0.05f || v4.DistanceTo(v2) < 0.05f))
-        //         return neighbor;
-        // }
-        //
-        // return null;
+        foreach (var neighbor in GetNeighbors())
+        {
+            var commonPoints = GetNeighborCommonCorners(neighbor, 1f);
+            var v1 = (commonPoints[0] - UnitCentroid).Normalized();
+            var v2 = (commonPoints[1] - UnitCentroid).Normalized();
+            if ((v1.DistanceTo(dir1) < 0.05f || v1.DistanceTo(dir2) < 0.05f)
+                && (v2.DistanceTo(dir1) < 0.05f || v2.DistanceTo(dir2) < 0.05f))
+                return neighbor;
+        }
+        
+        return null;
     }
 
     /// <summary>
@@ -102,17 +114,28 @@ public class Tile(
     {
         var v = dir.Normalized();
         var center = GetCenter(1f);
-        var res = (
-            from neighbor in GetNeighbors()
-            where neighbor.Id != filterNeighborId
-            let commonPoints = GetNeighborCommonCorners(neighbor, 1f)
-            let v1 = (commonPoints[0] - center).Normalized()
-            let v2 = (commonPoints[1] - center).Normalized()
-            where v.DistanceTo(v1) < 0.05f || v.DistanceTo(v2) < 0.05f
-            select neighbor
-        ).ToList();
+        // var res = (
+        //     from neighbor in GetNeighbors()
+        //     where neighbor.Id != filterNeighborId
+        //     let commonPoints = GetNeighborCommonCorners(neighbor, 1f)
+        //     let v1 = (commonPoints[0] - center).Normalized()
+        //     let v2 = (commonPoints[1] - center).Normalized()
+        //     where v.DistanceTo(v1) < 0.2f || v.DistanceTo(v2) < 0.2f
+        //     select neighbor
+        // ).ToList();
+        // LINQ 暂时不知道怎么调试
+        var res = new List<Tile>();
+        foreach (var neighbor in GetNeighbors())
+        {
+            if (neighbor.Id == filterNeighborId) continue;
+            var commonPoints = GetNeighborCommonCorners(neighbor, 1f);
+            var v1 = (commonPoints[0] - center).Normalized();
+            var v2 = (commonPoints[1] - center).Normalized();
+            if (v.DistanceTo(v1) < 0.2f || v.DistanceTo(v2) < 0.2f)
+                res.Add(neighbor);
+        }
         if (res.Count != (filterNeighborId == -1 ? 2 : 1))
-            GD.PrintErr($"Error: tile {Id} has no 2 neighbors with direction {v} and filter {filterNeighborId}");
+            GD.PrintErr($"Error: tile {Id} has {res.Count} neighbors with direction {v} and filter {filterNeighborId}");
         return res;
     }
 

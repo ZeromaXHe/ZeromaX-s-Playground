@@ -59,6 +59,7 @@ public partial class HexPlanetGui : Control
         _colorOptionButton = GetNode<OptionButton>("%ColorOptionButton");
         _elevationVSlider = GetNode<VSlider>("%ElevationVSlider");
 
+        _elevationVSlider.MaxValue = HexMetrics.ElevationStep;
         SelectColor(0);
         UpdateNewPlanetInfo();
         _hexPlanetManager.NewPlanetGenerated += UpdateNewPlanetInfo;
@@ -112,7 +113,7 @@ public partial class HexPlanetGui : Control
         _divisionLineEdit.Text = $"{_hexPlanetManager.Divisions}";
         _tileCountLabel.Text = $"总数：{Tile.GetCount()}";
         ChosenTileId = null;
-        Tile.UnitHeight = _hexPlanetManager.Radius * HexMetrics.MaxHeightRadiusRatio / (float)_elevationVSlider.MaxValue;
+        Tile.UnitHeight = _hexPlanetManager.Radius * HexMetrics.MaxHeightRadiusRatio / HexMetrics.ElevationStep;
     }
 
     public override void _Input(InputEvent @event)
