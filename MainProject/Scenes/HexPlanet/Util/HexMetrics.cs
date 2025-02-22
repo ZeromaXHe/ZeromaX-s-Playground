@@ -48,6 +48,17 @@ public static class HexMetrics
     {
         var x = (int)Mathf.PosMod(u * img.GetWidth(), img.GetWidth());
         var y = (int)Mathf.PosMod(v * img.GetHeight(), img.GetHeight());
+        // 这里现在 Godot（4.3）有 bug 啊，文档说 PosMod 返回 [0, b), 结果我居然取到了 b……
+        if (x == img.GetWidth())
+        {
+            // GD.PrintErr($"WTF! PosMod not working for ({u}, {v}) => ({img.GetWidth()}, {img.GetHeight()}) => ({x}, {y})");
+            x = 0;
+        }
+        if (y == img.GetHeight())
+        {
+            // GD.PrintErr($"WTF! PosMod not working for ({u}, {v}) => ({img.GetWidth()}, {img.GetHeight()}) => ({x}, {y})");
+            y = 0;
+        }
         var color = img.GetPixel(x, y);
         return new Vector4(color.R, color.G, color.B, color.A);
     }

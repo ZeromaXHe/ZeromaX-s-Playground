@@ -15,42 +15,41 @@ public partial class HexPlanetManager : Node3D
     public delegate void NewPlanetGeneratedEventHandler();
 
     [Export(PropertyHint.Range, "5, 1000")]
-    public float Radius { get; set; } = 10f;
+    public float Radius { get; set; } = 100f;
 
-    [Export(PropertyHint.Range, "1, 100")] public int Divisions { get; set; } = 4;
+    [Export(PropertyHint.Range, "1, 100")] public int Divisions { get; set; } = 20;
+    [Export(PropertyHint.Range, "1, 25")] public int ChunkDivisions { get; set; } = 5;
     [Export] private Texture2D _noiseSource;
+    [Export] private PackedScene _gridChunkScene;
 
     private bool _ready;
-    private HexMesh _hexMesh;
-    private MeshInstance3D _meshIns;
 
     private float _oldRadius;
     private int _oldDivisions;
+    private int _oldChunkDivisions;
     private float _lastUpdated;
 
     private readonly HashSet<int> _framePointIds = [];
-    private readonly VpTree<Vector3> _pointVpTree = new();
+    private readonly VpTree<Vector3> _tilePointVpTree = new();
+    private readonly VpTree<Vector3> _chunkPointVpTree = new();
+    private readonly Dictionary<int, HexGridChunk> _gridChunks = new();
 
     private FogVolume _atmosphereFog;
-    private Node3D _tiles;
+    private Node3D _chunks;
     private OrbitCamera _orbitCamera;
     private MeshInstance3D _selectTileViewer;
     private int? _selectTileCenterId;
+    public int SelectViewSize { get; set; }
 
     public override void _Ready()
     {
         _atmosphereFog = GetNode<FogVolume>("%AtmosphereFog");
-        _tiles = GetNode<Node3D>("%Tiles");
+        _chunks = GetNode<Node3D>("%Chunks");
         // 此处要求 OrbitCamera 也是 [Tool]，否则编辑器里会转型失败
         _orbitCamera = GetNode<OrbitCamera>("%OrbitCamera");
         _selectTileViewer = GetNode<MeshInstance3D>("%SelectTileViewer");
 
         HexMetrics.NoiseSource = _noiseSource.GetImage();
-
-        _hexMesh = new HexMesh();
-        _meshIns = new MeshInstance3D();
-        AddChild(_meshIns);
-
         DrawHexasphereMesh();
         _ready = true;
     }
@@ -59,7 +58,9 @@ public partial class HexPlanetManager : Node3D
     {
         _lastUpdated += (float)delta;
         if (!_ready || _lastUpdated < 1f) return;
-        if (Mathf.Abs(_oldRadius - Radius) > 0.001f || _oldDivisions != Divisions)
+        if (Mathf.Abs(_oldRadius - Radius) > 0.001f
+            || _oldDivisions != Divisions
+            || _oldChunkDivisions != ChunkDivisions)
             DrawHexasphereMesh();
         if (!Engine.IsEditorHint())
             UpdateSelectTileViewer();
@@ -72,7 +73,7 @@ public partial class HexPlanetManager : Node3D
         if (position != Vector3.Zero)
         {
             _selectTileViewer.Visible = true;
-            _pointVpTree.Search(position.Normalized(), 1, out var results, out var distances);
+            _tilePointVpTree.Search(position.Normalized(), 1, out var results, out var distances);
             var centerId = Point.GetIdByPosition(results[0]);
             if (centerId != null)
             {
@@ -107,31 +108,30 @@ public partial class HexPlanetManager : Node3D
         var surfaceTool = new SurfaceTool();
         surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
         surfaceTool.SetSmoothGroup(uint.MaxValue);
-        var points = tile.GetCorners(Radius * scale).ToList();
-        foreach (var p in points)
-            surfaceTool.AddVertex(p);
-        for (var i = 1; i < points.Count - 1; i++)
-            AddFaceIndex(surfaceTool, Vector3.Zero, points[0], 0, points[i], i, points[i + 1], i + 1);
-        return surfaceTool.Commit();
-
-        static void AddFaceIndex(SurfaceTool surfaceTool, Vector3 origin, Vector3 v0, int i0, Vector3 v1, int i1,
-            Vector3 v2, int i2)
+        var tiles = tile.GetTilesInDistance(SelectViewSize);
+        var vi = 0;
+        foreach (var t in tiles)
         {
-            var center = (v0 + v1 + v2) / 3f;
-            // 决定缠绕顺序
-            var normal = Math3dUtil.GetNormal(v0, v1, v2);
-            surfaceTool.AddIndex(i0);
-            if (Math3dUtil.IsNormalAwayFromOrigin(center, normal, origin))
-            {
-                surfaceTool.AddIndex(i2);
-                surfaceTool.AddIndex(i1);
-            }
-            else
-            {
-                surfaceTool.AddIndex(i1);
-                surfaceTool.AddIndex(i2);
-            }
+            var points = t.GetCorners(Radius * scale).ToList();
+            foreach (var p in points)
+                surfaceTool.AddVertex(p);
+            for (var i = 1; i < points.Count - 1; i++)
+                if (Math3dUtil.IsRightVSeq(Vector3.Zero, points[0], points[i], points[i + 1]))
+                {
+                    surfaceTool.AddIndex(vi);
+                    surfaceTool.AddIndex(vi + i);
+                    surfaceTool.AddIndex(vi + i + 1);
+                }
+                else
+                {
+                    surfaceTool.AddIndex(vi + 0);
+                    surfaceTool.AddIndex(vi + i + 1);
+                    surfaceTool.AddIndex(vi + i);
+                }
+
+            vi += points.Count;
         }
+        return surfaceTool.Commit();
     }
 
     private Godot.Collections.Dictionary GetTileCollisionResult()
@@ -160,17 +160,19 @@ public partial class HexPlanetManager : Node3D
     {
         var pos = GetTileCollisionPositionUnderCursor();
         if (pos == Vector3.Zero) return null;
-        _pointVpTree.Search(pos.Normalized(), 1, out var results, out var distances);
+        _tilePointVpTree.Search(pos.Normalized(), 1, out var results, out _);
         return Point.GetIdByPosition(results[0]);
     }
 
     private void ClearOldData()
     {
+        Chunk.Truncate();
         Tile.Truncate();
         Point.Truncate();
         Face.Truncate();
         _framePointIds.Clear();
-        foreach (var child in _tiles.GetChildren())
+        _gridChunks.Clear();
+        foreach (var child in _chunks.GetChildren())
             child.QueueFree();
     }
 
@@ -178,14 +180,70 @@ public partial class HexPlanetManager : Node3D
     {
         _oldRadius = Radius;
         _oldDivisions = Divisions;
+        _oldChunkDivisions = ChunkDivisions;
         _lastUpdated = 0f;
         ClearOldData();
         _orbitCamera.Reset(Radius);
-        InitHexasphere();
         _atmosphereFog.Size = Vector3.One * Radius * 2.7f;
-        _pointVpTree.Create(Tile.GetAll().Select(p => Point.GetById(p.CenterId).Position).ToArray(),
-            (p0, p1) => p0.DistanceTo(p1));
+        InitChunks();
+        InitHexasphere();
         EmitSignal(SignalName.NewPlanetGenerated);
+    }
+
+    private void InitChunks()
+    {
+        var time = Time.GetTicksMsec();
+        var points = IcosahedronConstants.Vertices;
+        var indices = IcosahedronConstants.Indices;
+        var framePoints = new List<Vector3>(points);
+        foreach (var v in points)
+            Chunk.Add(v);
+        for (var idx = 0; idx < indices.Count; idx += 3)
+        {
+            var p0 = points[indices[idx]];
+            var p1 = points[indices[idx + 1]];
+            var p2 = points[indices[idx + 2]];
+            var leftSide = Subdivide(p0, p1, ChunkDivisions, true);
+            var rightSide = Subdivide(p0, p2, ChunkDivisions, true);
+            for (var i = 1; i <= ChunkDivisions; i++)
+                Subdivide(leftSide[i], rightSide[i], i, i == ChunkDivisions);
+        }
+
+        _chunkPointVpTree.Create(Chunk.GetAll().Select(c => c.Pos).ToArray(),
+            (p0, p1) => p0.DistanceTo(p1));
+        GD.Print($"InitChunks radius {Radius}, chunkDivisions {ChunkDivisions}, cost: {Time.GetTicksMsec() - time}");
+        return;
+
+        List<Vector3> Subdivide(Vector3 from, Vector3 target, int count, bool checkFrameExist)
+        {
+            var segments = new List<Vector3> { from };
+
+            for (var i = 1; i < count; i++)
+            {
+                // 注意这里用 Slerp 而不是 Lerp，让所有的点都在单位球面而不是单位正二十面体上，方便我们后面 VP 树找最近点
+                var v = from.Slerp(target, (float)i / count);
+                Vector3 newPoint = default;
+                if (checkFrameExist)
+                {
+                    var existingPoint = framePoints.FirstOrDefault(candidatePoint => candidatePoint.IsEqualApprox(v));
+                    if (existingPoint != default)
+                        newPoint = existingPoint;
+                }
+
+                if (newPoint == default)
+                {
+                    newPoint = v;
+                    Chunk.Add(v);
+                    if (checkFrameExist)
+                        framePoints.Add(newPoint);
+                }
+
+                segments.Add(newPoint);
+            }
+
+            segments.Add(target);
+            return segments;
+        }
     }
 
     private void InitHexasphere()
@@ -201,6 +259,12 @@ public partial class HexPlanetManager : Node3D
         ConstructTiles();
         time2 = Time.GetTicksMsec();
         GD.Print($"ConstructTiles cost: {time2 - time} ms");
+        time = time2;
+
+        _tilePointVpTree.Create(Tile.GetAll().Select(p => Point.GetById(p.CenterId).Position).ToArray(),
+            (p0, p1) => p0.DistanceTo(p1));
+        time2 = Time.GetTicksMsec();
+        GD.Print($"_tilePointVpTree Create cost: {time2 - time} ms");
 
         BuildMesh();
     }
@@ -279,7 +343,10 @@ public partial class HexPlanetManager : Node3D
             var neighborCenters = GetNeighbourCenterIds(hexFaces, point)
                 .Select(c => c.Id)
                 .ToList();
-            Tile.Add(point.Id, hexFaces.Select(f => f.Id).ToList(), neighborCenters);
+            _chunkPointVpTree.Search(point.Position, 1, out var results, out _);
+            var chunk = Chunk.GetByPos(results[0]);
+            var tile = Tile.Add(point.Id, chunk.Id, hexFaces.Select(f => f.Id).ToList(), neighborCenters);
+            chunk.TileIds.Add(tile.Id);
         }
 
         return;
@@ -321,14 +388,26 @@ public partial class HexPlanetManager : Node3D
         }
     }
 
-    public void BuildMesh()
+    private void BuildMesh()
     {
         var time = Time.GetTicksMsec();
-        // 清理之前的碰撞体
-        foreach (var child in _meshIns.GetChildren())
-            child.QueueFree();
-        _meshIns.Mesh = _hexMesh.BuildMesh(Radius);
-        _meshIns.CreateTrimeshCollision();
+        for (var i = 0; i < Chunk.GetCount(); i++)
+        {
+            var hexGridChunk = _gridChunkScene.Instantiate<HexGridChunk>();
+            hexGridChunk.Name = $"HexGridChunk{i}";
+            _chunks.AddChild(hexGridChunk); // 必须先加入场景树，否则 _Ready() 还没执行
+            hexGridChunk.Init(i, Radius);
+            _gridChunks.Add(i, hexGridChunk);
+        }
+
         GD.Print($"BuildMesh cost: {Time.GetTicksMsec() - time} ms");
+    }
+
+    public void UpdateMesh(Tile tile)
+    {
+        _gridChunks[tile.ChunkId].BuildMesh();
+        foreach (var neighbor in tile.GetNeighbors())
+            if (neighbor.ChunkId != tile.ChunkId)
+                _gridChunks[neighbor.ChunkId].BuildMesh();
     }
 }

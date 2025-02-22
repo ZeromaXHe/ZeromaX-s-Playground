@@ -32,120 +32,198 @@ render_target_update_mode = 4
 [node name="HexPlanetManager" parent="SubViewportContainer/SubViewport" instance=ExtResource("1_h1pjd")]
 
 [node name="LeftPanel" type="PanelContainer" parent="."]
-custom_minimum_size = Vector2(100, 0)
+custom_minimum_size = Vector2(180, 0)
 layout_mode = 1
 anchors_preset = 9
 anchor_bottom = 1.0
 grow_vertical = 2
 
-[node name="VBox" type="VBoxContainer" parent="LeftPanel"]
+[node name="ScrollContainer" type="ScrollContainer" parent="LeftPanel"]
 layout_mode = 2
+horizontal_scroll_mode = 0
 
-[node name="PlanetLabel" type="Label" parent="LeftPanel/VBox"]
+[node name="VBox" type="VBoxContainer" parent="LeftPanel/ScrollContainer"]
 layout_mode = 2
-text = "星球设置"
-horizontal_alignment = 1
-vertical_alignment = 1
+size_flags_horizontal = 3
 
-[node name="PlanetGrid" type="GridContainer" parent="LeftPanel/VBox"]
+[node name="PlanetTabBar" type="TabBar" parent="LeftPanel/ScrollContainer/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+tab_alignment = 1
+tab_count = 1
+tab_0/title = "星球设置"
+
+[node name="PlanetGrid" type="GridContainer" parent="LeftPanel/ScrollContainer/VBox"]
+unique_name_in_owner = true
 layout_mode = 2
 columns = 2
 
-[node name="RadiusLabel" type="Label" parent="LeftPanel/VBox/PlanetGrid"]
+[node name="RadiusLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/PlanetGrid"]
 layout_mode = 2
 text = "半径："
 
-[node name="RadiusLineEdit" type="LineEdit" parent="LeftPanel/VBox/PlanetGrid"]
+[node name="RadiusLineEdit" type="LineEdit" parent="LeftPanel/ScrollContainer/VBox/PlanetGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "100"
 
-[node name="DivisionLabel" type="Label" parent="LeftPanel/VBox/PlanetGrid"]
+[node name="DivisionLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/PlanetGrid"]
 layout_mode = 2
-text = "细分："
+text = "地块细分："
 
-[node name="DivisionLineEdit" type="LineEdit" parent="LeftPanel/VBox/PlanetGrid"]
+[node name="DivisionLineEdit" type="LineEdit" parent="LeftPanel/ScrollContainer/VBox/PlanetGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "20"
 
-[node name="HSeparator" type="HSeparator" parent="LeftPanel/VBox"]
+[node name="ChunkDivisionLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/PlanetGrid"]
+layout_mode = 2
+text = "分块细分："
+
+[node name="ChunkDivisionLineEdit" type="LineEdit" parent="LeftPanel/ScrollContainer/VBox/PlanetGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "2"
+
+[node name="HSeparator" type="HSeparator" parent="LeftPanel/ScrollContainer/VBox"]
 layout_mode = 2
 
-[node name="TileLabel" type="Label" parent="LeftPanel/VBox"]
+[node name="TileTabBar" type="TabBar" parent="LeftPanel/ScrollContainer/VBox"]
+unique_name_in_owner = true
 layout_mode = 2
-text = "地块信息"
+tab_alignment = 1
+tab_count = 1
+tab_0/title = "地块信息"
+
+[node name="TileVBox" type="VBoxContainer" parent="LeftPanel/ScrollContainer/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ChunkCountLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/TileVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "分块总数：999"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="TileCountLabel" type="Label" parent="LeftPanel/VBox"]
+[node name="TileCountLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/TileVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "总数: 9999"
+text = "地块总数：9999"
 horizontal_alignment = 1
 
-[node name="TileGrid" type="GridContainer" parent="LeftPanel/VBox"]
+[node name="TileGrid" type="GridContainer" parent="LeftPanel/ScrollContainer/VBox"]
+unique_name_in_owner = true
 layout_mode = 2
 columns = 2
 
-[node name="IdLabel" type="Label" parent="LeftPanel/VBox/TileGrid"]
+[node name="IdLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
 layout_mode = 2
 text = "ID："
 
-[node name="IdLineEdit" type="LineEdit" parent="LeftPanel/VBox/TileGrid"]
+[node name="IdLineEdit" type="LineEdit" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 text = "9999"
 editable = false
 
-[node name="HeightLabel" type="Label" parent="LeftPanel/VBox/TileGrid"]
+[node name="ChunkLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+layout_mode = 2
+text = "所属分块："
+
+[node name="ChunkLineEdit" type="LineEdit" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "99"
+editable = false
+
+[node name="HeightLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
 layout_mode = 2
 text = "高度："
 
-[node name="HeightLineEdit" type="LineEdit" parent="LeftPanel/VBox/TileGrid"]
+[node name="HeightLineEdit" type="LineEdit" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "0"
 
-[node name="HSeparator2" type="HSeparator" parent="LeftPanel/VBox"]
+[node name="ElevationLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+layout_mode = 2
+text = "高程："
+
+[node name="ElevationLineEdit" type="LineEdit" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0"
+editable = false
+
+[node name="HSeparator2" type="HSeparator" parent="LeftPanel/ScrollContainer/VBox"]
 layout_mode = 2
 
-[node name="EditLabel" type="Label" parent="LeftPanel/VBox"]
+[node name="EditTabBar" type="TabBar" parent="LeftPanel/ScrollContainer/VBox"]
+unique_name_in_owner = true
 layout_mode = 2
-text = "编辑"
-horizontal_alignment = 1
-vertical_alignment = 1
+tab_alignment = 1
+tab_count = 1
+tab_0/title = "编辑功能"
 
-[node name="EditGrid" type="GridContainer" parent="LeftPanel/VBox"]
+[node name="EditGrid" type="GridContainer" parent="LeftPanel/ScrollContainer/VBox"]
+unique_name_in_owner = true
 layout_mode = 2
 columns = 2
 
-[node name="ColorLabel" type="Label" parent="LeftPanel/VBox/EditGrid"]
+[node name="ColorLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
 layout_mode = 2
 text = "颜色："
 
-[node name="ColorOptionButton" type="OptionButton" parent="LeftPanel/VBox/EditGrid"]
+[node name="ColorOptionButton" type="OptionButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 selected = 0
-item_count = 4
-popup/item_0/text = "黄色"
-popup/item_1/text = "绿色"
+item_count = 5
+popup/item_0/text = "---"
+popup/item_1/text = "黄色"
 popup/item_1/id = 1
-popup/item_2/text = "蓝色"
+popup/item_2/text = "绿色"
 popup/item_2/id = 2
-popup/item_3/text = "白色"
+popup/item_3/text = "蓝色"
 popup/item_3/id = 3
+popup/item_4/text = "白色"
+popup/item_4/id = 4
 
-[node name="ElevationLabel" type="Label" parent="LeftPanel/VBox/EditGrid"]
+[node name="ElevationLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
 layout_mode = 2
-text = "高度："
+text = "高程："
 
-[node name="ElevationVSlider" type="VSlider" parent="LeftPanel/VBox/EditGrid"]
+[node name="ElevationVSlider" type="VSlider" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 size_flags_horizontal = 4
 max_value = 10.0
-tick_count = 10
+tick_count = 11
+ticks_on_borders = true
+
+[node name="ElevationCheckButton" type="CheckButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "高程开关"
+
+[node name="ElevationValueLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BrushLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "笔刷大小：0"
+
+[node name="BrushHSlider" type="HSlider" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+max_value = 4.0
+tick_count = 5
 ticks_on_borders = true

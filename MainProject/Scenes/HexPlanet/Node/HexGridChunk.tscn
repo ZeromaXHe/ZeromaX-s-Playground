@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=3 uid="uid://b31wafba56bca"]
+
+[ext_resource type="Script" path="res://Scenes/HexPlanet/Node/HexGridChunk.cs" id="1_tueog"]
+[ext_resource type="PackedScene" uid="uid://c3gfjhdjv65f7" path="res://Scenes/HexPlanet/Node/HexMesh.tscn" id="2_yhs87"]
+
+[node name="HexGridChunk" type="Node3D"]
+script = ExtResource("1_tueog")
+
+[node name="HexMesh" parent="." instance=ExtResource("2_yhs87")]
+unique_name_in_owner = true

@@ -1,12 +1,15 @@
+using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Enum;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Struct;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
-namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
+namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 
-public class HexMesh
+[Tool]
+public partial class HexMesh: MeshInstance3D
 {
     private readonly SurfaceTool _surfaceTool = new();
     private int _vIdx;
@@ -14,18 +17,22 @@ public class HexMesh
 
     private float _radius;
 
-    public Mesh BuildMesh(float radius)
+    public void BuildMesh(float radius, IEnumerable<Tile> tiles)
     {
         _radius = radius;
         _vIdx = 0;
+        // 清理之前的碰撞体
+        foreach (var child in GetChildren())
+            child.QueueFree();
         _surfaceTool.Clear();
         _surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
         _surfaceTool.SetSmoothGroup(uint.MaxValue);
-        foreach (var tile in Tile.GetAll())
+        foreach (var tile in tiles)
             Triangulate(tile);
         _surfaceTool.GenerateNormals();
         _surfaceTool.SetMaterial(DefaultMaterial);
-        return _surfaceTool.Commit();
+        Mesh = _surfaceTool.Commit();
+        CreateTrimeshCollision();
     }
 
     private void Triangulate(Tile tile)

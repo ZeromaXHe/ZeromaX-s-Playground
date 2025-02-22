@@ -7,11 +7,13 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 
 public class Tile(
     int centerId,
+    int chunkId,
     List<int> hexFaceIds,
     List<int> neighborCenterIds,
     int id = -1)
 {
     public int Id { get; } = id;
+    public int ChunkId { get; } = chunkId;
     public int CenterId { get; } = centerId; // 注意，此处对应的是中心点投射到单位球上的 Point id。
     public List<int> HexFaceIds { get; } = hexFaceIds; // 已确保顺序为顺时针方向
 
@@ -40,7 +42,7 @@ public class Tile(
     }
 
     public Vector3 GetCentroid(float radius) => UnitCentroid * radius;
-    
+
     // 获取地块的形状角落顶点（顺时针顺序）
     public IEnumerable<Vector3> GetCorners(float radius, float size = 1f) =>
         from faceId in HexFaceIds
@@ -52,11 +54,31 @@ public class Tile(
 
     public Vector3 GetCorner(int idx, float radius = 1f, float size = 1f) =>
         Math3dUtil.ProjectToSphere(UnitCentroid.Lerp(Face.GetById(HexFaceIds[idx]).Center, size), radius);
+
     public Vector3 GetCornerByFaceId(int id, float radius = 1f, float size = 1f) =>
         Math3dUtil.ProjectToSphere(UnitCentroid.Lerp(Face.GetById(id).Center, size), radius);
 
     public Vector3 GetCenter(float radius) => Math3dUtil.ProjectToSphere(Point.GetById(CenterId).Position, radius);
     public IEnumerable<Tile> GetNeighbors() => NeighborCenterIds.Select(GetByCenterId);
+
+    public IEnumerable<Tile> GetTilesInDistance(int dist)
+    {
+        if (dist == 0) return [this];
+        HashSet<Tile> resultSet = [this];
+        List<Tile> preRing = [this];
+        List<Tile> afterRing = [];
+        for (var i = 0; i < dist; i++)
+        {
+            afterRing.AddRange(
+                from tile in preRing
+                from neighbor in tile.GetNeighbors()
+                where resultSet.Add(neighbor)
+                select neighbor);
+            (preRing, afterRing) = (afterRing, preRing);
+            afterRing.Clear();
+        }
+        return resultSet;
+    }
 
     public List<Vector3> GetNeighborCommonCorners(Tile neighbor, float radius = 1f)
     {
@@ -139,9 +161,9 @@ public class Tile(
         CenterIdIndex.Clear();
     }
 
-    public static Tile Add(int centerId, List<int> hexFaceIds, List<int> neighborCenterIds)
+    public static Tile Add(int centerId, int chunkId, List<int> hexFaceIds, List<int> neighborCenterIds)
     {
-        var tile = new Tile(centerId, hexFaceIds, neighborCenterIds, Repo.Count);
+        var tile = new Tile(centerId, chunkId, hexFaceIds, neighborCenterIds, Repo.Count);
         Repo.Add(tile.Id, tile);
         CenterIdIndex.Add(centerId, tile.Id);
         return tile;
