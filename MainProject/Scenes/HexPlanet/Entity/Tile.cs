@@ -22,6 +22,7 @@ public class Tile(
         .Select(id => Face.GetById(id).Center.Normalized())
         .Aggregate((v1, v2) => v1 + v2) / hexFaceIds.Count;
 
+    // 已确保顺序和 HexFaceIds 对应，每个邻居共边的顶点是 HexFaceIds[i] 和 HexFaceIds[(i + 1) % HexFaceIds.Count]
     public List<int> NeighborCenterIds { get; } = neighborCenterIds;
     public int Elevation { get; set; } = GD.RandRange(0, 10);
     public static float UnitHeight { get; set; } = 1f;
@@ -61,6 +62,9 @@ public class Tile(
     public Vector3 GetCenter(float radius) => Math3dUtil.ProjectToSphere(Point.GetById(CenterId).Position, radius);
     public IEnumerable<Tile> GetNeighbors() => NeighborCenterIds.Select(GetByCenterId);
 
+    public Tile GetNeighborByIdx(int idx) =>
+        idx >= 0 && idx < NeighborCenterIds.Count ? GetByCenterId(NeighborCenterIds[idx]) : null;
+
     public IEnumerable<Tile> GetTilesInDistance(int dist)
     {
         if (dist == 0) return [this];
@@ -77,26 +81,19 @@ public class Tile(
             (preRing, afterRing) = (afterRing, preRing);
             afterRing.Clear();
         }
+
         return resultSet;
     }
 
     public List<Vector3> GetNeighborCommonCorners(Tile neighbor, float radius = 1f)
     {
-        var commonPoints = new List<Vector3>();
-        var neighborPoints = neighbor.GetCorners(radius);
-        var points = GetCorners(radius).ToList();
-        foreach (var np in neighborPoints)
-        {
-            foreach (var p in points.Where(p => p.IsEqualApprox(np)))
-            {
-                commonPoints.Add(p);
-                break;
-            }
-        }
-
-        if (commonPoints.Count == 2) return commonPoints;
-        GD.PrintErr($"Error: tile {Id} has no 2 common points with neighbor {neighbor.Id}");
-        return null;
+        var idx = NeighborCenterIds.FindIndex(ncId => ncId == neighbor.CenterId);
+        if (idx == -1) return null;
+        return
+        [
+            GetCorner(idx, radius),
+            GetCorner((idx + 1) % HexFaceIds.Count, radius)
+        ];
     }
 
     /// <summary>
@@ -107,20 +104,8 @@ public class Tile(
     /// <returns>一个共边的邻居</returns>
     public Tile GetNeighborByDirection(int idx1, int idx2)
     {
-        var dir1 = UnitCentroid.DirectionTo(GetCorner(idx1));
-        var dir2 = UnitCentroid.DirectionTo(GetCorner(idx2));
-        // LINQ 暂时不知道怎么调试
-        foreach (var neighbor in GetNeighbors())
-        {
-            var commonPoints = GetNeighborCommonCorners(neighbor);
-            var v1 = UnitCentroid.DirectionTo(commonPoints[0]);
-            var v2 = UnitCentroid.DirectionTo(commonPoints[1]);
-            if ((v1.IsEqualApprox(dir1) || v1.IsEqualApprox(dir2))
-                && (v2.IsEqualApprox(dir1) || v2.IsEqualApprox(dir2)))
-                return neighbor;
-        }
-
-        return null;
+        if (idx2 == (idx1 + 1) % HexFaceIds.Count) return GetNeighborByIdx(idx2);
+        return idx1 == (idx2 + 1) % HexFaceIds.Count ? GetNeighborByIdx(idx1) : null;
     }
 
     /// <summary>
@@ -131,22 +116,13 @@ public class Tile(
     /// <returns>两个共角落的邻居（如果过滤，则为一个）</returns>
     public List<Tile> GetNeighborsByDirection(int idx, int filterNeighborId = -1)
     {
-        var dir = UnitCentroid.DirectionTo(GetCorner(idx));
         var res = new List<Tile>();
-        // LINQ 暂时不知道怎么调试
-        foreach (var neighbor in GetNeighbors())
-        {
-            if (neighbor.Id == filterNeighborId) continue;
-            var commonPoints = GetNeighborCommonCorners(neighbor);
-            var v1 = UnitCentroid.DirectionTo(commonPoints[0]);
-            var v2 = UnitCentroid.DirectionTo(commonPoints[1]);
-            if (dir.IsEqualApprox(v1) || dir.IsEqualApprox(v2))
-                res.Add(neighbor);
-        }
-
-        if (res.Count != (filterNeighborId == -1 ? 2 : 1))
-            GD.PrintErr(
-                $"Error: tile {Id} has {res.Count} neighbors with direction {dir} and filter {filterNeighborId}");
+        var neighbor1 = GetNeighborByIdx(idx);
+        var neighbor2 = GetNeighborByIdx(idx == HexFaceIds.Count - 1 ? 0 : idx + 1);
+        if (neighbor1.Id != filterNeighborId)
+            res.Add(neighbor1);
+        if (neighbor2.Id != filterNeighborId)
+            res.Add(neighbor2);
         return res;
     }
 

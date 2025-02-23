@@ -12,14 +12,15 @@ public class Face(Vector3 center, int id = -1)
     public int Id { get; } = id;
     public List<int> PointIds;
     
+    // 按照顺时针方向返回三角形上的在指定顶点后的另外两个顶点
     public IEnumerable<Point> GetOtherPoints(Point point)
     {
         if (PointIds.All(facePointId => facePointId != point.Id))
             throw new ArgumentException("Given point must be one of the points on the face!");
 
-        return PointIds
-            .Where(pId => pId != point.Id)
-            .Select(Point.GetById);
+        var idx = PointIds.FindIndex(pId => pId == point.Id);
+        yield return Point.GetById(PointIds[(idx + 1) % 3]);
+        yield return Point.GetById(PointIds[(idx + 2) % 3]);
     }
     
     public bool IsAdjacentTo(Face face) => PointIds.Intersect(face.PointIds).Count() == 2;
@@ -33,11 +34,9 @@ public class Face(Vector3 center, int id = -1)
     public static Face Add(Point p0, Point p1, Point p2)
     {
         var center = (p0.Position + p1.Position + p2.Position) / 3f;
-        // 决定缠绕顺序
-        var normal = Math3dUtil.GetNormal(p0.Position, p1.Position, p2.Position);
-        List<int> pointIds = Math3dUtil.IsNormalAwayFromOrigin(center, normal, Vector3.Zero)
-            ? [p0.Id, p2.Id, p1.Id]
-            : [p0.Id, p1.Id, p2.Id];
+        List<int> pointIds = Math3dUtil.IsRightVSeq(Vector3.Zero, p0.Position, p1.Position, p2.Position)
+            ? [p0.Id, p1.Id, p2.Id]
+            : [p0.Id, p2.Id, p1.Id];
         
         var face = new Face(center, Repo.Count);
         Repo.Add(face.Id, face);

@@ -20,7 +20,7 @@ public static class Math3dUtil
         return p * projectionPoint * scale;
     }
 
-    // 判断是否 v0, v1, v2 的顺序是合适的缠绕方向
+    // 判断是否 v0, v1, v2 的顺序是合适的缠绕方向（正面顺时针）
     public static bool IsRightVSeq(Vector3 origin, Vector3 v0, Vector3 v1, Vector3 v2)
     {
         var center = (v0 + v1 + v2) / 3f;
