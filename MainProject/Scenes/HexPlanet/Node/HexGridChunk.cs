@@ -1,24 +1,22 @@
 using Godot;
+using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 
 [Tool]
 public partial class HexGridChunk : Node3D
 {
-    private HexMesh _hexMesh;
+    [Export] private HexMesh _terrain;
+    [Export] private HexMesh _rivers;
     private int _id;
     private float _radius;
-
-    public override void _Ready()
-    {
-        _hexMesh = GetNode<HexMesh>("%HexMesh");
-    }
 
     public void Init(int id, float radius)
     {
         _id = id;
         _radius = radius;
-        BuildMesh();
+        Refresh();
     }
 
     public override void _Process(double delta)
@@ -26,12 +24,16 @@ public partial class HexGridChunk : Node3D
         if (_id > 0)
         {
             var time = Time.GetTicksMsec();
-            _hexMesh.BuildMesh(_radius, _id);
+            _terrain.Clear();
+            _rivers.Clear();
+            Context.GetBean<IHexMeshService>().Triangulate(_radius, _id, _terrain, _rivers);
+            _terrain.Apply();
+            _rivers.Apply();
             GD.Print($"Chunk {_id} BuildMesh cost: {Time.GetTicksMsec() - time} ms");
         }
 
         SetProcess(false);
     }
 
-    public void BuildMesh() => SetProcess(true);
+    public void Refresh() => SetProcess(true);
 }

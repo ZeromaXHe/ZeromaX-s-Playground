@@ -10,6 +10,8 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 
 public class ChunkService(IChunkRepo chunkRepo) : IChunkService
 {
+    public event IChunkService.RefreshChunkEvent RefreshChunk;
+    public void Refresh(Chunk chunk) => RefreshChunk?.Invoke(chunk.Id);
     #region 透传存储库方法
 
     public Chunk GetById(int id) => chunkRepo.GetById(id);

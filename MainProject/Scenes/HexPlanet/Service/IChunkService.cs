@@ -6,6 +6,11 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 
 public interface IChunkService
 {
+    delegate void RefreshChunkEvent(int id);
+
+    event RefreshChunkEvent RefreshChunk;
+    void Refresh(Chunk chunk);
+
     #region 透传存储库方法
 
     Chunk GetById(int id);
@@ -13,6 +18,7 @@ public interface IChunkService
     IEnumerable<Chunk> GetAll();
 
     #endregion
+
     // 最近邻搜索
     Chunk SearchNearest(Vector3 pos);
     int GetChunkCount();

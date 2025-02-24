@@ -6,6 +6,8 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 public static class HexMetrics
 {
+    public const float OuterToInner = 0.8660254037f; // √3/2 = 0.8660254037f
+    public const float InnerToOuter = 1f / OuterToInner;
     public const float SolidFactor = 0.8f;
     public const float BlendFactor = 1f - SolidFactor;
 
@@ -73,10 +75,10 @@ public static class HexMetrics
     public static Vector4 SampleNoise(Vector3 position) =>
         GetPixelBilinear(NoiseSource,
             (position.X - position.Y * 0.5f - position.Z * 0.5f) * NoiseScale,
-            (position.Y - position.Z) * 0.8660254037f * NoiseScale); // √3/2 = 0.8660254037f
+            (position.Y - position.Z) * OuterToInner * NoiseScale);
 
     private const float CellPerturbStrength = 4f;
-    public const float ElevationPerturbStrength = 1.5f;
+    public const float ElevationPerturbStrength = 0.5f;
 
     // 球面的扰动逻辑
     public static Vector3 Perturb(Vector3 position)
@@ -90,4 +92,7 @@ public static class HexMetrics
         var z = vecZ * (sample.Z * 2f - 1f) * CellPerturbStrength;
         return position + x + z;
     }
+
+    public const float StreamBedElevationOffset = -1.75f;
+    public const float RiverSurfaceElevationOffset = -0.5f;
 }

@@ -1,8 +1,8 @@
-using Godot;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node.Interface;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 
 public interface IHexMeshService
 {
-    Mesh BuildMesh(float radius, int chunkId);
+    void Triangulate(float radius, int chunkId, IHexMesh terrain, IHexMesh rivers);
 }

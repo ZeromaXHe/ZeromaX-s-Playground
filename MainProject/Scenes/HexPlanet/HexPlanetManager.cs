@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
@@ -74,12 +73,13 @@ public partial class HexPlanetManager : Node3D
         _faceService = Context.GetBean<IFaceService>();
         _pointService = Context.GetBean<IPointService>();
         _selectViewService = Context.GetBean<ISelectViewService>();
+        _chunkService.RefreshChunk += id => _gridChunks[id].Refresh();
     }
 
     public override void _Process(double delta)
     {
         _lastUpdated += (float)delta;
-        if (!_ready || _lastUpdated < 1f) return;
+        if (!_ready || _lastUpdated < 0.1f) return; // 每 0.1s 更新一次
         if (Mathf.Abs(_oldRadius - Radius) > 0.001f
             || _oldDivisions != Divisions
             || _oldChunkDivisions != ChunkDivisions)
@@ -178,13 +178,5 @@ public partial class HexPlanetManager : Node3D
         }
 
         GD.Print($"BuildMesh cost: {Time.GetTicksMsec() - time} ms");
-    }
-
-    public void UpdateMesh(Tile tile)
-    {
-        _gridChunks[tile.ChunkId].BuildMesh();
-        foreach (var neighbor in _tileService.GetNeighbors(tile))
-            if (neighbor.ChunkId != tile.ChunkId)
-                _gridChunks[neighbor.ChunkId].BuildMesh();
     }
 }

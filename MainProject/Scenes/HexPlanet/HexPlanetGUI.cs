@@ -8,6 +8,13 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 
 public partial class HexPlanetGui : Control
 {
+    enum OptionalToggle
+    {
+        Ignore,
+        Yes,
+        No
+    }
+
     [Export] private HexPlanetManager _hexPlanetManager;
     [Export] private Color[] _colors;
 
@@ -42,6 +49,7 @@ public partial class HexPlanetGui : Control
     private Label _elevationValueLabel;
     private Label _brushLabel;
     private HSlider _brushHSlider;
+    private OptionButton _riverOptionButton;
 
     #endregion
 
@@ -58,6 +66,7 @@ public partial class HexPlanetGui : Control
     private bool _applyElevation;
     private int _activeElevation;
     private int _brushSize;
+    private OptionalToggle _riverMode;
 
     private int? _chosenTileId;
 
@@ -87,6 +96,10 @@ public partial class HexPlanetGui : Control
         }
     }
 
+    private bool _isDrag;
+    private Tile _dragTile;
+    private Tile _previousTile;
+
     public override void _Ready()
     {
         _subViewportContainer = GetNode<SubViewportContainer>("%SubViewportContainer");
@@ -115,6 +128,7 @@ public partial class HexPlanetGui : Control
         _elevationValueLabel = GetNode<Label>("%ElevationValueLabel");
         _brushLabel = GetNode<Label>("%BrushLabel");
         _brushHSlider = GetNode<HSlider>("%BrushHSlider");
+        _riverOptionButton = GetNode<OptionButton>("%RiverOptionButton");
 
         _tileService = Context.GetBean<ITileService>();
         _chunkService = Context.GetBean<IChunkService>();
@@ -169,7 +183,6 @@ public partial class HexPlanetGui : Control
                     var tile = _tileService.GetById(chosenTileId);
                     if (Mathf.Abs(height - _tileService.GetHeight(tile)) < 0.0001f) return;
                     _tileService.SetHeight(tile, height);
-                    _hexPlanetManager.UpdateMesh(tile);
                 }
                 else _heightLineEdit.Text = $"{_tileService.GetHeightById(chosenTileId):F2}";
             }
@@ -196,6 +209,7 @@ public partial class HexPlanetGui : Control
         _elevationVSlider.ValueChanged += SetElevation;
         _elevationCheckButton.Toggled += SetApplyElevation;
         _brushHSlider.ValueChanged += SetBrushSize;
+        _riverOptionButton.ItemSelected += SetRiverMode;
     }
 
     private void SelectColor(long index)
@@ -222,6 +236,8 @@ public partial class HexPlanetGui : Control
         _brushLabel.Text = $"笔刷大小：{_brushSize}";
     }
 
+    private void SetRiverMode(long mode) => _riverMode = (OptionalToggle)mode;
+
     private void UpdateNewPlanetInfo()
     {
         _radiusLineEdit.Text = $"{_hexPlanetManager.Radius:F2}";
@@ -233,16 +249,34 @@ public partial class HexPlanetGui : Control
         _tileService.UnitHeight = _hexPlanetManager.Radius * HexMetrics.MaxHeightRadiusRatio / HexMetrics.ElevationStep;
     }
 
-    public override void _Input(InputEvent @event)
+    public override void _Process(double delta)
     {
-        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }
-            && GetViewport().GuiGetHoveredControl() == _subViewportContainer)
+        if (Input.IsMouseButtonPressed(MouseButton.Left) &&
+            GetViewport().GuiGetHoveredControl() == _subViewportContainer)
         {
             // 在 SubViewportContainer 上按下鼠标左键时，获取鼠标位置地块并更新
             ChosenTileId = _hexPlanetManager.GetTileIdUnderCursor();
             if (ChosenTileId != null)
-                EditTiles(_tileService.GetById((int)ChosenTileId));
+            {
+                var currentTile = _tileService.GetById((int)ChosenTileId);
+                if (_previousTile != null && _previousTile != currentTile)
+                    ValidateDrag(currentTile);
+                else
+                    _isDrag = false;
+                EditTiles(currentTile);
+                _previousTile = currentTile;
+            }
+            else
+                _previousTile = null;
         }
+        else
+            _previousTile = null;
+    }
+
+    private void ValidateDrag(Tile currentTile)
+    {
+        _dragTile = currentTile;
+        _isDrag = _tileService.IsNeighbor(currentTile, _previousTile);
     }
 
     private void EditTiles(Tile tile)
@@ -254,21 +288,14 @@ public partial class HexPlanetGui : Control
 
     private void EditTile(Tile tile)
     {
-        var changed = false;
-        if (_applyColor && _activeColor != tile.Color)
-        {
-            tile.Color = _activeColor;
-            changed = true;
-        }
-
-        if (_applyElevation && _activeElevation != tile.Elevation)
-        {
-            tile.Elevation = _activeElevation;
-            changed = true;
-        }
-
-        if (changed)
-            _hexPlanetManager.UpdateMesh(tile);
+        if (_applyColor)
+            _tileService.SetColor(tile, _activeColor);
+        if (_applyElevation)
+            _tileService.SetElevation(tile, _activeElevation);
+        if (_riverMode == OptionalToggle.No)
+            _tileService.RemoveRiver(tile);
+        else if (_isDrag && _riverMode == OptionalToggle.Yes)
+            _tileService.SetOutgoingRiver(_previousTile, _dragTile);
         ChosenTileId = tile.Id; // 刷新 GUI 地块信息
     }
 }

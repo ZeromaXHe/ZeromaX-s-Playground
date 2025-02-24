@@ -1,10 +1,33 @@
-[gd_scene load_steps=3 format=3 uid="uid://b31wafba56bca"]
+[gd_scene load_steps=7 format=3 uid="uid://b31wafba56bca"]
 
 [ext_resource type="Script" path="res://Scenes/HexPlanet/Node/HexGridChunk.cs" id="1_tueog"]
 [ext_resource type="PackedScene" uid="uid://c3gfjhdjv65f7" path="res://Scenes/HexPlanet/Node/HexMesh.tscn" id="2_yhs87"]
+[ext_resource type="Shader" path="res://Shaders/HexPlanet/River.gdshader" id="3_8fnhi"]
+[ext_resource type="Texture2D" uid="uid://c6n6jlweg0ly3" path="res://Assets/HexPlanet/Noise/noise.png" id="4_0ithq"]
 
-[node name="HexGridChunk" type="Node3D"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jly83"]
+vertex_color_use_as_albedo = true
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_15o55"]
+render_priority = 0
+shader = ExtResource("3_8fnhi")
+shader_parameter/color = Color(0.25098, 0.411765, 1, 0.25098)
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+shader_parameter/main_tex = ExtResource("4_0ithq")
+
+[node name="HexGridChunk" type="Node3D" node_paths=PackedStringArray("_terrain", "_rivers")]
 script = ExtResource("1_tueog")
+_terrain = NodePath("Terrain")
+_rivers = NodePath("Rivers")
 
-[node name="HexMesh" parent="." instance=ExtResource("2_yhs87")]
+[node name="Terrain" parent="." instance=ExtResource("2_yhs87")]
 unique_name_in_owner = true
+material_override = SubResource("StandardMaterial3D_jly83")
+UseCollider = true
+UseColor = true
+
+[node name="Rivers" parent="." instance=ExtResource("2_yhs87")]
+unique_name_in_owner = true
+material_override = SubResource("ShaderMaterial_15o55")
+UseUvCoordinates = true

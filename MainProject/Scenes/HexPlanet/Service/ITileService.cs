@@ -14,6 +14,14 @@ public interface ITileService
 
     #endregion
 
+    #region 修改 Tile 属性的方法（相当于 Update）
+
+    void SetHeight(Tile tile, float height);
+    void SetElevation(Tile tile, int elevation);
+    void SetColor(Tile tile, Color color);
+
+    #endregion
+
     // 最近邻搜索 Tile id
     int? SearchNearestTileId(Vector3 pos);
 
@@ -21,7 +29,6 @@ public interface ITileService
     float UnitHeight { get; set; }
     float GetHeight(Tile tile);
     float GetHeightById(int id);
-    float SetHeight(Tile tile, float height);
     void ClearData();
 
     // 初始化地块
@@ -31,9 +38,11 @@ public interface ITileService
     IEnumerable<Vector3> GetCorners(Tile tile, float radius, float size = 1f);
     Vector3 GetCorner(Tile tile, int idx, float radius = 1f, float size = 1f);
     Vector3 GetCornerByFaceId(Tile tile, int id, float radius = 1f, float size = 1f);
+    Vector3 GetCornerMiddle(Tile tile, int i1, int i2, float radius = 1f, float size = 1f);
     Vector3 GetCenter(Tile tile, float radius);
     IEnumerable<Tile> GetNeighbors(Tile tile);
     Tile GetNeighborByIdx(Tile tile, int idx);
+    bool IsNeighbor(Tile tile1, Tile tile2);
     IEnumerable<Tile> GetTilesInDistance(Tile tile, int dist);
     List<Vector3> GetNeighborCommonCorners(Tile tile, Tile neighbor, float radius = 1f);
 
@@ -54,4 +63,10 @@ public interface ITileService
     /// <param name="filterNeighborId">需要过滤掉（不返回）的邻居 id</param>
     /// <returns>两个共角落的邻居（如果过滤，则为一个）</returns>
     List<Tile> GetNeighborsByDirection(Tile tile, int idx, int filterNeighborId = -1);
+
+    void RemoveRiver(Tile tile);
+    void SetOutgoingRiver(Tile tile, Tile riverToTile);
+    float GetStreamBedHeight(Tile tile);
+    bool HasRiverThroughEdge(Tile tile, int i1, int i2);
+    float GetRiverSurfaceHeight(Tile tile);
 }

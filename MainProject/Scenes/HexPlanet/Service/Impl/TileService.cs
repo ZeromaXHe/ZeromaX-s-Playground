@@ -14,6 +14,16 @@ public class TileService(
     IFaceRepo faceRepo,
     IPointRepo pointRepo) : ITileService
 {
+    private void Refresh(Tile tile)
+    {
+        chunkService.Refresh(chunkService.GetById(tile.ChunkId));
+        foreach (var neighbor in GetNeighbors(tile))
+            if (neighbor.ChunkId != tile.ChunkId)
+                chunkService.Refresh(chunkService.GetById(neighbor.ChunkId));
+    }
+
+    private void RefreshSelfOnly(Tile tile) => chunkService.Refresh(chunkService.GetById(tile.ChunkId));
+
     #region 透传存储库方法
 
     public Tile GetById(int id) => tileRepo.GetById(id);
@@ -22,8 +32,33 @@ public class TileService(
 
     #endregion
 
-    // 仿 setter 注入写法：
-    // private readonly Lazy<ITileRepo> _tileRepo = new(() => (ITileRepo)Context.GetBean(Singleton.TileRepo));
+    #region 修改 Tile 属性的方法（相当于 Update）
+
+    public void SetHeight(Tile tile, float height) =>
+        SetElevation(tile,
+            Mathf.Clamp((int)((height - GetPerturbHeight(tile)) / UnitHeight),
+                0, HexMetrics.ElevationStep));
+
+    public void SetElevation(Tile tile, int elevation)
+    {
+        if (tile.Elevation == elevation) return;
+        tile.Elevation = elevation;
+        if (tile.HasOutgoingRiver && tile.Elevation < GetById(tile.OutgoingRiverNId).Elevation)
+            RemoveOutgoingRiver(tile);
+        if (tile.HasIncomingRiver && tile.Elevation > GetById(tile.IncomingRiverNId).Elevation)
+            RemoveIncomingRiver(tile);
+        Refresh(tile);
+    }
+
+    public void SetColor(Tile tile, Color color)
+    {
+        if (tile.Color == color) return;
+        tile.Color = color;
+        Refresh(tile);
+    }
+
+    #endregion
+
     private readonly VpTree<Vector3> _tilePointVpTree = new();
 
     public int? SearchNearestTileId(Vector3 pos)
@@ -37,14 +72,11 @@ public class TileService(
     public float GetHeight(Tile tile) => (tile.Elevation + GetPerturbHeight(tile)) * UnitHeight;
     public float GetHeightById(int id) => GetHeight(GetById(id));
 
-    public float SetHeight(Tile tile, float height) =>
-        tile.Elevation = Mathf.Clamp((int)((height - GetPerturbHeight(tile)) / UnitHeight),
-            0, HexMetrics.ElevationStep);
-
     private float GetPerturbHeight(Tile tile)
     {
         var radius = UnitHeight / HexMetrics.MaxHeightRadiusRatio * HexMetrics.ElevationStep;
-        return HexMetrics.SampleNoise(tile.GetCentroid(radius)).Y * 2f * HexMetrics.ElevationPerturbStrength;
+        return (HexMetrics.SampleNoise(tile.GetCentroid(radius)).Y * 2f - 1f)
+               * HexMetrics.ElevationPerturbStrength * UnitHeight;
     }
 
     public void ClearData() => tileRepo.Truncate();
@@ -134,6 +166,13 @@ public class TileService(
     public Vector3 GetCornerByFaceId(Tile tile, int id, float radius = 1f, float size = 1f) =>
         Math3dUtil.ProjectToSphere(tile.UnitCentroid.Lerp(faceRepo.GetById(id).Center, size), radius);
 
+    public Vector3 GetCornerMiddle(Tile tile, int i1, int i2, float radius = 1f, float size = 1f)
+    {
+        var corner1 = GetCorner(tile, i1, radius, size);
+        var corner2 = GetCorner(tile, i2, radius, size);
+        return corner1.Lerp(corner2, 0.5f);
+    }
+
     public Vector3 GetCenter(Tile tile, float radius) =>
         Math3dUtil.ProjectToSphere(pointRepo.GetById(tile.CenterId).Position, radius);
 
@@ -141,6 +180,9 @@ public class TileService(
 
     public Tile GetNeighborByIdx(Tile tile, int idx) =>
         idx >= 0 && idx < tile.NeighborCenterIds.Count ? tileRepo.GetByCenterId(tile.NeighborCenterIds[idx]) : null;
+
+    public bool IsNeighbor(Tile tile1, Tile tile2) =>
+        tile1.NeighborCenterIds.Contains(tile2.CenterId);
 
     public IEnumerable<Tile> GetTilesInDistance(Tile tile, int dist)
     {
@@ -169,25 +211,81 @@ public class TileService(
         return
         [
             GetCorner(tile, idx, radius),
-            GetCorner(tile, (idx + 1) % tile.HexFaceIds.Count, radius)
+            GetCorner(tile, tile.NextIdx(idx), radius)
         ];
     }
 
     public Tile GetNeighborByDirection(Tile tile, int idx1, int idx2)
     {
-        if (idx2 == (idx1 + 1) % tile.HexFaceIds.Count) return GetNeighborByIdx(tile, idx2);
-        return idx1 == (idx2 + 1) % tile.HexFaceIds.Count ? GetNeighborByIdx(tile, idx1) : null;
+        if (idx2 == tile.NextIdx(idx1)) return GetNeighborByIdx(tile, idx2);
+        return idx1 == tile.NextIdx(idx2) ? GetNeighborByIdx(tile, idx1) : null;
     }
 
     public List<Tile> GetNeighborsByDirection(Tile tile, int idx, int filterNeighborId = -1)
     {
         var res = new List<Tile>();
         var neighbor1 = GetNeighborByIdx(tile, idx);
-        var neighbor2 = GetNeighborByIdx(tile, idx == tile.HexFaceIds.Count - 1 ? 0 : idx + 1);
+        var neighbor2 = GetNeighborByIdx(tile, tile.NextIdx(idx));
         if (neighbor1.Id != filterNeighborId)
             res.Add(neighbor1);
         if (neighbor2.Id != filterNeighborId)
             res.Add(neighbor2);
         return res;
     }
+
+    private void RemoveOutgoingRiver(Tile tile)
+    {
+        if (!tile.HasOutgoingRiver) return;
+        tile.HasOutgoingRiver = false;
+        RefreshSelfOnly(tile);
+        var neighbor = GetById(tile.OutgoingRiverNId);
+        neighbor.HasIncomingRiver = false;
+        RefreshSelfOnly(neighbor);
+    }
+
+    private void RemoveIncomingRiver(Tile tile)
+    {
+        if (!tile.HasIncomingRiver) return;
+        tile.HasIncomingRiver = false;
+        RefreshSelfOnly(tile);
+        var neighbor = GetById(tile.IncomingRiverNId);
+        neighbor.HasOutgoingRiver = false;
+        RefreshSelfOnly(neighbor);
+    }
+
+    public void RemoveRiver(Tile tile)
+    {
+        RemoveOutgoingRiver(tile);
+        RemoveIncomingRiver(tile);
+    }
+
+    public void SetOutgoingRiver(Tile tile, Tile riverToTile)
+    {
+        if (tile.Elevation < riverToTile.Elevation)
+        {
+            GD.Print($"SetOutgoingRiver tile {tile.Id} to {riverToTile.Id} failed because neighbor higher");
+            return;
+        }
+
+        if (tile.HasOutgoingRiver && tile.OutgoingRiverNId == riverToTile.Id) return;
+        GD.Print($"Setting Outgoing River from {tile.Id} to {riverToTile.Id}");
+        RemoveOutgoingRiver(tile);
+        if (tile.HasIncomingRiver && tile.IncomingRiverNId == riverToTile.Id)
+            RemoveIncomingRiver(tile);
+        tile.HasOutgoingRiver = true;
+        tile.OutgoingRiverNId = riverToTile.Id;
+        RefreshSelfOnly(tile);
+        RemoveIncomingRiver(riverToTile);
+        riverToTile.HasIncomingRiver = true;
+        riverToTile.IncomingRiverNId = tile.Id;
+        RefreshSelfOnly(riverToTile);
+    }
+
+    public float GetStreamBedHeight(Tile tile) => (tile.Elevation + HexMetrics.StreamBedElevationOffset) * UnitHeight;
+
+    public bool HasRiverThroughEdge(Tile tile, int i1, int i2) =>
+        tile.HasRiverToNeighbor(GetNeighborByDirection(tile, i1, i2).Id);
+
+    public float GetRiverSurfaceHeight(Tile tile) =>
+        (tile.Elevation + HexMetrics.RiverSurfaceElevationOffset) * UnitHeight;
 }
