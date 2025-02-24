@@ -166,6 +166,7 @@ layout_mode = 2
 tab_alignment = 1
 tab_count = 1
 tab_0/title = "编辑功能"
+tab_0/tooltip = "提示：当编辑功能分页缩起时，即使打开了相关编辑开关，点击地块将不进行任何修改"
 
 [node name="EditGrid" type="GridContainer" parent="LeftPanel/ScrollContainer/VBox"]
 unique_name_in_owner = true

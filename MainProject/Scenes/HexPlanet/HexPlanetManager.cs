@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Constant;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
@@ -39,6 +38,7 @@ public partial class HexPlanetManager : Node3D
     private ITileService _tileService;
     private IFaceService _faceService;
     private IPointService _pointService;
+    private ISelectViewService _selectViewService;
 
     #endregion
 
@@ -51,9 +51,6 @@ public partial class HexPlanetManager : Node3D
 
     #endregion
 
-    private int? _selectTileCenterId;
-    public int SelectViewSize { get; set; }
-
     public override void _Ready()
     {
         _atmosphereFog = GetNode<FogVolume>("%AtmosphereFog");
@@ -61,7 +58,7 @@ public partial class HexPlanetManager : Node3D
         // 此处要求 OrbitCamera 也是 [Tool]，否则编辑器里会转型失败
         _orbitCamera = GetNode<OrbitCamera>("%OrbitCamera");
         _selectTileViewer = GetNode<MeshInstance3D>("%SelectTileViewer");
-        
+
         InitServices();
 
         HexMetrics.NoiseSource = _noiseSource.GetImage();
@@ -76,6 +73,7 @@ public partial class HexPlanetManager : Node3D
         _tileService = Context.GetBean<ITileService>();
         _faceService = Context.GetBean<IFaceService>();
         _pointService = Context.GetBean<IPointService>();
+        _selectViewService = Context.GetBean<ISelectViewService>();
     }
 
     public override void _Process(double delta)
@@ -97,24 +95,9 @@ public partial class HexPlanetManager : Node3D
         if (position != Vector3.Zero)
         {
             _selectTileViewer.Visible = true;
-            var centerId = _tileService.SearchNearestTileId(position.Normalized());
-            if (centerId != null)
-            {
-                if (centerId == _selectTileCenterId)
-                {
-                    // GD.Print($"Same tile! centerId: {centerId}, position: {position}");
-                    return;
-                }
-
-                // GD.Print($"Generating New _selectTileViewer Mesh! {centerId}, position: {position}");
-                _selectTileCenterId = centerId;
-                var tile = _tileService.GetByCenterId((int)_selectTileCenterId);
-                _selectTileViewer.Mesh = GenFlatTileMesh(tile, 1f + HexMetrics.MaxHeightRadiusRatio);
-            }
-            else
-            {
-                GD.PrintErr($"centerId not found! position: {position}");
-            }
+            var mesh = _selectViewService.GenerateMesh(position, Radius);
+            if (mesh != null)
+                _selectTileViewer.Mesh = mesh;
         }
         else
         {
@@ -122,38 +105,6 @@ public partial class HexPlanetManager : Node3D
             _selectTileViewer.Visible = false;
             _lastUpdated = 0f;
         }
-    }
-
-    private Mesh GenFlatTileMesh(Tile tile, float scale)
-    {
-        var surfaceTool = new SurfaceTool();
-        surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
-        surfaceTool.SetSmoothGroup(uint.MaxValue);
-        var tiles = _tileService.GetTilesInDistance(tile, SelectViewSize);
-        var vi = 0;
-        foreach (var t in tiles)
-        {
-            var points = _tileService.GetCorners(t, Radius * scale).ToList();
-            foreach (var p in points)
-                surfaceTool.AddVertex(p);
-            for (var i = 1; i < points.Count - 1; i++)
-                if (Math3dUtil.IsRightVSeq(Vector3.Zero, points[0], points[i], points[i + 1]))
-                {
-                    surfaceTool.AddIndex(vi);
-                    surfaceTool.AddIndex(vi + i);
-                    surfaceTool.AddIndex(vi + i + 1);
-                }
-                else
-                {
-                    surfaceTool.AddIndex(vi + 0);
-                    surfaceTool.AddIndex(vi + i + 1);
-                    surfaceTool.AddIndex(vi + i);
-                }
-
-            vi += points.Count;
-        }
-
-        return surfaceTool.Commit();
     }
 
     private Godot.Collections.Dictionary GetTileCollisionResult()
@@ -171,10 +122,7 @@ public partial class HexPlanetManager : Node3D
     {
         var result = GetTileCollisionResult();
         if (result is { Count: > 0 } && result.TryGetValue("position", out var position))
-        {
             return position.AsVector3();
-        }
-
         return Vector3.Zero;
     }
 

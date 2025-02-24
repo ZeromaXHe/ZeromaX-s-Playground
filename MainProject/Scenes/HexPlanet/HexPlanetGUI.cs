@@ -49,6 +49,7 @@ public partial class HexPlanetGui : Control
 
     private ITileService _tileService;
     private IChunkService _chunkService;
+    private ISelectViewService _selectViewService;
 
     #endregion
 
@@ -117,6 +118,7 @@ public partial class HexPlanetGui : Control
 
         _tileService = Context.GetBean<ITileService>();
         _chunkService = Context.GetBean<IChunkService>();
+        _selectViewService = Context.GetBean<ISelectViewService>();
 
         _elevationVSlider.MaxValue = HexMetrics.ElevationStep;
         _elevationVSlider.TickCount = HexMetrics.ElevationStep + 1;
@@ -216,7 +218,7 @@ public partial class HexPlanetGui : Control
     private void SetBrushSize(double brushSize)
     {
         _brushSize = (int)brushSize;
-        _hexPlanetManager.SelectViewSize = _brushSize;
+        _selectViewService.SelectViewSize = _brushSize;
         _brushLabel.Text = $"笔刷大小：{_brushSize}";
     }
 
