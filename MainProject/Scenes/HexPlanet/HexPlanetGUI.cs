@@ -1,5 +1,7 @@
 using Godot;
+using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
@@ -43,6 +45,13 @@ public partial class HexPlanetGui : Control
 
     #endregion
 
+    #region services
+
+    private ITileService _tileService;
+    private IChunkService _chunkService;
+
+    #endregion
+
     private bool _applyColor;
     private Color _activeColor;
     private bool _applyElevation;
@@ -60,9 +69,9 @@ public partial class HexPlanetGui : Control
             if (_chosenTileId != null)
             {
                 _idLineEdit.Text = _chosenTileId.ToString();
-                var tile = Tile.GetById((int)_chosenTileId);
+                var tile = _tileService.GetById((int)_chosenTileId);
                 _chunkLineEdit.Text = tile.ChunkId.ToString();
-                _heightLineEdit.Text = $"{tile.Height:F2}";
+                _heightLineEdit.Text = $"{_tileService.GetHeight(tile):F2}";
                 _heightLineEdit.Editable = true;
                 _elevationLineEdit.Text = tile.Elevation.ToString();
             }
@@ -105,6 +114,9 @@ public partial class HexPlanetGui : Control
         _elevationValueLabel = GetNode<Label>("%ElevationValueLabel");
         _brushLabel = GetNode<Label>("%BrushLabel");
         _brushHSlider = GetNode<HSlider>("%BrushHSlider");
+
+        _tileService = Context.GetBean<ITileService>();
+        _chunkService = Context.GetBean<IChunkService>();
 
         _elevationVSlider.MaxValue = HexMetrics.ElevationStep;
         _elevationVSlider.TickCount = HexMetrics.ElevationStep + 1;
@@ -152,12 +164,12 @@ public partial class HexPlanetGui : Control
                 var chosenTileId = (int)_chosenTileId;
                 if (float.TryParse(text, out var height))
                 {
-                    var tile = Tile.GetById(chosenTileId);
-                    if (Mathf.Abs(height - tile.Height) < 0.0001f) return;
-                    tile.Height = height;
+                    var tile = _tileService.GetById(chosenTileId);
+                    if (Mathf.Abs(height - _tileService.GetHeight(tile)) < 0.0001f) return;
+                    _tileService.SetHeight(tile, height);
                     _hexPlanetManager.UpdateMesh(tile);
                 }
-                else _heightLineEdit.Text = $"{Tile.GetById(chosenTileId).Height:F2}";
+                else _heightLineEdit.Text = $"{_tileService.GetHeightById(chosenTileId):F2}";
             }
             else _heightLineEdit.Text = "-"; // 应该不会进入这个分支，控制了此时不可编辑
         };
@@ -213,10 +225,10 @@ public partial class HexPlanetGui : Control
         _radiusLineEdit.Text = $"{_hexPlanetManager.Radius:F2}";
         _divisionLineEdit.Text = $"{_hexPlanetManager.Divisions}";
         _chunkDivisionLineEdit.Text = $"{_hexPlanetManager.ChunkDivisions}";
-        _chunkCountLabel.Text = $"地块总数：{Chunk.GetCount()}";
-        _tileCountLabel.Text = $"分块总数：{Tile.GetCount()}";
+        _chunkCountLabel.Text = $"地块总数：{_chunkService.GetCount()}";
+        _tileCountLabel.Text = $"分块总数：{_tileService.GetCount()}";
         ChosenTileId = null;
-        Tile.UnitHeight = _hexPlanetManager.Radius * HexMetrics.MaxHeightRadiusRatio / HexMetrics.ElevationStep;
+        _tileService.UnitHeight = _hexPlanetManager.Radius * HexMetrics.MaxHeightRadiusRatio / HexMetrics.ElevationStep;
     }
 
     public override void _Input(InputEvent @event)
@@ -227,16 +239,16 @@ public partial class HexPlanetGui : Control
             // 在 SubViewportContainer 上按下鼠标左键时，获取鼠标位置地块并更新
             ChosenTileId = _hexPlanetManager.GetTileIdUnderCursor();
             if (ChosenTileId != null)
-                EditTiles(Tile.GetById((int)ChosenTileId));
+                EditTiles(_tileService.GetById((int)ChosenTileId));
         }
     }
-    
+
     private void EditTiles(Tile tile)
     {
-        foreach (var t in tile.GetTilesInDistance(_brushSize))
+        foreach (var t in _tileService.GetTilesInDistance(tile, _brushSize))
             EditTile(t);
     }
-    
+
 
     private void EditTile(Tile tile)
     {

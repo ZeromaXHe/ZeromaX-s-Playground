@@ -1,9 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Constant;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
@@ -29,15 +31,26 @@ public partial class HexPlanetManager : Node3D
     private int _oldChunkDivisions;
     private float _lastUpdated;
 
-    private readonly HashSet<int> _framePointIds = [];
-    private readonly VpTree<Vector3> _tilePointVpTree = new();
-    private readonly VpTree<Vector3> _chunkPointVpTree = new();
     private readonly Dictionary<int, HexGridChunk> _gridChunks = new();
+
+    #region services
+
+    private IChunkService _chunkService;
+    private ITileService _tileService;
+    private IFaceService _faceService;
+    private IPointService _pointService;
+
+    #endregion
+
+    #region on-ready nodes
 
     private FogVolume _atmosphereFog;
     private Node3D _chunks;
     private OrbitCamera _orbitCamera;
     private MeshInstance3D _selectTileViewer;
+
+    #endregion
+
     private int? _selectTileCenterId;
     public int SelectViewSize { get; set; }
 
@@ -48,10 +61,21 @@ public partial class HexPlanetManager : Node3D
         // 此处要求 OrbitCamera 也是 [Tool]，否则编辑器里会转型失败
         _orbitCamera = GetNode<OrbitCamera>("%OrbitCamera");
         _selectTileViewer = GetNode<MeshInstance3D>("%SelectTileViewer");
+        
+        InitServices();
 
         HexMetrics.NoiseSource = _noiseSource.GetImage();
         DrawHexasphereMesh();
         _ready = true;
+    }
+
+    private void InitServices()
+    {
+        Context.Init();
+        _chunkService = Context.GetBean<IChunkService>();
+        _tileService = Context.GetBean<ITileService>();
+        _faceService = Context.GetBean<IFaceService>();
+        _pointService = Context.GetBean<IPointService>();
     }
 
     public override void _Process(double delta)
@@ -73,26 +97,23 @@ public partial class HexPlanetManager : Node3D
         if (position != Vector3.Zero)
         {
             _selectTileViewer.Visible = true;
-            _tilePointVpTree.Search(position.Normalized(), 1, out var results, out var distances);
-            var centerId = Point.GetIdByPosition(results[0]);
+            var centerId = _tileService.SearchNearestTileId(position.Normalized());
             if (centerId != null)
             {
                 if (centerId == _selectTileCenterId)
                 {
-                    // GD.Print(
-                    //     $"Same tile! centerId: {centerId}, result: {results[0]}, position: {position}, dist: {string.Join(", ", distances)}");
+                    // GD.Print($"Same tile! centerId: {centerId}, position: {position}");
                     return;
                 }
 
-                // GD.Print(
-                //     $"Generating New _selectTileViewer Mesh! {centerId}, result: {results[0]}, position: {position}, dist: {string.Join(", ", distances)}");
+                // GD.Print($"Generating New _selectTileViewer Mesh! {centerId}, position: {position}");
                 _selectTileCenterId = centerId;
-                var tile = Tile.GetByCenterId((int)_selectTileCenterId);
+                var tile = _tileService.GetByCenterId((int)_selectTileCenterId);
                 _selectTileViewer.Mesh = GenFlatTileMesh(tile, 1f + HexMetrics.MaxHeightRadiusRatio);
             }
             else
             {
-                GD.PrintErr($"centerId not found! position: {results[0]}");
+                GD.PrintErr($"centerId not found! position: {position}");
             }
         }
         else
@@ -108,11 +129,11 @@ public partial class HexPlanetManager : Node3D
         var surfaceTool = new SurfaceTool();
         surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
         surfaceTool.SetSmoothGroup(uint.MaxValue);
-        var tiles = tile.GetTilesInDistance(SelectViewSize);
+        var tiles = _tileService.GetTilesInDistance(tile, SelectViewSize);
         var vi = 0;
         foreach (var t in tiles)
         {
-            var points = t.GetCorners(Radius * scale).ToList();
+            var points = _tileService.GetCorners(t, Radius * scale).ToList();
             foreach (var p in points)
                 surfaceTool.AddVertex(p);
             for (var i = 1; i < points.Count - 1; i++)
@@ -131,6 +152,7 @@ public partial class HexPlanetManager : Node3D
 
             vi += points.Count;
         }
+
         return surfaceTool.Commit();
     }
 
@@ -159,18 +181,15 @@ public partial class HexPlanetManager : Node3D
     public int? GetTileIdUnderCursor()
     {
         var pos = GetTileCollisionPositionUnderCursor();
-        if (pos == Vector3.Zero) return null;
-        _tilePointVpTree.Search(pos.Normalized(), 1, out var results, out _);
-        return Point.GetIdByPosition(results[0]);
+        return pos == Vector3.Zero ? null : _tileService.SearchNearestTileId(pos.Normalized());
     }
 
     private void ClearOldData()
     {
-        Chunk.Truncate();
-        Tile.Truncate();
-        Point.Truncate();
-        Face.Truncate();
-        _framePointIds.Clear();
+        _chunkService.ClearData();
+        _tileService.ClearData();
+        _pointService.ClearData();
+        _faceService.ClearData();
         _gridChunks.Clear();
         foreach (var child in _chunks.GetChildren())
             child.QueueFree();
@@ -185,219 +204,29 @@ public partial class HexPlanetManager : Node3D
         ClearOldData();
         _orbitCamera.Reset(Radius);
         _atmosphereFog.Size = Vector3.One * Radius * 2.7f;
-        InitChunks();
+        _chunkService.InitChunks(ChunkDivisions);
         InitHexasphere();
         EmitSignal(SignalName.NewPlanetGenerated);
     }
 
-    private void InitChunks()
-    {
-        var time = Time.GetTicksMsec();
-        var points = IcosahedronConstants.Vertices;
-        var indices = IcosahedronConstants.Indices;
-        var framePoints = new List<Vector3>(points);
-        foreach (var v in points)
-            Chunk.Add(v);
-        for (var idx = 0; idx < indices.Count; idx += 3)
-        {
-            var p0 = points[indices[idx]];
-            var p1 = points[indices[idx + 1]];
-            var p2 = points[indices[idx + 2]];
-            var leftSide = Subdivide(p0, p1, ChunkDivisions, true);
-            var rightSide = Subdivide(p0, p2, ChunkDivisions, true);
-            for (var i = 1; i <= ChunkDivisions; i++)
-                Subdivide(leftSide[i], rightSide[i], i, i == ChunkDivisions);
-        }
-
-        _chunkPointVpTree.Create(Chunk.GetAll().Select(c => c.Pos).ToArray(),
-            (p0, p1) => p0.DistanceTo(p1));
-        GD.Print($"InitChunks radius {Radius}, chunkDivisions {ChunkDivisions}, cost: {Time.GetTicksMsec() - time}");
-        return;
-
-        List<Vector3> Subdivide(Vector3 from, Vector3 target, int count, bool checkFrameExist)
-        {
-            var segments = new List<Vector3> { from };
-
-            for (var i = 1; i < count; i++)
-            {
-                // 注意这里用 Slerp 而不是 Lerp，让所有的点都在单位球面而不是单位正二十面体上，方便我们后面 VP 树找最近点
-                var v = from.Slerp(target, (float)i / count);
-                Vector3 newPoint = default;
-                if (checkFrameExist)
-                {
-                    var existingPoint = framePoints.FirstOrDefault(candidatePoint => candidatePoint.IsEqualApprox(v));
-                    if (existingPoint != default)
-                        newPoint = existingPoint;
-                }
-
-                if (newPoint == default)
-                {
-                    newPoint = v;
-                    Chunk.Add(v);
-                    if (checkFrameExist)
-                        framePoints.Add(newPoint);
-                }
-
-                segments.Add(newPoint);
-            }
-
-            segments.Add(target);
-            return segments;
-        }
-    }
-
     private void InitHexasphere()
     {
-        var time = Time.GetTicksMsec();
-        GD.Print($"InitHexasphere with radius {Radius}, divisions {Divisions}, start at: {time}");
-
-        SubdivideIcosahedron();
-        var time2 = Time.GetTicksMsec();
-        GD.Print($"SubdivideIcosahedron cost: {time2 - time} ms");
-        time = time2;
-
-        ConstructTiles();
-        time2 = Time.GetTicksMsec();
-        GD.Print($"ConstructTiles cost: {time2 - time} ms");
-        time = time2;
-
-        _tilePointVpTree.Create(Tile.GetAll().Select(p => Point.GetById(p.CenterId).Position).ToArray(),
-            (p0, p1) => p0.DistanceTo(p1));
-        time2 = Time.GetTicksMsec();
-        GD.Print($"_tilePointVpTree Create cost: {time2 - time} ms");
-
+        GD.Print($"InitHexasphere with radius {Radius}, divisions {Divisions}, start at: {Time.GetTicksMsec()}");
+        _pointService.SubdivideIcosahedron(Divisions);
+        _tileService.InitTiles();
         BuildMesh();
-    }
-
-    private void SubdivideIcosahedron()
-    {
-        var points = IcosahedronConstants.Vertices
-            .Select(v =>
-            {
-                var p = Point.Add(v);
-                _framePointIds.Add(p.Id);
-                return p;
-            })
-            .ToList();
-        var indices = IcosahedronConstants.Indices;
-        for (var idx = 0; idx < indices.Count; idx += 3)
-        {
-            var p0 = points[indices[idx]];
-            var p1 = points[indices[idx + 1]];
-            var p2 = points[indices[idx + 2]];
-            var bottomSide = new List<Point> { p0 };
-            var leftSide = Subdivide(p0, p1, Divisions, true);
-            var rightSide = Subdivide(p0, p2, Divisions, true);
-            for (var i = 1; i <= Divisions; i++)
-            {
-                var previousPoints = bottomSide;
-                bottomSide = Subdivide(leftSide[i], rightSide[i], i, i == Divisions);
-                for (var j = 0; j < i; j++)
-                {
-                    Face.Add(previousPoints[j], bottomSide[j], bottomSide[j + 1]);
-                    if (j == 0) continue;
-                    Face.Add(previousPoints[j - 1], previousPoints[j], bottomSide[j]);
-                }
-            }
-        }
-
-        return;
-
-        List<Point> Subdivide(Point from, Point target, int count, bool checkFrameExist)
-        {
-            var segments = new List<Point> { from };
-
-            for (var i = 1; i < count; i++)
-            {
-                // 注意这里用 Slerp 而不是 Lerp，让所有的 Point 都在单位球面而不是单位正二十面体上，方便我们后面 VP 树找最近点
-                var v = from.Position.Slerp(target.Position, (float)i / count);
-                Point newPoint = null;
-                if (checkFrameExist)
-                {
-                    var existingPoint = _framePointIds.Select(Point.GetById)
-                        .FirstOrDefault(candidatePoint => candidatePoint.IsOverlapping(v));
-                    if (existingPoint != null)
-                        newPoint = existingPoint;
-                }
-
-                if (newPoint == null)
-                {
-                    newPoint = Point.Add(v);
-                    if (checkFrameExist)
-                        _framePointIds.Add(newPoint.Id);
-                }
-
-                segments.Add(newPoint);
-            }
-
-            segments.Add(target);
-            return segments;
-        }
-    }
-
-    private void ConstructTiles()
-    {
-        foreach (var point in Point.GetAll())
-        {
-            var hexFaces = GetOrderedFaces(point);
-            var neighborCenters = GetNeighbourCenterIds(hexFaces, point)
-                .Select(c => c.Id)
-                .ToList();
-            _chunkPointVpTree.Search(point.Position, 1, out var results, out _);
-            var chunk = Chunk.GetByPos(results[0]);
-            var tile = Tile.Add(point.Id, chunk.Id, hexFaces.Select(f => f.Id).ToList(), neighborCenters);
-            chunk.TileIds.Add(tile.Id);
-        }
-
-        return;
-
-        List<Face> GetOrderedFaces(Point center)
-        {
-            var faces = center.FaceIds.Select(Face.GetById).ToList();
-            if (faces.Count == 0) return faces;
-            // 第二个面必须保证和第一个面形成顺时针方向，从而保证所有都是顺时针
-            var second =
-                faces.First(face =>
-                    face.Id != faces[0].Id
-                    && face.IsAdjacentTo(faces[0])
-                    && Math3dUtil.IsRightVSeq(Vector3.Zero, center.Position, faces[0].Center, face.Center));
-            var orderedList = new List<Face> { faces[0], second };
-            var currentFace = orderedList[1];
-            while (orderedList.Count < faces.Count)
-            {
-                var existingIds = orderedList.Select(face => face.Id).ToList();
-                var neighbour = faces.First(face =>
-                    !existingIds.Contains(face.Id) && face.IsAdjacentTo(currentFace));
-                currentFace = neighbour;
-                orderedList.Add(currentFace);
-            }
-
-            return orderedList;
-        }
-
-        List<Point> GetNeighbourCenterIds(List<Face> hexFaces, Point center)
-        {
-            var neighbourCenters = new List<Point>();
-            foreach (var p in
-                     from face in hexFaces
-                     from p in face.GetOtherPoints(center)
-                     where !neighbourCenters.Contains(p)
-                     select p)
-                neighbourCenters.Add(p);
-            return neighbourCenters;
-        }
     }
 
     private void BuildMesh()
     {
         var time = Time.GetTicksMsec();
-        for (var i = 0; i < Chunk.GetCount(); i++)
+        foreach (var id in _chunkService.GetAll().Select(chunk => chunk.Id))
         {
             var hexGridChunk = _gridChunkScene.Instantiate<HexGridChunk>();
-            hexGridChunk.Name = $"HexGridChunk{i}";
+            hexGridChunk.Name = $"HexGridChunk{id}";
             _chunks.AddChild(hexGridChunk); // 必须先加入场景树，否则 _Ready() 还没执行
-            hexGridChunk.Init(i, Radius);
-            _gridChunks.Add(i, hexGridChunk);
+            hexGridChunk.Init(id, Radius);
+            _gridChunks.Add(id, hexGridChunk);
         }
 
         GD.Print($"BuildMesh cost: {Time.GetTicksMsec() - time} ms");
@@ -406,7 +235,7 @@ public partial class HexPlanetManager : Node3D
     public void UpdateMesh(Tile tile)
     {
         _gridChunks[tile.ChunkId].BuildMesh();
-        foreach (var neighbor in tile.GetNeighbors())
+        foreach (var neighbor in _tileService.GetNeighbors(tile))
             if (neighbor.ChunkId != tile.ChunkId)
                 _gridChunks[neighbor.ChunkId].BuildMesh();
     }
