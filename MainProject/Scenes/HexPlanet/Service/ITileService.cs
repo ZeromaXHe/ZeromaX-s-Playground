@@ -19,6 +19,7 @@ public interface ITileService
     void SetHeight(Tile tile, float height);
     void SetElevation(Tile tile, int elevation);
     void SetColor(Tile tile, Color color);
+    void SetWaterLevel(Tile tile, int waterLevel);
 
     #endregion
 
@@ -36,7 +37,8 @@ public interface ITileService
 
     // 获取地块的形状角落顶点（顺时针顺序）
     IEnumerable<Vector3> GetCorners(Tile tile, float radius, float size = 1f);
-    
+    Vector3 GetCornerByFaceId(Tile tile, int id, float radius = 1f, float size = 1f);
+
     // 按照 tile 高度查询 idx (顺时针第一个)角落的位置，相对于 Tile 中心进行插值 size 的缩放。
     Vector3 GetFirstCorner(Tile tile, int idx, float radius = 1f, float size = 1f);
 
@@ -44,13 +46,12 @@ public interface ITileService
     Vector3 GetSecondCorner(Tile tile, int idx, float radius = 1f, float size = 1f);
 
     // 按照 tile 高度查询 idx (顺时针第一个)核心角落的位置，相对于 Tile 中心进行插值 size 的缩放。
-    Vector3 GetFirstSolidCorner(Tile tile, int idx, float baseRadius = 1f, float size = 1f);
+    Vector3 GetFirstSolidCorner(Tile tile, int idx, float radius = 1f, float size = 1f);
 
     // 按照 tile 高度查询 NextIdx(idx) (顺时针第二个)核心角落的位置，相对于 Tile 中心进行插值 size 的缩放。
-    Vector3 GetSecondSolidCorner(Tile tile, int idx, float baseRadius = 1f, float size = 1f);
-    Vector3 GetCornerByFaceId(Tile tile, int id, float radius = 1f, float size = 1f);
+    Vector3 GetSecondSolidCorner(Tile tile, int idx, float radius = 1f, float size = 1f);
     Vector3 GetEdgeMiddle(Tile tile, int idx, float radius = 1f, float size = 1f);
-    Vector3 GetSolidEdgeMiddle(Tile tile, int idx, float baseRadius = 1f, float size = 1f);
+    Vector3 GetSolidEdgeMiddle(Tile tile, int idx, float radius = 1f, float size = 1f);
     Vector3 GetCenter(Tile tile, float radius);
 
     #region 邻居
@@ -75,9 +76,8 @@ public interface ITileService
     /// </summary>
     /// <param name="tile">地块</param>
     /// <param name="idx">顶点 Face 索引</param>
-    /// <param name="filterNeighborId">需要过滤掉（不返回）的邻居 id</param>
     /// <returns>两个共角落的邻居（如果过滤，则为一个）</returns>
-    List<Tile> GetCornerNeighborsByIdx(Tile tile, int idx, int filterNeighborId = -1);
+    List<Tile> GetCornerNeighborsByIdx(Tile tile, int idx);
 
     #endregion
 
@@ -97,5 +97,13 @@ public interface ITileService
     void AddRoad(Tile tile, Tile neighbor);
     void RemoveRoads(Tile tile);
 
+    #endregion
+
+    #region 水面
+
+    float GetWaterSurfaceHeight(Tile tile);
+    Vector3 GetFirstWaterCorner(Tile tile, int idx, float radius = 1f, float size = 1f);
+    Vector3 GetSecondWaterCorner(Tile tile, int idx, float radius = 1f, float size = 1f);
+    
     #endregion
 }

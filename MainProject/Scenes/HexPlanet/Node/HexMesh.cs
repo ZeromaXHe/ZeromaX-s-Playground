@@ -11,6 +11,7 @@ public partial class HexMesh : MeshInstance3D, IHexMesh
     [Export] public bool UseCollider {get; set;}
     [Export] public bool UseColor {get; set;}
     [Export] public bool UseUvCoordinates {get; set;}
+    [Export] public bool UseUv2Coordinates {get; set;}
     public SurfaceTool SurfaceTool { get; set; } = new();
     public int VIdx { get; set; }
 
@@ -34,10 +35,10 @@ public partial class HexMesh : MeshInstance3D, IHexMesh
             CreateTrimeshCollision();
     }
 
-    public void AddTriangle(Vector3[] vs, Color[] cs = null, Vector2[] uvs = null) =>
-        AddTriangleUnperturbed(vs.Select(HexMetrics.Perturb).ToArray(), cs, uvs);
+    public void AddTriangle(Vector3[] vs, Color[] cs = null, Vector2[] uvs = null, Vector2[] uvs2 = null) =>
+        AddTriangleUnperturbed(vs.Select(HexMetrics.Perturb).ToArray(), cs, uvs, uvs2);
 
-    public void AddTriangleUnperturbed(Vector3[] vs, Color[] cs = null, Vector2[] uvs = null)
+    public void AddTriangleUnperturbed(Vector3[] vs, Color[] cs = null, Vector2[] uvs = null, Vector2[] uvs2 = null)
     {
         for (var i = 0; i < 3; i++)
         {
@@ -45,6 +46,8 @@ public partial class HexMesh : MeshInstance3D, IHexMesh
                 SurfaceTool.SetColor(cs[i]);
             if (UseUvCoordinates && uvs != null)
                 SurfaceTool.SetUV(uvs[i]);
+            if (UseUv2Coordinates && uvs2 != null)
+                SurfaceTool.SetUV2(uvs2[i]);
             SurfaceTool.AddVertex(vs[i]);
         }
 
@@ -54,10 +57,10 @@ public partial class HexMesh : MeshInstance3D, IHexMesh
         VIdx += 3;
     }
 
-    public void AddQuad(Vector3[] vs, Color[] cs = null, Vector2[] uvs = null) =>
-        AddQuadUnperturbed(vs.Select(HexMetrics.Perturb).ToArray(), cs, uvs);
+    public void AddQuad(Vector3[] vs, Color[] cs = null, Vector2[] uvs = null, Vector2[] uvs2 = null) =>
+        AddQuadUnperturbed(vs.Select(HexMetrics.Perturb).ToArray(), cs, uvs, uvs2);
 
-    public void AddQuadUnperturbed(Vector3[] vs, Color[] cs = null, Vector2[] uvs = null)
+    public void AddQuadUnperturbed(Vector3[] vs, Color[] cs = null, Vector2[] uvs = null, Vector2[] uvs2 = null)
     {
         for (var i = 0; i < 4; i++)
         {
@@ -65,6 +68,8 @@ public partial class HexMesh : MeshInstance3D, IHexMesh
                 SurfaceTool.SetColor(cs[i]);
             if (UseUvCoordinates && uvs != null)
                 SurfaceTool.SetUV(uvs[i]);
+            if (UseUvCoordinates && uvs2 != null)
+                SurfaceTool.SetUV2(uvs2[i]);
             SurfaceTool.AddVertex(vs[i]);
         }
 

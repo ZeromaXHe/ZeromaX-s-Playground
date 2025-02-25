@@ -94,5 +94,7 @@ public static class HexMetrics
     }
 
     public const float StreamBedElevationOffset = -1.75f;
-    public const float RiverSurfaceElevationOffset = -0.5f;
+    public const float WaterElevationOffset = -0.5f;
+    public const float WaterFactor = 0.6f;
+    public const float WaterBlendFactor = 1f - WaterFactor;
 }

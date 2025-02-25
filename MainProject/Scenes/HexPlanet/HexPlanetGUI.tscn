@@ -46,6 +46,135 @@ horizontal_scroll_mode = 0
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="EditTabBar" type="TabBar" parent="LeftPanel/ScrollContainer/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+tab_alignment = 1
+tab_count = 1
+tab_0/title = "编辑功能"
+tab_0/tooltip = "提示：当编辑功能分页缩起时，即使打开了相关编辑开关，点击地块将不进行任何修改"
+
+[node name="EditGrid" type="GridContainer" parent="LeftPanel/ScrollContainer/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+columns = 2
+
+[node name="ColorLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+layout_mode = 2
+text = "颜色："
+
+[node name="ColorOptionButton" type="OptionButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 0
+item_count = 6
+popup/item_0/text = "---"
+popup/item_1/text = "黄色"
+popup/item_1/id = 1
+popup/item_2/text = "绿色"
+popup/item_2/id = 2
+popup/item_3/text = "蓝色"
+popup/item_3/id = 3
+popup/item_4/text = "橙色"
+popup/item_4/id = 4
+popup/item_5/text = "白色"
+popup/item_5/id = 5
+
+[node name="ElevationLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+layout_mode = 2
+text = "高程："
+
+[node name="ElevationVSlider" type="VSlider" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+size_flags_horizontal = 4
+max_value = 10.0
+tick_count = 11
+ticks_on_borders = true
+
+[node name="ElevationCheckButton" type="CheckButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "高程开关"
+
+[node name="ElevationValueLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="WaterLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+layout_mode = 2
+text = "水面："
+
+[node name="WaterVSlider" type="VSlider" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+size_flags_horizontal = 4
+max_value = 10.0
+tick_count = 11
+ticks_on_borders = true
+
+[node name="WaterCheckButton" type="CheckButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "水面开关"
+
+[node name="WaterValueLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BrushLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "笔刷大小：0"
+
+[node name="BrushHSlider" type="HSlider" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+max_value = 4.0
+tick_count = 5
+ticks_on_borders = true
+
+[node name="RiverLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+layout_mode = 2
+text = "河流："
+
+[node name="RiverOptionButton" type="OptionButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 0
+item_count = 3
+popup/item_0/text = "---"
+popup/item_1/text = "是"
+popup/item_1/id = 1
+popup/item_2/text = "否"
+popup/item_2/id = 2
+
+[node name="RoadLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+layout_mode = 2
+text = "道路："
+
+[node name="RoadOptionButton" type="OptionButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 0
+item_count = 3
+popup/item_0/text = "---"
+popup/item_1/text = "是"
+popup/item_1/id = 1
+popup/item_2/text = "否"
+popup/item_2/id = 2
+
+[node name="HSeparator" type="HSeparator" parent="LeftPanel/ScrollContainer/VBox"]
+layout_mode = 2
+
 [node name="PlanetTabBar" type="TabBar" parent="LeftPanel/ScrollContainer/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -85,7 +214,7 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "2"
 
-[node name="HSeparator" type="HSeparator" parent="LeftPanel/ScrollContainer/VBox"]
+[node name="HSeparator2" type="HSeparator" parent="LeftPanel/ScrollContainer/VBox"]
 layout_mode = 2
 
 [node name="TileTabBar" type="TabBar" parent="LeftPanel/ScrollContainer/VBox"]
@@ -156,107 +285,3 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "0"
 editable = false
-
-[node name="HSeparator2" type="HSeparator" parent="LeftPanel/ScrollContainer/VBox"]
-layout_mode = 2
-
-[node name="EditTabBar" type="TabBar" parent="LeftPanel/ScrollContainer/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-tab_alignment = 1
-tab_count = 1
-tab_0/title = "编辑功能"
-tab_0/tooltip = "提示：当编辑功能分页缩起时，即使打开了相关编辑开关，点击地块将不进行任何修改"
-
-[node name="EditGrid" type="GridContainer" parent="LeftPanel/ScrollContainer/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-columns = 2
-
-[node name="ColorLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
-layout_mode = 2
-text = "颜色："
-
-[node name="ColorOptionButton" type="OptionButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
-unique_name_in_owner = true
-layout_mode = 2
-selected = 0
-item_count = 6
-popup/item_0/text = "---"
-popup/item_1/text = "黄色"
-popup/item_1/id = 1
-popup/item_2/text = "绿色"
-popup/item_2/id = 2
-popup/item_3/text = "蓝色"
-popup/item_3/id = 3
-popup/item_4/text = "橙色"
-popup/item_4/id = 4
-popup/item_5/text = "白色"
-popup/item_5/id = 5
-
-[node name="ElevationLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
-layout_mode = 2
-text = "高程："
-
-[node name="ElevationVSlider" type="VSlider" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 100)
-layout_mode = 2
-size_flags_horizontal = 4
-max_value = 10.0
-tick_count = 11
-ticks_on_borders = true
-
-[node name="ElevationCheckButton" type="CheckButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "高程开关"
-
-[node name="ElevationValueLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "0"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="BrushLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "笔刷大小：0"
-
-[node name="BrushHSlider" type="HSlider" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
-unique_name_in_owner = true
-layout_mode = 2
-max_value = 4.0
-tick_count = 5
-ticks_on_borders = true
-
-[node name="RiverLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
-layout_mode = 2
-text = "河流："
-
-[node name="RiverOptionButton" type="OptionButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
-unique_name_in_owner = true
-layout_mode = 2
-selected = 0
-item_count = 3
-popup/item_0/text = "---"
-popup/item_1/text = "是"
-popup/item_1/id = 1
-popup/item_2/text = "否"
-popup/item_2/id = 2
-
-[node name="RoadLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
-layout_mode = 2
-text = "道路："
-
-[node name="RoadOptionButton" type="OptionButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
-unique_name_in_owner = true
-layout_mode = 2
-selected = 0
-item_count = 3
-popup/item_0/text = "---"
-popup/item_1/text = "是"
-popup/item_1/id = 1
-popup/item_2/text = "否"
-popup/item_2/id = 2

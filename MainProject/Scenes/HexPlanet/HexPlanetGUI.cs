@@ -18,7 +18,7 @@ public partial class HexPlanetGui : Control
     [Export] private HexPlanetManager _hexPlanetManager;
     [Export] private Color[] _colors;
 
-    #region on-ready nodes
+    #region on-ready 节点
 
     private SubViewportContainer _subViewportContainer;
 
@@ -47,6 +47,9 @@ public partial class HexPlanetGui : Control
     private VSlider _elevationVSlider;
     private CheckButton _elevationCheckButton;
     private Label _elevationValueLabel;
+    private VSlider _waterVSlider;
+    private CheckButton _waterCheckButton;
+    private Label _waterValueLabel;
     private Label _brushLabel;
     private HSlider _brushHSlider;
     private OptionButton _riverOptionButton;
@@ -66,6 +69,8 @@ public partial class HexPlanetGui : Control
     private Color _activeColor;
     private bool _applyElevation;
     private int _activeElevation;
+    private bool _applyWaterLevel;
+    private int _activeWaterLevel;
     private int _brushSize;
     private OptionalToggle _riverMode;
     private OptionalToggle _roadMode;
@@ -128,6 +133,9 @@ public partial class HexPlanetGui : Control
         _elevationVSlider = GetNode<VSlider>("%ElevationVSlider");
         _elevationCheckButton = GetNode<CheckButton>("%ElevationCheckButton");
         _elevationValueLabel = GetNode<Label>("%ElevationValueLabel");
+        _waterVSlider = GetNode<VSlider>("%WaterVSlider");
+        _waterCheckButton = GetNode<CheckButton>("%WaterCheckButton");
+        _waterValueLabel = GetNode<Label>("%WaterValueLabel");
         _brushLabel = GetNode<Label>("%BrushLabel");
         _brushHSlider = GetNode<HSlider>("%BrushHSlider");
         _riverOptionButton = GetNode<OptionButton>("%RiverOptionButton");
@@ -139,6 +147,9 @@ public partial class HexPlanetGui : Control
 
         _elevationVSlider.MaxValue = HexMetrics.ElevationStep;
         _elevationVSlider.TickCount = HexMetrics.ElevationStep + 1;
+        _waterVSlider.MaxValue = HexMetrics.ElevationStep;
+        _waterVSlider.TickCount = HexMetrics.ElevationStep + 1;
+
         SelectColor(0);
         UpdateNewPlanetInfo();
         _hexPlanetManager.NewPlanetGenerated += UpdateNewPlanetInfo;
@@ -211,6 +222,8 @@ public partial class HexPlanetGui : Control
         _colorOptionButton.ItemSelected += SelectColor;
         _elevationVSlider.ValueChanged += SetElevation;
         _elevationCheckButton.Toggled += SetApplyElevation;
+        _waterVSlider.ValueChanged += SetWaterLevel;
+        _waterCheckButton.Toggled += SetApplyWaterLevel;
         _brushHSlider.ValueChanged += SetBrushSize;
         _riverOptionButton.ItemSelected += SetRiverMode;
         _roadOptionButton.ItemSelected += SetRoadMode;
@@ -242,6 +255,13 @@ public partial class HexPlanetGui : Control
 
     private void SetRiverMode(long mode) => _riverMode = (OptionalToggle)mode;
     private void SetRoadMode(long mode) => _roadMode = (OptionalToggle)mode;
+    private void SetApplyWaterLevel(bool toggle) => _applyWaterLevel = toggle;
+
+    private void SetWaterLevel(double level)
+    {
+        _activeWaterLevel = (int)level;
+        _waterValueLabel.Text = _activeWaterLevel.ToString();
+    }
 
     private void UpdateNewPlanetInfo()
     {
@@ -296,14 +316,18 @@ public partial class HexPlanetGui : Control
             _tileService.SetColor(tile, _activeColor);
         if (_applyElevation)
             _tileService.SetElevation(tile, _activeElevation);
+        if (_applyWaterLevel)
+            _tileService.SetWaterLevel(tile, _activeWaterLevel);
         if (_riverMode == OptionalToggle.No)
             _tileService.RemoveRiver(tile);
-        if (_isDrag) {
-            if(_riverMode == OptionalToggle.Yes)
+        if (_isDrag)
+        {
+            if (_riverMode == OptionalToggle.Yes)
                 _tileService.SetOutgoingRiver(_previousTile, _dragTile);
             if (_roadMode == OptionalToggle.Yes)
                 _tileService.AddRoad(_previousTile, _dragTile);
         }
+
         ChosenTileId = tile.Id; // 刷新 GUI 地块信息
     }
 }

@@ -1,38 +1,48 @@
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node.Interface;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 
 [Tool]
-public partial class HexGridChunk : Node3D
+public partial class HexGridChunk : Node3D, IHexGridChunk
 {
-    [Export] private HexMesh _terrain;
-    [Export] private HexMesh _rivers;
-    [Export] private HexMesh _roads;
-    private int _id;
+    [Export] public HexMesh Terrain { get; set; }
+    [Export] public HexMesh Rivers { get; set; }
+    [Export] public HexMesh Roads { get; set; }
+    [Export] public HexMesh Water { get; set; }
+    [Export] public HexMesh WaterShore { get; set; }
+    [Export] public HexMesh Estuary { get; set; }
+    public int Id { get; set; }
     private float _radius;
 
     public void Init(int id, float radius)
     {
-        _id = id;
+        Id = id;
         _radius = radius;
         Refresh();
     }
 
     public override void _Process(double delta)
     {
-        if (_id > 0)
+        if (Id > 0)
         {
             var time = Time.GetTicksMsec();
-            _terrain.Clear();
-            _rivers.Clear();
-            _roads.Clear();
-            Context.GetBean<IHexMeshService>().Triangulate(_radius, _id, _terrain, _rivers, _roads);
-            _terrain.Apply();
-            _rivers.Apply();
-            _roads.Apply();
-            GD.Print($"Chunk {_id} BuildMesh cost: {Time.GetTicksMsec() - time} ms");
+            Terrain.Clear();
+            Rivers.Clear();
+            Roads.Clear();
+            Water.Clear();
+            WaterShore.Clear();
+            Estuary.Clear();
+            Context.GetBean<IHexMeshService>().Triangulate(_radius, this);
+            Terrain.Apply();
+            Rivers.Apply();
+            Roads.Apply();
+            Water.Apply();
+            WaterShore.Apply();
+            Estuary.Apply();
+            GD.Print($"Chunk {Id} BuildMesh cost: {Time.GetTicksMsec() - time} ms");
         }
 
         SetProcess(false);

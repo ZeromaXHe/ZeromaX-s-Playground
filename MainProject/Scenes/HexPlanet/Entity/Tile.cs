@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Base;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 
@@ -53,6 +54,9 @@ public class Tile(
         (HasIncomingRiver && IncomingRiverNId == neighborId)
         || (HasOutgoingRiver && OutgoingRiverNId == neighborId);
 
+    public bool IsValidRiverDestination(Tile neighbor) =>
+        Elevation >= neighbor.Elevation || WaterLevel == neighbor.Elevation;
+
     #endregion
 
     #region 道路
@@ -60,6 +64,13 @@ public class Tile(
     public bool[] Roads { get; } = new bool[hexFaceIds.Count];
     public bool HasRoadThroughEdge(int idx) => Roads[idx];
     public bool HasRoads => Roads.Any(r => r); // C# 貌似没有类似 Java Function.identity() 方法，或者 F# id 的这种默认实现
+
+    #endregion
+
+    #region 水面
+
+    public int WaterLevel { get; set; } = HexMetrics.ElevationStep / 2;
+    public bool IsUnderwater => WaterLevel > Elevation;
 
     #endregion
 }

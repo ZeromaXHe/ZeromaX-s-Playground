@@ -9,8 +9,8 @@ public interface IHexMesh
     bool UseUvCoordinates { get; set; }
     SurfaceTool SurfaceTool { get; set; }
     int VIdx { get; set; }
-    void AddTriangle(Vector3[] vs, Color[] cs = null, Vector2[] uvs = null);
-    void AddTriangleUnperturbed(Vector3[] vs, Color[] cs = null, Vector2[] uvs = null);
-    void AddQuad(Vector3[] vs, Color[] cs = null, Vector2[] uvs = null);
-    void AddQuadUnperturbed(Vector3[] vs, Color[] cs = null, Vector2[] uvs = null);
+    void AddTriangle(Vector3[] vs, Color[] cs = null, Vector2[] uvs = null, Vector2[] uvs2 = null);
+    void AddTriangleUnperturbed(Vector3[] vs, Color[] cs = null, Vector2[] uvs = null, Vector2[] uvs2 = null);
+    void AddQuad(Vector3[] vs, Color[] cs = null, Vector2[] uvs = null, Vector2[] uvs2 = null);
+    void AddQuadUnperturbed(Vector3[] vs, Color[] cs = null, Vector2[] uvs = null, Vector2[] uvs2 = null);
 }
