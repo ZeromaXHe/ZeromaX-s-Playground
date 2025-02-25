@@ -50,6 +50,7 @@ public partial class HexPlanetGui : Control
     private Label _brushLabel;
     private HSlider _brushHSlider;
     private OptionButton _riverOptionButton;
+    private OptionButton _roadOptionButton;
 
     #endregion
 
@@ -67,6 +68,7 @@ public partial class HexPlanetGui : Control
     private int _activeElevation;
     private int _brushSize;
     private OptionalToggle _riverMode;
+    private OptionalToggle _roadMode;
 
     private int? _chosenTileId;
 
@@ -129,6 +131,7 @@ public partial class HexPlanetGui : Control
         _brushLabel = GetNode<Label>("%BrushLabel");
         _brushHSlider = GetNode<HSlider>("%BrushHSlider");
         _riverOptionButton = GetNode<OptionButton>("%RiverOptionButton");
+        _roadOptionButton = GetNode<OptionButton>("%RoadOptionButton");
 
         _tileService = Context.GetBean<ITileService>();
         _chunkService = Context.GetBean<IChunkService>();
@@ -210,6 +213,7 @@ public partial class HexPlanetGui : Control
         _elevationCheckButton.Toggled += SetApplyElevation;
         _brushHSlider.ValueChanged += SetBrushSize;
         _riverOptionButton.ItemSelected += SetRiverMode;
+        _roadOptionButton.ItemSelected += SetRoadMode;
     }
 
     private void SelectColor(long index)
@@ -237,6 +241,7 @@ public partial class HexPlanetGui : Control
     }
 
     private void SetRiverMode(long mode) => _riverMode = (OptionalToggle)mode;
+    private void SetRoadMode(long mode) => _roadMode = (OptionalToggle)mode;
 
     private void UpdateNewPlanetInfo()
     {
@@ -285,7 +290,6 @@ public partial class HexPlanetGui : Control
             EditTile(t);
     }
 
-
     private void EditTile(Tile tile)
     {
         if (_applyColor)
@@ -294,8 +298,12 @@ public partial class HexPlanetGui : Control
             _tileService.SetElevation(tile, _activeElevation);
         if (_riverMode == OptionalToggle.No)
             _tileService.RemoveRiver(tile);
-        else if (_isDrag && _riverMode == OptionalToggle.Yes)
-            _tileService.SetOutgoingRiver(_previousTile, _dragTile);
+        if (_isDrag) {
+            if(_riverMode == OptionalToggle.Yes)
+                _tileService.SetOutgoingRiver(_previousTile, _dragTile);
+            if (_roadMode == OptionalToggle.Yes)
+                _tileService.AddRoad(_previousTile, _dragTile);
+        }
         ChosenTileId = tile.Id; // 刷新 GUI 地块信息
     }
 }

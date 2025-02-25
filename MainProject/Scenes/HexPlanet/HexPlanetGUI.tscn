@@ -12,7 +12,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_88ajj")
 _hexPlanetManager = NodePath("SubViewportContainer/SubViewport/HexPlanetManager")
-_colors = PackedColorArray(1, 0.862745, 0, 1, 0.00392157, 0.682353, 0.0313726, 1, 0.0745098, 0.219608, 0.839216, 1, 1, 1, 1, 1)
+_colors = PackedColorArray(1, 0.862745, 0, 1, 0.00392157, 0.682353, 0.0313726, 1, 0.0745098, 0.219608, 0.839216, 1, 1, 0.305882, 0.105882, 1, 1, 1, 1, 1)
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="."]
 unique_name_in_owner = true
@@ -181,7 +181,7 @@ text = "颜色："
 unique_name_in_owner = true
 layout_mode = 2
 selected = 0
-item_count = 5
+item_count = 6
 popup/item_0/text = "---"
 popup/item_1/text = "黄色"
 popup/item_1/id = 1
@@ -189,8 +189,10 @@ popup/item_2/text = "绿色"
 popup/item_2/id = 2
 popup/item_3/text = "蓝色"
 popup/item_3/id = 3
-popup/item_4/text = "白色"
+popup/item_4/text = "橙色"
 popup/item_4/id = 4
+popup/item_5/text = "白色"
+popup/item_5/id = 5
 
 [node name="ElevationLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
 layout_mode = 2
@@ -234,6 +236,21 @@ layout_mode = 2
 text = "河流："
 
 [node name="RiverOptionButton" type="OptionButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 0
+item_count = 3
+popup/item_0/text = "---"
+popup/item_1/text = "是"
+popup/item_1/id = 1
+popup/item_2/text = "否"
+popup/item_2/id = 2
+
+[node name="RoadLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+layout_mode = 2
+text = "道路："
+
+[node name="RoadOptionButton" type="OptionButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 selected = 0

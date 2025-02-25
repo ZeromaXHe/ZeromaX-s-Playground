@@ -13,12 +13,14 @@ public class HexMeshService(IChunkService chunkService, ITileService tileService
     private float _radius;
     private IHexMesh _terrain;
     private IHexMesh _rivers;
+    private IHexMesh _roads;
 
-    public void Triangulate(float radius, int chunkId, IHexMesh terrain, IHexMesh rivers)
+    public void Triangulate(float radius, int chunkId, IHexMesh terrain, IHexMesh rivers, IHexMesh roads)
     {
         _radius = radius;
         _terrain = terrain;
         _rivers = rivers;
+        _roads = roads;
         var tileIds = chunkService.GetById(chunkId).TileIds;
         var tiles = tileIds.Select(tileService.GetById);
         foreach (var tile in tiles)
@@ -29,55 +31,131 @@ public class HexMeshService(IChunkService chunkService, ITileService tileService
     {
         // var corners = tile.GetCorners(_radius + tile.Height, 1f).ToList();
         for (var i = 0; i < tile.HexFaceIds.Count; i++)
-            Triangulate(tile, i, tile.NextIdx(i));
+            Triangulate(tile, i);
     }
 
     // Godot 缠绕顺序是正面顺时针，所以从 i1 对应角落到 i2 对应角落相对于 tile 重心需要是顺时针
-    private void Triangulate(Tile tile, int i1, int i2)
+    private void Triangulate(Tile tile, int idx)
     {
         var height = tileService.GetHeight(tile);
-        var v1 = tileService.GetCorner(tile, i1, _radius + height, HexMetrics.SolidFactor);
-        var v2 = tileService.GetCorner(tile, i2, _radius + height, HexMetrics.SolidFactor);
+        var v1 = tileService.GetFirstSolidCorner(tile, idx, _radius);
+        var v2 = tileService.GetSecondSolidCorner(tile, idx, _radius);
         var e = new EdgeVertices(v1, v2);
         var centroid = tile.GetCentroid(_radius + height);
         if (tile.HasRiver)
         {
-            var neighbor = tileService.GetNeighborByDirection(tile, i1, i2);
-            if (tile.HasRiverToNeighbor(neighbor.Id))
+            if (tileService.HasRiverThroughEdge(tile, idx))
             {
                 e.V3 = Math3dUtil.ProjectToSphere(e.V3, _radius + tileService.GetStreamBedHeight(tile));
                 if (tile.HasRiverBeginOrEnd)
-                    TriangulateWithRiverBeginOrEnd(tile, i1, i2, centroid, e);
-                else TriangulateWithRiver(tile, i1, i2, centroid, e);
+                    TriangulateWithRiverBeginOrEnd(tile, idx, centroid, e);
+                else TriangulateWithRiver(tile, idx, centroid, e);
             }
-            else TriangulateAdjacentToRiver(tile, i1, i2, centroid, e);
+            else TriangulateAdjacentToRiver(tile, idx, centroid, e);
         }
-        else TriangulateEdgeFan(centroid, e, tile.Color);
+        else TriangulateWithoutRiver(tile, idx, centroid, e);
 
-        TriangulateConnection(tile, i1, i2, e);
+        TriangulateConnection(tile, idx, e);
     }
 
-    private void TriangulateAdjacentToRiver(Tile tile, int i1, int i2, Vector3 centroid, EdgeVertices e)
+    private void TriangulateAdjacentToRiver(Tile tile, int idx, Vector3 centroid, EdgeVertices e)
     {
-        var height = tileService.GetHeight(tile);
-        if (tileService.HasRiverThroughEdge(tile, i2, tile.NextIdx(i2)))
+        if (tile.HasRoads)
+            TriangulateRoadAdjacentToRiver(tile, idx, centroid, e);
+        if (tileService.HasRiverThroughEdge(tile, tile.NextIdx(idx)))
         {
-            if (tileService.HasRiverThroughEdge(tile, tile.PreviousIdx(i1), i1))
-                centroid = tileService.GetCornerMiddle(tile, i1, i2,
-                    _radius + height, 0.5f * HexMetrics.InnerToOuter * 0.5f * HexMetrics.SolidFactor);
-            else if (tileService.HasRiverThroughEdge(tile, tile.Previous2Idx(i1), tile.Previous2Idx(i2)))
-                centroid = tileService.GetCorner(tile, i1, _radius + height, 0.25f * HexMetrics.SolidFactor);
+            if (tileService.HasRiverThroughEdge(tile, tile.PreviousIdx(idx)))
+                centroid = tileService.GetSolidEdgeMiddle(tile, idx, _radius, 0.5f * HexMetrics.InnerToOuter);
+            else if (tileService.HasRiverThroughEdge(tile, tile.Previous2Idx(idx)))
+                centroid = tileService.GetFirstSolidCorner(tile, idx, _radius, 0.25f);
         }
-        else if (tileService.HasRiverThroughEdge(tile, tile.PreviousIdx(i1), i1) &&
-                 tileService.HasRiverThroughEdge(tile, tile.Next2Idx(i1), tile.Next2Idx(i2)))
-            centroid = tileService.GetCorner(tile, i2, _radius + height, 0.25f * HexMetrics.SolidFactor);
+        else if (tileService.HasRiverThroughEdge(tile, tile.PreviousIdx(idx)) &&
+                 tileService.HasRiverThroughEdge(tile, tile.Next2Idx(idx)))
+            centroid = tileService.GetSecondSolidCorner(tile, idx, _radius, 0.25f);
 
         var m = new EdgeVertices(centroid.Lerp(e.V1, 0.5f), centroid.Lerp(e.V5, 0.5f));
         TriangulateEdgeStrip(m, tile.Color, e, tile.Color);
         TriangulateEdgeFan(centroid, m, tile.Color);
     }
 
-    private void TriangulateWithRiverBeginOrEnd(Tile tile, int i1, int i2, Vector3 centroid, EdgeVertices e)
+    private void TriangulateRoadAdjacentToRiver(Tile tile, int idx, Vector3 centroid, EdgeVertices e)
+    {
+        var hasRoadThroughEdge = tile.HasRoadThroughEdge(idx);
+        var previousHasRiver = tileService.HasRiverThroughEdge(tile, tile.PreviousIdx(idx));
+        var nextHasRiver = tileService.HasRiverThroughEdge(tile, tile.NextIdx(idx));
+        var interpolators = GetRoadInterpolators(tile, idx);
+        var roadCenter = centroid;
+        if (tile.HasRiverBeginOrEnd)
+        {
+            var riverBeginOrEndIdx = tileService.GetRiverBeginOrEndIdx(tile);
+            roadCenter += tileService.GetSolidEdgeMiddle(tile, tile.OppositeIdx(riverBeginOrEndIdx),
+                _radius, 1f / 3f) - centroid;
+        }
+        else
+        {
+            var incomingRiverIdx = tileService.GetNeighborIdIdx(tile, tile.IncomingRiverNId);
+            var outgoingRiverIdx = tileService.GetNeighborIdIdx(tile, tile.OutgoingRiverNId);
+            if (incomingRiverIdx == tile.OppositeIdx(outgoingRiverIdx))
+            {
+                Vector3 corner;
+                if (previousHasRiver)
+                {
+                    if (!hasRoadThroughEdge && !tile.HasRoadThroughEdge(tile.NextIdx(idx))) return;
+                    corner = tileService.GetSecondSolidCorner(tile, idx, _radius);
+                }
+                else
+                {
+                    if (!hasRoadThroughEdge && !tile.HasRoadThroughEdge(tile.PreviousIdx(idx))) return;
+                    corner = tileService.GetFirstSolidCorner(tile, idx, _radius);
+                }
+
+                roadCenter += (corner - centroid) * 0.5f;
+                centroid += (corner - centroid) * 0.25f;
+            }
+            else if (incomingRiverIdx == tile.PreviousIdx(outgoingRiverIdx))
+            {
+                roadCenter -= tileService.GetSecondCorner(tile, incomingRiverIdx,
+                    _radius + tileService.GetHeight(tile), 0.2f) - centroid;
+            }
+            else if (incomingRiverIdx == tile.NextIdx(outgoingRiverIdx))
+            {
+                roadCenter -= tileService.GetFirstCorner(tile, incomingRiverIdx,
+                    _radius + tileService.GetHeight(tile), 0.2f) - centroid;
+            }
+            else if (previousHasRiver && nextHasRiver)
+            {
+                if (!hasRoadThroughEdge) return;
+                var offset = tileService.GetSolidEdgeMiddle(tile, idx, _radius, HexMetrics.InnerToOuter);
+                roadCenter += (offset - centroid) * 0.7f;
+                centroid += (offset - centroid) * 0.5f;
+            }
+            else
+            {
+                int middleIdx;
+                if (previousHasRiver)
+                    middleIdx = tile.NextIdx(idx);
+                else if (nextHasRiver)
+                    middleIdx = tile.PreviousIdx(idx);
+                else
+                    middleIdx = idx;
+                if (!tile.HasRoadThroughEdge(middleIdx)
+                    && !tile.HasRoadThroughEdge(tile.PreviousIdx(middleIdx))
+                    && !tile.HasRoadThroughEdge(tile.NextIdx(middleIdx)))
+                    return;
+                roadCenter += tileService.GetSolidEdgeMiddle(tile, middleIdx, _radius, 0.25f) - centroid;
+            }
+        }
+
+        var mL = roadCenter.Lerp(e.V1, interpolators.X);
+        var mR = roadCenter.Lerp(e.V5, interpolators.Y);
+        TriangulateRoad(roadCenter, mL, mR, e, hasRoadThroughEdge);
+        if (previousHasRiver)
+            TriangulateRoadEdge(roadCenter, centroid, mL);
+        if (nextHasRiver)
+            TriangulateRoadEdge(roadCenter, mR, centroid);
+    }
+
+    private void TriangulateWithRiverBeginOrEnd(Tile tile, int idx, Vector3 centroid, EdgeVertices e)
     {
         var m = new EdgeVertices(centroid.Lerp(e.V1, 0.5f), centroid.Lerp(e.V5, 0.5f));
         m.V3 = Math3dUtil.ProjectToSphere(m.V3, e.V3.Length());
@@ -96,38 +174,35 @@ public class HexMeshService(IChunkService chunkService, ITileService tileService
                 : [new Vector2(0.5f, 0.4f), new Vector2(0f, 0.6f), new Vector2(1f, 0.6f)]);
     }
 
-    private void TriangulateWithRiver(Tile tile, int i1, int i2, Vector3 centroid, EdgeVertices e)
+    private void TriangulateWithRiver(Tile tile, int idx, Vector3 centroid, EdgeVertices e)
     {
-        var height = tileService.GetHeight(tile);
         Vector3 centerL;
         Vector3 centerR;
-        if (tileService.HasRiverThroughEdge(tile, tile.OppositeIdx(i1), tile.OppositeIdx(i2)))
+        if (tileService.HasRiverThroughEdge(tile, tile.OppositeIdx(idx)))
         {
-            centerL = tileService.GetCorner(tile, tile.PreviousIdx(i1),
-                _radius + height, 0.25f * HexMetrics.SolidFactor);
-            centerR = tileService.GetCorner(tile, tile.NextIdx(i2),
-                _radius + height, 0.25f * HexMetrics.SolidFactor);
+            centerL = tileService.GetFirstSolidCorner(tile, tile.PreviousIdx(idx), _radius, 0.25f);
+            centerR = tileService.GetSecondSolidCorner(tile, tile.NextIdx(idx), _radius, 0.25f);
         }
-        else if (tileService.HasRiverThroughEdge(tile, i2, tile.NextIdx(i2)))
+        else if (tileService.HasRiverThroughEdge(tile, tile.NextIdx(idx)))
         {
             centerL = centroid;
             centerR = centroid.Lerp(e.V5, 2f / 3f);
         }
-        else if (tileService.HasRiverThroughEdge(tile, tile.PreviousIdx(i1), i1))
+        else if (tileService.HasRiverThroughEdge(tile, tile.PreviousIdx(idx)))
         {
             centerL = centroid.Lerp(e.V1, 2f / 3f);
             centerR = centroid;
         }
-        else if (tileService.HasRiverThroughEdge(tile, tile.Next2Idx(i1), tile.Next2Idx(i2)))
+        else if (tileService.HasRiverThroughEdge(tile, tile.Next2Idx(idx)))
         {
             centerL = centroid;
-            centerR = tileService.GetCornerMiddle(tile, i2, tile.NextIdx(i2),
-                _radius + height, 0.5f * HexMetrics.InnerToOuter * 0.5f * HexMetrics.SolidFactor);
+            centerR = tileService.GetSolidEdgeMiddle(tile, tile.NextIdx(idx), _radius,
+                0.5f * HexMetrics.InnerToOuter);
         }
-        else if (tileService.HasRiverThroughEdge(tile, tile.Previous2Idx(i1), tile.Previous2Idx(i2)))
+        else if (tileService.HasRiverThroughEdge(tile, tile.Previous2Idx(idx)))
         {
-            centerL = tileService.GetCornerMiddle(tile, tile.PreviousIdx(i1), i1,
-                _radius + height, 0.5f * HexMetrics.InnerToOuter * 0.5f * HexMetrics.SolidFactor);
+            centerL = tileService.GetSolidEdgeMiddle(tile, tile.PreviousIdx(idx), _radius,
+                0.5f * HexMetrics.InnerToOuter);
             centerR = centroid;
         }
         else
@@ -146,7 +221,7 @@ public class HexMeshService(IChunkService chunkService, ITileService tileService
         _terrain.AddQuad([centroid, centerR, m.V3, m.V4], QuadColor(tile.Color));
         _terrain.AddTriangle([centerR, m.V4, m.V5], TriColor(tile.Color));
 
-        var reversed = tile.IncomingRiverNId == tileService.GetNeighborByDirection(tile, i1, i2).Id;
+        var reversed = tile.IncomingRiverNId == tileService.GetNeighborByIdx(tile, idx).Id;
         TriangulateRiverQuad(centerL, centerR, m.V2, m.V4,
             _radius + tileService.GetRiverSurfaceHeight(tile), 0.4f, reversed);
         TriangulateRiverQuad(m.V2, m.V4, e.V2, e.V4,
@@ -178,25 +253,81 @@ public class HexMeshService(IChunkService chunkService, ITileService tileService
         _terrain.AddTriangle([center, edge.V4, edge.V5], TriColor(color));
     }
 
-    private void TriangulateEdgeStrip(EdgeVertices e1, Color c1, EdgeVertices e2, Color c2)
+    private void TriangulateEdgeStrip(EdgeVertices e1, Color c1, EdgeVertices e2, Color c2, bool hasRoad = false)
     {
         _terrain.AddQuad([e1.V1, e1.V2, e2.V1, e2.V2], QuadColor(c1, c2));
         _terrain.AddQuad([e1.V2, e1.V3, e2.V2, e2.V3], QuadColor(c1, c2));
         _terrain.AddQuad([e1.V3, e1.V4, e2.V3, e2.V4], QuadColor(c1, c2));
         _terrain.AddQuad([e1.V4, e1.V5, e2.V4, e2.V5], QuadColor(c1, c2));
+        if (hasRoad)
+            TriangulateRoadSegment(e1.V2, e1.V3, e1.V4, e2.V2, e2.V3, e2.V4);
     }
 
-    private void TriangulateConnection(Tile tile, int i1, int i2, EdgeVertices e)
+    private Vector2 GetRoadInterpolators(Tile tile, int idx)
+    {
+        Vector2 interpolators;
+        if (tile.HasRoadThroughEdge(idx))
+            interpolators.X = interpolators.Y = 0.5f;
+        else
+        {
+            interpolators.X = tile.HasRoadThroughEdge(tile.PreviousIdx(idx)) ? 0.5f : 0.25f;
+            interpolators.Y = tile.HasRoadThroughEdge(tile.NextIdx(idx)) ? 0.5f : 0.25f;
+        }
+
+        return interpolators;
+    }
+
+    private void TriangulateWithoutRiver(Tile tile, int idx, Vector3 centroid, EdgeVertices e)
+    {
+        TriangulateEdgeFan(centroid, e, tile.Color);
+        if (tile.HasRoads)
+        {
+            var interpolators = GetRoadInterpolators(tile, idx);
+            TriangulateRoad(centroid, centroid.Lerp(e.V1, interpolators.X),
+                centroid.Lerp(e.V5, interpolators.Y), e, tile.HasRoadThroughEdge(idx));
+        }
+    }
+
+    private void TriangulateRoad(Vector3 centroid, Vector3 mL, Vector3 mR, EdgeVertices e, bool hasRoadThroughCellEdge)
+    {
+        if (hasRoadThroughCellEdge)
+        {
+            var mC = mL.Lerp(mR, 0.5f);
+            TriangulateRoadSegment(mL, mC, mR, e.V2, e.V3, e.V4);
+            _roads.AddTriangle([centroid, mL, mC],
+                uvs: [new Vector2(1f, 0f), new Vector2(0f, 0f), new Vector2(1f, 0f)]);
+            _roads.AddTriangle([centroid, mC, mR],
+                uvs: [new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(0f, 0f)]);
+        }
+        else TriangulateRoadEdge(centroid, mL, mR);
+    }
+
+    private void TriangulateRoadEdge(Vector3 centroid, Vector3 mL, Vector3 mR)
+    {
+        _roads.AddTriangle([centroid, mL, mR], uvs: [new Vector2(1f, 0f), new Vector2(0f, 0f), new Vector2(0f, 0f)]);
+    }
+
+    // 顶点的排序：
+    // v4  v5  v6
+    // v1  v2  v3
+    // 0.0 1.0 0.0
+    private void TriangulateRoadSegment(Vector3 v1, Vector3 v2, Vector3 v3, Vector3 v4, Vector3 v5, Vector3 v6)
+    {
+        _roads.AddQuad([v1, v2, v4, v5], uvs: QuadUv(0f, 1f, 0f, 0f));
+        _roads.AddQuad([v2, v3, v5, v6], uvs: QuadUv(1f, 0f, 0f, 0f));
+    }
+
+    private void TriangulateConnection(Tile tile, int idx, EdgeVertices e)
     {
         var tileHeight = tileService.GetHeight(tile);
-        var neighbor = tileService.GetNeighborByDirection(tile, i1, i2);
+        var neighbor = tileService.GetNeighborByIdx(tile, idx);
         var neighborHeight = tileService.GetHeight(neighbor);
         // 连接将由更低的地块或相同高度时 Id 更大的地块生成
         if (tileHeight > neighborHeight ||
             (Mathf.Abs(tileHeight - neighborHeight) < 0.00001f && tile.Id < neighbor.Id)) return;
-        var vn1 = tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[i1],
+        var vn1 = tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[idx],
             _radius + neighborHeight, HexMetrics.SolidFactor);
-        var vn2 = tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[i2],
+        var vn2 = tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[tile.NextIdx(idx)],
             _radius + neighborHeight, HexMetrics.SolidFactor);
         var en = new EdgeVertices(vn1, vn2);
         if (neighbor.HasRiverToNeighbor(tile.Id))
@@ -209,28 +340,28 @@ public class HexMeshService(IChunkService chunkService, ITileService tileService
         }
 
         if (HexMetrics.GetEdgeType(tile.Elevation, neighbor.Elevation) == HexEdgeType.Slope)
-            TriangulateEdgeTerraces(e, tile, en, neighbor);
+            TriangulateEdgeTerraces(e, tile, en, neighbor, tile.HasRoadThroughEdge(idx));
         else
-            TriangulateEdgeStrip(e, tile.Color, en, neighbor.Color);
+            TriangulateEdgeStrip(e, tile.Color, en, neighbor.Color, tile.HasRoadThroughEdge(idx));
 
-        var otherNeighbor1 = tileService.GetNeighborsByDirection(tile, i1, neighbor.Id)[0];
+        var otherNeighbor1 = tileService.GetCornerNeighborsByIdx(tile, idx, neighbor.Id)[0];
         var otherNeighbor1Height = tileService.GetHeight(otherNeighbor1);
         if (tileHeight < otherNeighbor1Height
             || (Mathf.Abs(tileHeight - otherNeighbor1Height) < 0.00001f && tile.Id > otherNeighbor1.Id))
         {
             // 连接角落的三角形由周围 3 个地块中最低或者一样高时 Id 最大的生成
-            var von1 = tileService.GetCornerByFaceId(otherNeighbor1, tile.HexFaceIds[i1],
+            var von1 = tileService.GetCornerByFaceId(otherNeighbor1, tile.HexFaceIds[idx],
                 _radius + otherNeighbor1Height, HexMetrics.SolidFactor);
             TriangulateCorner(e.V1, tile, von1, otherNeighbor1, vn1, neighbor);
         }
 
-        var otherNeighbor2 = tileService.GetNeighborsByDirection(tile, i2, neighbor.Id)[0];
+        var otherNeighbor2 = tileService.GetCornerNeighborsByIdx(tile, tile.NextIdx(idx), neighbor.Id)[0];
         var otherNeighbor2Height = tileService.GetHeight(otherNeighbor2);
         if (tileHeight < otherNeighbor2Height
             || (Mathf.Abs(tileHeight - otherNeighbor2Height) < 0.00001f && tile.Id > otherNeighbor2.Id))
         {
             // 连接角落的三角形由周围 3 个地块中最低或者一样高时 Id 最大的生成
-            var von2 = tileService.GetCornerByFaceId(otherNeighbor2, tile.HexFaceIds[i2],
+            var von2 = tileService.GetCornerByFaceId(otherNeighbor2, tile.HexFaceIds[tile.NextIdx(idx)],
                 _radius + otherNeighbor2Height, HexMetrics.SolidFactor);
             TriangulateCorner(e.V5, tile, vn2, neighbor, von2, otherNeighbor2);
         }
@@ -344,21 +475,22 @@ public class HexMeshService(IChunkService chunkService, ITileService tileService
         _terrain.AddQuad([v3, v4, left, right], [c3, c4, leftTile.Color, rightTile.Color]);
     }
 
-    private void TriangulateEdgeTerraces(EdgeVertices begin, Tile beginTile, EdgeVertices end, Tile endTile)
+    private void TriangulateEdgeTerraces(EdgeVertices begin, Tile beginTile, EdgeVertices end, Tile endTile,
+        bool hasRoad)
     {
         var e2 = EdgeVertices.TerraceLerp(begin, end, 1);
         var c2 = HexMetrics.TerraceLerp(beginTile.Color, endTile.Color, 1);
-        TriangulateEdgeStrip(begin, beginTile.Color, e2, c2);
+        TriangulateEdgeStrip(begin, beginTile.Color, e2, c2, hasRoad);
         for (var i = 2; i < HexMetrics.TerraceSteps; i++)
         {
             var e1 = e2;
             var c1 = c2;
             e2 = EdgeVertices.TerraceLerp(begin, end, i);
             c2 = HexMetrics.TerraceLerp(beginTile.Color, endTile.Color, i);
-            TriangulateEdgeStrip(e1, c1, e2, c2);
+            TriangulateEdgeStrip(e1, c1, e2, c2, hasRoad);
         }
 
-        TriangulateEdgeStrip(e2, c2, end, endTile.Color);
+        TriangulateEdgeStrip(e2, c2, end, endTile.Color, hasRoad);
     }
 
     private static Color[] TriColor(Color c) => [c, c, c];

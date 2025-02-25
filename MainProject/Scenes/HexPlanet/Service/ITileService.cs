@@ -36,24 +36,39 @@ public interface ITileService
 
     // 获取地块的形状角落顶点（顺时针顺序）
     IEnumerable<Vector3> GetCorners(Tile tile, float radius, float size = 1f);
-    Vector3 GetCorner(Tile tile, int idx, float radius = 1f, float size = 1f);
+    
+    // 按照 tile 高度查询 idx (顺时针第一个)角落的位置，相对于 Tile 中心进行插值 size 的缩放。
+    Vector3 GetFirstCorner(Tile tile, int idx, float radius = 1f, float size = 1f);
+
+    // 按照 tile 高度查询 NextIdx(idx) (顺时针第二个)角落的位置，相对于 Tile 中心进行插值 size 的缩放。
+    Vector3 GetSecondCorner(Tile tile, int idx, float radius = 1f, float size = 1f);
+
+    // 按照 tile 高度查询 idx (顺时针第一个)核心角落的位置，相对于 Tile 中心进行插值 size 的缩放。
+    Vector3 GetFirstSolidCorner(Tile tile, int idx, float baseRadius = 1f, float size = 1f);
+
+    // 按照 tile 高度查询 NextIdx(idx) (顺时针第二个)核心角落的位置，相对于 Tile 中心进行插值 size 的缩放。
+    Vector3 GetSecondSolidCorner(Tile tile, int idx, float baseRadius = 1f, float size = 1f);
     Vector3 GetCornerByFaceId(Tile tile, int id, float radius = 1f, float size = 1f);
-    Vector3 GetCornerMiddle(Tile tile, int i1, int i2, float radius = 1f, float size = 1f);
+    Vector3 GetEdgeMiddle(Tile tile, int idx, float radius = 1f, float size = 1f);
+    Vector3 GetSolidEdgeMiddle(Tile tile, int idx, float baseRadius = 1f, float size = 1f);
     Vector3 GetCenter(Tile tile, float radius);
+
+    #region 邻居
+
     IEnumerable<Tile> GetNeighbors(Tile tile);
+
+    /// <summary>
+    /// 根据地块的相邻的顶点 Face 索引，获取该方向上共边的邻居。
+    /// </summary>
+    /// <param name="tile">地块</param>
+    /// <param name="idx">顶点 Face 索引</param>
+    /// <returns>一个共边的邻居</returns>
     Tile GetNeighborByIdx(Tile tile, int idx);
+
+    int GetNeighborIdIdx(Tile tile, int neighborId);
     bool IsNeighbor(Tile tile1, Tile tile2);
     IEnumerable<Tile> GetTilesInDistance(Tile tile, int dist);
     List<Vector3> GetNeighborCommonCorners(Tile tile, Tile neighbor, float radius = 1f);
-
-    /// <summary>
-    /// 根据地块的相邻的两个顶点 Face 索引，获取该方向上共边的邻居。
-    /// </summary>
-    /// <param name="tile">地块</param>
-    /// <param name="idx1">顶点 Face 索引 1</param>
-    /// <param name="idx2">顶点 Face 索引 2</param>
-    /// <returns>一个共边的邻居</returns>
-    Tile GetNeighborByDirection(Tile tile, int idx1, int idx2);
 
     /// <summary>
     /// 根据地块的顶点 Face 索引，获取该方向上的共角落的两个邻居。
@@ -62,11 +77,25 @@ public interface ITileService
     /// <param name="idx">顶点 Face 索引</param>
     /// <param name="filterNeighborId">需要过滤掉（不返回）的邻居 id</param>
     /// <returns>两个共角落的邻居（如果过滤，则为一个）</returns>
-    List<Tile> GetNeighborsByDirection(Tile tile, int idx, int filterNeighborId = -1);
+    List<Tile> GetCornerNeighborsByIdx(Tile tile, int idx, int filterNeighborId = -1);
+
+    #endregion
+
+    #region 河流
 
     void RemoveRiver(Tile tile);
     void SetOutgoingRiver(Tile tile, Tile riverToTile);
     float GetStreamBedHeight(Tile tile);
-    bool HasRiverThroughEdge(Tile tile, int i1, int i2);
+    bool HasRiverThroughEdge(Tile tile, int idx);
     float GetRiverSurfaceHeight(Tile tile);
+    int GetRiverBeginOrEndIdx(Tile tile);
+
+    #endregion
+
+    #region 道路
+
+    void AddRoad(Tile tile, Tile neighbor);
+    void RemoveRoads(Tile tile);
+
+    #endregion
 }

@@ -4,5 +4,5 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 
 public interface IHexMeshService
 {
-    void Triangulate(float radius, int chunkId, IHexMesh terrain, IHexMesh rivers);
+    void Triangulate(float radius, int chunkId, IHexMesh terrain, IHexMesh rivers, IHexMesh roads);
 }

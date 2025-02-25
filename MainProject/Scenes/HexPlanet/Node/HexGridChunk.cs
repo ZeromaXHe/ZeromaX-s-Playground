@@ -9,6 +9,7 @@ public partial class HexGridChunk : Node3D
 {
     [Export] private HexMesh _terrain;
     [Export] private HexMesh _rivers;
+    [Export] private HexMesh _roads;
     private int _id;
     private float _radius;
 
@@ -26,9 +27,11 @@ public partial class HexGridChunk : Node3D
             var time = Time.GetTicksMsec();
             _terrain.Clear();
             _rivers.Clear();
-            Context.GetBean<IHexMeshService>().Triangulate(_radius, _id, _terrain, _rivers);
+            _roads.Clear();
+            Context.GetBean<IHexMeshService>().Triangulate(_radius, _id, _terrain, _rivers, _roads);
             _terrain.Apply();
             _rivers.Apply();
+            _roads.Apply();
             GD.Print($"Chunk {_id} BuildMesh cost: {Time.GetTicksMsec() - time} ms");
         }
 

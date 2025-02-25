@@ -25,11 +25,30 @@ public class FaceService(IFaceRepo faceRepo, IPointRepo pointRepo) : IFaceServic
 
     public IEnumerable<Point> GetOtherPoints(Face face, Point point)
     {
+        var idx = GetPointIdx(face, point);
+        yield return pointRepo.GetById(face.PointIds[(idx + 1) % 3]);
+        yield return pointRepo.GetById(face.PointIds[(idx + 2) % 3]);
+    }
+
+    // 顺时针第一个顶点
+    public Point GetLeftOtherPoints(Face face, Point point)
+    {
+        var idx = GetPointIdx(face, point);
+        return pointRepo.GetById(face.PointIds[(idx + 1) % 3]);
+    }
+
+    // 顺时针第二个顶点
+    public Point GetRightOtherPoints(Face face, Point point)
+    {
+        var idx = GetPointIdx(face, point);
+        return pointRepo.GetById(face.PointIds[(idx + 2) % 3]);
+    }
+
+    private static int GetPointIdx(Face face, Point point)
+    {
         if (face.PointIds.All(facePointId => facePointId != point.Id))
             throw new ArgumentException("Given point must be one of the points on the face!");
 
-        var idx = face.PointIds.FindIndex(pId => pId == point.Id);
-        yield return pointRepo.GetById(face.PointIds[(idx + 1) % 3]);
-        yield return pointRepo.GetById(face.PointIds[(idx + 2) % 3]);
+        return face.PointIds.FindIndex(pId => pId == point.Id);
     }
 }

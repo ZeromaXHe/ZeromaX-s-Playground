@@ -1,7 +1,7 @@
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Base;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 
@@ -28,8 +28,15 @@ public class Tile(
 
     // 已确保顺序和 HexFaceIds 对应，每个邻居共边的顶点是 HexFaceIds[i] 和 HexFaceIds[(i + 1) % HexFaceIds.Count]
     public List<int> NeighborCenterIds { get; } = neighborCenterIds;
+
+    public int GetNeighborIdx(Tile neighbor) =>
+        NeighborCenterIds.FindIndex(cId => cId == neighbor.CenterId);
+
     public int Elevation { get; set; } = GD.RandRange(0, 10);
     public Color Color { get; set; } = Color.FromHsv(GD.Randf(), GD.Randf(), GD.Randf());
+
+    #region 河流
+
     public bool HasIncomingRiver { get; set; }
     public bool HasOutgoingRiver { get; set; }
 
@@ -40,8 +47,19 @@ public class Tile(
     public int OutgoingRiverNId { get; set; }
     public bool HasRiver => HasIncomingRiver || HasOutgoingRiver;
     public bool HasRiverBeginOrEnd => HasIncomingRiver != HasOutgoingRiver;
+    public int RiverBeginOrEndNId => HasIncomingRiver ? IncomingRiverNId : OutgoingRiverNId; 
 
     public bool HasRiverToNeighbor(int neighborId) =>
         (HasIncomingRiver && IncomingRiverNId == neighborId)
         || (HasOutgoingRiver && OutgoingRiverNId == neighborId);
+
+    #endregion
+
+    #region 道路
+
+    public bool[] Roads { get; } = new bool[hexFaceIds.Count];
+    public bool HasRoadThroughEdge(int idx) => Roads[idx];
+    public bool HasRoads => Roads.Any(r => r); // C# 貌似没有类似 Java Function.identity() 方法，或者 F# id 的这种默认实现
+
+    #endregion
 }

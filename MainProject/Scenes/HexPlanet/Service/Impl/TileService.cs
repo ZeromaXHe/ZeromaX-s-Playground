@@ -47,6 +47,9 @@ public class TileService(
             RemoveOutgoingRiver(tile);
         if (tile.HasIncomingRiver && tile.Elevation > GetById(tile.IncomingRiverNId).Elevation)
             RemoveIncomingRiver(tile);
+        for (var i = 0; i < tile.Roads.Length; i++)
+            if (tile.Roads[i] && GetElevationDifference(tile, i) > 1)
+                SetRoad(tile, i, false);
         Refresh(tile);
     }
 
@@ -77,6 +80,12 @@ public class TileService(
         var radius = UnitHeight / HexMetrics.MaxHeightRadiusRatio * HexMetrics.ElevationStep;
         return (HexMetrics.SampleNoise(tile.GetCentroid(radius)).Y * 2f - 1f)
                * HexMetrics.ElevationPerturbStrength * UnitHeight;
+    }
+
+    public int GetElevationDifference(Tile tile, int idx)
+    {
+        var diff = tile.Elevation - GetNeighborByIdx(tile, idx).Elevation;
+        return diff >= 0 ? diff : -diff;
     }
 
     public void ClearData() => tileRepo.Truncate();
@@ -132,14 +141,10 @@ public class TileService(
 
         List<Point> GetNeighbourCenterIds(List<Face> hexFaces, Point center)
         {
-            var neighbourCenters = new List<Point>();
-            foreach (var p in
-                     from face in hexFaces
-                     from p in faceService.GetOtherPoints(face, center)
-                     where !neighbourCenters.Contains(p)
-                     select p)
-                neighbourCenters.Add(p);
-            return neighbourCenters;
+            return (
+                from face in hexFaces
+                select faceService.GetRightOtherPoints(face, center)
+            ).ToList();
         }
     }
 
@@ -160,26 +165,42 @@ public class TileService(
         into pos
         select Math3dUtil.ProjectToSphere(pos, radius);
 
-    public Vector3 GetCorner(Tile tile, int idx, float radius = 1f, float size = 1f) =>
+    public Vector3 GetFirstCorner(Tile tile, int idx, float radius = 1f, float size = 1f) =>
         Math3dUtil.ProjectToSphere(tile.UnitCentroid.Lerp(faceRepo.GetById(tile.HexFaceIds[idx]).Center, size), radius);
+
+    public Vector3 GetSecondCorner(Tile tile, int idx, float radius = 1f, float size = 1f) =>
+        GetFirstCorner(tile, tile.NextIdx(idx), radius, size);
+
+    public Vector3 GetFirstSolidCorner(Tile tile, int idx, float baseRadius = 1f, float size = 1f) =>
+        GetFirstCorner(tile, idx, baseRadius + GetHeight(tile), size * HexMetrics.SolidFactor);
+
+    public Vector3 GetSecondSolidCorner(Tile tile, int idx, float baseRadius = 1f, float size = 1f) =>
+        GetSecondCorner(tile, idx, baseRadius + GetHeight(tile), size * HexMetrics.SolidFactor);
 
     public Vector3 GetCornerByFaceId(Tile tile, int id, float radius = 1f, float size = 1f) =>
         Math3dUtil.ProjectToSphere(tile.UnitCentroid.Lerp(faceRepo.GetById(id).Center, size), radius);
 
-    public Vector3 GetCornerMiddle(Tile tile, int i1, int i2, float radius = 1f, float size = 1f)
+    public Vector3 GetEdgeMiddle(Tile tile, int idx, float radius = 1f, float size = 1f)
     {
-        var corner1 = GetCorner(tile, i1, radius, size);
-        var corner2 = GetCorner(tile, i2, radius, size);
+        var corner1 = GetFirstCorner(tile, idx, radius, size);
+        var corner2 = GetFirstCorner(tile, tile.NextIdx(idx), radius, size);
         return corner1.Lerp(corner2, 0.5f);
     }
 
+    public Vector3 GetSolidEdgeMiddle(Tile tile, int idx, float baseRadius = 1f, float size = 1f) =>
+        GetEdgeMiddle(tile, idx, baseRadius + GetHeight(tile), size * HexMetrics.SolidFactor);
+
     public Vector3 GetCenter(Tile tile, float radius) =>
         Math3dUtil.ProjectToSphere(pointRepo.GetById(tile.CenterId).Position, radius);
+
+    #region 邻居
 
     public IEnumerable<Tile> GetNeighbors(Tile tile) => tile.NeighborCenterIds.Select(tileRepo.GetByCenterId);
 
     public Tile GetNeighborByIdx(Tile tile, int idx) =>
         idx >= 0 && idx < tile.NeighborCenterIds.Count ? tileRepo.GetByCenterId(tile.NeighborCenterIds[idx]) : null;
+
+    public int GetNeighborIdIdx(Tile tile, int neighborId) => tile.GetNeighborIdx(GetById(neighborId));
 
     public bool IsNeighbor(Tile tile1, Tile tile2) =>
         tile1.NeighborCenterIds.Contains(tile2.CenterId);
@@ -210,28 +231,26 @@ public class TileService(
         if (idx == -1) return null;
         return
         [
-            GetCorner(tile, idx, radius),
-            GetCorner(tile, tile.NextIdx(idx), radius)
+            GetFirstCorner(tile, idx, radius),
+            GetFirstCorner(tile, tile.NextIdx(idx), radius)
         ];
     }
 
-    public Tile GetNeighborByDirection(Tile tile, int idx1, int idx2)
-    {
-        if (idx2 == tile.NextIdx(idx1)) return GetNeighborByIdx(tile, idx2);
-        return idx1 == tile.NextIdx(idx2) ? GetNeighborByIdx(tile, idx1) : null;
-    }
-
-    public List<Tile> GetNeighborsByDirection(Tile tile, int idx, int filterNeighborId = -1)
+    public List<Tile> GetCornerNeighborsByIdx(Tile tile, int idx, int filterNeighborId = -1)
     {
         var res = new List<Tile>();
-        var neighbor1 = GetNeighborByIdx(tile, idx);
-        var neighbor2 = GetNeighborByIdx(tile, tile.NextIdx(idx));
+        var neighbor1 = GetNeighborByIdx(tile, tile.PreviousIdx(idx));
         if (neighbor1.Id != filterNeighborId)
             res.Add(neighbor1);
+        var neighbor2 = GetNeighborByIdx(tile, idx);
         if (neighbor2.Id != filterNeighborId)
             res.Add(neighbor2);
         return res;
     }
+
+    #endregion
+
+    #region 河流
 
     private void RemoveOutgoingRiver(Tile tile)
     {
@@ -274,18 +293,53 @@ public class TileService(
             RemoveIncomingRiver(tile);
         tile.HasOutgoingRiver = true;
         tile.OutgoingRiverNId = riverToTile.Id;
-        RefreshSelfOnly(tile);
         RemoveIncomingRiver(riverToTile);
         riverToTile.HasIncomingRiver = true;
         riverToTile.IncomingRiverNId = tile.Id;
-        RefreshSelfOnly(riverToTile);
+        SetRoad(tile, tile.GetNeighborIdx(riverToTile), false);
     }
 
     public float GetStreamBedHeight(Tile tile) => (tile.Elevation + HexMetrics.StreamBedElevationOffset) * UnitHeight;
 
-    public bool HasRiverThroughEdge(Tile tile, int i1, int i2) =>
-        tile.HasRiverToNeighbor(GetNeighborByDirection(tile, i1, i2).Id);
+    public bool HasRiverThroughEdge(Tile tile, int idx) =>
+        tile.HasRiverToNeighbor(GetNeighborByIdx(tile, idx).Id);
 
     public float GetRiverSurfaceHeight(Tile tile) =>
         (tile.Elevation + HexMetrics.RiverSurfaceElevationOffset) * UnitHeight;
+
+    public int GetRiverBeginOrEndIdx(Tile tile) =>
+        tile.HasRiverBeginOrEnd ? tile.GetNeighborIdx(GetById(tile.RiverBeginOrEndNId)) : -1;
+
+    #endregion
+
+    #region 道路
+
+    public void AddRoad(Tile tile, Tile neighbor) => AddRoad(tile, tile.GetNeighborIdx(neighbor));
+
+    private void AddRoad(Tile tile, int idx)
+    {
+        if (!tile.Roads[idx] && !HasRiverThroughEdge(tile, idx)
+                             && GetElevationDifference(tile, idx) <= 1)
+            SetRoad(tile, idx, true);
+    }
+
+    public void RemoveRoads(Tile tile)
+    {
+        for (var i = 0; i < tile.Roads.Length; i++)
+        {
+            if (tile.Roads[i])
+                SetRoad(tile, i, false);
+        }
+    }
+
+    private void SetRoad(Tile tile, int idx, bool state)
+    {
+        tile.Roads[idx] = state;
+        var neighbor = GetNeighborByIdx(tile, idx);
+        neighbor.Roads[neighbor.GetNeighborIdx(tile)] = state;
+        RefreshSelfOnly(neighbor);
+        RefreshSelfOnly(tile);
+    }
+
+    #endregion
 }
