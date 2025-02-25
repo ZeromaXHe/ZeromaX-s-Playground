@@ -54,6 +54,59 @@ public partial class HexPlanetGui : Control
     private HSlider _brushHSlider;
     private OptionButton _riverOptionButton;
     private OptionButton _roadOptionButton;
+    private CheckButton _urbanCheckButton;
+    private HSlider _urbanHSlider;
+    private CheckButton _farmCheckButton;
+    private HSlider _farmHSlider;
+    private CheckButton _plantCheckButton;
+    private HSlider _plantHSlider;
+
+    private void InitOnReadyNodes()
+    {
+        _subViewportContainer = GetNode<SubViewportContainer>("%SubViewportContainer");
+        // 星球信息
+        _planetTabBar = GetNode<TabBar>("%PlanetTabBar");
+        _planetGrid = GetNode<GridContainer>("%PlanetGrid");
+        _radiusLineEdit = GetNode<LineEdit>("%RadiusLineEdit");
+        _divisionLineEdit = GetNode<LineEdit>("%DivisionLineEdit");
+        _chunkDivisionLineEdit = GetNode<LineEdit>("%ChunkDivisionLineEdit");
+        // 地块信息
+        _tileTabBar = GetNode<TabBar>("%TileTabBar");
+        _tileVBox = GetNode<VBoxContainer>("%TileVBox");
+        _chunkCountLabel = GetNode<Label>("%ChunkCountLabel");
+        _tileCountLabel = GetNode<Label>("%TileCountLabel");
+        _tileGrid = GetNode<GridContainer>("%TileGrid");
+        _idLineEdit = GetNode<LineEdit>("%IdLineEdit");
+        _chunkLineEdit = GetNode<LineEdit>("%ChunkLineEdit");
+        _heightLineEdit = GetNode<LineEdit>("%HeightLineEdit");
+        _elevationLineEdit = GetNode<LineEdit>("%ElevationLineEdit");
+        // 编辑功能
+        _editTabBar = GetNode<TabBar>("%EditTabBar");
+        _editGrid = GetNode<GridContainer>("%EditGrid");
+        _colorOptionButton = GetNode<OptionButton>("%ColorOptionButton");
+        _elevationVSlider = GetNode<VSlider>("%ElevationVSlider");
+        _elevationCheckButton = GetNode<CheckButton>("%ElevationCheckButton");
+        _elevationValueLabel = GetNode<Label>("%ElevationValueLabel");
+        _waterVSlider = GetNode<VSlider>("%WaterVSlider");
+        _waterCheckButton = GetNode<CheckButton>("%WaterCheckButton");
+        _waterValueLabel = GetNode<Label>("%WaterValueLabel");
+        _brushLabel = GetNode<Label>("%BrushLabel");
+        _brushHSlider = GetNode<HSlider>("%BrushHSlider");
+        _riverOptionButton = GetNode<OptionButton>("%RiverOptionButton");
+        _roadOptionButton = GetNode<OptionButton>("%RoadOptionButton");
+        _urbanCheckButton = GetNode<CheckButton>("%UrbanCheckButton");
+        _urbanHSlider = GetNode<HSlider>("%UrbanHSlider");
+        _farmCheckButton = GetNode<CheckButton>("%FarmCheckButton");
+        _farmHSlider = GetNode<HSlider>("%FarmHSlider");
+        _plantCheckButton = GetNode<CheckButton>("%PlantCheckButton");
+        _plantHSlider = GetNode<HSlider>("%PlantHSlider");
+
+        // 按照指定的高程分割数量确定 UI
+        _elevationVSlider.MaxValue = HexMetrics.ElevationStep;
+        _elevationVSlider.TickCount = HexMetrics.ElevationStep + 1;
+        _waterVSlider.MaxValue = HexMetrics.ElevationStep;
+        _waterVSlider.TickCount = HexMetrics.ElevationStep + 1;
+    }
 
     #endregion
 
@@ -63,7 +116,16 @@ public partial class HexPlanetGui : Control
     private IChunkService _chunkService;
     private ISelectViewService _selectViewService;
 
+    private void InitServices()
+    {
+        _tileService = Context.GetBean<ITileService>();
+        _chunkService = Context.GetBean<IChunkService>();
+        _selectViewService = Context.GetBean<ISelectViewService>();
+    }
+
     #endregion
+
+    #region 编辑功能
 
     private bool _applyColor;
     private Color _activeColor;
@@ -74,6 +136,55 @@ public partial class HexPlanetGui : Control
     private int _brushSize;
     private OptionalToggle _riverMode;
     private OptionalToggle _roadMode;
+    private bool _applyUrbanLevel;
+    private int _activeUrbanLevel;
+    private bool _applyFarmLevel;
+    private int _activeFarmLevel;
+    private bool _applyPlantLevel;
+    private int _activePlantLevel;
+
+    private void SelectColor(long index)
+    {
+        _applyColor = index > 0;
+        if (_applyColor)
+        {
+            _activeColor = _colors[index - 1];
+        }
+    }
+
+    private void SetElevation(double elevation)
+    {
+        _activeElevation = (int)elevation;
+        _elevationValueLabel.Text = _activeElevation.ToString();
+    }
+
+    private void SetApplyElevation(bool toggle) => _applyElevation = toggle;
+
+    private void SetBrushSize(double brushSize)
+    {
+        _brushSize = (int)brushSize;
+        _selectViewService.SelectViewSize = _brushSize;
+        _brushLabel.Text = $"笔刷大小：{_brushSize}";
+    }
+
+    private void SetRiverMode(long mode) => _riverMode = (OptionalToggle)mode;
+    private void SetRoadMode(long mode) => _roadMode = (OptionalToggle)mode;
+    private void SetApplyWaterLevel(bool toggle) => _applyWaterLevel = toggle;
+
+    private void SetWaterLevel(double level)
+    {
+        _activeWaterLevel = (int)level;
+        _waterValueLabel.Text = _activeWaterLevel.ToString();
+    }
+
+    private void SetApplyUrbanLevel(bool toggle) => _applyUrbanLevel = toggle;
+    private void SetUrbanLevel(double level) => _activeUrbanLevel = (int)level;
+    private void SetApplyFarmLevel(bool toggle) => _applyFarmLevel = toggle;
+    private void SetFarmLevel(double level) => _activeFarmLevel = (int)level;
+    private void SetApplyPlantLevel(bool toggle) => _applyPlantLevel = toggle;
+    private void SetPlantLevel(double level) => _activePlantLevel = (int)level;
+
+    #endregion
 
     private int? _chosenTileId;
 
@@ -109,49 +220,16 @@ public partial class HexPlanetGui : Control
 
     public override void _Ready()
     {
-        _subViewportContainer = GetNode<SubViewportContainer>("%SubViewportContainer");
-        // 星球信息
-        _planetTabBar = GetNode<TabBar>("%PlanetTabBar");
-        _planetGrid = GetNode<GridContainer>("%PlanetGrid");
-        _radiusLineEdit = GetNode<LineEdit>("%RadiusLineEdit");
-        _divisionLineEdit = GetNode<LineEdit>("%DivisionLineEdit");
-        _chunkDivisionLineEdit = GetNode<LineEdit>("%ChunkDivisionLineEdit");
-        // 地块信息
-        _tileTabBar = GetNode<TabBar>("%TileTabBar");
-        _tileVBox = GetNode<VBoxContainer>("%TileVBox");
-        _chunkCountLabel = GetNode<Label>("%ChunkCountLabel");
-        _tileCountLabel = GetNode<Label>("%TileCountLabel");
-        _tileGrid = GetNode<GridContainer>("%TileGrid");
-        _idLineEdit = GetNode<LineEdit>("%IdLineEdit");
-        _chunkLineEdit = GetNode<LineEdit>("%ChunkLineEdit");
-        _heightLineEdit = GetNode<LineEdit>("%HeightLineEdit");
-        _elevationLineEdit = GetNode<LineEdit>("%ElevationLineEdit");
-        // 编辑功能
-        _editTabBar = GetNode<TabBar>("%EditTabBar");
-        _editGrid = GetNode<GridContainer>("%EditGrid");
-        _colorOptionButton = GetNode<OptionButton>("%ColorOptionButton");
-        _elevationVSlider = GetNode<VSlider>("%ElevationVSlider");
-        _elevationCheckButton = GetNode<CheckButton>("%ElevationCheckButton");
-        _elevationValueLabel = GetNode<Label>("%ElevationValueLabel");
-        _waterVSlider = GetNode<VSlider>("%WaterVSlider");
-        _waterCheckButton = GetNode<CheckButton>("%WaterCheckButton");
-        _waterValueLabel = GetNode<Label>("%WaterValueLabel");
-        _brushLabel = GetNode<Label>("%BrushLabel");
-        _brushHSlider = GetNode<HSlider>("%BrushHSlider");
-        _riverOptionButton = GetNode<OptionButton>("%RiverOptionButton");
-        _roadOptionButton = GetNode<OptionButton>("%RoadOptionButton");
-
-        _tileService = Context.GetBean<ITileService>();
-        _chunkService = Context.GetBean<IChunkService>();
-        _selectViewService = Context.GetBean<ISelectViewService>();
-
-        _elevationVSlider.MaxValue = HexMetrics.ElevationStep;
-        _elevationVSlider.TickCount = HexMetrics.ElevationStep + 1;
-        _waterVSlider.MaxValue = HexMetrics.ElevationStep;
-        _waterVSlider.TickCount = HexMetrics.ElevationStep + 1;
+        InitOnReadyNodes();
+        InitServices();
 
         SelectColor(0);
         UpdateNewPlanetInfo();
+        InitSignals();
+    }
+
+    private void InitSignals()
+    {
         _hexPlanetManager.NewPlanetGenerated += UpdateNewPlanetInfo;
 
         _planetTabBar.TabClicked += _ => _planetGrid.Visible = !_planetGrid.Visible;
@@ -227,40 +305,12 @@ public partial class HexPlanetGui : Control
         _brushHSlider.ValueChanged += SetBrushSize;
         _riverOptionButton.ItemSelected += SetRiverMode;
         _roadOptionButton.ItemSelected += SetRoadMode;
-    }
-
-    private void SelectColor(long index)
-    {
-        _applyColor = index > 0;
-        if (_applyColor)
-        {
-            _activeColor = _colors[index - 1];
-        }
-    }
-
-    private void SetElevation(double elevation)
-    {
-        _activeElevation = (int)elevation;
-        _elevationValueLabel.Text = _activeElevation.ToString();
-    }
-
-    private void SetApplyElevation(bool toggle) => _applyElevation = toggle;
-
-    private void SetBrushSize(double brushSize)
-    {
-        _brushSize = (int)brushSize;
-        _selectViewService.SelectViewSize = _brushSize;
-        _brushLabel.Text = $"笔刷大小：{_brushSize}";
-    }
-
-    private void SetRiverMode(long mode) => _riverMode = (OptionalToggle)mode;
-    private void SetRoadMode(long mode) => _roadMode = (OptionalToggle)mode;
-    private void SetApplyWaterLevel(bool toggle) => _applyWaterLevel = toggle;
-
-    private void SetWaterLevel(double level)
-    {
-        _activeWaterLevel = (int)level;
-        _waterValueLabel.Text = _activeWaterLevel.ToString();
+        _urbanCheckButton.Toggled += SetApplyUrbanLevel;
+        _urbanHSlider.ValueChanged += SetUrbanLevel;
+        _farmCheckButton.Toggled += SetApplyFarmLevel;
+        _farmHSlider.ValueChanged += SetFarmLevel;
+        _plantCheckButton.Toggled += SetApplyPlantLevel;
+        _plantHSlider.ValueChanged += SetPlantLevel;
     }
 
     private void UpdateNewPlanetInfo()
@@ -318,6 +368,12 @@ public partial class HexPlanetGui : Control
             _tileService.SetElevation(tile, _activeElevation);
         if (_applyWaterLevel)
             _tileService.SetWaterLevel(tile, _activeWaterLevel);
+        if (_applyUrbanLevel)
+            _tileService.SetUrbanLevel(tile, _activeUrbanLevel);
+        if (_applyFarmLevel)
+            _tileService.SetFarmLevel(tile, _activeFarmLevel);
+        if (_applyPlantLevel)
+            _tileService.SetPlantLevel(tile, _activePlantLevel);
         if (_riverMode == OptionalToggle.No)
             _tileService.RemoveRiver(tile);
         if (_isDrag)

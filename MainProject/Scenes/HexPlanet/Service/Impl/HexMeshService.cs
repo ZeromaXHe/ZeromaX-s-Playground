@@ -28,6 +28,8 @@ public class HexMeshService(IChunkService chunkService, ITileService tileService
         // var corners = tile.GetCorners(_radius + tile.Height, 1f).ToList();
         for (var i = 0; i < tile.HexFaceIds.Count; i++)
             Triangulate(tile, i);
+        if (!tile.IsUnderwater && !tile.HasRiver && !tile.HasRoads)
+            _chunk.Features.AddFeature(tile, tile.GetCentroid(_radius + tileService.GetHeight(tile)));
     }
 
     // Godot 缠绕顺序是正面顺时针，所以从 i1 对应角落到 i2 对应角落相对于 tile 重心需要是顺时针
@@ -49,7 +51,12 @@ public class HexMeshService(IChunkService chunkService, ITileService tileService
             }
             else TriangulateAdjacentToRiver(tile, idx, centroid, e);
         }
-        else TriangulateWithoutRiver(tile, idx, centroid, e);
+        else
+        {
+            TriangulateWithoutRiver(tile, idx, centroid, e);
+            if (!tile.IsUnderwater && !tile.HasRoadThroughEdge(idx))
+                _chunk.Features.AddFeature(tile, (centroid + e.V1 + e.V5) / 3f);
+        }
 
         TriangulateConnection(tile, idx, e);
         if (tile.IsUnderwater)
@@ -174,6 +181,9 @@ public class HexMeshService(IChunkService chunkService, ITileService tileService
         var m = new EdgeVertices(centroid.Lerp(e.V1, 0.5f), centroid.Lerp(e.V5, 0.5f));
         TriangulateEdgeStrip(m, tile.Color, e, tile.Color);
         TriangulateEdgeFan(centroid, m, tile.Color);
+
+        if (!tile.IsUnderwater && !tile.HasRoadThroughEdge(idx))
+            _chunk.Features.AddFeature(tile, (centroid + e.V1 + e.V5) / 3f);
     }
 
     private void TriangulateRoadAdjacentToRiver(Tile tile, int idx, Vector3 centroid, EdgeVertices e)

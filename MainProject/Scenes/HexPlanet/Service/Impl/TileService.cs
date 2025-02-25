@@ -65,6 +65,27 @@ public class TileService(
         Refresh(tile);
     }
 
+    public void SetUrbanLevel(Tile tile, int urbanLevel)
+    {
+        if (tile.UrbanLevel == urbanLevel) return;
+        tile.UrbanLevel = urbanLevel;
+        RefreshSelfOnly(tile);
+    }
+
+    public void SetFarmLevel(Tile tile, int farmLevel)
+    {
+        if (tile.FarmLevel == farmLevel) return;
+        tile.FarmLevel = farmLevel;
+        RefreshSelfOnly(tile);
+    }
+
+    public void SetPlantLevel(Tile tile, int plantLevel)
+    {
+        if (tile.PlantLevel == plantLevel) return;
+        tile.PlantLevel = plantLevel;
+        RefreshSelfOnly(tile);
+    }
+
     #endregion
 
     private readonly VpTree<Vector3> _tilePointVpTree = new();

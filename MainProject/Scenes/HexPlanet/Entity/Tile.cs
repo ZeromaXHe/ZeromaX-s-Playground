@@ -48,7 +48,7 @@ public class Tile(
     public int OutgoingRiverNId { get; set; }
     public bool HasRiver => HasIncomingRiver || HasOutgoingRiver;
     public bool HasRiverBeginOrEnd => HasIncomingRiver != HasOutgoingRiver;
-    public int RiverBeginOrEndNId => HasIncomingRiver ? IncomingRiverNId : OutgoingRiverNId; 
+    public int RiverBeginOrEndNId => HasIncomingRiver ? IncomingRiverNId : OutgoingRiverNId;
 
     public bool HasRiverToNeighbor(int neighborId) =>
         (HasIncomingRiver && IncomingRiverNId == neighborId)
@@ -71,6 +71,14 @@ public class Tile(
 
     public int WaterLevel { get; set; } = HexMetrics.ElevationStep / 2;
     public bool IsUnderwater => WaterLevel > Elevation;
+
+    #endregion
+
+    #region 特征
+
+    public int UrbanLevel { get; set; } = GD.RandRange(0, 3);
+    public int FarmLevel { get; set; } = GD.RandRange(0, 3);
+    public int PlantLevel { get; set; } = GD.RandRange(0, 3);
 
     #endregion
 }

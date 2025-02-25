@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://cjo5ow0rv2f48"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l1f6h"]
+albedo_color = Color(0.0509804, 0.447059, 0, 1)
+
+[node name="PlantLow2" type="CSGBox3D"]
+size = Vector3(0.75, 1, 0.75)
+material = SubResource("StandardMaterial3D_l1f6h")

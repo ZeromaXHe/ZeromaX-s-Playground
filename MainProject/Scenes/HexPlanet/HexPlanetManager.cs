@@ -21,6 +21,7 @@ public partial class HexPlanetManager : Node3D
     [Export(PropertyHint.Range, "1, 25")] public int ChunkDivisions { get; set; } = 5;
     [Export] private Texture2D _noiseSource;
     [Export] private PackedScene _gridChunkScene;
+    [Export] public ulong Seed { get; set; } = 1234;
 
     private bool _ready;
 
@@ -39,32 +40,6 @@ public partial class HexPlanetManager : Node3D
     private IPointService _pointService;
     private ISelectViewService _selectViewService;
 
-    #endregion
-
-    #region on-ready nodes
-
-    private FogVolume _atmosphereFog;
-    private Node3D _chunks;
-    private OrbitCamera _orbitCamera;
-    private MeshInstance3D _selectTileViewer;
-
-    #endregion
-
-    public override void _Ready()
-    {
-        _atmosphereFog = GetNode<FogVolume>("%AtmosphereFog");
-        _chunks = GetNode<Node3D>("%Chunks");
-        // 此处要求 OrbitCamera 也是 [Tool]，否则编辑器里会转型失败
-        _orbitCamera = GetNode<OrbitCamera>("%OrbitCamera");
-        _selectTileViewer = GetNode<MeshInstance3D>("%SelectTileViewer");
-
-        InitServices();
-
-        HexMetrics.NoiseSource = _noiseSource.GetImage();
-        DrawHexasphereMesh();
-        _ready = true;
-    }
-
     private void InitServices()
     {
         Context.Init();
@@ -74,6 +49,37 @@ public partial class HexPlanetManager : Node3D
         _pointService = Context.GetBean<IPointService>();
         _selectViewService = Context.GetBean<ISelectViewService>();
         _chunkService.RefreshChunk += id => _gridChunks[id].Refresh();
+    }
+
+    #endregion
+
+    #region on-ready nodes
+
+    private FogVolume _atmosphereFog;
+    private Node3D _chunks;
+    private OrbitCamera _orbitCamera;
+    private MeshInstance3D _selectTileViewer;
+
+    private void InitOnReadyNodes()
+    {
+        _atmosphereFog = GetNode<FogVolume>("%AtmosphereFog");
+        _chunks = GetNode<Node3D>("%Chunks");
+        // 此处要求 OrbitCamera 也是 [Tool]，否则编辑器里会转型失败
+        _orbitCamera = GetNode<OrbitCamera>("%OrbitCamera");
+        _selectTileViewer = GetNode<MeshInstance3D>("%SelectTileViewer");
+    }
+
+    #endregion
+
+    public override void _Ready()
+    {
+        InitOnReadyNodes();
+        InitServices();
+
+        HexMetrics.NoiseSource = _noiseSource.GetImage();
+        HexMetrics.InitializeHashGrid(Seed);
+        DrawHexasphereMesh();
+        _ready = true;
     }
 
     public override void _Process(double delta)

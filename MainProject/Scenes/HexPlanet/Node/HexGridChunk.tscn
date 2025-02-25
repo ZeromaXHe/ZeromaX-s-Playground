@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://b31wafba56bca"]
+[gd_scene load_steps=16 format=3 uid="uid://b31wafba56bca"]
 
 [ext_resource type="Script" path="res://Scenes/HexPlanet/Node/HexGridChunk.cs" id="1_tueog"]
 [ext_resource type="PackedScene" uid="uid://c3gfjhdjv65f7" path="res://Scenes/HexPlanet/Node/HexMesh.tscn" id="2_yhs87"]
@@ -8,6 +8,7 @@
 [ext_resource type="Shader" path="res://Shaders/HexPlanet/Water.gdshader" id="6_lmcr6"]
 [ext_resource type="Shader" path="res://Shaders/HexPlanet/WaterShore.gdshader" id="7_fod8i"]
 [ext_resource type="Shader" path="res://Shaders/HexPlanet/Estuary.gdshader" id="8_sg70y"]
+[ext_resource type="PackedScene" uid="uid://b13ifb8lsuuab" path="res://Scenes/HexPlanet/Node/HexFeatureManager.tscn" id="9_11vh8"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jly83"]
 vertex_color_use_as_albedo = true
@@ -52,14 +53,15 @@ shader_parameter/glossiness = 0.5
 shader_parameter/specular = 0.2
 shader_parameter/main_tex = ExtResource("4_0ithq")
 
-[node name="HexGridChunk" type="Node3D" node_paths=PackedStringArray("Terrain", "Rivers", "Roads", "Water", "WaterShore", "Estuary")]
+[node name="HexGridChunk" type="Node3D" node_paths=PackedStringArray("_terrain", "_rivers", "_roads", "_water", "_waterShore", "_estuary", "_features")]
 script = ExtResource("1_tueog")
-Terrain = NodePath("Terrain")
-Rivers = NodePath("Rivers")
-Roads = NodePath("Roads")
-Water = NodePath("Water")
-WaterShore = NodePath("WaterShore")
-Estuary = NodePath("Estuary")
+_terrain = NodePath("Terrain")
+_rivers = NodePath("Rivers")
+_roads = NodePath("Roads")
+_water = NodePath("Water")
+_waterShore = NodePath("WaterShore")
+_estuary = NodePath("Estuary")
+_features = NodePath("HexFeatureManager")
 
 [node name="Terrain" parent="." instance=ExtResource("2_yhs87")]
 material_override = SubResource("StandardMaterial3D_jly83")
@@ -85,3 +87,5 @@ UseUvCoordinates = true
 material_override = SubResource("ShaderMaterial_s7ofq")
 UseUvCoordinates = true
 UseUv2Coordinates = true
+
+[node name="HexFeatureManager" parent="." instance=ExtResource("9_11vh8")]

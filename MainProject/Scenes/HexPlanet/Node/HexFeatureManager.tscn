@@ -1,0 +1,27 @@
+[gd_scene load_steps=20 format=3 uid="uid://b13ifb8lsuuab"]
+
+[ext_resource type="Script" path="res://Scenes/HexPlanet/Node/HexFeatureManager.cs" id="1_k0wat"]
+[ext_resource type="PackedScene" uid="uid://bbdfywr3yrf3e" path="res://Scenes/HexPlanet/Scene/Feature/UrbanHigh1.tscn" id="2_vtclx"]
+[ext_resource type="PackedScene" uid="uid://h7u6gcxutpum" path="res://Scenes/HexPlanet/Scene/Feature/UrbanHigh2.tscn" id="3_isbyd"]
+[ext_resource type="PackedScene" uid="uid://bk67vbh7aa8lv" path="res://Scenes/HexPlanet/Scene/Feature/UrbanMid1.tscn" id="4_8ob4h"]
+[ext_resource type="PackedScene" uid="uid://b76wbvxlpeg67" path="res://Scenes/HexPlanet/Scene/Feature/UrbanMid2.tscn" id="5_m0b67"]
+[ext_resource type="PackedScene" uid="uid://w6q4xmka542c" path="res://Scenes/HexPlanet/Scene/Feature/UrbanLow1.tscn" id="6_r3c6k"]
+[ext_resource type="PackedScene" uid="uid://bs2crdwro10ft" path="res://Scenes/HexPlanet/Scene/Feature/UrbanLow2.tscn" id="7_ctggy"]
+[ext_resource type="PackedScene" uid="uid://cih1fad1f3qex" path="res://Scenes/HexPlanet/Scene/Feature/FarmHigh1.tscn" id="8_s5xfb"]
+[ext_resource type="PackedScene" uid="uid://sci1i423km7y" path="res://Scenes/HexPlanet/Scene/Feature/FarmHigh2.tscn" id="9_br73n"]
+[ext_resource type="PackedScene" uid="uid://ba4jldjyktlqe" path="res://Scenes/HexPlanet/Scene/Feature/FarmMid1.tscn" id="10_vmv6p"]
+[ext_resource type="PackedScene" uid="uid://c2va6uyape2db" path="res://Scenes/HexPlanet/Scene/Feature/FarmMid2.tscn" id="11_i3c74"]
+[ext_resource type="PackedScene" uid="uid://dftaug5cydhd5" path="res://Scenes/HexPlanet/Scene/Feature/FarmLow1.tscn" id="12_vdllb"]
+[ext_resource type="PackedScene" uid="uid://bkhxoy2yl4ite" path="res://Scenes/HexPlanet/Scene/Feature/FarmLow2.tscn" id="13_hmbsx"]
+[ext_resource type="PackedScene" uid="uid://if6ntl58m14p" path="res://Scenes/HexPlanet/Scene/Feature/PlantHigh1.tscn" id="14_u62uc"]
+[ext_resource type="PackedScene" uid="uid://bxedfqehl6lck" path="res://Scenes/HexPlanet/Scene/Feature/PlantHigh2.tscn" id="15_v4ch8"]
+[ext_resource type="PackedScene" uid="uid://cyvxb5j2npq8" path="res://Scenes/HexPlanet/Scene/Feature/PlantMid1.tscn" id="16_uijmb"]
+[ext_resource type="PackedScene" uid="uid://te3yv0irb0mv" path="res://Scenes/HexPlanet/Scene/Feature/PlantMid2.tscn" id="17_ui8f2"]
+[ext_resource type="PackedScene" uid="uid://ddxoclskrrkfu" path="res://Scenes/HexPlanet/Scene/Feature/PlantLow1.tscn" id="18_go7ei"]
+[ext_resource type="PackedScene" uid="uid://cjo5ow0rv2f48" path="res://Scenes/HexPlanet/Scene/Feature/PlantLow2.tscn" id="19_q16q2"]
+
+[node name="HexFeatureManager" type="Node3D"]
+script = ExtResource("1_k0wat")
+_urbanScenes = Array[Array]([[ExtResource("2_vtclx"), ExtResource("3_isbyd")], [ExtResource("4_8ob4h"), ExtResource("5_m0b67")], [ExtResource("6_r3c6k"), ExtResource("7_ctggy")]])
+_farmScenes = Array[Array]([[ExtResource("8_s5xfb"), ExtResource("9_br73n")], [ExtResource("10_vmv6p"), ExtResource("11_i3c74")], [ExtResource("12_vdllb"), ExtResource("13_hmbsx")]])
+_plantScenes = Array[Array]([[ExtResource("14_u62uc"), ExtResource("15_v4ch8")], [ExtResource("16_uijmb"), ExtResource("17_ui8f2")], [ExtResource("18_go7ei"), ExtResource("19_q16q2")]])

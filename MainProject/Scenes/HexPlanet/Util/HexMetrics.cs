@@ -1,6 +1,7 @@
 using System;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Enum;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Struct;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
@@ -43,6 +44,8 @@ public static class HexMetrics
         return Mathf.Abs(elevation1 - elevation2) == 1 ? HexEdgeType.Slope : HexEdgeType.Cliff;
     }
 
+    #region 噪声扰动
+
     // 模拟 Unity Texture2D.GetPixelBilinear API
     // （入参是 0 ~ 1 的 float，超过范围则取小数部分，即“包裹模式进行重复”）
     // 参考：https://docs.unity3d.com/cn/2021.3/ScriptReference/Texture2D.GetPixelBilinear.html
@@ -56,11 +59,13 @@ public static class HexMetrics
             // GD.PrintErr($"WTF! PosMod not working for ({u}, {v}) => ({img.GetWidth()}, {img.GetHeight()}) => ({x}, {y})");
             x = 0;
         }
+
         if (y == img.GetHeight())
         {
             // GD.PrintErr($"WTF! PosMod not working for ({u}, {v}) => ({img.GetWidth()}, {img.GetHeight()}) => ({x}, {y})");
             y = 0;
         }
+
         var color = img.GetPixel(x, y);
         return new Vector4(color.R, color.G, color.B, color.A);
     }
@@ -93,8 +98,55 @@ public static class HexMetrics
         return position + x + z;
     }
 
+    #endregion
+
+    #region 河流与水面
+
     public const float StreamBedElevationOffset = -1.75f;
     public const float WaterElevationOffset = -0.5f;
     public const float WaterFactor = 0.6f;
     public const float WaterBlendFactor = 1f - WaterFactor;
+
+    #endregion
+
+    #region 哈希网格
+
+    public const int HashGridSize = 256;
+    private static readonly HexHash[] HashGrid = new HexHash[HashGridSize * HashGridSize];
+    private static readonly RandomNumberGenerator Rng = new();
+
+    public static void InitializeHashGrid(ulong seed)
+    {
+        var initState = Rng.State;
+        Rng.Seed = seed;
+        for (var i = 0; i < HashGrid.Length; i++)
+            HashGrid[i] = HexHash.Create();
+        Rng.State = initState;
+    }
+
+    public static HexHash SampleHashGrid(Vector3 position)
+    {
+        var x = (int)Mathf.PosMod(position.X - position.Y * 0.5f - position.Z * 0.5f, HashGridSize);
+        if (x == HashGridSize) // 前面噪声扰动那里说过 PosMod 文档返回 [0, b), 结果取到了 b，所以怕了…… 加个防御性处理
+            x = 0;
+        var z = (int)Mathf.PosMod((position.Y - position.Z) * OuterToInner, HashGridSize);
+        if (z == HashGridSize)
+            z = 0;
+        return HashGrid[x + z * HashGridSize];
+    }
+
+    #endregion
+
+    #region 特征
+
+    private static readonly float[][] FeatureThresholds =
+    [
+        [0.0f, 0.0f, 0.4f],
+        [0.0f, 0.4f, 0.6f],
+        [0.4f, 0.6f, 0.8f]
+    ];
+
+    public static float[] GetFeatureThreshold(int level) => FeatureThresholds[level];
+
+    #endregion
 }
