@@ -179,11 +179,14 @@ public class HexMeshService(
             if (tileService.HasRiverThroughEdge(tile, tile.PreviousIdx(idx)))
                 centroid = tileService.GetSolidEdgeMiddle(tile, idx, _radius + tileService.GetHeight(tile),
                     0.5f * HexMetrics.InnerToOuter);
-            else if (tileService.HasRiverThroughEdge(tile, tile.Previous2Idx(idx)))
+            else if (!tile.IsPentagon() && tileService.HasRiverThroughEdge(tile, tile.Previous2Idx(idx)))
+                // 注意五边形没有直线河流，一边临河另一边隔一个方向临河的情况是对应钝角河的外河岸，依然在 centroid
                 centroid = tileService.GetFirstSolidCorner(tile, idx, _radius + tileService.GetHeight(tile), 0.25f);
         }
-        else if (tileService.HasRiverThroughEdge(tile, tile.PreviousIdx(idx)) &&
-                 tileService.HasRiverThroughEdge(tile, tile.Next2Idx(idx)))
+        else if (!tile.IsPentagon()
+                 && tileService.HasRiverThroughEdge(tile, tile.PreviousIdx(idx))
+                 && tileService.HasRiverThroughEdge(tile, tile.Next2Idx(idx)))
+            // 注意五边形没有直线河流，一边临河另一边隔一个方向临河的情况是对应钝角河的外河岸，依然在 centroid
             centroid = tileService.GetSecondSolidCorner(tile, idx, _radius + tileService.GetHeight(tile), 0.25f);
 
         var m = new EdgeVertices(centroid.Lerp(e.V1, 0.5f), centroid.Lerp(e.V5, 0.5f));
@@ -204,15 +207,20 @@ public class HexMeshService(
         if (tile.HasRiverBeginOrEnd)
         {
             var riverBeginOrEndIdx = tileService.GetRiverBeginOrEndIdx(tile);
-            roadCenter += tileService.GetSolidEdgeMiddle(tile, tile.OppositeIdx(riverBeginOrEndIdx),
-                _radius + tileService.GetHeight(tile), 1f / 3f) - centroid;
+            if (tile.IsPentagon())
+                roadCenter += tileService.GetFirstSolidCorner(tile, tile.OppositeIdx(riverBeginOrEndIdx),
+                    _radius + tileService.GetHeight(tile), HexMetrics.OuterToInner / 3f) - centroid;
+            else
+                roadCenter += tileService.GetSolidEdgeMiddle(tile, tile.OppositeIdx(riverBeginOrEndIdx),
+                    _radius + tileService.GetHeight(tile), 1f / 3f) - centroid;
         }
         else
         {
             var incomingRiverIdx = tileService.GetNeighborIdIdx(tile, tile.IncomingRiverNId);
             var outgoingRiverIdx = tileService.GetNeighborIdIdx(tile, tile.OutgoingRiverNId);
-            if (incomingRiverIdx == tile.OppositeIdx(outgoingRiverIdx))
+            if (!tile.IsPentagon() && incomingRiverIdx == tile.OppositeIdx(outgoingRiverIdx))
             {
+                // 河流走势是对边（直线）的情况（需要注意五边形没有对边的概念）
                 Vector3 corner;
                 if (previousHasRiver)
                 {
@@ -234,25 +242,41 @@ public class HexMeshService(
             }
             else if (incomingRiverIdx == tile.PreviousIdx(outgoingRiverIdx))
             {
+                // 河流走势是逆时针锐角的情况
                 roadCenter -= tileService.GetSecondCorner(tile, incomingRiverIdx,
                     _radius + tileService.GetHeight(tile), 0.2f) - centroid;
             }
             else if (incomingRiverIdx == tile.NextIdx(outgoingRiverIdx))
             {
+                // 河流走势是顺时针锐角的情况
                 roadCenter -= tileService.GetFirstCorner(tile, incomingRiverIdx,
                     _radius + tileService.GetHeight(tile), 0.2f) - centroid;
             }
             else if (previousHasRiver && nextHasRiver)
             {
+                // 河流走势是钝角的情况，且当前方向被夹在河流出入角中间
                 if (!hasRoadThroughEdge) return;
                 var offset = tileService.GetSolidEdgeMiddle(tile, idx, _radius + tileService.GetHeight(tile),
                     HexMetrics.InnerToOuter);
                 roadCenter += (offset - centroid) * 0.7f;
                 centroid += (offset - centroid) * 0.5f;
             }
+            else if (tile.IsPentagon())
+            {
+                // 河流走势是钝角的情况，且当前方向在河流出入角外（即更宽阔的方向：五边形有两个方向可能）
+                var firstIdx = previousHasRiver ? idx : tile.PreviousIdx(idx); // 两个可能方向中的顺时针第一个
+                if (!tile.HasRoadThroughEdge(firstIdx) && !tile.HasRoadThroughEdge(tile.NextIdx(firstIdx))) return;
+                var offset = tileService.GetSecondSolidCorner(tile, firstIdx,
+                    _radius + tileService.GetHeight(tile));
+                roadCenter += (offset - centroid) * 0.25f * HexMetrics.OuterToInner;
+                if (idx == firstIdx && tile.HasRoadThroughEdge(tile.Previous2Idx(firstIdx)))
+                    _chunk.Features.AddBridge(roadCenter,
+                        centroid - (offset - centroid) * 0.7f);
+            }
             else
             {
-                int middleIdx;
+                // 河流走势是钝角的情况，且当前方向在河流出入角外（即更宽阔的方向：六边形有三个方向可能）
+                int middleIdx; // 三个可能方向中，中间的那个
                 if (previousHasRiver)
                     middleIdx = tile.NextIdx(idx);
                 else if (nextHasRiver)
@@ -308,29 +332,34 @@ public class HexMeshService(
         Vector3 centerL;
         Vector3 centerR;
         var height = tileService.GetHeight(tile);
-        if (tileService.HasRiverThroughEdge(tile, tile.OppositeIdx(idx)))
+        if (!tile.IsPentagon() && tileService.HasRiverThroughEdge(tile, tile.OppositeIdx(idx))) // 注意五边形没有对边的情况
         {
+            // 直线河流
             centerL = tileService.GetFirstSolidCorner(tile, tile.PreviousIdx(idx), _radius + height, 0.25f);
             centerR = tileService.GetSecondSolidCorner(tile, tile.NextIdx(idx), _radius + height, 0.25f);
         }
         else if (tileService.HasRiverThroughEdge(tile, tile.NextIdx(idx)))
         {
+            // 锐角弯
             centerL = centroid;
             centerR = centroid.Lerp(e.V5, 2f / 3f);
         }
         else if (tileService.HasRiverThroughEdge(tile, tile.PreviousIdx(idx)))
         {
+            // 锐角弯
             centerL = centroid.Lerp(e.V1, 2f / 3f);
             centerR = centroid;
         }
         else if (tileService.HasRiverThroughEdge(tile, tile.Next2Idx(idx)))
         {
+            // 钝角弯
             centerL = centroid;
             centerR = tileService.GetSolidEdgeMiddle(tile, tile.NextIdx(idx),
                 _radius + height, 0.5f * HexMetrics.InnerToOuter);
         }
         else if (tileService.HasRiverThroughEdge(tile, tile.Previous2Idx(idx)))
         {
+            // 钝角弯
             centerL = tileService.GetSolidEdgeMiddle(tile, tile.PreviousIdx(idx),
                 _radius + height, 0.5f * HexMetrics.InnerToOuter);
             centerR = centroid;
