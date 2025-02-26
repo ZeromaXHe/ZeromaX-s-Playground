@@ -6,7 +6,7 @@ using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 
-public partial class HexPlanetGui : Control
+public partial class HexPlanetHud : Control
 {
     enum OptionalToggle
     {
@@ -61,6 +61,8 @@ public partial class HexPlanetGui : Control
     private CheckButton _plantCheckButton;
     private HSlider _plantHSlider;
     private OptionButton _wallOptionButton;
+    private CheckButton _specialFeatureCheckButton;
+    private OptionButton _specialFeatureOptionButton;
 
     private void InitOnReadyNodes()
     {
@@ -102,6 +104,8 @@ public partial class HexPlanetGui : Control
         _plantCheckButton = GetNode<CheckButton>("%PlantCheckButton");
         _plantHSlider = GetNode<HSlider>("%PlantHSlider");
         _wallOptionButton = GetNode<OptionButton>("%WallOptionButton");
+        _specialFeatureCheckButton = GetNode<CheckButton>("%SpecialFeatureCheckButton");
+        _specialFeatureOptionButton = GetNode<OptionButton>("%SpecialFeatureOptionButton");
 
         // 按照指定的高程分割数量确定 UI
         _elevationVSlider.MaxValue = HexMetrics.ElevationStep;
@@ -145,6 +149,8 @@ public partial class HexPlanetGui : Control
     private bool _applyPlantLevel;
     private int _activePlantLevel;
     private OptionalToggle _walledMode;
+    private bool _applySpecialIndex;
+    private int _activeSpecialIndex;
 
     private void SelectColor(long index)
     {
@@ -187,6 +193,8 @@ public partial class HexPlanetGui : Control
     private void SetApplyPlantLevel(bool toggle) => _applyPlantLevel = toggle;
     private void SetPlantLevel(double level) => _activePlantLevel = (int)level;
     private void SetWalledMode(long mode) => _walledMode = (OptionalToggle)mode;
+    private void SetApplySpecialIndex(bool toggle) => _applySpecialIndex = toggle;
+    private void SetSpecialIndex(long index) => _activeSpecialIndex = (int)index;
 
     #endregion
 
@@ -316,6 +324,8 @@ public partial class HexPlanetGui : Control
         _plantCheckButton.Toggled += SetApplyPlantLevel;
         _plantHSlider.ValueChanged += SetPlantLevel;
         _wallOptionButton.ItemSelected += SetWalledMode;
+        _specialFeatureCheckButton.Toggled += SetApplySpecialIndex;
+        _specialFeatureOptionButton.ItemSelected += SetSpecialIndex;
     }
 
     private void UpdateNewPlanetInfo()
@@ -373,6 +383,8 @@ public partial class HexPlanetGui : Control
             _tileService.SetElevation(tile, _activeElevation);
         if (_applyWaterLevel)
             _tileService.SetWaterLevel(tile, _activeWaterLevel);
+        if (_applySpecialIndex)
+            _tileService.SetSpecialIndex(tile, _activeSpecialIndex);
         if (_applyUrbanLevel)
             _tileService.SetUrbanLevel(tile, _activeUrbanLevel);
         if (_applyFarmLevel)
