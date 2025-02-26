@@ -27,28 +27,45 @@ public class SelectViewService(ITileService tileService) : ISelectViewService
             var surfaceTool = new SurfaceTool();
             surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
             surfaceTool.SetSmoothGroup(uint.MaxValue);
+            var color = Colors.DarkGreen;
+            color.A = 0.8f;
+            surfaceTool.SetColor(color);
             var tiles = tileService.GetTilesInDistance(tile, SelectViewSize);
             var vi = 0;
+            var viewRadius = radius * (1f + HexMetrics.MaxHeightRadiusRatio);
             foreach (var t in tiles)
             {
-                var points = tileService.GetCorners(t, radius * (1f + HexMetrics.MaxHeightRadiusRatio)).ToList();
+                var centroid = t.GetCentroid(viewRadius);
+                var points = tileService.GetCorners(t, viewRadius).ToList();
                 foreach (var p in points)
+                {
                     surfaceTool.AddVertex(p);
-                for (var i = 1; i < points.Count - 1; i++)
-                    if (Math3dUtil.IsRightVSeq(Vector3.Zero, points[0], points[i], points[i + 1]))
+                    surfaceTool.AddVertex(centroid.Lerp(p, 0.85f));
+                }
+
+                for (var i = 0; i < points.Count; i++)
+                {
+                    var nextIdx = (i + 1) % points.Count;
+                    if (Math3dUtil.IsRightVSeq(Vector3.Zero, centroid, points[i], points[nextIdx]))
                     {
-                        surfaceTool.AddIndex(vi);
-                        surfaceTool.AddIndex(vi + i);
-                        surfaceTool.AddIndex(vi + i + 1);
+                        surfaceTool.AddIndex(vi + 2 * i + 1);
+                        surfaceTool.AddIndex(vi + 2 * i);
+                        surfaceTool.AddIndex(vi + 2 * nextIdx);
+                        surfaceTool.AddIndex(vi + 2 * nextIdx);
+                        surfaceTool.AddIndex(vi + 2 * nextIdx + 1);
+                        surfaceTool.AddIndex(vi + 2 * i + 1);
                     }
                     else
                     {
-                        surfaceTool.AddIndex(vi + 0);
-                        surfaceTool.AddIndex(vi + i + 1);
-                        surfaceTool.AddIndex(vi + i);
+                        surfaceTool.AddIndex(vi + 2 * nextIdx + 1);
+                        surfaceTool.AddIndex(vi + 2 * nextIdx);
+                        surfaceTool.AddIndex(vi + 2 * i);
+                        surfaceTool.AddIndex(vi + 2 * i);
+                        surfaceTool.AddIndex(vi + 2 * i + 1);
+                        surfaceTool.AddIndex(vi + 2 * nextIdx + 1);
                     }
-
-                vi += points.Count;
+                }
+                vi += 2 * points.Count;
             }
 
             return surfaceTool.Commit();

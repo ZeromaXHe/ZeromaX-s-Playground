@@ -45,8 +45,11 @@ volumetric_fog_length = 512.0
 density = 0.004
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7r8rk"]
+render_priority = 11
 transparency = 1
-albedo_color = Color(0, 1, 0, 0.498039)
+shading_mode = 0
+vertex_color_use_as_albedo = true
+disable_receive_shadows = true
 
 [node name="HexPlanetManager" type="Node3D"]
 script = ExtResource("1_414p1")
@@ -88,3 +91,4 @@ unique_name_in_owner = true
 [node name="SelectTileViewer" type="MeshInstance3D" parent="."]
 unique_name_in_owner = true
 material_override = SubResource("StandardMaterial3D_7r8rk")
+cast_shadow = 0
