@@ -85,6 +85,13 @@ public class TileService(
         tile.PlantLevel = plantLevel;
         RefreshSelfOnly(tile);
     }
+    
+    public void SetWalled(Tile tile, bool walled)
+    {
+        if (tile.Walled == walled) return;
+        tile.Walled = walled;
+        Refresh(tile);
+    }
 
     #endregion
 
@@ -384,4 +391,7 @@ public class TileService(
         GetSecondCorner(tile, idx, radius, size * HexMetrics.WaterFactor);
 
     #endregion
+    
+    public float GetWallHeight() => UnitHeight * HexMetrics.WallHeight;
+    public float GetWallThickness() => UnitHeight * HexMetrics.WallThickness;
 }

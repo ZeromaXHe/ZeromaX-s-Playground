@@ -60,6 +60,7 @@ public partial class HexPlanetGui : Control
     private HSlider _farmHSlider;
     private CheckButton _plantCheckButton;
     private HSlider _plantHSlider;
+    private OptionButton _wallOptionButton;
 
     private void InitOnReadyNodes()
     {
@@ -100,6 +101,7 @@ public partial class HexPlanetGui : Control
         _farmHSlider = GetNode<HSlider>("%FarmHSlider");
         _plantCheckButton = GetNode<CheckButton>("%PlantCheckButton");
         _plantHSlider = GetNode<HSlider>("%PlantHSlider");
+        _wallOptionButton = GetNode<OptionButton>("%WallOptionButton");
 
         // 按照指定的高程分割数量确定 UI
         _elevationVSlider.MaxValue = HexMetrics.ElevationStep;
@@ -142,6 +144,7 @@ public partial class HexPlanetGui : Control
     private int _activeFarmLevel;
     private bool _applyPlantLevel;
     private int _activePlantLevel;
+    private OptionalToggle _walledMode;
 
     private void SelectColor(long index)
     {
@@ -183,6 +186,7 @@ public partial class HexPlanetGui : Control
     private void SetFarmLevel(double level) => _activeFarmLevel = (int)level;
     private void SetApplyPlantLevel(bool toggle) => _applyPlantLevel = toggle;
     private void SetPlantLevel(double level) => _activePlantLevel = (int)level;
+    private void SetWalledMode(long mode) => _walledMode = (OptionalToggle)mode;
 
     #endregion
 
@@ -311,6 +315,7 @@ public partial class HexPlanetGui : Control
         _farmHSlider.ValueChanged += SetFarmLevel;
         _plantCheckButton.Toggled += SetApplyPlantLevel;
         _plantHSlider.ValueChanged += SetPlantLevel;
+        _wallOptionButton.ItemSelected += SetWalledMode;
     }
 
     private void UpdateNewPlanetInfo()
@@ -376,6 +381,10 @@ public partial class HexPlanetGui : Control
             _tileService.SetPlantLevel(tile, _activePlantLevel);
         if (_riverMode == OptionalToggle.No)
             _tileService.RemoveRiver(tile);
+        if (_roadMode == OptionalToggle.No)
+            _tileService.RemoveRoads(tile);
+        if (_walledMode != OptionalToggle.Ignore)
+            _tileService.SetWalled(tile, _walledMode == OptionalToggle.Yes);
         if (_isDrag)
         {
             if (_riverMode == OptionalToggle.Yes)

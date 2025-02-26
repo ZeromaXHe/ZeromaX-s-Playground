@@ -147,6 +147,35 @@ public static class HexMetrics
     ];
 
     public static float[] GetFeatureThreshold(int level) => FeatureThresholds[level];
+    public const float WallHeight = 1.5f;
+    public const float WallThickness = 0.375f;
+
+    /// <summary>
+    /// 按照厚度找到墙偏移向量
+    /// </summary>
+    /// <param name="near">近端坐标</param>
+    /// <param name="far">远端坐标</param>
+    /// <param name="toNear">true，则求偏移向近端的方向；false，则向远端</param>
+    /// <param name="thickness">墙厚度</param>
+    /// <returns>从近端和远端等平均高度位置的球面中点，向墙厚位置的偏移向量</returns>
+    public static Vector3 WallThicknessOffset (Vector3 near, Vector3 far, bool toNear, float thickness) {
+        var avgHeight = (near.Length() + far.Length()) / 2f;
+        near = Math3dUtil.ProjectToSphere(near, avgHeight);
+        far = Math3dUtil.ProjectToSphere(far, avgHeight);
+        var mid = near.Slerp(far, 0.5f);
+        var sphereDistance = near.AngleTo(far) * avgHeight;
+        var target = toNear ? near : far;
+        return mid.Slerp(target, thickness / sphereDistance);
+    }
+
+    public const float WallElevationOffset = VerticalTerraceStepSize;
+
+    public static Vector3 WallLerp(Vector3 near, Vector3 far)
+    {
+        var mid = near.Slerp(far, 0.5f);
+        var v = near.Length() < far.Length() ? WallElevationOffset : 1f - WallElevationOffset;
+        return Math3dUtil.ProjectToSphere(mid, Mathf.Lerp(near.Length(), far.Length(), v));
+    }
 
     #endregion
 }

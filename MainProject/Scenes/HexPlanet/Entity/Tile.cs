@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Base;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Enum;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
@@ -34,6 +35,7 @@ public class Tile(
         NeighborCenterIds.FindIndex(cId => cId == neighbor.CenterId);
 
     public int Elevation { get; set; } = GD.RandRange(0, 10);
+    public HexEdgeType GetEdgeType(Tile neighbor) => HexMetrics.GetEdgeType(Elevation, neighbor.Elevation);
     public Color Color { get; set; } = Color.FromHsv(GD.Randf(), GD.Randf(), GD.Randf());
 
     #region 河流
@@ -79,6 +81,7 @@ public class Tile(
     public int UrbanLevel { get; set; } = GD.RandRange(0, 3);
     public int FarmLevel { get; set; } = GD.RandRange(0, 3);
     public int PlantLevel { get; set; } = GD.RandRange(0, 3);
+    public bool Walled { get; set; } = GD.Randf() < 0.1f;
 
     #endregion
 }

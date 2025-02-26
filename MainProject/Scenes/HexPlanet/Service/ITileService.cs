@@ -23,6 +23,7 @@ public interface ITileService
     void SetUrbanLevel(Tile tile, int urbanLevel);
     void SetFarmLevel(Tile tile, int farmLevel);
     void SetPlantLevel(Tile tile, int plantLevel);
+    void SetWalled(Tile tile, bool walled);
 
     #endregion
 
@@ -107,6 +108,10 @@ public interface ITileService
     float GetWaterSurfaceHeight(Tile tile);
     Vector3 GetFirstWaterCorner(Tile tile, int idx, float radius = 1f, float size = 1f);
     Vector3 GetSecondWaterCorner(Tile tile, int idx, float radius = 1f, float size = 1f);
-    
+
     #endregion
+
+    // TODO: 感觉放在这里有点不太合适，未来调整
+    float GetWallHeight();
+    float GetWallThickness();
 }

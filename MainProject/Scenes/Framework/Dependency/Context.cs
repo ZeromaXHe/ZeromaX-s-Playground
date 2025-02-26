@@ -35,12 +35,14 @@ public static class Context
         var pointService = new PointService(faceService, pointRepo);
         var tileService = new TileService(chunkService, faceService, tileRepo, faceRepo, pointRepo);
         var selectViewService = new SelectViewService(tileService);
-        var hexMeshService = new HexMeshService(chunkService, tileService);
+        var wallMeshService = new WallMeshService(tileService);
+        var hexMeshService = new HexMeshService(chunkService, tileService, wallMeshService);
         Register(nameof(IChunkService), chunkService);
         Register(nameof(IFaceService), faceService);
         Register(nameof(IPointService), pointService);
         Register(nameof(ITileService), tileService);
         Register(nameof(ISelectViewService), selectViewService);
+        Register(nameof(IWallMeshService), wallMeshService);
         Register(nameof(IHexMeshService), hexMeshService);
     }
 }

@@ -16,6 +16,8 @@ public partial class HexFeatureManager : Node3D, IHexFeatureManager
 
     [Export] private Array<Array<PackedScene>> _farmScenes;
     [Export] private Array<Array<PackedScene>> _plantScenes;
+    [Export] private HexMesh _walls;
+    public IHexMesh Walls => _walls;
 
     private Node3D _container;
 
@@ -24,11 +26,10 @@ public partial class HexFeatureManager : Node3D, IHexFeatureManager
         _container?.QueueFree();
         _container = new Node3D();
         AddChild(_container);
+        _walls.Clear();
     }
 
-    public void Apply()
-    {
-    }
+    public void Apply() => _walls.Apply();
 
     public void AddFeature(Tile tile, Vector3 position)
     {
@@ -63,7 +64,7 @@ public partial class HexFeatureManager : Node3D, IHexFeatureManager
         var instance = scene.Instantiate<CsgBox3D>();
         position = HexMetrics.Perturb(position);
         var scale = position.Length() / 150f; // 150f 半径时是标准大小
-        instance.Scale = Vector3.One * scale; 
+        instance.Scale = Vector3.One * scale;
         instance.Position = position.Normalized() * (position.Length() + 0.5f * scale * instance.Size.Y);
         Node3dUtil.AlignYAxisToDirection(instance, position);
         instance.Rotate(position.Normalized(), hash.C * Mathf.Tau); // 入参 axis 还是得用全局坐标

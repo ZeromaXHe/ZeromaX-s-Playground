@@ -8,7 +8,10 @@ using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 
-public class HexMeshService(IChunkService chunkService, ITileService tileService) : IHexMeshService
+public class HexMeshService(
+    IChunkService chunkService,
+    ITileService tileService,
+    IWallMeshService wallMeshService) : IHexMeshService
 {
     private float _radius;
     private IHexGridChunk _chunk;
@@ -467,7 +470,9 @@ public class HexMeshService(IChunkService chunkService, ITileService tileService
         var vn2 = tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[tile.NextIdx(idx)],
             _radius + neighborHeight, HexMetrics.SolidFactor);
         var en = new EdgeVertices(vn1, vn2);
-        if (neighbor.HasRiverToNeighbor(tile.Id))
+        var hasRiver = tile.HasRiverToNeighbor(neighbor.Id);
+        var hasRoad = tile.HasRoadThroughEdge(idx);
+        if (hasRiver)
         {
             en.V3 = Math3dUtil.ProjectToSphere(en.V3, _radius + tileService.GetStreamBedHeight(neighbor));
             if (!tile.IsUnderwater)
@@ -490,10 +495,12 @@ public class HexMeshService(IChunkService chunkService, ITileService tileService
                     _radius + tileService.GetWaterSurfaceHeight(tile));
         }
 
-        if (HexMetrics.GetEdgeType(tile.Elevation, neighbor.Elevation) == HexEdgeType.Slope)
-            TriangulateEdgeTerraces(e, tile, en, neighbor, tile.HasRoadThroughEdge(idx));
+        if (tile.GetEdgeType(neighbor) == HexEdgeType.Slope)
+            TriangulateEdgeTerraces(e, tile, en, neighbor, hasRoad);
         else
-            TriangulateEdgeStrip(e, tile.Color, en, neighbor.Color, tile.HasRoadThroughEdge(idx));
+            TriangulateEdgeStrip(e, tile.Color, en, neighbor.Color, hasRoad);
+
+        wallMeshService.AddWall(_chunk.Features.Walls, e, tile, en, neighbor, hasRiver, hasRoad);
 
         var preNeighbor = tileService.GetNeighborByIdx(tile, tile.PreviousIdx(idx));
         var preNeighborHeight = tileService.GetHeight(preNeighbor);
@@ -511,8 +518,8 @@ public class HexMeshService(IChunkService chunkService, ITileService tileService
     private void TriangulateCorner(Vector3 bottom, Tile bottomTile,
         Vector3 left, Tile leftTile, Vector3 right, Tile rightTile)
     {
-        var edgeType1 = HexMetrics.GetEdgeType(bottomTile.Elevation, leftTile.Elevation);
-        var edgeType2 = HexMetrics.GetEdgeType(bottomTile.Elevation, rightTile.Elevation);
+        var edgeType1 = bottomTile.GetEdgeType(leftTile);
+        var edgeType2 = bottomTile.GetEdgeType(rightTile);
         if (edgeType1 == HexEdgeType.Slope)
         {
             if (edgeType2 == HexEdgeType.Slope)
@@ -529,7 +536,7 @@ public class HexMeshService(IChunkService chunkService, ITileService tileService
             else
                 TriangulateCornerCliffTerraces(bottom, bottomTile, left, leftTile, right, rightTile);
         }
-        else if (HexMetrics.GetEdgeType(leftTile.Elevation, rightTile.Elevation) == HexEdgeType.Slope)
+        else if (leftTile.GetEdgeType(rightTile) == HexEdgeType.Slope)
         {
             if (leftTile.Elevation < rightTile.Elevation)
                 TriangulateCornerCliffTerraces(right, rightTile, bottom, bottomTile, left, leftTile);
@@ -538,6 +545,8 @@ public class HexMeshService(IChunkService chunkService, ITileService tileService
         }
         else
             _chunk.Terrain.AddTriangle([bottom, left, right], [bottomTile.Color, leftTile.Color, rightTile.Color]);
+        
+        wallMeshService.AddWall(_chunk.Features.Walls, bottom, bottomTile, left, leftTile, right, rightTile);
     }
 
     // 三角形靠近 tile 的左边是阶地，右边是悬崖，另一边任意的情况
@@ -548,7 +557,7 @@ public class HexMeshService(IChunkService chunkService, ITileService tileService
         var boundary = HexMetrics.Perturb(begin).Lerp(HexMetrics.Perturb(right), b);
         var boundaryColor = beginTile.Color.Lerp(rightTile.Color, b);
         TriangulateBoundaryTriangle(begin, beginTile, left, leftTile, boundary, boundaryColor);
-        if (HexMetrics.GetEdgeType(leftTile.Elevation, rightTile.Elevation) == HexEdgeType.Slope)
+        if (leftTile.GetEdgeType(rightTile) == HexEdgeType.Slope)
             TriangulateBoundaryTriangle(left, leftTile, right, rightTile, boundary, boundaryColor);
         else
             _chunk.Terrain.AddTriangleUnperturbed([HexMetrics.Perturb(left), HexMetrics.Perturb(right), boundary],
@@ -563,7 +572,7 @@ public class HexMeshService(IChunkService chunkService, ITileService tileService
         var boundary = HexMetrics.Perturb(begin).Lerp(HexMetrics.Perturb(left), b);
         var boundaryColor = beginTile.Color.Lerp(leftTile.Color, b);
         TriangulateBoundaryTriangle(right, rightTile, begin, beginTile, boundary, boundaryColor);
-        if (HexMetrics.GetEdgeType(leftTile.Elevation, rightTile.Elevation) == HexEdgeType.Slope)
+        if (leftTile.GetEdgeType(rightTile) == HexEdgeType.Slope)
             TriangulateBoundaryTriangle(left, leftTile, right, rightTile, boundary, boundaryColor);
         else
             _chunk.Terrain.AddTriangleUnperturbed([HexMetrics.Perturb(left), HexMetrics.Perturb(right), boundary],

@@ -208,6 +208,21 @@ max_value = 3.0
 tick_count = 4
 ticks_on_borders = true
 
+[node name="WallLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+layout_mode = 2
+text = "城墙："
+
+[node name="WallOptionButton" type="OptionButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 0
+item_count = 3
+popup/item_0/text = "---"
+popup/item_1/text = "是"
+popup/item_1/id = 1
+popup/item_2/text = "否"
+popup/item_2/id = 2
+
 [node name="HSeparator" type="HSeparator" parent="LeftPanel/ScrollContainer/VBox"]
 layout_mode = 2
 
