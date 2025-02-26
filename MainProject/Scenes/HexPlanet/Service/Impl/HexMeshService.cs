@@ -31,8 +31,13 @@ public class HexMeshService(
         // var corners = tile.GetCorners(_radius + tile.Height, 1f).ToList();
         for (var i = 0; i < tile.HexFaceIds.Count; i++)
             Triangulate(tile, i);
-        if (!tile.IsUnderwater && !tile.HasRiver && !tile.HasRoads)
-            _chunk.Features.AddFeature(tile, tile.GetCentroid(_radius + tileService.GetHeight(tile)));
+        if (!tile.IsUnderwater)
+        {
+            if (!tile.HasRiver && !tile.HasRoads)
+                _chunk.Features.AddFeature(tile, tile.GetCentroid(_radius + tileService.GetHeight(tile)));
+            if (tile.IsSpecial)
+                _chunk.Features.AddSpecialFeature(tile, tile.GetCentroid(_radius + tileService.GetHeight(tile)));
+        }
     }
 
     // Godot 缠绕顺序是正面顺时针，所以从 i1 对应角落到 i2 对应角落相对于 tile 重心需要是顺时针
@@ -221,6 +226,10 @@ public class HexMeshService(
                 }
 
                 roadCenter += (corner - centroid) * 0.5f;
+                if (incomingRiverIdx == tile.NextIdx(idx)
+                    && (tile.HasRoadThroughEdge(tile.Next2Idx(idx))
+                        || tile.HasRoadThroughEdge(tile.OppositeIdx(idx))))
+                    _chunk.Features.AddBridge(roadCenter, centroid - (corner - centroid) * 0.5f);
                 centroid += (corner - centroid) * 0.25f;
             }
             else if (incomingRiverIdx == tile.PreviousIdx(outgoingRiverIdx))
@@ -254,9 +263,12 @@ public class HexMeshService(
                     && !tile.HasRoadThroughEdge(tile.PreviousIdx(middleIdx))
                     && !tile.HasRoadThroughEdge(tile.NextIdx(middleIdx)))
                     return;
-                roadCenter +=
-                    tileService.GetSolidEdgeMiddle(tile, middleIdx, _radius + tileService.GetHeight(tile), 0.25f) -
-                    centroid;
+                var offset = tileService.GetSolidEdgeMiddle(tile, middleIdx,
+                    _radius + tileService.GetHeight(tile));
+                roadCenter += (offset - centroid) * 0.25f;
+                if (idx == middleIdx && tile.HasRoadThroughEdge(tile.OppositeIdx(idx)))
+                    _chunk.Features.AddBridge(roadCenter,
+                        centroid - (offset - centroid) * (HexMetrics.InnerToOuter * 0.7f));
             }
         }
 
@@ -500,7 +512,7 @@ public class HexMeshService(
         else
             TriangulateEdgeStrip(e, tile.Color, en, neighbor.Color, hasRoad);
 
-        wallMeshService.AddWall(_chunk.Features.Walls, e, tile, en, neighbor, hasRiver, hasRoad);
+        wallMeshService.AddWall(_chunk.Features, e, tile, en, neighbor, hasRiver, hasRoad);
 
         var preNeighbor = tileService.GetNeighborByIdx(tile, tile.PreviousIdx(idx));
         var preNeighborHeight = tileService.GetHeight(preNeighbor);
@@ -545,8 +557,8 @@ public class HexMeshService(
         }
         else
             _chunk.Terrain.AddTriangle([bottom, left, right], [bottomTile.Color, leftTile.Color, rightTile.Color]);
-        
-        wallMeshService.AddWall(_chunk.Features.Walls, bottom, bottomTile, left, leftTile, right, rightTile);
+
+        wallMeshService.AddWall(_chunk.Features, bottom, bottomTile, left, leftTile, right, rightTile);
     }
 
     // 三角形靠近 tile 的左边是阶地，右边是悬崖，另一边任意的情况

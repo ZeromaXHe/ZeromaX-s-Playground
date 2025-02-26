@@ -24,6 +24,7 @@ public interface ITileService
     void SetFarmLevel(Tile tile, int farmLevel);
     void SetPlantLevel(Tile tile, int plantLevel);
     void SetWalled(Tile tile, bool walled);
+    void SetSpecialIndex(Tile tile, int specialIndex);
 
     #endregion
 

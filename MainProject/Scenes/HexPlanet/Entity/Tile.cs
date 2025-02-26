@@ -82,6 +82,8 @@ public class Tile(
     public int FarmLevel { get; set; } = GD.RandRange(0, 3);
     public int PlantLevel { get; set; } = GD.RandRange(0, 3);
     public bool Walled { get; set; } = GD.Randf() < 0.1f;
+    public int SpecialIndex { get; set; }
+    public bool IsSpecial => SpecialIndex > 0;
 
     #endregion
 }

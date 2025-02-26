@@ -7,8 +7,8 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 
 public interface IWallMeshService
 {
-    void AddWall(IHexMesh walls, EdgeVertices near, Tile nearTile, EdgeVertices far, Tile farTile,
+    void AddWall(IHexFeatureManager feature, EdgeVertices near, Tile nearTile, EdgeVertices far, Tile farTile,
         bool hasRiver, bool hasRoad);
 
-    void AddWall(IHexMesh walls, Vector3 c1, Tile tile1, Vector3 c2, Tile tile2, Vector3 c3, Tile tile3);
+    void AddWall(IHexFeatureManager feature, Vector3 c1, Tile tile1, Vector3 c2, Tile tile2, Vector3 c3, Tile tile3);
 }

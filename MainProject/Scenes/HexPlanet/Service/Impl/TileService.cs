@@ -85,12 +85,20 @@ public class TileService(
         tile.PlantLevel = plantLevel;
         RefreshSelfOnly(tile);
     }
-    
+
     public void SetWalled(Tile tile, bool walled)
     {
         if (tile.Walled == walled) return;
         tile.Walled = walled;
         Refresh(tile);
+    }
+
+    public void SetSpecialIndex(Tile tile, int specialIndex)
+    {
+        if (tile.SpecialIndex == specialIndex && !tile.HasRiver) return;
+        tile.SpecialIndex = specialIndex;
+        RemoveRoads(tile);
+        RefreshSelfOnly(tile);
     }
 
     #endregion
@@ -329,9 +337,11 @@ public class TileService(
             RemoveIncomingRiver(tile);
         tile.HasOutgoingRiver = true;
         tile.OutgoingRiverNId = riverToTile.Id;
+        tile.SpecialIndex = 0;
         RemoveIncomingRiver(riverToTile);
         riverToTile.HasIncomingRiver = true;
         riverToTile.IncomingRiverNId = tile.Id;
+        riverToTile.SpecialIndex = 0;
         SetRoad(tile, tile.GetNeighborIdx(riverToTile), false);
     }
 
@@ -354,8 +364,10 @@ public class TileService(
 
     private void AddRoad(Tile tile, int idx)
     {
-        if (!tile.Roads[idx] && !HasRiverThroughEdge(tile, idx)
-                             && GetElevationDifference(tile, idx) <= 1)
+        if (!tile.Roads[idx]
+            && !HasRiverThroughEdge(tile, idx)
+            && !tile.IsSpecial && !GetNeighborByIdx(tile, idx).IsSpecial
+            && GetElevationDifference(tile, idx) <= 1)
             SetRoad(tile, idx, true);
     }
 
@@ -391,7 +403,7 @@ public class TileService(
         GetSecondCorner(tile, idx, radius, size * HexMetrics.WaterFactor);
 
     #endregion
-    
+
     public float GetWallHeight() => UnitHeight * HexMetrics.WallHeight;
     public float GetWallThickness() => UnitHeight * HexMetrics.WallThickness;
 }
