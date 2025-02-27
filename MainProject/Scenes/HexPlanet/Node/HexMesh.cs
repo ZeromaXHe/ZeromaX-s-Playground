@@ -1,35 +1,34 @@
 using System.Linq;
 using Godot;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node.Interface;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 
 [Tool]
-public partial class HexMesh : MeshInstance3D, IHexMesh
+public partial class HexMesh : MeshInstance3D
 {
-    [Export] public bool UseCollider {get; set;}
-    [Export] public bool UseColor {get; set;}
-    [Export] public bool UseUvCoordinates {get; set;}
-    [Export] public bool UseUv2Coordinates {get; set;}
-    public SurfaceTool SurfaceTool { get; set; } = new();
-    public int VIdx { get; set; }
+    [Export] public bool UseCollider { get; set; }
+    [Export] public bool UseColor { get; set; }
+    [Export] public bool UseUvCoordinates { get; set; }
+    [Export] public bool UseUv2Coordinates { get; set; }
+    private SurfaceTool _surfaceTool = new();
+    private int _vIdx;
 
     public void Clear()
     {
         // 清理之前的碰撞体
         foreach (var child in GetChildren())
             child.QueueFree();
-        VIdx = 0;
-        SurfaceTool.Clear();
-        SurfaceTool.Begin(Mesh.PrimitiveType.Triangles);
-        SurfaceTool.SetSmoothGroup(uint.MaxValue);
+        _vIdx = 0;
+        _surfaceTool.Clear();
+        _surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
+        _surfaceTool.SetSmoothGroup(uint.MaxValue);
     }
 
     public void Apply()
     {
-        SurfaceTool.GenerateNormals();
-        Mesh = SurfaceTool.Commit();
+        _surfaceTool.GenerateNormals();
+        Mesh = _surfaceTool.Commit();
         // 仅在游戏中生成碰撞体
         if (!Engine.IsEditorHint() && UseCollider)
             CreateTrimeshCollision();
@@ -43,18 +42,18 @@ public partial class HexMesh : MeshInstance3D, IHexMesh
         for (var i = 0; i < 3; i++)
         {
             if (UseColor && cs != null)
-                SurfaceTool.SetColor(cs[i]);
+                _surfaceTool.SetColor(cs[i]);
             if (UseUvCoordinates && uvs != null)
-                SurfaceTool.SetUV(uvs[i]);
+                _surfaceTool.SetUV(uvs[i]);
             if (UseUv2Coordinates && uvs2 != null)
-                SurfaceTool.SetUV2(uvs2[i]);
-            SurfaceTool.AddVertex(vs[i]);
+                _surfaceTool.SetUV2(uvs2[i]);
+            _surfaceTool.AddVertex(vs[i]);
         }
 
-        SurfaceTool.AddIndex(VIdx);
-        SurfaceTool.AddIndex(VIdx + 1);
-        SurfaceTool.AddIndex(VIdx + 2);
-        VIdx += 3;
+        _surfaceTool.AddIndex(_vIdx);
+        _surfaceTool.AddIndex(_vIdx + 1);
+        _surfaceTool.AddIndex(_vIdx + 2);
+        _vIdx += 3;
     }
 
     public void AddQuad(Vector3[] vs, Color[] cs = null, Vector2[] uvs = null, Vector2[] uvs2 = null) =>
@@ -65,20 +64,20 @@ public partial class HexMesh : MeshInstance3D, IHexMesh
         for (var i = 0; i < 4; i++)
         {
             if (UseColor && cs != null)
-                SurfaceTool.SetColor(cs[i]);
+                _surfaceTool.SetColor(cs[i]);
             if (UseUvCoordinates && uvs != null)
-                SurfaceTool.SetUV(uvs[i]);
+                _surfaceTool.SetUV(uvs[i]);
             if (UseUvCoordinates && uvs2 != null)
-                SurfaceTool.SetUV2(uvs2[i]);
-            SurfaceTool.AddVertex(vs[i]);
+                _surfaceTool.SetUV2(uvs2[i]);
+            _surfaceTool.AddVertex(vs[i]);
         }
 
-        SurfaceTool.AddIndex(VIdx);
-        SurfaceTool.AddIndex(VIdx + 2);
-        SurfaceTool.AddIndex(VIdx + 1);
-        SurfaceTool.AddIndex(VIdx + 1);
-        SurfaceTool.AddIndex(VIdx + 2);
-        SurfaceTool.AddIndex(VIdx + 3);
-        VIdx += 4;
+        _surfaceTool.AddIndex(_vIdx);
+        _surfaceTool.AddIndex(_vIdx + 2);
+        _surfaceTool.AddIndex(_vIdx + 1);
+        _surfaceTool.AddIndex(_vIdx + 1);
+        _surfaceTool.AddIndex(_vIdx + 2);
+        _surfaceTool.AddIndex(_vIdx + 3);
+        _vIdx += 4;
     }
 }

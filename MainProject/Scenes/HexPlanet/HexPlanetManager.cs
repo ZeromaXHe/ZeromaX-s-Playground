@@ -11,6 +11,13 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 [Tool]
 public partial class HexPlanetManager : Node3D
 {
+    // Godot C# 的生命周期方法执行顺序：
+    // 父节点构造函数 -> 子节点构造函数
+    // -> 父节点 _EnterTree() -> 子节点 _EnterTree()（从上到下）
+    // -> 子节点 _Ready()（从下到上） -> 父节点 _Ready() 【特别注意这里的顺序！！！】
+    // -> 父节点 _Process() -> 子节点 _Process()（从上到下）
+    // -> 子节点 _ExitTree()（从下到上） -> 父节点 _ExitTree() 【特别注意这里的顺序！！！】
+    public HexPlanetManager() => Context.Init();
     [Signal]
     public delegate void NewPlanetGeneratedEventHandler();
 
@@ -42,7 +49,6 @@ public partial class HexPlanetManager : Node3D
 
     private void InitServices()
     {
-        Context.Init();
         _chunkService = Context.GetBean<IChunkService>();
         _tileService = Context.GetBean<ITileService>();
         _faceService = Context.GetBean<IFaceService>();
