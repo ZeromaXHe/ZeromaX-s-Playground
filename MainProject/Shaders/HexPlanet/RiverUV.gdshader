@@ -20,7 +20,7 @@ void fragment() {
 	vec4 albedo_tex = texture(main_tex, uv);
 	// 计算最终颜色
 	vec4 final_color = albedo_tex * color;
-	
+
 	// 设置漫反射颜色
 	ALBEDO = final_color.rgb * COLOR.rgb;
 	// 设置金属度

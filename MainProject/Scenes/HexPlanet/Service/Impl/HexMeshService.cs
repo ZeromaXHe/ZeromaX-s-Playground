@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
@@ -92,12 +93,12 @@ public class HexMeshService(
         _chunk.Water.AddTriangle([centroid, e1.V2, e1.V3]);
         _chunk.Water.AddTriangle([centroid, e1.V3, e1.V4]);
         _chunk.Water.AddTriangle([centroid, e1.V4, e1.V5]);
-        // 使用邻居的水表面高度的话，就是希望考虑岸边地块的实际水位。暂时不按这个逻辑做，目前直接按地块水位平移至岸边。
-        // var neighborWaterSurfaceHeight = tileService.GetWaterSurfaceHeight(neighbor);
+        // 使用邻居的水表面高度的话，就是希望考虑岸边地块的实际水位。(不然强行拉平岸边的话，角落两个水面不一样高时太多复杂逻辑，bug 太多)
+        var neighborWaterSurfaceHeight = tileService.GetWaterSurfaceHeight(neighbor);
         var cn1 = tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[idx],
-            _radius + waterSurfaceHeight, HexMetrics.SolidFactor);
+            _radius + neighborWaterSurfaceHeight, HexMetrics.SolidFactor);
         var cn2 = tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[tile.NextIdx(idx)],
-            _radius + waterSurfaceHeight, HexMetrics.SolidFactor);
+            _radius + neighborWaterSurfaceHeight, HexMetrics.SolidFactor);
         var e2 = new EdgeVertices(cn1, cn2);
         if (tile.HasRiverToNeighbor(neighbor.Id))
             TriangulateEstuary(e1, e2, tile.IncomingRiverNId == neighbor.Id);
@@ -110,8 +111,9 @@ public class HexMeshService(
         }
 
         var nextNeighbor = tileService.GetNeighborByIdx(tile, tile.NextIdx(idx));
+        var nextNeighborWaterSurfaceHeight = tileService.GetWaterSurfaceHeight(nextNeighbor);
         var cnn = tileService.GetCornerByFaceId(nextNeighbor, tile.HexFaceIds[tile.NextIdx(idx)],
-            _radius + tileService.GetWaterSurfaceHeight(nextNeighbor),
+            _radius + nextNeighborWaterSurfaceHeight,
             nextNeighbor.IsUnderwater ? HexMetrics.WaterFactor : HexMetrics.SolidFactor);
         _chunk.WaterShore.AddTriangle([e1.V5, e2.V5, cnn],
             uvs: [new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(0f, nextNeighbor.IsUnderwater ? 0f : 1f)]);

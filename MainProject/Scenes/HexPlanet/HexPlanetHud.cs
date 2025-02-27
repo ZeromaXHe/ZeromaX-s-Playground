@@ -21,6 +21,7 @@ public partial class HexPlanetHud : Control
     #region on-ready 节点
 
     private SubViewportContainer _subViewportContainer;
+    private CheckButton _wireframeCheckButton;
 
     // 星球信息
     private TabBar _planetTabBar;
@@ -67,6 +68,7 @@ public partial class HexPlanetHud : Control
     private void InitOnReadyNodes()
     {
         _subViewportContainer = GetNode<SubViewportContainer>("%SubViewportContainer");
+        _wireframeCheckButton = GetNode<CheckButton>("%WireframeCheckButton");
         // 星球信息
         _planetTabBar = GetNode<TabBar>("%PlanetTabBar");
         _planetGrid = GetNode<GridContainer>("%PlanetGrid");
@@ -243,6 +245,10 @@ public partial class HexPlanetHud : Control
     private void InitSignals()
     {
         _hexPlanetManager.NewPlanetGenerated += UpdateNewPlanetInfo;
+
+        _wireframeCheckButton.Toggled += toggle =>
+            _hexPlanetManager.GetViewport()
+                .SetDebugDraw(toggle ? Viewport.DebugDrawEnum.Wireframe : Viewport.DebugDrawEnum.Disabled);
 
         _planetTabBar.TabClicked += _ => _planetGrid.Visible = !_planetGrid.Visible;
 
