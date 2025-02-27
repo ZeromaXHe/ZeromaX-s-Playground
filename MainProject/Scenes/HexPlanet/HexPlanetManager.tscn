@@ -85,8 +85,9 @@ size = Vector3(270, 270, 270)
 shape = 0
 material = SubResource("FogMaterial_gfubo")
 
-[node name="OrbitCamera" parent="." instance=ExtResource("4_btp1q")]
+[node name="OrbitCamera" parent="." node_paths=PackedStringArray("_sun") instance=ExtResource("4_btp1q")]
 unique_name_in_owner = true
+_sun = NodePath("../SunPivot/SunDist/MeshInstance3D")
 
 [node name="SelectTileViewer" type="MeshInstance3D" parent="."]
 unique_name_in_owner = true

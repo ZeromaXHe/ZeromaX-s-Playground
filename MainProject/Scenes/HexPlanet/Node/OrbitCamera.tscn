@@ -3,10 +3,14 @@
 [ext_resource type="Script" path="res://Scenes/HexPlanet/Node/OrbitCamera.cs" id="1_ln8xr"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3cikn"]
-albedo_color = Color(0, 1, 0, 1)
+shading_mode = 0
+albedo_color = Color(0, 0.501961, 0, 1)
+disable_receive_shadows = true
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_f2s32"]
-albedo_color = Color(1, 0, 0, 1)
+shading_mode = 0
+albedo_color = Color(0.501961, 0, 0, 1)
+disable_receive_shadows = true
 
 [node name="OrbitCamera" type="Node3D"]
 script = ExtResource("1_ln8xr")
@@ -18,6 +22,7 @@ transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0, 
 
 [node name="FocusBox" type="CSGBox3D" parent="FocusBase"]
 unique_name_in_owner = true
+cast_shadow = 0
 material = SubResource("StandardMaterial3D_3cikn")
 
 [node name="FocusBackStick" type="Node3D" parent="FocusBase"]
@@ -27,6 +32,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 20)
 [node name="BackBox" type="CSGBox3D" parent="FocusBase/FocusBackStick"]
 unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
+cast_shadow = 0
 material = SubResource("StandardMaterial3D_f2s32")
 
 [node name="Light" type="SpotLight3D" parent="FocusBase/FocusBackStick"]

@@ -36,6 +36,7 @@ public partial class OrbitCamera : Node3D
     [Export] private float _moveSpeedMaxZoom = 0.2f;
     private float _antiStuckSpeedMultiplier = 1f; // 用于防止速度过低的时候相机卡死
     [Export] private float _rotationSpeed = 180f;
+    [Export] private Node3D _sun;
 
     private Node3D _focusBase;
     private CsgBox3D _focusBox;
@@ -92,7 +93,6 @@ public partial class OrbitCamera : Node3D
         }
 
         // 移动
-        // TODO: 根据相对于全局太阳光的位置，控制灯光亮度
         var xDelta = Input.GetAxis("cam_move_left", "cam_move_right");
         var zDelta = Input.GetAxis("cam_move_forward", "cam_move_back");
         if (xDelta != 0f || zDelta != 0f)
@@ -110,6 +110,14 @@ public partial class OrbitCamera : Node3D
             _antiStuckSpeedMultiplier = prePos.IsEqualApprox(_focusBase.GlobalPosition)
                 ? _antiStuckSpeedMultiplier * 1.5f
                 : 1f;
+        }
+
+        // 根据相对于全局太阳光的位置，控制灯光亮度
+        if (!Engine.IsEditorHint() && _sun != null)
+        {
+            var lightSunAngle = _light.GlobalPosition.AngleTo(_sun.GlobalPosition);
+            // 从 60 度开始到 120 度之间，灯光亮度逐渐从 0 增加到 1
+            _light.LightEnergy = Mathf.Clamp((lightSunAngle - Mathf.Pi / 3) / (Mathf.Pi / 3), 0f, 1f);
         }
     }
 
