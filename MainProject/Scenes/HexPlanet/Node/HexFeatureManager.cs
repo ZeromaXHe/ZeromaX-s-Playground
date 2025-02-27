@@ -25,7 +25,6 @@ public partial class HexFeatureManager : Node3D
     [Export] private PackedScene[] _specialScenes;
 
     private Node3D _container;
-    private const float StandardRadius = 150f; // 150f 半径时才是标准大小，其他时候需要按比例缩放
 
 
     #region services
@@ -58,7 +57,7 @@ public partial class HexFeatureManager : Node3D
     {
         var tower = _wallTowerScene.Instantiate<CsgBox3D>();
         var position = (left + right) * 0.5f;
-        var scale = position.Length() / StandardRadius;
+        var scale = position.Length() / HexMetrics.StandardRadius;
         tower.Scale = Vector3.One * scale;
         tower.Position = position.Normalized() * (position.Length() + 0.5f * 1.25f * scale * tower.Size.Y);
         Node3dUtil.AlignYAxisToDirection(tower, position);
@@ -75,7 +74,7 @@ public partial class HexFeatureManager : Node3D
         var bridge = _bridgeScene.Instantiate<CsgBox3D>();
         var position = (roadCenter1 + roadCenter2) * 0.5f;
         var length = roadCenter1.DistanceTo(roadCenter2);
-        var scale = position.Length() / StandardRadius;
+        var scale = position.Length() / HexMetrics.StandardRadius;
         bridge.Scale = new Vector3(length / HexMetrics.BridgeDesignLength, scale, scale); // 沿着桥梁方向拉伸长度（X 轴）
         bridge.Position =
             position.Normalized() * (position.Length() + 0.7f * scale * bridge.Size.Y); // 0.7f 是桥梁需要略微抬高一点
@@ -89,7 +88,7 @@ public partial class HexFeatureManager : Node3D
     {
         var instance = _specialScenes[tile.SpecialIndex - 1].Instantiate<CsgBox3D>();
         position = HexMetrics.Perturb(position);
-        var scale = position.Length() / StandardRadius;
+        var scale = position.Length() / HexMetrics.StandardRadius;
         instance.Scale = Vector3.One * scale;
         instance.Position = position.Normalized() * (position.Length() + 0.5f * scale * instance.Size.Y);
         Node3dUtil.AlignYAxisToDirection(instance, position);
@@ -131,7 +130,7 @@ public partial class HexFeatureManager : Node3D
 
         var instance = scene.Instantiate<CsgBox3D>();
         position = HexMetrics.Perturb(position);
-        var scale = position.Length() / StandardRadius;
+        var scale = position.Length() / HexMetrics.StandardRadius;
         instance.Scale = Vector3.One * scale;
         instance.Position = position.Normalized() * (position.Length() + 0.5f * scale * instance.Size.Y);
         Node3dUtil.AlignYAxisToDirection(instance, position);

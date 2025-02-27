@@ -84,17 +84,18 @@ public static class HexMetrics
 
     private const float CellPerturbStrength = 4f;
     public const float ElevationPerturbStrength = 0.5f;
+    public const float StandardRadius = 150f; // 150f 半径时才是标准大小，其他时候需要按比例缩放
 
     // 球面的扰动逻辑
     public static Vector3 Perturb(Vector3 position)
     {
-        var sample = SampleNoise(position);
+        var sample = SampleNoise(Math3dUtil.ProjectToSphere(position, StandardRadius));
         var vecX = position is { X: 0, Z: 0 }
             ? position.Cross(Vector3.Back).Normalized()
             : Vector3.Up.Cross(position).Normalized();
         var vecZ = vecX.Cross(position).Normalized();
-        var x = vecX * (sample.X * 2f - 1f) * CellPerturbStrength;
-        var z = vecZ * (sample.Z * 2f - 1f) * CellPerturbStrength;
+        var x = vecX * (sample.X * 2f - 1f) * CellPerturbStrength * position.Length() / StandardRadius;
+        var z = vecZ * (sample.Z * 2f - 1f) * CellPerturbStrength * position.Length() / StandardRadius;
         return position + x + z;
     }
 
@@ -126,6 +127,7 @@ public static class HexMetrics
 
     public static HexHash SampleHashGrid(Vector3 position)
     {
+        position = Math3dUtil.ProjectToSphere(position, StandardRadius);
         var x = (int)Mathf.PosMod(position.X - position.Y * 0.5f - position.Z * 0.5f, HashGridSize);
         if (x == HashGridSize) // 前面噪声扰动那里说过 PosMod 文档返回 [0, b), 结果取到了 b，所以怕了…… 加个防御性处理
             x = 0;
