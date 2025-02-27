@@ -17,8 +17,9 @@ void fragment() {
 	// INV_VIEW_MATRIX 视图空间向世界空间变换.
 	// VERTEX 来自顶点函数的顶点(默认情况下, 在视图空间中).
 	vec3 world_pos = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
-
-	vec4 noise = texture(main_tex, world_pos.xz * (3.0 * TILING_SCALE));
+	vec2 pos = vec2(world_pos.x - world_pos.y * 0.5 - world_pos.z * 0.5,
+		(world_pos.y - world_pos.z) * OUTER_TO_INNER);
+	vec4 noise = texture(main_tex, pos * (3.0 * TILING_SCALE));
 	vec4 c = color * (noise.y * 0.75 + 0.25);
 	float blend = uv.x;
 	blend *= noise.x + 0.5;

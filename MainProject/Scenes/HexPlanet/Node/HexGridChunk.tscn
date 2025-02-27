@@ -1,17 +1,24 @@
-[gd_scene load_steps=17 format=3 uid="uid://b31wafba56bca"]
+[gd_scene load_steps=19 format=3 uid="uid://b31wafba56bca"]
 
 [ext_resource type="Script" path="res://Scenes/HexPlanet/Node/HexGridChunk.cs" id="1_tueog"]
 [ext_resource type="PackedScene" uid="uid://c3gfjhdjv65f7" path="res://Scenes/HexPlanet/Node/HexMesh.tscn" id="2_yhs87"]
 [ext_resource type="Shader" path="res://Shaders/HexPlanet/River.gdshader" id="3_8fnhi"]
+[ext_resource type="Shader" path="res://Shaders/HexPlanet/Terrain.gdshader" id="3_rfwa1"]
 [ext_resource type="Texture2D" uid="uid://c6n6jlweg0ly3" path="res://Assets/HexPlanet/Noise/noise.png" id="4_0ithq"]
+[ext_resource type="CompressedTexture2DArray" uid="uid://c0c8ewbq680ys" path="res://Assets/HexPlanet/Terrain/terrain.png" id="4_cvd6l"]
 [ext_resource type="Shader" path="res://Shaders/HexPlanet/Road.gdshader" id="5_exuhm"]
 [ext_resource type="Shader" path="res://Shaders/HexPlanet/Water.gdshader" id="6_lmcr6"]
 [ext_resource type="Shader" path="res://Shaders/HexPlanet/WaterShore.gdshader" id="7_fod8i"]
 [ext_resource type="Shader" path="res://Shaders/HexPlanet/Estuary.gdshader" id="8_sg70y"]
 [ext_resource type="PackedScene" uid="uid://b13ifb8lsuuab" path="res://Scenes/HexPlanet/Node/HexFeatureManager.tscn" id="9_11vh8"]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jly83"]
-vertex_color_use_as_albedo = true
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_we61a"]
+render_priority = 0
+shader = ExtResource("3_rfwa1")
+shader_parameter/color = Color(1, 1, 1, 1)
+shader_parameter/glossiness = 0.3
+shader_parameter/metallic = 0.0
+shader_parameter/main_tex = ExtResource("4_cvd6l")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_15o55"]
 render_priority = 9
@@ -67,9 +74,10 @@ _estuary = NodePath("Estuaries")
 _features = NodePath("Features")
 
 [node name="Terrain" parent="." instance=ExtResource("2_yhs87")]
-material_override = SubResource("StandardMaterial3D_jly83")
+material_override = SubResource("ShaderMaterial_we61a")
 UseCollider = true
 UseColor = true
+UseTerrainTypes = true
 
 [node name="Rivers" parent="." instance=ExtResource("2_yhs87")]
 material_override = SubResource("ShaderMaterial_15o55")

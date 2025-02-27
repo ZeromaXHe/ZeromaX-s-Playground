@@ -64,25 +64,25 @@ unique_name_in_owner = true
 layout_mode = 2
 columns = 2
 
-[node name="ColorLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+[node name="TerrainLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
 layout_mode = 2
-text = "颜色："
+text = "地貌"
 
-[node name="ColorOptionButton" type="OptionButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+[node name="TerrainOptionButton" type="OptionButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 selected = 0
 item_count = 6
 popup/item_0/text = "---"
-popup/item_1/text = "黄色"
+popup/item_1/text = "沙漠"
 popup/item_1/id = 1
-popup/item_2/text = "绿色"
+popup/item_2/text = "草原"
 popup/item_2/id = 2
-popup/item_3/text = "蓝色"
+popup/item_3/text = "泥地"
 popup/item_3/id = 3
-popup/item_4/text = "橙色"
+popup/item_4/text = "岩石"
 popup/item_4/id = 4
-popup/item_5/text = "白色"
+popup/item_5/text = "雪地"
 popup/item_5/id = 5
 
 [node name="ElevationLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]

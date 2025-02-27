@@ -18,7 +18,7 @@ public interface ITileService
 
     void SetHeight(Tile tile, float height);
     void SetElevation(Tile tile, int elevation);
-    void SetColor(Tile tile, Color color);
+    void SetTerrainTypeIndex(Tile tile, int idx);
     void SetWaterLevel(Tile tile, int waterLevel);
     void SetUrbanLevel(Tile tile, int urbanLevel);
     void SetFarmLevel(Tile tile, int farmLevel);

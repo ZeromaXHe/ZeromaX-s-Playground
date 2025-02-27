@@ -50,10 +50,10 @@ public class TileService(
         Refresh(tile);
     }
 
-    public void SetColor(Tile tile, Color color)
+    public void SetTerrainTypeIndex(Tile tile, int idx)
     {
-        if (tile.Color == color) return;
-        tile.Color = color;
+        if (tile.TerrainTypeIndex == idx) return;
+        tile.TerrainTypeIndex = idx;
         Refresh(tile);
     }
 

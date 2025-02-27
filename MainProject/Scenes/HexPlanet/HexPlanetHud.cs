@@ -44,7 +44,7 @@ public partial class HexPlanetHud : Control
     // 编辑功能
     private TabBar _editTabBar;
     private GridContainer _editGrid;
-    private OptionButton _colorOptionButton;
+    private OptionButton _terrainOptionButton;
     private VSlider _elevationVSlider;
     private CheckButton _elevationCheckButton;
     private Label _elevationValueLabel;
@@ -88,7 +88,7 @@ public partial class HexPlanetHud : Control
         // 编辑功能
         _editTabBar = GetNode<TabBar>("%EditTabBar");
         _editGrid = GetNode<GridContainer>("%EditGrid");
-        _colorOptionButton = GetNode<OptionButton>("%ColorOptionButton");
+        _terrainOptionButton = GetNode<OptionButton>("%TerrainOptionButton");
         _elevationVSlider = GetNode<VSlider>("%ElevationVSlider");
         _elevationCheckButton = GetNode<CheckButton>("%ElevationCheckButton");
         _elevationValueLabel = GetNode<Label>("%ElevationValueLabel");
@@ -135,8 +135,8 @@ public partial class HexPlanetHud : Control
 
     #region 编辑功能
 
-    private bool _applyColor;
-    private Color _activeColor;
+    private bool _applyTerrain;
+    private int _activeTerrain;
     private bool _applyElevation;
     private int _activeElevation;
     private bool _applyWaterLevel;
@@ -154,12 +154,12 @@ public partial class HexPlanetHud : Control
     private bool _applySpecialIndex;
     private int _activeSpecialIndex;
 
-    private void SelectColor(long index)
+    private void SelectTerrain(long index)
     {
-        _applyColor = index > 0;
-        if (_applyColor)
+        _applyTerrain = index > 0;
+        if (_applyTerrain)
         {
-            _activeColor = _colors[index - 1];
+            _activeTerrain = (int)index - 1;
         }
     }
 
@@ -237,7 +237,7 @@ public partial class HexPlanetHud : Control
         InitOnReadyNodes();
         InitServices();
 
-        SelectColor(0);
+        SelectTerrain(0);
         UpdateNewPlanetInfo();
         InitSignals();
     }
@@ -305,17 +305,17 @@ public partial class HexPlanetHud : Control
             _editGrid.Visible = vis;
             if (vis)
             {
-                SelectColor(_colorOptionButton.Selected);
+                SelectTerrain(_terrainOptionButton.Selected);
                 SetElevation(_elevationVSlider.Value);
             }
             else
             {
-                _applyColor = false;
+                _applyTerrain = false;
                 _applyElevation = false;
             }
         };
 
-        _colorOptionButton.ItemSelected += SelectColor;
+        _terrainOptionButton.ItemSelected += SelectTerrain;
         _elevationVSlider.ValueChanged += SetElevation;
         _elevationCheckButton.Toggled += SetApplyElevation;
         _waterVSlider.ValueChanged += SetWaterLevel;
@@ -383,8 +383,8 @@ public partial class HexPlanetHud : Control
 
     private void EditTile(Tile tile)
     {
-        if (_applyColor)
-            _tileService.SetColor(tile, _activeColor);
+        if (_applyTerrain)
+            _tileService.SetTerrainTypeIndex(tile, _activeTerrain);
         if (_applyElevation)
             _tileService.SetElevation(tile, _activeElevation);
         if (_applyWaterLevel)
