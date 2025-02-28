@@ -9,7 +9,11 @@ public interface IChunkService
     delegate void RefreshChunkEvent(int id);
 
     event RefreshChunkEvent RefreshChunk;
+    delegate void RefreshTileLabelEvent(int chunkId, int tileId, string text);
+
+    event RefreshTileLabelEvent RefreshChunkTileLabel;
     void Refresh(Chunk chunk);
+    void RefreshTileLabel(Chunk chunk, int tileId, string text);
 
     #region 透传存储库方法
 

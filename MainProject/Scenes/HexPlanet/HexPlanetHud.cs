@@ -42,6 +42,7 @@ public partial class HexPlanetHud : Control
     private LineEdit _elevationLineEdit;
 
     // 编辑功能
+    private CheckButton _editCheckButton;
     private TabBar _editTabBar;
     private GridContainer _editGrid;
     private OptionButton _terrainOptionButton;
@@ -86,6 +87,7 @@ public partial class HexPlanetHud : Control
         _heightLineEdit = GetNode<LineEdit>("%HeightLineEdit");
         _elevationLineEdit = GetNode<LineEdit>("%ElevationLineEdit");
         // 编辑功能
+        _editCheckButton = GetNode<CheckButton>("%EditCheckButton");
         _editTabBar = GetNode<TabBar>("%EditTabBar");
         _editGrid = GetNode<GridContainer>("%EditGrid");
         _terrainOptionButton = GetNode<OptionButton>("%TerrainOptionButton");
@@ -135,6 +137,7 @@ public partial class HexPlanetHud : Control
 
     #region 编辑功能
 
+    private bool _editMode;
     private bool _applyTerrain;
     private int _activeTerrain;
     private bool _applyElevation;
@@ -153,6 +156,12 @@ public partial class HexPlanetHud : Control
     private OptionalToggle _walledMode;
     private bool _applySpecialIndex;
     private int _activeSpecialIndex;
+
+    private void SetEditMode(bool toggle)
+    {
+        _editMode = toggle;
+        _hexPlanetManager.ShowUi(!toggle);
+    }
 
     private void SelectTerrain(long index)
     {
@@ -237,6 +246,7 @@ public partial class HexPlanetHud : Control
         InitOnReadyNodes();
         InitServices();
 
+        SetEditMode(_editCheckButton.ButtonPressed);
         SelectTerrain(0);
         UpdateNewPlanetInfo();
         InitSignals();
@@ -315,6 +325,7 @@ public partial class HexPlanetHud : Control
             }
         };
 
+        _editCheckButton.Toggled += SetEditMode;
         _terrainOptionButton.ItemSelected += SelectTerrain;
         _elevationVSlider.ValueChanged += SetElevation;
         _elevationCheckButton.Toggled += SetApplyElevation;
@@ -359,7 +370,10 @@ public partial class HexPlanetHud : Control
                     ValidateDrag(currentTile);
                 else
                     _isDrag = false;
-                EditTiles(currentTile);
+                if (_editMode)
+                    EditTiles(currentTile);
+                else
+                    FindDistanceTo(currentTile);
                 _previousTile = currentTile;
             }
             else
@@ -412,5 +426,13 @@ public partial class HexPlanetHud : Control
         }
 
         ChosenTileId = tile.Id; // 刷新 GUI 地块信息
+    }
+
+    private void FindDistanceTo(Tile currentTile)
+    {
+        foreach (var tile in _tileService.GetAll())
+        {
+            _tileService.UpdateTileLabel(tile);
+        }
     }
 }

@@ -130,6 +130,7 @@ public partial class HexFeatureManager : Node3D
 
         var instance = scene.Instantiate<CsgBox3D>();
         position = HexMetrics.Perturb(position);
+        // TODO: 缩放比例还需要根据细分程度来动态计算，目前标准细分是 10
         var scale = position.Length() / HexMetrics.StandardRadius;
         instance.Scale = Vector3.One * scale;
         instance.Position = position.Normalized() * (position.Length() + 0.5f * scale * instance.Size.Y);

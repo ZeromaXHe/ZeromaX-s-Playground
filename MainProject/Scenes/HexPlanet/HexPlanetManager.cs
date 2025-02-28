@@ -55,6 +55,7 @@ public partial class HexPlanetManager : Node3D
         _pointService = Context.GetBean<IPointService>();
         _selectViewService = Context.GetBean<ISelectViewService>();
         _chunkService.RefreshChunk += id => _gridChunks[id].Refresh();
+        _chunkService.RefreshChunkTileLabel += (chunkId, tileId, text) => _gridChunks[chunkId].RefreshTileLabel(tileId, text);
     }
 
     #endregion
@@ -190,5 +191,11 @@ public partial class HexPlanetManager : Node3D
         }
 
         GD.Print($"BuildMesh cost: {Time.GetTicksMsec() - time} ms");
+    }
+
+    public void ShowUi(bool show)
+    {
+        foreach (var gridChunk in _gridChunks.Values)
+            gridChunk.ShowUi(show);
     }
 }

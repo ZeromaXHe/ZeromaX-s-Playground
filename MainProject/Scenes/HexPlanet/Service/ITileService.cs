@@ -11,6 +11,7 @@ public interface ITileService
     Tile GetById(int id);
     Tile GetByCenterId(int centerId);
     int GetCount();
+    IEnumerable<Tile> GetAll();
 
     #endregion
 
@@ -115,4 +116,6 @@ public interface ITileService
     // TODO: 感觉放在这里有点不太合适，未来调整
     float GetWallHeight();
     float GetWallThickness();
+
+    void UpdateTileLabel(Tile tile);
 }

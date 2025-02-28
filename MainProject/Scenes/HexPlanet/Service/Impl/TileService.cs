@@ -29,6 +29,7 @@ public class TileService(
     public Tile GetById(int id) => tileRepo.GetById(id);
     public Tile GetByCenterId(int centerId) => tileRepo.GetByCenterId(centerId);
     public int GetCount() => tileRepo.GetCount();
+    public IEnumerable<Tile> GetAll() => tileRepo.GetAll();
 
     #endregion
 
@@ -406,4 +407,10 @@ public class TileService(
 
     public float GetWallHeight() => UnitHeight * HexMetrics.WallHeight;
     public float GetWallThickness() => UnitHeight * HexMetrics.WallThickness;
+
+    public void UpdateTileLabel(Tile tile)
+    {
+        var chunk = chunkService.GetById(tile.ChunkId);
+        chunkService.RefreshTileLabel(chunk, tile.Id, tile.Distance.ToString());
+    }
 }

@@ -9,8 +9,9 @@ public static class Node3dUtil
     /// </summary>
     /// <param name="node">要对齐的 Node3D 节点</param>
     /// <param name="direction">目标方向向量</param>
-    /// <param name="global">Y 轴是否使用全局基</param>
-    public static void AlignYAxisToDirection(in Node3D node, Vector3 direction, bool global = false)
+    /// <param name="alignForward">希望对齐向前的方向（不传则默认不调整）</param>
+    /// <param name="global">Y 轴是否使用全局基（注意：全局基模式未经测试）</param>
+    public static void AlignYAxisToDirection(in Node3D node, Vector3 direction, Vector3 alignForward = default, bool global = false)
     {
         // 确保方向是单位向量
         direction = direction.Normalized();
@@ -38,5 +39,17 @@ public static class Node3dUtil
         else
             // 相当于 node.Rotation = new Quaternion(rotationAxis.Normalized(), angle).GetEuler();
             node.Rotate(rotationAxis.Normalized(), angle);
+
+        alignForward = alignForward.Normalized();
+        if (alignForward != default && alignForward != direction)
+        {
+            // 如果有指定向前对齐方向，则对齐向前（-Z）到最近的方向
+            var forward = -(global ? node.GlobalBasis.Z : node.Basis.Z);
+            var zAngle = Math3dUtil.GetPlanarAngle(forward, alignForward, direction, true);
+            if (global)
+                node.GlobalRotate(direction, zAngle);
+            else
+                node.Rotate(direction, zAngle);
+        }
     }
 }

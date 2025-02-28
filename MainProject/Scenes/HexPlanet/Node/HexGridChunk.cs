@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
@@ -19,11 +20,22 @@ public partial class HexGridChunk : Node3D
     [Export] private HexMesh _waterShore;
     [Export] private HexMesh _estuary;
     [Export] private HexFeatureManager _features;
+    [Export] private PackedScene _labelScene;
 
     private int _id;
-
     private float _radius;
+    private readonly Dictionary<int, HexTileLabel> _tileUis = new();
 
+    #region on-ready 节点
+
+    private Node3D _labels;
+
+    private void InitOnReadyNodes()
+    {
+        _labels = GetNode<Node3D>("%Labels");
+    }
+
+    #endregion
 
     #region services
 
@@ -47,7 +59,37 @@ public partial class HexGridChunk : Node3D
         _id = id;
         _radius = radius;
         InitServices();
+        InitLabels();
         Refresh();
+    }
+
+    private void InitLabels()
+    {
+        // 清楚之前的标签
+
+        var tileIds = _chunkService.GetById(_id).TileIds;
+        var tiles = tileIds.Select(_tileService.GetById);
+        foreach (var tile in tiles)
+        {
+            var label = _labelScene.Instantiate<HexTileLabel>();
+            var position = 1.01f * tile.GetCentroid(_radius + _tileService.GetHeight(tile));
+            var scale = position.Length() / HexMetrics.StandardRadius;
+            label.Scale = Vector3.One * scale;
+            label.Position = position;
+            Node3dUtil.AlignYAxisToDirection(label, position, Vector3.Up);
+            _tileUis.Add(tile.Id, label);
+            _labels.AddChild(label);
+            // 在场景树中 _Ready 后 Label 才非 null
+            label.Label.Text = tile.Id.ToString();
+        }
+    }
+
+    public void RefreshTileLabel(int tileId, string text) =>
+        _tileUis[tileId].Label.Text = text;
+
+    public override void _Ready()
+    {
+        InitOnReadyNodes();
     }
 
     public override void _Process(double delta)
@@ -65,7 +107,11 @@ public partial class HexGridChunk : Node3D
             var tileIds = _chunkService.GetById(_id).TileIds;
             var tiles = tileIds.Select(_tileService.GetById);
             foreach (var tile in tiles)
+            {
                 Triangulate(tile);
+                _tileUis[tile.Id].Position = 1.01f * tile.GetCentroid(_radius + _tileService.GetHeight(tile) + 0.01f);
+            }
+
             _terrain.Apply();
             _rivers.Apply();
             _roads.Apply();
@@ -80,6 +126,9 @@ public partial class HexGridChunk : Node3D
     }
 
     public void Refresh() => SetProcess(true);
+
+    public void ShowUi(bool show) =>
+        _labels.Visible = show;
 
     private void Triangulate(Tile tile)
     {
