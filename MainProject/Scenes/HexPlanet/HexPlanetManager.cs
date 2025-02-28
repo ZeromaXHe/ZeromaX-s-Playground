@@ -32,6 +32,9 @@ public partial class HexPlanetManager : Node3D
 
     private bool _ready;
 
+    private bool _editMode;
+    private int _pathFindingFromTileId;
+    
     private float _oldRadius;
     private int _oldDivisions;
     private int _oldChunkDivisions;
@@ -45,6 +48,7 @@ public partial class HexPlanetManager : Node3D
     private ITileService _tileService;
     private IFaceService _faceService;
     private IPointService _pointService;
+    private IAStarService _aStarService;
     private ISelectViewService _selectViewService;
 
     private void InitServices()
@@ -53,6 +57,7 @@ public partial class HexPlanetManager : Node3D
         _tileService = Context.GetBean<ITileService>();
         _faceService = Context.GetBean<IFaceService>();
         _pointService = Context.GetBean<IPointService>();
+        _aStarService = Context.GetBean<IAStarService>();
         _selectViewService = Context.GetBean<ISelectViewService>();
         _chunkService.RefreshChunk += id => _gridChunks[id].Refresh();
         _chunkService.RefreshChunkTileLabel += (chunkId, tileId, text) => _gridChunks[chunkId].RefreshTileLabel(tileId, text);
@@ -105,10 +110,31 @@ public partial class HexPlanetManager : Node3D
     private void UpdateSelectTileViewer()
     {
         var position = GetTileCollisionPositionUnderCursor();
+        if (_editMode)
+            UpdateSelectTileInEditMode(position);
+        else
+            UpdateSelectTileInPlayMode(position);
+    }
+
+    private void UpdateSelectTileInPlayMode(Vector3 position)
+    {
+        if (_pathFindingFromTileId == 0)
+        {
+            _selectTileViewer.Visible = false;
+            return;
+        }
+        _selectTileViewer.Visible = true;
+        var mesh = _selectViewService.GenerateMeshForPlayMode(_pathFindingFromTileId, position, Radius);
+        if (mesh != null)
+            _selectTileViewer.Mesh = mesh;
+    }
+
+    private void UpdateSelectTileInEditMode(Vector3 position)
+    {
         if (position != Vector3.Zero)
         {
             _selectTileViewer.Visible = true;
-            var mesh = _selectViewService.GenerateMesh(position, Radius);
+            var mesh = _selectViewService.GenerateMeshForEditMode(position, Radius);
             if (mesh != null)
                 _selectTileViewer.Mesh = mesh;
         }
@@ -116,7 +142,6 @@ public partial class HexPlanetManager : Node3D
         {
             // GD.Print("No tile under cursor, _selectTileViewer not visible");
             _selectTileViewer.Visible = false;
-            _lastUpdated = 0f;
         }
     }
 
@@ -151,6 +176,7 @@ public partial class HexPlanetManager : Node3D
         _tileService.ClearData();
         _pointService.ClearData();
         _faceService.ClearData();
+        _aStarService.ClearData();
         _gridChunks.Clear();
         foreach (var child in _chunks.GetChildren())
             child.QueueFree();
@@ -167,6 +193,7 @@ public partial class HexPlanetManager : Node3D
         _atmosphereFog.Size = Vector3.One * Radius * 2.7f;
         _chunkService.InitChunks(ChunkDivisions);
         InitHexasphere();
+        _aStarService.Init();
         EmitSignal(SignalName.NewPlanetGenerated);
     }
 
@@ -193,9 +220,14 @@ public partial class HexPlanetManager : Node3D
         GD.Print($"BuildMesh cost: {Time.GetTicksMsec() - time} ms");
     }
 
-    public void ShowUi(bool show)
+    public void SetEditMode(bool mode)
     {
+        _editMode = mode;
+        _pathFindingFromTileId = 0;
+        UpdateSelectTileViewer();
         foreach (var gridChunk in _gridChunks.Values)
-            gridChunk.ShowUi(show);
+            gridChunk.ShowUi(!mode); // 游戏模式下才显示地块 UI
     }
+
+    public void FindPathFrom(int fromTileId) => _pathFindingFromTileId = fromTileId;
 }

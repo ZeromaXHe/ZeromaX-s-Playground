@@ -34,11 +34,13 @@ public static class Context
         var faceService = new FaceService(faceRepo, pointRepo);
         var pointService = new PointService(faceService, pointRepo);
         var tileService = new TileService(chunkService, faceService, tileRepo, faceRepo, pointRepo);
-        var selectViewService = new SelectViewService(tileService);
+        var aStarService = new AStarService(tileService);
+        var selectViewService = new SelectViewService(tileService, aStarService);
         Register(nameof(IChunkService), chunkService);
         Register(nameof(IFaceService), faceService);
         Register(nameof(IPointService), pointService);
         Register(nameof(ITileService), tileService);
         Register(nameof(ISelectViewService), selectViewService);
+        Register(nameof(IAStarService), aStarService);
     }
 }

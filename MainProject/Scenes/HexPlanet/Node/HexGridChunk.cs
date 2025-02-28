@@ -80,7 +80,7 @@ public partial class HexGridChunk : Node3D
             _tileUis.Add(tile.Id, label);
             _labels.AddChild(label);
             // 在场景树中 _Ready 后 Label 才非 null
-            label.Label.Text = tile.Id.ToString();
+            label.Label.Text = Engine.IsEditorHint()? tile.Id.ToString(): "";
         }
     }
 
@@ -109,7 +109,7 @@ public partial class HexGridChunk : Node3D
             foreach (var tile in tiles)
             {
                 Triangulate(tile);
-                _tileUis[tile.Id].Position = 1.01f * tile.GetCentroid(_radius + _tileService.GetHeight(tile) + 0.01f);
+                _tileUis[tile.Id].Position = 1.01f * tile.GetCentroid(_radius + _tileService.GetHeight(tile));
             }
 
             _terrain.Apply();

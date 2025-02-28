@@ -14,15 +14,21 @@ public class TileService(
     IFaceRepo faceRepo,
     IPointRepo pointRepo) : ITileService
 {
+    public event ITileService.RefreshTileEvent RefreshTile;
     private void Refresh(Tile tile)
     {
         chunkService.Refresh(chunkService.GetById(tile.ChunkId));
         foreach (var neighbor in GetNeighbors(tile))
             if (neighbor.ChunkId != tile.ChunkId)
                 chunkService.Refresh(chunkService.GetById(neighbor.ChunkId));
+        RefreshTile?.Invoke(tile.Id);
     }
 
-    private void RefreshSelfOnly(Tile tile) => chunkService.Refresh(chunkService.GetById(tile.ChunkId));
+    private void RefreshSelfOnly(Tile tile)
+    {
+        chunkService.Refresh(chunkService.GetById(tile.ChunkId));
+        RefreshTile?.Invoke(tile.Id);
+    }
 
     #region 透传存储库方法
 
@@ -408,9 +414,9 @@ public class TileService(
     public float GetWallHeight() => UnitHeight * HexMetrics.WallHeight;
     public float GetWallThickness() => UnitHeight * HexMetrics.WallThickness;
 
-    public void UpdateTileLabel(Tile tile)
+    public void UpdateTileLabel(Tile tile, string text)
     {
         var chunk = chunkService.GetById(tile.ChunkId);
-        chunkService.RefreshTileLabel(chunk, tile.Id, tile.Distance.ToString());
+        chunkService.RefreshTileLabel(chunk, tile.Id, text);
     }
 }

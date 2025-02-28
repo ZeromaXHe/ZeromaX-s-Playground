@@ -160,7 +160,7 @@ public partial class HexPlanetHud : Control
     private void SetEditMode(bool toggle)
     {
         _editMode = toggle;
-        _hexPlanetManager.ShowUi(!toggle);
+        _hexPlanetManager.SetEditMode(toggle);
     }
 
     private void SelectTerrain(long index)
@@ -373,7 +373,7 @@ public partial class HexPlanetHud : Control
                 if (_editMode)
                     EditTiles(currentTile);
                 else
-                    FindDistanceTo(currentTile);
+                    _hexPlanetManager.FindPathFrom(currentTile.Id);
                 _previousTile = currentTile;
             }
             else
@@ -426,13 +426,5 @@ public partial class HexPlanetHud : Control
         }
 
         ChosenTileId = tile.Id; // 刷新 GUI 地块信息
-    }
-
-    private void FindDistanceTo(Tile currentTile)
-    {
-        foreach (var tile in _tileService.GetAll())
-        {
-            _tileService.UpdateTileLabel(tile);
-        }
     }
 }

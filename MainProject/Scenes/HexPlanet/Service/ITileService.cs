@@ -6,6 +6,9 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 
 public interface ITileService
 {
+    delegate void RefreshTileEvent(int id);
+
+    event RefreshTileEvent RefreshTile;
     #region 透传存储库方法
 
     Tile GetById(int id);
@@ -117,5 +120,5 @@ public interface ITileService
     float GetWallHeight();
     float GetWallThickness();
 
-    void UpdateTileLabel(Tile tile);
+    void UpdateTileLabel(Tile tile, string text);
 }

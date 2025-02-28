@@ -87,6 +87,4 @@ public class Tile(
     public bool IsSpecial => SpecialIndex > 0;
 
     #endregion
-    
-    public int Distance { get; set; }
 }
