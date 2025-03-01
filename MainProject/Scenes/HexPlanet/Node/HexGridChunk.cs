@@ -25,7 +25,6 @@ public partial class HexGridChunk : Node3D
     [Export] private PackedScene _labelScene;
 
     private int _id;
-    private float _radius;
     private readonly Dictionary<int, HexTileLabel> _tileUis = new();
 
     #region on-ready 节点
@@ -56,10 +55,9 @@ public partial class HexGridChunk : Node3D
     private static readonly Color Color2 = Colors.Green;
     private static readonly Color Color3 = Colors.Blue;
 
-    public void Init(int id, float radius)
+    public void Init(int id)
     {
         _id = id;
-        _radius = radius;
         InitLabels();
         Refresh();
     }
@@ -73,7 +71,7 @@ public partial class HexGridChunk : Node3D
         foreach (var tile in tiles)
         {
             var label = _labelScene.Instantiate<HexTileLabel>();
-            var position = 1.01f * tile.GetCentroid(_radius + _tileService.GetHeight(tile));
+            var position = 1.01f * tile.GetCentroid(HexMetrics.Radius + _tileService.GetHeight(tile));
             var scale = position.Length() / HexMetrics.StandardRadius;
             label.Scale = Vector3.One * scale;
             label.Position = position;
@@ -110,7 +108,7 @@ public partial class HexGridChunk : Node3D
             foreach (var tile in tiles)
             {
                 Triangulate(tile);
-                _tileUis[tile.Id].Position = 1.01f * tile.GetCentroid(_radius + _tileService.GetHeight(tile));
+                _tileUis[tile.Id].Position = 1.01f * tile.GetCentroid(HexMetrics.Radius + _tileService.GetHeight(tile));
             }
 
             _terrain.Apply();
@@ -133,15 +131,14 @@ public partial class HexGridChunk : Node3D
 
     private void Triangulate(Tile tile)
     {
-        // var corners = tile.GetCorners(_radius + tile.Height, 1f).ToList();
         for (var i = 0; i < tile.HexFaceIds.Count; i++)
             Triangulate(tile, i);
         if (!tile.IsUnderwater)
         {
             if (!tile.HasRiver && !tile.HasRoads)
-                _features.AddFeature(tile, tile.GetCentroid(_radius + _tileService.GetHeight(tile)));
+                _features.AddFeature(tile, tile.GetCentroid(HexMetrics.Radius + _tileService.GetHeight(tile)));
             if (tile.IsSpecial)
-                _features.AddSpecialFeature(tile, tile.GetCentroid(_radius + _tileService.GetHeight(tile)));
+                _features.AddSpecialFeature(tile, tile.GetCentroid(HexMetrics.Radius + _tileService.GetHeight(tile)));
         }
     }
 
@@ -149,15 +146,15 @@ public partial class HexGridChunk : Node3D
     private void Triangulate(Tile tile, int idx)
     {
         var height = _tileService.GetHeight(tile);
-        var v1 = _tileService.GetFirstSolidCorner(tile, idx, _radius + height);
-        var v2 = _tileService.GetSecondSolidCorner(tile, idx, _radius + height);
+        var v1 = _tileService.GetFirstSolidCorner(tile, idx, HexMetrics.Radius + height);
+        var v2 = _tileService.GetSecondSolidCorner(tile, idx, HexMetrics.Radius + height);
         var e = new EdgeVertices(v1, v2);
-        var centroid = tile.GetCentroid(_radius + height);
+        var centroid = tile.GetCentroid(HexMetrics.Radius + height);
         if (tile.HasRiver)
         {
             if (_tileService.HasRiverThroughEdge(tile, idx))
             {
-                e.V3 = Math3dUtil.ProjectToSphere(e.V3, _radius + _tileService.GetStreamBedHeight(tile));
+                e.V3 = Math3dUtil.ProjectToSphere(e.V3, HexMetrics.Radius + _tileService.GetStreamBedHeight(tile));
                 if (tile.HasRiverBeginOrEnd)
                     TriangulateWithRiverBeginOrEnd(tile, idx, centroid, e);
                 else TriangulateWithRiver(tile, idx, centroid, e);
@@ -179,7 +176,7 @@ public partial class HexGridChunk : Node3D
     private void TriangulateWater(Tile tile, int idx, Vector3 centroid)
     {
         var waterSurfaceHeight = _tileService.GetWaterSurfaceHeight(tile);
-        centroid = Math3dUtil.ProjectToSphere(centroid, _radius + waterSurfaceHeight);
+        centroid = Math3dUtil.ProjectToSphere(centroid, HexMetrics.Radius + waterSurfaceHeight);
         var neighbor = _tileService.GetNeighborByIdx(tile, idx);
         if (!neighbor.IsUnderwater)
             TriangulateWaterShore(tile, idx, waterSurfaceHeight, neighbor, centroid);
@@ -191,8 +188,8 @@ public partial class HexGridChunk : Node3D
 
     private void TriangulateWaterShore(Tile tile, int idx, float waterSurfaceHeight, Tile neighbor, Vector3 centroid)
     {
-        var e1 = new EdgeVertices(_tileService.GetFirstWaterCorner(tile, idx, _radius + waterSurfaceHeight),
-            _tileService.GetSecondWaterCorner(tile, idx, _radius + waterSurfaceHeight));
+        var e1 = new EdgeVertices(_tileService.GetFirstWaterCorner(tile, idx, HexMetrics.Radius + waterSurfaceHeight),
+            _tileService.GetSecondWaterCorner(tile, idx, HexMetrics.Radius + waterSurfaceHeight));
         _water.AddTriangle([centroid, e1.V1, e1.V2]);
         _water.AddTriangle([centroid, e1.V2, e1.V3]);
         _water.AddTriangle([centroid, e1.V3, e1.V4]);
@@ -200,9 +197,9 @@ public partial class HexGridChunk : Node3D
         // 使用邻居的水表面高度的话，就是希望考虑岸边地块的实际水位。(不然强行拉平岸边的话，角落两个水面不一样高时太多复杂逻辑，bug 太多)
         var neighborWaterSurfaceHeight = _tileService.GetWaterSurfaceHeight(neighbor);
         var cn1 = _tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[idx],
-            _radius + neighborWaterSurfaceHeight, HexMetrics.SolidFactor);
+            HexMetrics.Radius + neighborWaterSurfaceHeight, HexMetrics.SolidFactor);
         var cn2 = _tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[tile.NextIdx(idx)],
-            _radius + neighborWaterSurfaceHeight, HexMetrics.SolidFactor);
+            HexMetrics.Radius + neighborWaterSurfaceHeight, HexMetrics.SolidFactor);
         var e2 = new EdgeVertices(cn1, cn2);
         if (tile.HasRiverToNeighbor(neighbor.Id))
             TriangulateEstuary(e1, e2, tile.IncomingRiverNId == neighbor.Id);
@@ -217,7 +214,7 @@ public partial class HexGridChunk : Node3D
         var nextNeighbor = _tileService.GetNeighborByIdx(tile, tile.NextIdx(idx));
         var nextNeighborWaterSurfaceHeight = _tileService.GetWaterSurfaceHeight(nextNeighbor);
         var cnn = _tileService.GetCornerByFaceId(nextNeighbor, tile.HexFaceIds[tile.NextIdx(idx)],
-            _radius + nextNeighborWaterSurfaceHeight,
+            HexMetrics.Radius + nextNeighborWaterSurfaceHeight,
             nextNeighbor.IsUnderwater ? HexMetrics.WaterFactor : HexMetrics.SolidFactor);
         _waterShore.AddTriangle([e1.V5, e2.V5, cnn],
             uvs: [new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(0f, nextNeighbor.IsUnderwater ? 0f : 1f)]);
@@ -251,17 +248,17 @@ public partial class HexGridChunk : Node3D
 
     private void TriangulateOpenWater(Tile tile, int idx, float waterSurfaceHeight, Tile neighbor, Vector3 centroid)
     {
-        var c1 = _tileService.GetFirstWaterCorner(tile, idx, _radius + waterSurfaceHeight);
-        var c2 = _tileService.GetSecondWaterCorner(tile, idx, _radius + waterSurfaceHeight);
+        var c1 = _tileService.GetFirstWaterCorner(tile, idx, HexMetrics.Radius + waterSurfaceHeight);
+        var c2 = _tileService.GetSecondWaterCorner(tile, idx, HexMetrics.Radius + waterSurfaceHeight);
         _water.AddTriangle([centroid, c1, c2]);
         // 由更大 Id 的地块绘制水域连接
         if (tile.Id > neighbor.Id)
         {
             var neighborWaterSurfaceHeight = _tileService.GetWaterSurfaceHeight(neighbor);
             var cn1 = _tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[idx],
-                _radius + neighborWaterSurfaceHeight, HexMetrics.WaterFactor);
+                HexMetrics.Radius + neighborWaterSurfaceHeight, HexMetrics.WaterFactor);
             var cn2 = _tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[tile.NextIdx(idx)],
-                _radius + neighborWaterSurfaceHeight, HexMetrics.WaterFactor);
+                HexMetrics.Radius + neighborWaterSurfaceHeight, HexMetrics.WaterFactor);
             _water.AddQuad([c1, c2, cn1, cn2]);
 
             var preNeighbor = _tileService.GetNeighborByIdx(tile, tile.PreviousIdx(idx));
@@ -270,7 +267,7 @@ public partial class HexGridChunk : Node3D
             {
                 if (!preNeighbor.IsUnderwater) return;
                 var cpn = _tileService.GetCornerByFaceId(preNeighbor, tile.HexFaceIds[idx],
-                    _radius + _tileService.GetWaterSurfaceHeight(preNeighbor), HexMetrics.WaterFactor);
+                    HexMetrics.Radius + _tileService.GetWaterSurfaceHeight(preNeighbor), HexMetrics.WaterFactor);
                 _water.AddTriangle([c1, cpn, cn1]);
             }
         }
@@ -283,17 +280,19 @@ public partial class HexGridChunk : Node3D
         if (_tileService.HasRiverThroughEdge(tile, tile.NextIdx(idx)))
         {
             if (_tileService.HasRiverThroughEdge(tile, tile.PreviousIdx(idx)))
-                centroid = _tileService.GetSolidEdgeMiddle(tile, idx, _radius + _tileService.GetHeight(tile),
+                centroid = _tileService.GetSolidEdgeMiddle(tile, idx, HexMetrics.Radius + _tileService.GetHeight(tile),
                     0.5f * HexMetrics.InnerToOuter);
             else if (!tile.IsPentagon() && _tileService.HasRiverThroughEdge(tile, tile.Previous2Idx(idx)))
                 // 注意五边形没有直线河流，一边临河另一边隔一个方向临河的情况是对应钝角河的外河岸，依然在 centroid
-                centroid = _tileService.GetFirstSolidCorner(tile, idx, _radius + _tileService.GetHeight(tile), 0.25f);
+                centroid = _tileService.GetFirstSolidCorner(tile, idx, HexMetrics.Radius + _tileService.GetHeight(tile),
+                    0.25f);
         }
         else if (!tile.IsPentagon()
                  && _tileService.HasRiverThroughEdge(tile, tile.PreviousIdx(idx))
                  && _tileService.HasRiverThroughEdge(tile, tile.Next2Idx(idx)))
             // 注意五边形没有直线河流，一边临河另一边隔一个方向临河的情况是对应钝角河的外河岸，依然在 centroid
-            centroid = _tileService.GetSecondSolidCorner(tile, idx, _radius + _tileService.GetHeight(tile), 0.25f);
+            centroid = _tileService.GetSecondSolidCorner(tile, idx, HexMetrics.Radius + _tileService.GetHeight(tile),
+                0.25f);
 
         var m = new EdgeVertices(centroid.Lerp(e.V1, 0.5f), centroid.Lerp(e.V5, 0.5f));
         TriangulateEdgeStrip(m, Color1, tile.TerrainTypeIndex, e, Color1, tile.TerrainTypeIndex);
@@ -315,10 +314,10 @@ public partial class HexGridChunk : Node3D
             var riverBeginOrEndIdx = _tileService.GetRiverBeginOrEndIdx(tile);
             if (tile.IsPentagon())
                 roadCenter += _tileService.GetFirstSolidCorner(tile, tile.OppositeIdx(riverBeginOrEndIdx),
-                    _radius + _tileService.GetHeight(tile), HexMetrics.OuterToInner / 3f) - centroid;
+                    HexMetrics.Radius + _tileService.GetHeight(tile), HexMetrics.OuterToInner / 3f) - centroid;
             else
                 roadCenter += _tileService.GetSolidEdgeMiddle(tile, tile.OppositeIdx(riverBeginOrEndIdx),
-                    _radius + _tileService.GetHeight(tile), 1f / 3f) - centroid;
+                    HexMetrics.Radius + _tileService.GetHeight(tile), 1f / 3f) - centroid;
         }
         else
         {
@@ -331,12 +330,14 @@ public partial class HexGridChunk : Node3D
                 if (previousHasRiver)
                 {
                     if (!hasRoadThroughEdge && !tile.HasRoadThroughEdge(tile.NextIdx(idx))) return;
-                    corner = _tileService.GetSecondSolidCorner(tile, idx, _radius + _tileService.GetHeight(tile));
+                    corner = _tileService.GetSecondSolidCorner(tile, idx,
+                        HexMetrics.Radius + _tileService.GetHeight(tile));
                 }
                 else
                 {
                     if (!hasRoadThroughEdge && !tile.HasRoadThroughEdge(tile.PreviousIdx(idx))) return;
-                    corner = _tileService.GetFirstSolidCorner(tile, idx, _radius + _tileService.GetHeight(tile));
+                    corner = _tileService.GetFirstSolidCorner(tile, idx,
+                        HexMetrics.Radius + _tileService.GetHeight(tile));
                 }
 
                 roadCenter += (corner - centroid) * 0.5f;
@@ -350,19 +351,20 @@ public partial class HexGridChunk : Node3D
             {
                 // 河流走势是逆时针锐角的情况
                 roadCenter -= _tileService.GetSecondCorner(tile, incomingRiverIdx,
-                    _radius + _tileService.GetHeight(tile), 0.2f) - centroid;
+                    HexMetrics.Radius + _tileService.GetHeight(tile), 0.2f) - centroid;
             }
             else if (incomingRiverIdx == tile.NextIdx(outgoingRiverIdx))
             {
                 // 河流走势是顺时针锐角的情况
                 roadCenter -= _tileService.GetFirstCorner(tile, incomingRiverIdx,
-                    _radius + _tileService.GetHeight(tile), 0.2f) - centroid;
+                    HexMetrics.Radius + _tileService.GetHeight(tile), 0.2f) - centroid;
             }
             else if (previousHasRiver && nextHasRiver)
             {
                 // 河流走势是钝角的情况，且当前方向被夹在河流出入角中间
                 if (!hasRoadThroughEdge) return;
-                var offset = _tileService.GetSolidEdgeMiddle(tile, idx, _radius + _tileService.GetHeight(tile),
+                var offset = _tileService.GetSolidEdgeMiddle(tile, idx,
+                    HexMetrics.Radius + _tileService.GetHeight(tile),
                     HexMetrics.InnerToOuter);
                 roadCenter += (offset - centroid) * 0.7f;
                 centroid += (offset - centroid) * 0.5f;
@@ -373,7 +375,7 @@ public partial class HexGridChunk : Node3D
                 var firstIdx = previousHasRiver ? idx : tile.PreviousIdx(idx); // 两个可能方向中的顺时针第一个
                 if (!tile.HasRoadThroughEdge(firstIdx) && !tile.HasRoadThroughEdge(tile.NextIdx(firstIdx))) return;
                 var offset = _tileService.GetSecondSolidCorner(tile, firstIdx,
-                    _radius + _tileService.GetHeight(tile));
+                    HexMetrics.Radius + _tileService.GetHeight(tile));
                 roadCenter += (offset - centroid) * 0.25f * HexMetrics.OuterToInner;
                 if (idx == firstIdx && tile.HasRoadThroughEdge(tile.Previous2Idx(firstIdx)))
                     _features.AddBridge(roadCenter,
@@ -394,7 +396,7 @@ public partial class HexGridChunk : Node3D
                     && !tile.HasRoadThroughEdge(tile.NextIdx(middleIdx)))
                     return;
                 var offset = _tileService.GetSolidEdgeMiddle(tile, middleIdx,
-                    _radius + _tileService.GetHeight(tile));
+                    HexMetrics.Radius + _tileService.GetHeight(tile));
                 roadCenter += (offset - centroid) * 0.25f;
                 if (idx == middleIdx && tile.HasRoadThroughEdge(tile.OppositeIdx(idx)))
                     _features.AddBridge(roadCenter,
@@ -421,7 +423,7 @@ public partial class HexGridChunk : Node3D
         if (!tile.IsUnderwater)
         {
             var reversed = tile.HasIncomingRiver;
-            var riverSurfaceHeight = _radius + _tileService.GetRiverSurfaceHeight(tile);
+            var riverSurfaceHeight = HexMetrics.Radius + _tileService.GetRiverSurfaceHeight(tile);
             TriangulateRiverQuad(m.V2, m.V4, e.V2, e.V4, riverSurfaceHeight, 0.6f, reversed);
             centroid = Math3dUtil.ProjectToSphere(centroid, riverSurfaceHeight);
             m.V2 = Math3dUtil.ProjectToSphere(m.V2, riverSurfaceHeight);
@@ -441,8 +443,8 @@ public partial class HexGridChunk : Node3D
         if (!tile.IsPentagon() && _tileService.HasRiverThroughEdge(tile, tile.OppositeIdx(idx))) // 注意五边形没有对边的情况
         {
             // 直线河流
-            centerL = _tileService.GetFirstSolidCorner(tile, tile.PreviousIdx(idx), _radius + height, 0.25f);
-            centerR = _tileService.GetSecondSolidCorner(tile, tile.NextIdx(idx), _radius + height, 0.25f);
+            centerL = _tileService.GetFirstSolidCorner(tile, tile.PreviousIdx(idx), HexMetrics.Radius + height, 0.25f);
+            centerR = _tileService.GetSecondSolidCorner(tile, tile.NextIdx(idx), HexMetrics.Radius + height, 0.25f);
         }
         else if (_tileService.HasRiverThroughEdge(tile, tile.NextIdx(idx)))
         {
@@ -461,13 +463,13 @@ public partial class HexGridChunk : Node3D
             // 钝角弯
             centerL = centroid;
             centerR = _tileService.GetSolidEdgeMiddle(tile, tile.NextIdx(idx),
-                _radius + height, 0.5f * HexMetrics.InnerToOuter);
+                HexMetrics.Radius + height, 0.5f * HexMetrics.InnerToOuter);
         }
         else if (_tileService.HasRiverThroughEdge(tile, tile.Previous2Idx(idx)))
         {
             // 钝角弯
             centerL = _tileService.GetSolidEdgeMiddle(tile, tile.PreviousIdx(idx),
-                _radius + height, 0.5f * HexMetrics.InnerToOuter);
+                HexMetrics.Radius + height, 0.5f * HexMetrics.InnerToOuter);
             centerR = centroid;
         }
         else
@@ -492,9 +494,9 @@ public partial class HexGridChunk : Node3D
             var reversed = tile.IncomingRiverNId == _tileService.GetNeighborByIdx(tile, idx).Id;
             var riverSurfaceHeight = _tileService.GetRiverSurfaceHeight(tile);
             TriangulateRiverQuad(centerL, centerR, m.V2, m.V4,
-                _radius + riverSurfaceHeight, 0.4f, reversed);
+                HexMetrics.Radius + riverSurfaceHeight, 0.4f, reversed);
             TriangulateRiverQuad(m.V2, m.V4, e.V2, e.V4,
-                _radius + riverSurfaceHeight, 0.6f, reversed);
+                HexMetrics.Radius + riverSurfaceHeight, 0.6f, reversed);
         }
     }
 
@@ -619,33 +621,33 @@ public partial class HexGridChunk : Node3D
         if (tileHeight > neighborHeight ||
             (Mathf.Abs(tileHeight - neighborHeight) < 0.00001f && tile.Id < neighbor.Id)) return;
         var vn1 = _tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[idx],
-            _radius + neighborHeight, HexMetrics.SolidFactor);
+            HexMetrics.Radius + neighborHeight, HexMetrics.SolidFactor);
         var vn2 = _tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[tile.NextIdx(idx)],
-            _radius + neighborHeight, HexMetrics.SolidFactor);
+            HexMetrics.Radius + neighborHeight, HexMetrics.SolidFactor);
         var en = new EdgeVertices(vn1, vn2);
         var hasRiver = tile.HasRiverToNeighbor(neighbor.Id);
         var hasRoad = tile.HasRoadThroughEdge(idx);
         if (hasRiver)
         {
-            en.V3 = Math3dUtil.ProjectToSphere(en.V3, _radius + _tileService.GetStreamBedHeight(neighbor));
+            en.V3 = Math3dUtil.ProjectToSphere(en.V3, HexMetrics.Radius + _tileService.GetStreamBedHeight(neighbor));
             if (!tile.IsUnderwater)
             {
                 if (!neighbor.IsUnderwater)
                     TriangulateRiverQuad(e.V2, e.V4, en.V2, en.V4,
-                        _radius + _tileService.GetRiverSurfaceHeight(tile),
-                        _radius + _tileService.GetRiverSurfaceHeight(neighbor), 0.8f,
+                        HexMetrics.Radius + _tileService.GetRiverSurfaceHeight(tile),
+                        HexMetrics.Radius + _tileService.GetRiverSurfaceHeight(neighbor), 0.8f,
                         tile.HasIncomingRiver && tile.IncomingRiverNId == neighbor.Id);
                 else if (tile.Elevation > neighbor.Elevation)
                     TriangulateWaterfallInWater(e.V2, e.V4, en.V2, en.V4,
-                        _radius + _tileService.GetRiverSurfaceHeight(tile),
-                        _radius + _tileService.GetRiverSurfaceHeight(neighbor),
-                        _radius + _tileService.GetWaterSurfaceHeight(neighbor));
+                        HexMetrics.Radius + _tileService.GetRiverSurfaceHeight(tile),
+                        HexMetrics.Radius + _tileService.GetRiverSurfaceHeight(neighbor),
+                        HexMetrics.Radius + _tileService.GetWaterSurfaceHeight(neighbor));
             }
             else if (!neighbor.IsUnderwater && neighbor.Elevation > tile.Elevation)
                 TriangulateWaterfallInWater(en.V4, en.V2, e.V4, e.V2,
-                    _radius + _tileService.GetRiverSurfaceHeight(neighbor),
-                    _radius + _tileService.GetRiverSurfaceHeight(tile),
-                    _radius + _tileService.GetWaterSurfaceHeight(tile));
+                    HexMetrics.Radius + _tileService.GetRiverSurfaceHeight(neighbor),
+                    HexMetrics.Radius + _tileService.GetRiverSurfaceHeight(tile),
+                    HexMetrics.Radius + _tileService.GetWaterSurfaceHeight(tile));
         }
 
         if (tile.GetEdgeType(neighbor) == HexEdgeType.Slope)
@@ -662,7 +664,7 @@ public partial class HexGridChunk : Node3D
         {
             // 连接角落的三角形由周围 3 个地块中最低或者一样高时 Id 最大的生成
             var vpn = _tileService.GetCornerByFaceId(preNeighbor, tile.HexFaceIds[idx],
-                _radius + preNeighborHeight, HexMetrics.SolidFactor);
+                HexMetrics.Radius + preNeighborHeight, HexMetrics.SolidFactor);
             TriangulateCorner(e.V1, tile, vpn, preNeighbor, vn1, neighbor);
         }
     }

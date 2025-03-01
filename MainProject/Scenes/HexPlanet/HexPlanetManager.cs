@@ -161,7 +161,7 @@ public partial class HexPlanetManager : Node3D
         }
 
         _selectTileViewer.Visible = true;
-        var mesh = _selectViewService.GenerateMeshForPlayMode(_pathFromTileId, position, Radius);
+        var mesh = _selectViewService.GenerateMeshForPlayMode(_pathFromTileId, position);
         if (mesh != null)
             _selectTileViewer.Mesh = mesh;
     }
@@ -171,7 +171,7 @@ public partial class HexPlanetManager : Node3D
         if (position != Vector3.Zero)
         {
             _selectTileViewer.Visible = true;
-            var mesh = _selectViewService.GenerateMeshForEditMode(position, Radius);
+            var mesh = _selectViewService.GenerateMeshForEditMode(position);
             if (mesh != null)
                 _selectTileViewer.Mesh = mesh;
         }
@@ -254,7 +254,7 @@ public partial class HexPlanetManager : Node3D
             var hexGridChunk = _gridChunkScene.Instantiate<HexGridChunk>();
             hexGridChunk.Name = $"HexGridChunk{id}";
             _chunks.AddChild(hexGridChunk); // 必须先加入场景树，否则 _Ready() 还没执行
-            hexGridChunk.Init(id, Radius);
+            hexGridChunk.Init(id);
             _gridChunks.Add(id, hexGridChunk);
         }
 

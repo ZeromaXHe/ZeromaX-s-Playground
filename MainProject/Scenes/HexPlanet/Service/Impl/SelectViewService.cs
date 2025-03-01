@@ -22,7 +22,7 @@ public class SelectViewService(ITileService tileService, IAStarService aStarServ
 
     public int SelectViewSize { get; set; }
 
-    public Mesh GenerateMeshForEditMode(Vector3 position, float radius)
+    public Mesh GenerateMeshForEditMode(Vector3 position)
     {
         var centerId = tileService.SearchNearestTileId(position.Normalized());
         if (centerId != null)
@@ -42,7 +42,7 @@ public class SelectViewService(ITileService tileService, IAStarService aStarServ
             var color = Colors.DarkGreen with { A = 0.8f };
             var tiles = tileService.GetTilesInDistance(tile, SelectViewSize);
             var vi = 0;
-            var viewRadius = radius * (1f + HexMetrics.MaxHeightRadiusRatio);
+            var viewRadius = HexMetrics.Radius * (1f + HexMetrics.MaxHeightRadiusRatio);
             foreach (var t in tiles)
                 vi += AddHexFrame(t, color, viewRadius, surfaceTool, vi);
             return surfaceTool.Commit();
@@ -52,7 +52,7 @@ public class SelectViewService(ITileService tileService, IAStarService aStarServ
         return null;
     }
 
-    public Mesh GenerateMeshForPlayMode(int pathFindingFromTileId, Vector3 position, float radius)
+    public Mesh GenerateMeshForPlayMode(int pathFindingFromTileId, Vector3 position)
     {
         if (position != Vector3.Zero)
         {
@@ -72,10 +72,12 @@ public class SelectViewService(ITileService tileService, IAStarService aStarServ
                 surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
                 surfaceTool.SetSmoothGroup(uint.MaxValue);
                 var vi = 0;
-                vi += AddHexFrame(fromTile, Colors.Blue, 1.01f * (radius + tileService.GetHeight(fromTile)),
+                vi += AddHexFrame(fromTile, Colors.Blue,
+                    1.01f * (HexMetrics.Radius + tileService.GetHeight(fromTile)),
                     surfaceTool, vi); // 出发点为蓝色框
-                vi += AddHexFrame(toTile, Colors.Red, 1.01f * (radius + tileService.GetHeight(toTile)), surfaceTool,
-                    vi); // 目标点为红色框
+                vi += AddHexFrame(toTile, Colors.Red,
+                    1.01f * (HexMetrics.Radius + tileService.GetHeight(toTile)),
+                    surfaceTool, vi); // 目标点为红色框
                 var tiles = aStarService.FindPath(fromTile, toTile);
                 if (tiles.Count > 0)
                 {
@@ -87,7 +89,7 @@ public class SelectViewService(ITileService tileService, IAStarService aStarServ
                         var nextTile = tiles[i];
                         if (i != tiles.Count - 1)
                             vi += AddHexFrame(nextTile, Colors.White,
-                                1.01f * (radius + tileService.GetHeight(nextTile)),
+                                1.01f * (HexMetrics.Radius + tileService.GetHeight(nextTile)),
                                 surfaceTool, vi); // 路径点为白色框
                         cost += aStarService.Cost(preTile, nextTile);
                         tileService.UpdateTileLabel(nextTile, cost.ToString());
@@ -111,7 +113,7 @@ public class SelectViewService(ITileService tileService, IAStarService aStarServ
         var surfaceTool2 = new SurfaceTool();
         surfaceTool2.Begin(Mesh.PrimitiveType.Triangles);
         surfaceTool2.SetSmoothGroup(uint.MaxValue);
-        var viewRadius2 = radius * (1f + HexMetrics.MaxHeightRadiusRatio);
+        var viewRadius2 = HexMetrics.Radius * (1f + HexMetrics.MaxHeightRadiusRatio);
         AddHexFrame(tile, Colors.Blue, viewRadius2, surfaceTool2, 0);
         return surfaceTool2.Commit();
     }
