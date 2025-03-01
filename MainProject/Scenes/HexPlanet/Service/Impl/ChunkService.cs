@@ -22,6 +22,7 @@ public class ChunkService(IChunkRepo chunkRepo) : IChunkService
     public Chunk GetById(int id) => chunkRepo.GetById(id);
     public int GetCount() => chunkRepo.GetCount();
     public IEnumerable<Chunk> GetAll() => chunkRepo.GetAll();
+    public void Truncate() => chunkRepo.Truncate();
 
     #endregion
 
@@ -32,9 +33,6 @@ public class ChunkService(IChunkRepo chunkRepo) : IChunkService
         _chunkPointVpTree.Search(pos, 1, out var results, out _);
         return chunkRepo.GetByPos(results[0]);
     }
-
-    public int GetChunkCount() => chunkRepo.GetCount();
-    public void ClearData() => chunkRepo.Truncate();
 
     public void InitChunks(int chunkDivisions)
     {

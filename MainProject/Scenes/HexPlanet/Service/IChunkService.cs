@@ -20,12 +20,11 @@ public interface IChunkService
     Chunk GetById(int id);
     int GetCount();
     IEnumerable<Chunk> GetAll();
+    void Truncate();
 
     #endregion
 
     // 最近邻搜索
     Chunk SearchNearest(Vector3 pos);
-    int GetChunkCount();
-    void ClearData();
     void InitChunks(int chunkDivisions);
 }

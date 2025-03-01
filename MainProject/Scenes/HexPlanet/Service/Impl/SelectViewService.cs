@@ -10,7 +10,15 @@ public class SelectViewService(ITileService tileService, IAStarService aStarServ
 {
     private int? _selectTileCenterId;
     private int _pathFromTileId;
-    private List<Tile> _pathTiles = [];
+    private readonly List<Tile> _pathTiles = [];
+
+    public void ClearPath()
+    {
+        // 清空之前寻路的标签
+        foreach (var pathTile in _pathTiles)
+            tileService.UpdateTileLabel(pathTile, "");
+        _pathTiles.Clear();
+    }
 
     public int SelectViewSize { get; set; }
 
@@ -56,9 +64,7 @@ public class SelectViewService(ITileService tileService, IAStarService aStarServ
                     return null; // 寻路出发点和目标点都没变
                 _pathFromTileId = pathFindingFromTileId;
                 _selectTileCenterId = centerId;
-                // 清空之前寻路的标签
-                foreach (var pathTile in _pathTiles)
-                    tileService.UpdateTileLabel(pathTile, "");
+                ClearPath();
                 var fromTile = tileService.GetById(pathFindingFromTileId);
                 var toTileId = (int)_selectTileCenterId;
                 var toTile = tileService.GetById(toTileId);
@@ -89,7 +95,7 @@ public class SelectViewService(ITileService tileService, IAStarService aStarServ
                     }
                 }
 
-                _pathTiles = tiles;
+                _pathTiles.AddRange(tiles);
                 return surfaceTool.Commit();
             }
 
@@ -100,9 +106,7 @@ public class SelectViewService(ITileService tileService, IAStarService aStarServ
         // 没有寻路目标时的情况
         if (pathFindingFromTileId == _pathFromTileId) return null; // 寻路出发点没变
         _pathFromTileId = pathFindingFromTileId;
-        // 清空之前寻路的标签
-        foreach (var pathTile in _pathTiles)
-            tileService.UpdateTileLabel(pathTile, "");
+        ClearPath();
         var tile = tileService.GetById(pathFindingFromTileId);
         var surfaceTool2 = new SurfaceTool();
         surfaceTool2.Begin(Mesh.PrimitiveType.Triangles);

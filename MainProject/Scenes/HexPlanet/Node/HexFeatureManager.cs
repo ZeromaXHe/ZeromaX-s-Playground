@@ -12,6 +12,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 [Tool]
 public partial class HexFeatureManager : Node3D
 {
+    public HexFeatureManager() => InitServices();
     /// 特征场景
     /// 这种嵌套的数组不能用 .NET 的 array，必须用 Godot.Collections.Array。否则编辑器编译不通过
     /// 而且这样写以后，其实编辑器里是判断不了 PackedScene 类型的，必须自己手动选成 Object（Godot.GodotObject 或其他派生类型）再用。
@@ -38,11 +39,6 @@ public partial class HexFeatureManager : Node3D
 
     #endregion
 
-    public override void _Ready()
-    {
-        InitServices();
-    }
-
     public void Clear()
     {
         _container?.QueueFree();
@@ -57,10 +53,7 @@ public partial class HexFeatureManager : Node3D
     {
         var tower = _wallTowerScene.Instantiate<CsgBox3D>();
         var position = (left + right) * 0.5f;
-        var scale = position.Length() / HexMetrics.StandardRadius;
-        tower.Scale = Vector3.One * scale;
-        tower.Position = position.Normalized() * (position.Length() + 0.5f * 1.25f * scale * tower.Size.Y);
-        Node3dUtil.AlignYAxisToDirection(tower, position);
+        Node3dUtil.PlaceOnSphere(tower, position, 0.5f * 1.25f * tower.Size.Y);
         var rightDirection = right - left;
         tower.Rotate(position.Normalized(),
             tower.Basis.X.SignedAngleTo(rightDirection, position.Normalized()));
@@ -88,10 +81,7 @@ public partial class HexFeatureManager : Node3D
     {
         var instance = _specialScenes[tile.SpecialIndex - 1].Instantiate<CsgBox3D>();
         position = HexMetrics.Perturb(position);
-        var scale = position.Length() / HexMetrics.StandardRadius;
-        instance.Scale = Vector3.One * scale;
-        instance.Position = position.Normalized() * (position.Length() + 0.5f * scale * instance.Size.Y);
-        Node3dUtil.AlignYAxisToDirection(instance, position);
+        Node3dUtil.PlaceOnSphere(instance, position, 0.5f * instance.Size.Y);
         var hash = HexMetrics.SampleHashGrid(position);
         instance.Rotate(position.Normalized(), hash.E * Mathf.Tau); // 入参 axis 还是得用全局坐标
         _container.AddChild(instance);
@@ -130,11 +120,7 @@ public partial class HexFeatureManager : Node3D
 
         var instance = scene.Instantiate<CsgBox3D>();
         position = HexMetrics.Perturb(position);
-        // TODO: 缩放比例还需要根据细分程度来动态计算，目前标准细分是 10
-        var scale = position.Length() / HexMetrics.StandardRadius;
-        instance.Scale = Vector3.One * scale;
-        instance.Position = position.Normalized() * (position.Length() + 0.5f * scale * instance.Size.Y);
-        Node3dUtil.AlignYAxisToDirection(instance, position);
+        Node3dUtil.PlaceOnSphere(instance, position, 0.5f * instance.Size.Y);
         instance.Rotate(position.Normalized(), hash.E * Mathf.Tau); // 入参 axis 还是得用全局坐标
         _container.AddChild(instance);
     }

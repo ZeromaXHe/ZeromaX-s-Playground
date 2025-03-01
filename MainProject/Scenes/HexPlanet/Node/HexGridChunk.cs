@@ -13,6 +13,8 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 [Tool]
 public partial class HexGridChunk : Node3D
 {
+    public HexGridChunk() => InitServices();
+
     [Export] private HexMesh _terrain;
     [Export] private HexMesh _rivers;
     [Export] private HexMesh _roads;
@@ -58,7 +60,6 @@ public partial class HexGridChunk : Node3D
     {
         _id = id;
         _radius = radius;
-        InitServices();
         InitLabels();
         Refresh();
     }
@@ -80,7 +81,7 @@ public partial class HexGridChunk : Node3D
             _tileUis.Add(tile.Id, label);
             _labels.AddChild(label);
             // 在场景树中 _Ready 后 Label 才非 null
-            label.Label.Text = Engine.IsEditorHint()? tile.Id.ToString(): "";
+            label.Label.Text = Engine.IsEditorHint() ? tile.Id.ToString() : "";
         }
     }
 

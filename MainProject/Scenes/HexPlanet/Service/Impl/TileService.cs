@@ -14,20 +14,20 @@ public class TileService(
     IFaceRepo faceRepo,
     IPointRepo pointRepo) : ITileService
 {
-    public event ITileService.RefreshTileEvent RefreshTile;
+    public event ITileService.UpdateTileAStarEvent UpdateTileAStar;
+    public event ITileService.UnitValidateLocationEvent UnitValidateLocation;
+
     private void Refresh(Tile tile)
     {
         chunkService.Refresh(chunkService.GetById(tile.ChunkId));
         foreach (var neighbor in GetNeighbors(tile))
             if (neighbor.ChunkId != tile.ChunkId)
                 chunkService.Refresh(chunkService.GetById(neighbor.ChunkId));
-        RefreshTile?.Invoke(tile.Id);
     }
 
     private void RefreshSelfOnly(Tile tile)
     {
         chunkService.Refresh(chunkService.GetById(tile.ChunkId));
-        RefreshTile?.Invoke(tile.Id);
     }
 
     #region 透传存储库方法
@@ -36,6 +36,7 @@ public class TileService(
     public Tile GetByCenterId(int centerId) => tileRepo.GetByCenterId(centerId);
     public int GetCount() => tileRepo.GetCount();
     public IEnumerable<Tile> GetAll() => tileRepo.GetAll();
+    public void Truncate() => tileRepo.Truncate();
 
     #endregion
 
@@ -55,6 +56,9 @@ public class TileService(
             if (tile.Roads[i] && GetElevationDifference(tile, i) > 1)
                 SetRoad(tile, i, false);
         Refresh(tile);
+        UpdateTileAStar?.Invoke(tile.Id);
+        if (tile.UnitId != 0)
+            UnitValidateLocation?.Invoke(tile.UnitId);
     }
 
     public void SetTerrainTypeIndex(Tile tile, int idx)
@@ -70,6 +74,7 @@ public class TileService(
         tile.WaterLevel = waterLevel;
         ValidateRivers(tile);
         Refresh(tile);
+        UpdateTileAStar?.Invoke(tile.Id);
     }
 
     public void SetUrbanLevel(Tile tile, int urbanLevel)
@@ -98,6 +103,7 @@ public class TileService(
         if (tile.Walled == walled) return;
         tile.Walled = walled;
         Refresh(tile);
+        UpdateTileAStar?.Invoke(tile.Id);
     }
 
     public void SetSpecialIndex(Tile tile, int specialIndex)
@@ -106,6 +112,13 @@ public class TileService(
         tile.SpecialIndex = specialIndex;
         RemoveRoads(tile);
         RefreshSelfOnly(tile);
+    }
+
+    public void SetUnitId(Tile tile, int unitId)
+    {
+        if (tile.UnitId == unitId) return;
+        tile.UnitId = unitId;
+        UpdateTileAStar?.Invoke(tile.Id);
     }
 
     #endregion
@@ -135,8 +148,6 @@ public class TileService(
         var diff = tile.Elevation - GetNeighborByIdx(tile, idx).Elevation;
         return diff >= 0 ? diff : -diff;
     }
-
-    public void ClearData() => tileRepo.Truncate();
 
     public void InitTiles()
     {

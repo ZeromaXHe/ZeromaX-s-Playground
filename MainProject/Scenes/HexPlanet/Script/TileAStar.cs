@@ -7,6 +7,10 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Script;
 
 public partial class TileAStar(ITileService tileService) : AStar3D
 {
+    public TileAStar() : this(null)
+    {
+    }
+
     public override float _ComputeCost(long fromId, long toId)
     {
         var tile = tileService.GetById((int)fromId);

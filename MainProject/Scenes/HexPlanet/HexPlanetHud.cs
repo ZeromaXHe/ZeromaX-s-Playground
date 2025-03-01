@@ -16,7 +16,6 @@ public partial class HexPlanetHud : Control
     }
 
     [Export] private HexPlanetManager _hexPlanetManager;
-    [Export] private Color[] _colors;
 
     #region on-ready 节点
 
@@ -209,22 +208,21 @@ public partial class HexPlanetHud : Control
 
     #endregion
 
-    private int? _chosenTileId;
+    private Tile _chosenTile;
 
-    private int? ChosenTileId
+    private Tile ChosenTile
     {
-        get => _chosenTileId;
+        get => _chosenTile;
         set
         {
-            _chosenTileId = value;
-            if (_chosenTileId != null)
+            _chosenTile = value;
+            if (_chosenTile != null)
             {
-                _idLineEdit.Text = _chosenTileId.ToString();
-                var tile = _tileService.GetById((int)_chosenTileId);
-                _chunkLineEdit.Text = tile.ChunkId.ToString();
-                _heightLineEdit.Text = $"{_tileService.GetHeight(tile):F2}";
+                _idLineEdit.Text = _chosenTile.Id.ToString();
+                _chunkLineEdit.Text = _chosenTile.ChunkId.ToString();
+                _heightLineEdit.Text = $"{_tileService.GetHeight(_chosenTile):F2}";
                 _heightLineEdit.Editable = true;
-                _elevationLineEdit.Text = tile.Elevation.ToString();
+                _elevationLineEdit.Text = _chosenTile.Elevation.ToString();
             }
             else
             {
@@ -295,9 +293,9 @@ public partial class HexPlanetHud : Control
 
         _heightLineEdit.TextSubmitted += text =>
         {
-            if (_chosenTileId != null)
+            if (_chosenTile != null)
             {
-                var chosenTileId = (int)_chosenTileId;
+                var chosenTileId = _chosenTile.Id;
                 if (float.TryParse(text, out var height))
                 {
                     var tile = _tileService.GetById(chosenTileId);
@@ -347,37 +345,61 @@ public partial class HexPlanetHud : Control
 
     private void UpdateNewPlanetInfo()
     {
+        UpdatePlanetUi();
+        ChosenTile = null;
+        _tileService.UnitHeight = _hexPlanetManager.Radius * HexMetrics.MaxHeightRadiusRatio / HexMetrics.ElevationStep;
+    }
+
+    private void UpdatePlanetUi()
+    {
         _radiusLineEdit.Text = $"{_hexPlanetManager.Radius:F2}";
         _divisionLineEdit.Text = $"{_hexPlanetManager.Divisions}";
         _chunkDivisionLineEdit.Text = $"{_hexPlanetManager.ChunkDivisions}";
         _chunkCountLabel.Text = $"地块总数：{_chunkService.GetCount()}";
         _tileCountLabel.Text = $"分块总数：{_tileService.GetCount()}";
-        ChosenTileId = null;
-        _tileService.UnitHeight = _hexPlanetManager.Radius * HexMetrics.MaxHeightRadiusRatio / HexMetrics.ElevationStep;
     }
 
     public override void _Process(double delta)
     {
-        if (Input.IsMouseButtonPressed(MouseButton.Left) &&
-            GetViewport().GuiGetHoveredControl() == _subViewportContainer)
+        if (GetViewport().GuiGetHoveredControl() == _subViewportContainer)
         {
-            // 在 SubViewportContainer 上按下鼠标左键时，获取鼠标位置地块并更新
-            ChosenTileId = _hexPlanetManager.GetTileIdUnderCursor();
-            if (ChosenTileId != null)
+            if (Input.IsMouseButtonPressed(MouseButton.Left))
             {
-                var currentTile = _tileService.GetById((int)ChosenTileId);
-                if (_previousTile != null && _previousTile != currentTile)
-                    ValidateDrag(currentTile);
-                else
-                    _isDrag = false;
-                if (_editMode)
-                    EditTiles(currentTile);
-                else
-                    _hexPlanetManager.FindPathFrom(currentTile.Id);
-                _previousTile = currentTile;
+                HandleInput();
+                return;
             }
+
+            if (Input.IsActionJustPressed("destroy_unit"))
+            {
+                _hexPlanetManager.DestroyUnit();
+                return;
+            }
+
+            if (Input.IsActionJustPressed("create_unit"))
+            {
+                _hexPlanetManager.CreateUnit();
+                return;
+            }
+        }
+
+        _previousTile = null;
+    }
+
+    private void HandleInput()
+    {
+        // 在 SubViewportContainer 上按下鼠标左键时，获取鼠标位置地块并更新
+        ChosenTile = _hexPlanetManager.GetTileUnderCursor();
+        if (ChosenTile != null)
+        {
+            if (_previousTile != null && _previousTile != ChosenTile)
+                ValidateDrag(ChosenTile);
             else
-                _previousTile = null;
+                _isDrag = false;
+            if (_editMode)
+                EditTiles(ChosenTile);
+            else if (Input.IsActionJustPressed("choose_unit"))
+                _hexPlanetManager.FindPath(ChosenTile);
+            _previousTile = ChosenTile;
         }
         else
             _previousTile = null;
@@ -425,6 +447,6 @@ public partial class HexPlanetHud : Control
                 _tileService.AddRoad(_previousTile, _dragTile);
         }
 
-        ChosenTileId = tile.Id; // 刷新 GUI 地块信息
+        ChosenTile = tile; // 刷新 GUI 地块信息
     }
 }

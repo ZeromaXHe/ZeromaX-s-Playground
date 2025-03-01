@@ -4,6 +4,16 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 public static class Node3dUtil
 {
+    public static void PlaceOnSphere(Node3D node, Vector3 position, float addHeight = 0, Vector3 alignForward = default)
+    {
+        // TODO: 缩放比例还需要根据细分程度来动态计算，目前标准细分是 10
+        var scale = position.Length() / HexMetrics.StandardRadius;
+        node.Scale = Vector3.One * scale;
+        node.Position = position.Normalized() * (position.Length() + addHeight * scale);
+        AlignYAxisToDirection(node, position, alignForward);
+    }
+    
+    
     /// <summary>
     /// 对齐 Node3D 的 Y 轴正方向到指定的方向向量。
     /// </summary>
@@ -11,7 +21,7 @@ public static class Node3dUtil
     /// <param name="direction">目标方向向量</param>
     /// <param name="alignForward">希望对齐向前的方向（不传则默认不调整）</param>
     /// <param name="global">Y 轴是否使用全局基（注意：全局基模式未经测试）</param>
-    public static void AlignYAxisToDirection(in Node3D node, Vector3 direction, Vector3 alignForward = default, bool global = false)
+    public static void AlignYAxisToDirection(Node3D node, Vector3 direction, Vector3 alignForward = default, bool global = false)
     {
         // 确保方向是单位向量
         direction = direction.Normalized();

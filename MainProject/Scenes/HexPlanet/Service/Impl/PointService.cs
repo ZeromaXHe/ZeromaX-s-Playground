@@ -11,7 +11,7 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo): IPoin
 {
     private readonly HashSet<int> _framePointIds = [];
 
-    public void ClearData()
+    public void Truncate()
     {
         pointRepo.Truncate();
         _framePointIds.Clear();

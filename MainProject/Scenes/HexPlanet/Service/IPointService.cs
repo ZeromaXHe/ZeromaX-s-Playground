@@ -2,6 +2,6 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 
 public interface IPointService
 {
-    void ClearData();
+    void Truncate();
     void SubdivideIcosahedron(int divisions);
 }

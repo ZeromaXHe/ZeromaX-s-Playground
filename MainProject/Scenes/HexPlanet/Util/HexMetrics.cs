@@ -7,6 +7,9 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 public static class HexMetrics
 {
+    public static float Radius { get; set; }
+    public static int Divisions { get; set; }
+    
     public const float OuterToInner = 0.8660254037f; // √3/2 = 0.8660254037f
     public const float InnerToOuter = 1f / OuterToInner;
     public const float SolidFactor = 0.8f;

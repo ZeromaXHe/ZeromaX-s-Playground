@@ -8,7 +8,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 
 public class FaceService(IFaceRepo faceRepo, IPointRepo pointRepo) : IFaceService
 {
-    public void ClearData() => faceRepo.Truncate();
+    public void Truncate() => faceRepo.Truncate();
 
     public Face Add(Point p0, Point p1, Point p2)
     {

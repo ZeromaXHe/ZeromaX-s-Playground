@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
@@ -17,33 +18,63 @@ public partial class HexPlanetManager : Node3D
     // -> 子节点 _Ready()（从下到上） -> 父节点 _Ready() 【特别注意这里的顺序！！！】
     // -> 父节点 _Process() -> 子节点 _Process()（从上到下）
     // -> 子节点 _ExitTree()（从下到上） -> 父节点 _ExitTree() 【特别注意这里的顺序！！！】
-    public HexPlanetManager() => Context.Init();
+    public HexPlanetManager()
+    {
+        Context.Init();
+        InitServices();
+    }
+
     [Signal]
     public delegate void NewPlanetGeneratedEventHandler();
 
-    [Export(PropertyHint.Range, "5, 1000")]
-    public float Radius { get; set; } = 100f;
+    private float _radius = 100f;
 
-    [Export(PropertyHint.Range, "1, 100")] public int Divisions { get; set; } = 20;
+    [Export(PropertyHint.Range, "5, 1000")]
+    public float Radius
+    {
+        get => _radius;
+        set
+        {
+            _radius = value;
+            HexMetrics.Radius = _radius;
+        }
+    }
+
+    private int _divisions = 20;
+
+    [Export(PropertyHint.Range, "1, 100")]
+    public int Divisions
+    {
+        get => _divisions;
+        set
+        {
+            _divisions = value;
+            HexMetrics.Divisions = _divisions;
+        }
+    }
+
     [Export(PropertyHint.Range, "1, 25")] public int ChunkDivisions { get; set; } = 5;
     [Export] private Texture2D _noiseSource;
     [Export] private PackedScene _gridChunkScene;
+    [Export] private PackedScene _unitScene;
     [Export] public ulong Seed { get; set; } = 1234;
 
     private bool _ready;
 
     private bool _editMode;
-    private int _pathFindingFromTileId;
-    
+    private int _pathFromTileId;
+
     private float _oldRadius;
     private int _oldDivisions;
     private int _oldChunkDivisions;
     private float _lastUpdated;
 
     private readonly Dictionary<int, HexGridChunk> _gridChunks = new();
+    private readonly Dictionary<int, HexUnit> _units = new();
 
     #region services
 
+    private IUnitService _unitService;
     private IChunkService _chunkService;
     private ITileService _tileService;
     private IFaceService _faceService;
@@ -53,6 +84,7 @@ public partial class HexPlanetManager : Node3D
 
     private void InitServices()
     {
+        _unitService = Context.GetBean<IUnitService>();
         _chunkService = Context.GetBean<IChunkService>();
         _tileService = Context.GetBean<ITileService>();
         _faceService = Context.GetBean<IFaceService>();
@@ -60,7 +92,9 @@ public partial class HexPlanetManager : Node3D
         _aStarService = Context.GetBean<IAStarService>();
         _selectViewService = Context.GetBean<ISelectViewService>();
         _chunkService.RefreshChunk += id => _gridChunks[id].Refresh();
-        _chunkService.RefreshChunkTileLabel += (chunkId, tileId, text) => _gridChunks[chunkId].RefreshTileLabel(tileId, text);
+        _chunkService.RefreshChunkTileLabel +=
+            (chunkId, tileId, text) => _gridChunks[chunkId].RefreshTileLabel(tileId, text);
+        _tileService.UnitValidateLocation += unitId => _units[unitId].ValidateLocation();
     }
 
     #endregion
@@ -86,7 +120,9 @@ public partial class HexPlanetManager : Node3D
     public override void _Ready()
     {
         InitOnReadyNodes();
-        InitServices();
+        // 不知道为啥这个时候 setter 又不生效了，手动赋值一下
+        HexMetrics.Radius = _radius;
+        HexMetrics.Divisions = _divisions;
 
         HexMetrics.NoiseSource = _noiseSource.GetImage();
         HexMetrics.InitializeHashGrid(Seed);
@@ -118,13 +154,14 @@ public partial class HexPlanetManager : Node3D
 
     private void UpdateSelectTileInPlayMode(Vector3 position)
     {
-        if (_pathFindingFromTileId == 0)
+        if (_pathFromTileId == 0)
         {
             _selectTileViewer.Visible = false;
             return;
         }
+
         _selectTileViewer.Visible = true;
-        var mesh = _selectViewService.GenerateMeshForPlayMode(_pathFindingFromTileId, position, Radius);
+        var mesh = _selectViewService.GenerateMeshForPlayMode(_pathFromTileId, position, Radius);
         if (mesh != null)
             _selectTileViewer.Mesh = mesh;
     }
@@ -164,22 +201,26 @@ public partial class HexPlanetManager : Node3D
         return Vector3.Zero;
     }
 
-    public int? GetTileIdUnderCursor()
+    public Tile GetTileUnderCursor()
     {
         var pos = GetTileCollisionPositionUnderCursor();
-        return pos == Vector3.Zero ? null : _tileService.SearchNearestTileId(pos.Normalized());
+        if (pos == Vector3.Zero) return null;
+        var tileId = _tileService.SearchNearestTileId(pos.Normalized());
+        return tileId == null ? null : _tileService.GetById((int)tileId);
     }
 
     private void ClearOldData()
     {
-        _chunkService.ClearData();
-        _tileService.ClearData();
-        _pointService.ClearData();
-        _faceService.ClearData();
-        _aStarService.ClearData();
+        _chunkService.Truncate();
+        _tileService.Truncate();
+        _pointService.Truncate();
+        _faceService.Truncate();
+        _aStarService.ClearOldData();
+        _selectViewService.ClearPath();
         _gridChunks.Clear();
         foreach (var child in _chunks.GetChildren())
             child.QueueFree();
+        ClearAllUnits();
     }
 
     private void DrawHexasphereMesh()
@@ -223,11 +264,78 @@ public partial class HexPlanetManager : Node3D
     public void SetEditMode(bool mode)
     {
         _editMode = mode;
-        _pathFindingFromTileId = 0;
+        _pathFromTileId = 0;
         UpdateSelectTileViewer();
         foreach (var gridChunk in _gridChunks.Values)
             gridChunk.ShowUi(!mode); // 游戏模式下才显示地块 UI
     }
 
-    public void FindPathFrom(int fromTileId) => _pathFindingFromTileId = fromTileId;
+    public void FindPath(Tile tile)
+    {
+        if (_pathFromTileId != 0)
+        {
+            if (tile.Id == _pathFromTileId)
+                // 重复点选同一地块，则取消选择
+                _pathFromTileId = 0;
+            else MoveUnit(tile);
+        }
+        else
+            // 当前没有选择地块（即没有选中单位）的话，则在有单位时选择该地块
+            _pathFromTileId = tile.UnitId == 0 ? 0 : tile.Id;
+    }
+
+    private void MoveUnit(Tile toTile)
+    {
+        var fromTile = _tileService.GetById(_pathFromTileId);
+        if (_aStarService.ExistPath(fromTile, toTile))
+        {
+            // 确实有找到从出发点到 tile 的路径
+            _units[fromTile.UnitId].TileId = toTile.Id;
+            _pathFromTileId = 0;
+        }
+        _selectViewService.ClearPath();
+    }
+
+    public void CreateUnit()
+    {
+        var tile = GetTileUnderCursor();
+        if (tile == null || tile.UnitId > 0)
+        {
+            GD.Print($"CreateUnit failed: tile {tile}, unitId: {tile?.UnitId}");
+            return;
+        }
+        GD.Print($"CreateUnit at tile {tile.Id}");
+        var unit = _unitScene.Instantiate<HexUnit>();
+        AddUnit(unit, tile.Id, GD.Randf() * Mathf.Tau);
+    }
+
+    private void AddUnit(HexUnit unit, int tileId, float orientation)
+    {
+        AddChild(unit);
+        _units[unit.Id] = unit;
+        unit.TileId = tileId;
+        unit.Orientation = orientation;
+    }
+
+    public void DestroyUnit()
+    {
+        var tile = GetTileUnderCursor();
+        if (tile is not { UnitId: > 0 })
+            return;
+        RemoveUnit(tile.UnitId);
+    }
+
+    private void RemoveUnit(int unitId)
+    {
+        _units[unitId].Die();
+        _units.Remove(unitId);
+    }
+
+    private void ClearAllUnits()
+    {
+        foreach (var unit in _units.Values)
+            unit.Die();
+        _units.Clear();
+        _unitService.Truncate();
+    }
 }

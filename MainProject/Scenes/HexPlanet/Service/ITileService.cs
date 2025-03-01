@@ -6,15 +6,21 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 
 public interface ITileService
 {
-    delegate void RefreshTileEvent(int id);
+    delegate void UpdateTileAStarEvent(int tileId);
 
-    event RefreshTileEvent RefreshTile;
+    event UpdateTileAStarEvent UpdateTileAStar;
+
+    delegate void UnitValidateLocationEvent(int unitId);
+
+    event UnitValidateLocationEvent UnitValidateLocation;
+
     #region 透传存储库方法
 
     Tile GetById(int id);
     Tile GetByCenterId(int centerId);
     int GetCount();
     IEnumerable<Tile> GetAll();
+    void Truncate();
 
     #endregion
 
@@ -29,6 +35,7 @@ public interface ITileService
     void SetPlantLevel(Tile tile, int plantLevel);
     void SetWalled(Tile tile, bool walled);
     void SetSpecialIndex(Tile tile, int specialIndex);
+    void SetUnitId(Tile tile, int unitId);
 
     #endregion
 
@@ -39,7 +46,6 @@ public interface ITileService
     float UnitHeight { get; set; }
     float GetHeight(Tile tile);
     float GetHeightById(int id);
-    void ClearData();
 
     // 初始化地块
     void InitTiles();
