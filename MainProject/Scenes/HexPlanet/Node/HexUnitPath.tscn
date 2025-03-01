@@ -1,0 +1,82 @@
+[gd_scene load_steps=10 format=3 uid="uid://d13a4r7nl4nar"]
+
+[ext_resource type="Script" path="res://Scenes/HexPlanet/Node/HexUnitPath.cs" id="1_3kd1s"]
+[ext_resource type="Shader" path="res://Shaders/HexPlanet/UnitPath.gdshader" id="2_j2fds"]
+
+[sub_resource type="Curve3D" id="Curve3D_db4c7"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, -10, 2, 0, 1, 0, 0, 5, 5, 0, -5, -5, 0, 5, 5, 0, 0, -10, -5, 0, 5, 0, 10, 0, 0, 5, 0, 0, 0, 0, 0, 10, 2, 10),
+"tilts": PackedFloat32Array(0, 0, 0, 0)
+}
+point_count = 4
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ad3a5"]
+albedo_color = Color(1, 0, 0, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2fjn0"]
+albedo_color = Color(0, 1, 0, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_q5yrq"]
+albedo_color = Color(0, 0, 1, 1)
+
+[sub_resource type="Gradient" id="Gradient_njl6w"]
+offsets = PackedFloat32Array(0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.95, 1)
+colors = PackedColorArray(0.0745098, 0.411765, 0.129412, 0, 0.0452728, 0.269531, 0.0821761, 1, 0.0637817, 0.371094, 0.114472, 1, 0.0745098, 0.411765, 0.129412, 0, 0.0828247, 0.460938, 0.144757, 1, 0.102554, 0.558594, 0.17601, 1, 0.0745098, 0.411765, 0.129412, 0, 0.0901794, 0.769531, 0.196328, 1, 0.113281, 1, 0.251831, 1, 0.0745098, 0.411765, 0.129412, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_a0r3b"]
+gradient = SubResource("Gradient_njl6w")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_3x4am"]
+render_priority = 0
+shader = ExtResource("2_j2fds")
+shader_parameter/color = Color(1, 1, 1, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/metallic = 0.0
+shader_parameter/main_tex = SubResource("GradientTexture2D_a0r3b")
+
+[node name="HexUnitPath" type="Path3D"]
+curve = SubResource("Curve3D_db4c7")
+script = ExtResource("1_3kd1s")
+
+[node name="PathFollow3D" type="PathFollow3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(0.999973, 0, 0, 0, 0.999989, 0, 0, 0, 0.999989, 1, 0, 0)
+rotation_mode = 0
+loop = false
+
+[node name="RemoteTransform3D" type="RemoteTransform3D" parent="PathFollow3D"]
+unique_name_in_owner = true
+transform = Transform3D(1, 3.55271e-15, 1.42109e-14, 0, 1, -1.49012e-08, 0, 1.49012e-08, 1, 0, 0, 0)
+visible = false
+update_rotation = false
+update_scale = false
+
+[node name="TestBoxX" type="CSGBox3D" parent="PathFollow3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, 0)
+size = Vector3(20, 1, 1)
+material = SubResource("StandardMaterial3D_ad3a5")
+
+[node name="TestBoxY" type="CSGBox3D" parent="PathFollow3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 10, 0)
+size = Vector3(1, 20, 1)
+material = SubResource("StandardMaterial3D_2fjn0")
+
+[node name="TestBoxZ" type="CSGBox3D" parent="PathFollow3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 10)
+size = Vector3(1, 1, 20)
+material = SubResource("StandardMaterial3D_q5yrq")
+
+[node name="View" type="CSGPolygon3D" parent="."]
+polygon = PackedVector2Array(-0.5, -0.866, -0.5, 0.866, 1, 0)
+mode = 2
+path_node = NodePath("..")
+path_interval_type = 0
+path_interval = 1.0
+path_simplify_angle = 0.0
+path_rotation = 2
+path_local = true
+path_continuous_u = true
+path_u_distance = 5.0
+path_joined = false
+smooth_faces = true
+material = SubResource("ShaderMaterial_3x4am")

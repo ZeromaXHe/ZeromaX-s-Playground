@@ -128,6 +128,7 @@ public partial class HexPlanetManager : Node3D
     private Node3D _chunks;
     private OrbitCamera _orbitCamera;
     private MeshInstance3D _selectTileViewer;
+    private HexUnitPathPool _hexUnitPathPool;
 
     private void InitOnReadyNodes()
     {
@@ -136,6 +137,9 @@ public partial class HexPlanetManager : Node3D
         // 此处要求 OrbitCamera 也是 [Tool]，否则编辑器里会转型失败
         _orbitCamera = GetNode<OrbitCamera>("%OrbitCamera");
         _selectTileViewer = GetNode<MeshInstance3D>("%SelectTileViewer");
+        // 没有 [Tool] 特性也不需要在编辑器下使用，所以这里判断一下，否则会强转失败
+        if (!Engine.IsEditorHint())
+            _hexUnitPathPool = GetNode<HexUnitPathPool>("%HexUnitPathPool");
         _ready = true;
     }
 
@@ -308,14 +312,59 @@ public partial class HexPlanetManager : Node3D
     private void MoveUnit(Tile toTile)
     {
         var fromTile = _tileService.GetById(_pathFromTileId);
-        if (_aStarService.ExistPath(fromTile, toTile))
+        var path = _aStarService.FindPath(fromTile, toTile);
+        if (path is { Count: > 1 })
         {
             // 确实有找到从出发点到 tile 的路径
-            _units[fromTile.UnitId].TileId = toTile.Id;
+            var unit = _units[fromTile.UnitId];
+            var curve = TransPathToCurve(path);
+            _hexUnitPathPool.NewTask(unit, curve, () => unit.TileId = toTile.Id);
             _pathFromTileId = 0;
         }
 
         _selectViewService.ClearPath();
+    }
+    
+    public Curve3D TransPathToCurve(List<Tile> path)
+    {
+        // 转换为曲线
+        var curve = new Curve3D();
+        var fromTile = path[0];
+        var fromHeight = _tileService.GetHeight(fromTile);
+        var fromCentroid = fromTile.GetCentroid(Radius + fromHeight);
+        var origin = fromCentroid;
+        var toTile = path[1];
+        var toHeight = _tileService.GetHeight(toTile);
+        var toCentroid = toTile.GetCentroid(Radius + toHeight);
+
+        var fromIdx = fromTile.GetNeighborIdx(toTile);
+        var toIdx = toTile.GetNeighborIdx(fromTile);
+        var fromEdgeMid = _tileService.GetSolidEdgeMiddle(fromTile, fromIdx, Radius + fromHeight);
+        var toEdgeMid = _tileService.GetSolidEdgeMiddle(toTile, toIdx, Radius + toHeight);
+
+        curve.AddPoint(fromCentroid - origin, @out: fromEdgeMid - fromCentroid);
+        curve.AddPoint(fromEdgeMid - origin, fromCentroid - fromEdgeMid, toEdgeMid - fromEdgeMid);
+        curve.AddPoint(toEdgeMid - origin, fromEdgeMid - toEdgeMid, toCentroid - toEdgeMid);
+        for (var i = 1; i < path.Count - 1; i++)
+        {
+            fromTile = toTile;
+            fromHeight = toHeight;
+            fromCentroid = toCentroid;
+
+            toTile = path[i + 1];
+            toHeight = _tileService.GetHeight(toTile);
+            toCentroid = toTile.GetCentroid(Radius + toHeight);
+
+            fromIdx = fromTile.GetNeighborIdx(toTile);
+            toIdx = toTile.GetNeighborIdx(fromTile);
+            fromEdgeMid = _tileService.GetSolidEdgeMiddle(fromTile, fromIdx, Radius + fromHeight);
+            toEdgeMid = _tileService.GetSolidEdgeMiddle(toTile, toIdx, Radius + toHeight);
+            curve.AddPoint(fromEdgeMid - origin, fromCentroid - fromEdgeMid, toEdgeMid - fromEdgeMid);
+            curve.AddPoint(toEdgeMid - origin, fromEdgeMid - toEdgeMid, toCentroid - toEdgeMid);
+        }
+
+        curve.AddPoint(toCentroid - origin, toEdgeMid - toCentroid);
+        return curve;
     }
 
     public void CreateUnit()

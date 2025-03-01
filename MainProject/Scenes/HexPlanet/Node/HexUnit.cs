@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
@@ -41,6 +43,7 @@ public partial class HexUnit : CsgBox3D
                 var preTile = _tileService.GetById(_tileId);
                 _tileService.SetUnitId(preTile, 0);
             }
+
             _tileId = value;
             ValidateLocation();
             var tile = _tileService.GetById(_tileId);
@@ -60,6 +63,46 @@ public partial class HexUnit : CsgBox3D
             Rotation = _beginRotation;
             Rotate(Position.Normalized(), _orientation);
         }
+    }
+
+    private bool _moving;
+    private Vector3? _beforePos;
+
+    // public override void _Process(double delta)
+    // {
+    //     if (!_moving) return;
+    //     if (Position.IsFinite())
+    //     {
+    //         GD.Print("position.IsFinite");
+    //         return;
+    //     }
+    //     if (_beforePos == null)
+    //     {
+    //         GD.Print("before = null");
+    //         _beforePos = Position;
+    //         return;
+    //     }
+    //     var before = (Vector3)_beforePos;
+    //     if (before.IsEqualApprox(Position) || Position.IsFinite())
+    //     {
+    //         GD.Print("before = position");
+    //         return;
+    //     }
+    //     var dir = before.DirectionTo(Position);
+    //     Node3dUtil.AlignYAxisToDirection(this, Position, dir);
+    //     _beforePos = Position;
+    //     GD.Print("rotated to dir");
+    // }
+
+    public void StartPath()
+    {
+        _moving = true;
+    }
+
+    public void FinishPath()
+    {
+        _moving = false;
+        _beforePos = null;
     }
 
     public void ValidateLocation()

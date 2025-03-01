@@ -394,8 +394,12 @@ public class TileService(
 
     private void SetRoad(Tile tile, int idx, bool state)
     {
+        if (tile.Roads[idx] != state)
+            UpdateTileAStar?.Invoke(tile.Id);
         tile.Roads[idx] = state;
         var neighbor = GetNeighborByIdx(tile, idx);
+        if (neighbor.Roads[neighbor.GetNeighborIdx(tile)] != state)
+            UpdateTileAStar?.Invoke(neighbor.Id);
         neighbor.Roads[neighbor.GetNeighborIdx(tile)] = state;
         RefreshSelfOnly(neighbor);
         RefreshSelfOnly(tile);
