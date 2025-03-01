@@ -1,4 +1,5 @@
 using Godot;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 
@@ -15,16 +16,15 @@ public partial class OrbitCamera : Node3D
         {
             _radius = value;
             if (!_ready) return;
-            _focusBase.Position = Vector3.Forward * value * _focusBaseMultiplier;
-            _focusBox.Size = Vector3.One * value * _boxSizeMultiplier;
-            _backBox.Size = Vector3.One * value * _boxSizeMultiplier;
+            _focusBase.Position = Vector3.Forward * value * (1 + HexMetrics.MaxHeightRatio);
+            _focusBox.Size = Vector3.One * value * _boxSizeMultiplier * HexMetrics.StandardScale;
+            _backBox.Size = Vector3.One * value * _boxSizeMultiplier * HexMetrics.StandardScale;
             _light.SpotRange = value * _lightRangeMultiplier;
             _light.Position = Vector3.Up * value * _lightRangeMultiplier * 0.5f;
         }
     }
 
     private float _boxSizeMultiplier = 0.01f;
-    private float _focusBaseMultiplier = 1.1f;
     private float _focusBackZoom = 0.2f;
     private float _lightRangeMultiplier = 1f;
 
@@ -38,6 +38,8 @@ public partial class OrbitCamera : Node3D
     [Export] private float _rotationSpeed = 180f;
     [Export] private Node3D _sun;
 
+    #region on-ready 节点
+
     private Node3D _focusBase;
     private CsgBox3D _focusBox;
     private Node3D _focusBackStick;
@@ -45,6 +47,20 @@ public partial class OrbitCamera : Node3D
     private SpotLight3D _light;
     private Node3D _swivel;
     private Node3D _stick;
+
+    private void InitOnReadyNodes()
+    {
+        _focusBase = GetNode<Node3D>("%FocusBase");
+        _focusBox = GetNode<CsgBox3D>("%FocusBox");
+        _focusBackStick = GetNode<Node3D>("%FocusBackStick");
+        _backBox = GetNode<CsgBox3D>("%BackBox");
+        _light = GetNode<SpotLight3D>("%Light");
+        _swivel = GetNode<Node3D>("%Swivel");
+        _stick = GetNode<Node3D>("%Stick");
+        _ready = true;
+    }
+
+    #endregion
 
     private float _zoom = 1f;
 
@@ -68,17 +84,10 @@ public partial class OrbitCamera : Node3D
 
     public override void _Ready()
     {
-        _focusBase = GetNode<Node3D>("%FocusBase");
-        _focusBox = GetNode<CsgBox3D>("%FocusBox");
-        _focusBackStick = GetNode<Node3D>("%FocusBackStick");
-        _backBox = GetNode<CsgBox3D>("%BackBox");
-        _light = GetNode<SpotLight3D>("%Light");
-        _swivel = GetNode<Node3D>("%Swivel");
-        _stick = GetNode<Node3D>("%Stick");
-
-        _ready = true;
-        // 必须在 _ready = true 后面，触发各数据 setter 的初始化
-        Reset(_radius);
+        InitOnReadyNodes();
+        if (!Engine.IsEditorHint())
+            // 必须在 _ready = true 后面，触发各数据 setter 的初始化
+            Reset();
     }
 
     public override void _Process(double delta)
@@ -132,9 +141,9 @@ public partial class OrbitCamera : Node3D
         }
     }
 
-    public void Reset(float radius)
+    public void Reset()
     {
-        Radius = radius;
+        Radius = HexMetrics.Radius;
         Zoom = 1f;
     }
 }

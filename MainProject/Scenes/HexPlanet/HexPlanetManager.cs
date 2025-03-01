@@ -37,7 +37,11 @@ public partial class HexPlanetManager : Node3D
         {
             _radius = value;
             HexMetrics.Radius = _radius;
-            HexMetrics.UnitHeight = _radius * HexMetrics.MaxHeightRadiusRatio / HexMetrics.ElevationStep;
+            if (_ready)
+            {
+                _orbitCamera.Reset();
+                _atmosphereFog.Size = Vector3.One * _radius * 2.7f;
+            }
         }
     }
 
@@ -51,10 +55,28 @@ public partial class HexPlanetManager : Node3D
         {
             _divisions = value;
             HexMetrics.Divisions = _divisions;
+            _chunkDivisions = Mathf.Min(Mathf.Max(1, _divisions / 4), _chunkDivisions);
+            if (_ready)
+                _orbitCamera.Reset();
         }
     }
 
-    [Export(PropertyHint.Range, "1, 25")] public int ChunkDivisions { get; set; } = 5;
+    private int _chunkDivisions = 5;
+
+    [Export(PropertyHint.Range, "1, 25")]
+    public int ChunkDivisions
+    {
+        get => _chunkDivisions;
+        set
+        {
+            _chunkDivisions = value;
+            _divisions = Mathf.Max(Mathf.Min(100, _chunkDivisions * 4), _divisions);
+            HexMetrics.Divisions = _divisions;
+            if (_ready)
+                _orbitCamera.Reset();
+        }
+    }
+
     [Export] private Texture2D _noiseSource;
     [Export] private PackedScene _gridChunkScene;
     [Export] private PackedScene _unitScene;
@@ -114,6 +136,7 @@ public partial class HexPlanetManager : Node3D
         // 此处要求 OrbitCamera 也是 [Tool]，否则编辑器里会转型失败
         _orbitCamera = GetNode<OrbitCamera>("%OrbitCamera");
         _selectTileViewer = GetNode<MeshInstance3D>("%SelectTileViewer");
+        _ready = true;
     }
 
     #endregion
@@ -128,7 +151,6 @@ public partial class HexPlanetManager : Node3D
         HexMetrics.NoiseSource = _noiseSource.GetImage();
         HexMetrics.InitializeHashGrid(Seed);
         DrawHexasphereMesh();
-        _ready = true;
     }
 
     public override void _Process(double delta)
@@ -231,8 +253,6 @@ public partial class HexPlanetManager : Node3D
         _oldChunkDivisions = ChunkDivisions;
         _lastUpdated = 0f;
         ClearOldData();
-        _orbitCamera.Reset(Radius);
-        _atmosphereFog.Size = Vector3.One * Radius * 2.7f;
         _chunkService.InitChunks(ChunkDivisions);
         InitHexasphere();
         _aStarService.Init();
@@ -294,6 +314,7 @@ public partial class HexPlanetManager : Node3D
             _units[fromTile.UnitId].TileId = toTile.Id;
             _pathFromTileId = 0;
         }
+
         _selectViewService.ClearPath();
     }
 
@@ -305,6 +326,7 @@ public partial class HexPlanetManager : Node3D
             GD.Print($"CreateUnit failed: tile {tile}, unitId: {tile?.UnitId}");
             return;
         }
+
         GD.Print($"CreateUnit at tile {tile.Id}");
         var unit = _unitScene.Instantiate<HexUnit>();
         AddUnit(unit, tile.Id, GD.Randf() * Mathf.Tau);

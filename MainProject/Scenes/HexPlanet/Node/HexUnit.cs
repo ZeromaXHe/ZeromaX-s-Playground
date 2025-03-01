@@ -66,7 +66,7 @@ public partial class HexUnit : CsgBox3D
     {
         var tile = _tileService.GetById(_tileId);
         var position = tile.GetCentroid(HexMetrics.Radius + _tileService.GetHeight(tile));
-        Node3dUtil.PlaceOnSphere(this, position, 0.5f * Size.Y, Vector3.Up);
+        Node3dUtil.PlaceOnSphere(this, position, alignForward: Vector3.Up); // 单位不需要抬高，场景里已经设置好了
         _beginRotation = Rotation;
     }
 

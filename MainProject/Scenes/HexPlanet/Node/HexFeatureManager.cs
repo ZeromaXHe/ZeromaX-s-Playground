@@ -52,7 +52,7 @@ public partial class HexFeatureManager : Node3D
         var bridge = _bridgeScene.Instantiate<CsgBox3D>();
         var position = (roadCenter1 + roadCenter2) * 0.5f;
         var length = roadCenter1.DistanceTo(roadCenter2);
-        var scale = position.Length() / HexMetrics.StandardRadius;
+        var scale = HexMetrics.StandardScale;
         bridge.Scale = new Vector3(length / HexMetrics.BridgeDesignLength, scale, scale); // 沿着桥梁方向拉伸长度（X 轴）
         bridge.Position =
             position.Normalized() * (position.Length() + 0.7f * scale * bridge.Size.Y); // 0.7f 是桥梁需要略微抬高一点

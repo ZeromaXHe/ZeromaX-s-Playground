@@ -42,7 +42,7 @@ public class SelectViewService(ITileService tileService, IAStarService aStarServ
             var color = Colors.DarkGreen with { A = 0.8f };
             var tiles = tileService.GetTilesInDistance(tile, SelectViewSize);
             var vi = 0;
-            var viewRadius = HexMetrics.Radius * (1f + HexMetrics.MaxHeightRadiusRatio);
+            var viewRadius = HexMetrics.MaxHeight;
             foreach (var t in tiles)
                 vi += AddHexFrame(t, color, viewRadius, surfaceTool, vi);
             return surfaceTool.Commit();
@@ -113,7 +113,7 @@ public class SelectViewService(ITileService tileService, IAStarService aStarServ
         var surfaceTool2 = new SurfaceTool();
         surfaceTool2.Begin(Mesh.PrimitiveType.Triangles);
         surfaceTool2.SetSmoothGroup(uint.MaxValue);
-        var viewRadius2 = HexMetrics.Radius * (1f + HexMetrics.MaxHeightRadiusRatio);
+        var viewRadius2 = HexMetrics.MaxHeight;
         AddHexFrame(tile, Colors.Blue, viewRadius2, surfaceTool2, 0);
         return surfaceTool2.Commit();
     }

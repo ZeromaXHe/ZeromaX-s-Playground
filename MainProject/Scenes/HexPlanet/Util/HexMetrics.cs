@@ -7,18 +7,53 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 public static class HexMetrics
 {
-    public static float Radius { get; set; }
-    public static int Divisions { get; set; }
+    public const float StandardRadius = 150f; // 150f 半径时才是标准大小，其他时候需要按比例缩放
+    private static float _radius = 150f;
+
+    public static float Radius
+    {
+        get => _radius;
+        set
+        {
+            _radius = value;
+            CalcUnitHeight();
+        }
+    }
+
+    public const float StandardDivisions = 10f; // 10 细分时才是标准大小，其他时候需要按比例缩放
+    private static int _divisions = 10;
+
+    public static int Divisions
+    {
+        get => _divisions;
+        set
+        {
+            _divisions = value;
+            CalcUnitHeight();
+        }
+    }
+
+    // 单位高度
+    public static float UnitHeight { get; private set; } = 1.5f;
+    public static float MaxHeight { get; private set; } = 15f;
+    public static float MaxHeightRatio { get; private set; } = 0.1f;
+    private const float MaxHeightRadiusRatio = 0.1f;
+
+    private static void CalcUnitHeight()
+    {
+        MaxHeightRatio = StandardScale * MaxHeightRadiusRatio;
+        MaxHeight = Radius * MaxHeightRatio;
+        UnitHeight = MaxHeight / ElevationStep;
+    }
+
+    public static float StandardScale => Radius / StandardRadius * StandardDivisions / Divisions;
 
     public const float OuterToInner = 0.8660254037f; // √3/2 = 0.8660254037f
     public const float InnerToOuter = 1f / OuterToInner;
     public const float SolidFactor = 0.8f;
     public const float BlendFactor = 1f - SolidFactor;
 
-    // 单位高度
-    public static float UnitHeight { get; set; } = 1f;
     public const int ElevationStep = 10; // 这里对应含义是 Elevation 分为几级
-    public const float MaxHeightRadiusRatio = 0.1f;
 
     private const int TerracesPerSlope = 2;
     public const int TerraceSteps = TerracesPerSlope * 2 + 1;
@@ -89,7 +124,6 @@ public static class HexMetrics
 
     private const float CellPerturbStrength = 4f;
     public const float ElevationPerturbStrength = 0.5f;
-    public const float StandardRadius = 150f; // 150f 半径时才是标准大小，其他时候需要按比例缩放
 
     // 球面的扰动逻辑
     public static Vector3 Perturb(Vector3 position)

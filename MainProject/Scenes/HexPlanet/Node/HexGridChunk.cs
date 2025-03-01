@@ -72,7 +72,7 @@ public partial class HexGridChunk : Node3D
         {
             var label = _labelScene.Instantiate<HexTileLabel>();
             var position = 1.01f * tile.GetCentroid(HexMetrics.Radius + _tileService.GetHeight(tile));
-            var scale = position.Length() / HexMetrics.StandardRadius;
+            var scale = HexMetrics.StandardScale;
             label.Scale = Vector3.One * scale;
             label.Position = position;
             Node3dUtil.AlignYAxisToDirection(label, position, Vector3.Up);
