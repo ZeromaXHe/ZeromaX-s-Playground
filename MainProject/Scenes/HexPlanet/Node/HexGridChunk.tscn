@@ -24,7 +24,7 @@ shader_parameter/main_tex = ExtResource("4_cvd6l")
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_15o55"]
 render_priority = 9
 shader = ExtResource("3_8fnhi")
-shader_parameter/color = Color(0.25098, 0.411765, 1, 0.25098)
+shader_parameter/color = Color(0, 0.298039, 0.768627, 0.501961)
 shader_parameter/glossiness = 0.5
 shader_parameter/specular = 0.2
 shader_parameter/main_tex = ExtResource("4_0ithq")
@@ -40,7 +40,7 @@ shader_parameter/main_tex = ExtResource("4_0ithq")
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ca3lj"]
 render_priority = 8
 shader = ExtResource("6_lmcr6")
-shader_parameter/color = Color(0.25098, 0.411765, 1, 0.25098)
+shader_parameter/color = Color(0, 0.298039, 0.768627, 0.501961)
 shader_parameter/glossiness = 0.5
 shader_parameter/specular = 0.2
 shader_parameter/main_tex = ExtResource("4_0ithq")
@@ -48,7 +48,7 @@ shader_parameter/main_tex = ExtResource("4_0ithq")
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_dbpkw"]
 render_priority = 7
 shader = ExtResource("7_fod8i")
-shader_parameter/color = Color(0.25098, 0.411765, 1, 0.25098)
+shader_parameter/color = Color(0, 0.298039, 0.768627, 0.501961)
 shader_parameter/glossiness = 0.5
 shader_parameter/specular = 0.2
 shader_parameter/main_tex = ExtResource("4_0ithq")
@@ -56,7 +56,7 @@ shader_parameter/main_tex = ExtResource("4_0ithq")
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_s7ofq"]
 render_priority = 6
 shader = ExtResource("8_sg70y")
-shader_parameter/color = Color(0.25098, 0.411765, 1, 0.25098)
+shader_parameter/color = Color(0, 0.298039, 0.768627, 0.501961)
 shader_parameter/glossiness = 0.5
 shader_parameter/specular = 0.2
 shader_parameter/main_tex = ExtResource("4_0ithq")

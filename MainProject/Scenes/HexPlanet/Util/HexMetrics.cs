@@ -9,12 +9,14 @@ public static class HexMetrics
 {
     public static float Radius { get; set; }
     public static int Divisions { get; set; }
-    
+
     public const float OuterToInner = 0.8660254037f; // √3/2 = 0.8660254037f
     public const float InnerToOuter = 1f / OuterToInner;
     public const float SolidFactor = 0.8f;
     public const float BlendFactor = 1f - SolidFactor;
 
+    // 单位高度
+    public static float UnitHeight { get; set; } = 1f;
     public const int ElevationStep = 10; // 这里对应含义是 Elevation 分为几级
     public const float MaxHeightRadiusRatio = 0.1f;
 
@@ -106,10 +108,12 @@ public static class HexMetrics
 
     #region 河流与水面
 
-    public const float StreamBedElevationOffset = -1.75f;
-    public const float WaterElevationOffset = -0.5f;
+    private const float StreamBedElevationOffset = -1.75f;
+    private const float WaterElevationOffset = -0.5f;
     public const float WaterFactor = 0.6f;
     public const float WaterBlendFactor = 1f - WaterFactor;
+    public static float GetStreamBedHeight(int elevation) => (elevation + StreamBedElevationOffset) * UnitHeight;
+    public static float GetWaterSurfaceHeight(int level) => (level + WaterElevationOffset) * UnitHeight;
 
     #endregion
 
@@ -152,9 +156,11 @@ public static class HexMetrics
     ];
 
     public static float[] GetFeatureThreshold(int level) => FeatureThresholds[level];
-    public const float WallHeight = 2f;
-    public const float WallYOffset = -0.5f;
-    public const float WallThickness = 0.375f;
+    private const float WallHeight = 2f;
+    private const float WallYOffset = -0.5f;
+    private const float WallThickness = 0.375f;
+    public static float GetWallHeight() => UnitHeight * WallHeight;
+    public static float GetWallThickness() => UnitHeight * WallThickness;
 
     /// <summary>
     /// 按照厚度找到墙偏移向量
@@ -177,12 +183,12 @@ public static class HexMetrics
 
     private const float WallElevationOffset = VerticalTerraceStepSize;
 
-    public static Vector3 WallLerp(Vector3 near, Vector3 far, float unitHeight)
+    public static Vector3 WallLerp(Vector3 near, Vector3 far)
     {
         var mid = near.Slerp(far, 0.5f);
         var v = near.Length() < far.Length() ? WallElevationOffset : 1f - WallElevationOffset;
         return Math3dUtil.ProjectToSphere(mid,
-            Mathf.Lerp(near.Length(), far.Length(), v) + unitHeight * WallYOffset);
+            Mathf.Lerp(near.Length(), far.Length(), v) + UnitHeight * WallYOffset);
     }
 
     public const float WallTowerThreshold = 0.6f;

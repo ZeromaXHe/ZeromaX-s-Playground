@@ -42,8 +42,6 @@ public interface ITileService
     // 最近邻搜索 Tile id
     int? SearchNearestTileId(Vector3 pos);
 
-    // 单位高度
-    float UnitHeight { get; set; }
     float GetHeight(Tile tile);
     float GetHeightById(int id);
 
@@ -121,10 +119,6 @@ public interface ITileService
     Vector3 GetSecondWaterCorner(Tile tile, int idx, float radius = 1f, float size = 1f);
 
     #endregion
-
-    // TODO: 感觉放在这里有点不太合适，未来调整
-    float GetWallHeight();
-    float GetWallThickness();
 
     void UpdateTileLabel(Tile tile, string text);
 }

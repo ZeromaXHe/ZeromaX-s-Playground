@@ -1,9 +1,7 @@
 using Godot;
 using Godot.Collections;
-using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Enum;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Struct;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
@@ -12,7 +10,6 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 [Tool]
 public partial class HexFeatureManager : Node3D
 {
-    public HexFeatureManager() => InitServices();
     /// 特征场景
     /// 这种嵌套的数组不能用 .NET 的 array，必须用 Godot.Collections.Array。否则编辑器编译不通过
     /// 而且这样写以后，其实编辑器里是判断不了 PackedScene 类型的，必须自己手动选成 Object（Godot.GodotObject 或其他派生类型）再用。
@@ -26,18 +23,6 @@ public partial class HexFeatureManager : Node3D
     [Export] private PackedScene[] _specialScenes;
 
     private Node3D _container;
-
-
-    #region services
-
-    private ITileService _tileService;
-
-    private void InitServices()
-    {
-        _tileService = Context.GetBean<ITileService>();
-    }
-
-    #endregion
 
     public void Clear()
     {
@@ -188,10 +173,10 @@ public partial class HexFeatureManager : Node3D
         farLeft = HexMetrics.Perturb(farLeft);
         nearRight = HexMetrics.Perturb(nearRight);
         farRight = HexMetrics.Perturb(farRight);
-        var height = _tileService.GetWallHeight();
-        var thickness = _tileService.GetWallThickness();
-        var left = HexMetrics.WallLerp(nearLeft, farLeft, _tileService.UnitHeight);
-        var right = HexMetrics.WallLerp(nearRight, farRight, _tileService.UnitHeight);
+        var height = HexMetrics.GetWallHeight();
+        var thickness = HexMetrics.GetWallThickness();
+        var left = HexMetrics.WallLerp(nearLeft, farLeft);
+        var right = HexMetrics.WallLerp(nearRight, farRight);
         var leftTop = left.Length() + height;
         var rightTop = right.Length() + height;
         Vector3 v1, v2, v3, v4;
@@ -250,9 +235,9 @@ public partial class HexFeatureManager : Node3D
     {
         near = HexMetrics.Perturb(near);
         far = HexMetrics.Perturb(far);
-        var center = HexMetrics.WallLerp(near, far, _tileService.UnitHeight);
-        var thickness = _tileService.GetWallThickness();
-        var height = _tileService.GetWallHeight();
+        var center = HexMetrics.WallLerp(near, far);
+        var thickness = HexMetrics.GetWallThickness();
+        var height = HexMetrics.GetWallHeight();
         var centerTop = center.Length() + height;
         Vector3 v1, v2, v3, v4;
         v1 = v3 = HexMetrics.WallThicknessOffset(near, far, true, thickness);
@@ -267,9 +252,9 @@ public partial class HexFeatureManager : Node3D
         near = HexMetrics.Perturb(near);
         far = HexMetrics.Perturb(far);
         point = HexMetrics.Perturb(point);
-        var center = HexMetrics.WallLerp(near, far, _tileService.UnitHeight);
-        var thickness = _tileService.GetWallThickness();
-        var height = _tileService.GetWallHeight();
+        var center = HexMetrics.WallLerp(near, far);
+        var thickness = HexMetrics.GetWallThickness();
+        var height = HexMetrics.GetWallHeight();
         var centerTop = center.Length() + height;
         point = Math3dUtil.ProjectToSphere(point, center.Length());
         var pointTop = Math3dUtil.ProjectToSphere(point, centerTop);

@@ -347,7 +347,6 @@ public partial class HexPlanetHud : Control
     {
         UpdatePlanetUi();
         ChosenTile = null;
-        _tileService.UnitHeight = _hexPlanetManager.Radius * HexMetrics.MaxHeightRadiusRatio / HexMetrics.ElevationStep;
     }
 
     private void UpdatePlanetUi()

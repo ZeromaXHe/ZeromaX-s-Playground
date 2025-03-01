@@ -37,6 +37,7 @@ public partial class HexPlanetManager : Node3D
         {
             _radius = value;
             HexMetrics.Radius = _radius;
+            HexMetrics.UnitHeight = _radius * HexMetrics.MaxHeightRadiusRatio / HexMetrics.ElevationStep;
         }
     }
 
@@ -120,9 +121,9 @@ public partial class HexPlanetManager : Node3D
     public override void _Ready()
     {
         InitOnReadyNodes();
-        // 不知道为啥这个时候 setter 又不生效了，手动赋值一下
-        HexMetrics.Radius = _radius;
-        HexMetrics.Divisions = _divisions;
+        // 不知道为啥这个时候 setter 又不生效了，没初始化 HexMetrics 里面的数据。手动赋值调用 setter 一下
+        Radius = _radius;
+        Divisions = _divisions;
 
         HexMetrics.NoiseSource = _noiseSource.GetImage();
         HexMetrics.InitializeHashGrid(Seed);

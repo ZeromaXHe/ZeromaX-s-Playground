@@ -44,7 +44,7 @@ public class TileService(
 
     public void SetHeight(Tile tile, float height) =>
         SetElevation(tile,
-            Mathf.Clamp((int)((height - GetPerturbHeight(tile)) / UnitHeight),
+            Mathf.Clamp((int)((height - GetPerturbHeight(tile)) / HexMetrics.UnitHeight),
                 0, HexMetrics.ElevationStep));
 
     public void SetElevation(Tile tile, int elevation)
@@ -131,17 +131,12 @@ public class TileService(
         return pointRepo.GetIdByPosition(results[0]); // Tile id 就是对应 Point id
     }
 
-    public float UnitHeight { get; set; } = 1f;
-
-    public float GetHeight(Tile tile) => (tile.Elevation + GetPerturbHeight(tile)) * UnitHeight;
+    public float GetHeight(Tile tile) => (tile.Elevation + GetPerturbHeight(tile)) * HexMetrics.UnitHeight;
     public float GetHeightById(int id) => GetHeight(GetById(id));
 
-    private float GetPerturbHeight(Tile tile)
-    {
-        var radius = UnitHeight / HexMetrics.MaxHeightRadiusRatio * HexMetrics.ElevationStep;
-        return (HexMetrics.SampleNoise(tile.GetCentroid(radius)).Y * 2f - 1f)
-               * HexMetrics.ElevationPerturbStrength * UnitHeight;
-    }
+    private static float GetPerturbHeight(Tile tile) =>
+        (HexMetrics.SampleNoise(tile.GetCentroid(HexMetrics.StandardRadius)).Y * 2f - 1f)
+        * HexMetrics.ElevationPerturbStrength * HexMetrics.UnitHeight;
 
     public int GetElevationDifference(Tile tile, int idx)
     {
@@ -363,13 +358,12 @@ public class TileService(
         SetRoad(tile, tile.GetNeighborIdx(riverToTile), false);
     }
 
-    public float GetStreamBedHeight(Tile tile) => (tile.Elevation + HexMetrics.StreamBedElevationOffset) * UnitHeight;
+    public float GetStreamBedHeight(Tile tile) => HexMetrics.GetStreamBedHeight(tile.Elevation);
 
     public bool HasRiverThroughEdge(Tile tile, int idx) =>
         tile.HasRiverToNeighbor(GetNeighborByIdx(tile, idx).Id);
 
-    public float GetRiverSurfaceHeight(Tile tile) =>
-        (tile.Elevation + HexMetrics.WaterElevationOffset) * UnitHeight;
+    public float GetRiverSurfaceHeight(Tile tile) => HexMetrics.GetWaterSurfaceHeight(tile.Elevation);
 
     public int GetRiverBeginOrEndIdx(Tile tile) =>
         tile.HasRiverBeginOrEnd ? tile.GetNeighborIdx(GetById(tile.RiverBeginOrEndNId)) : -1;
@@ -411,8 +405,7 @@ public class TileService(
 
     #region 水面
 
-    public float GetWaterSurfaceHeight(Tile tile) =>
-        (tile.WaterLevel + HexMetrics.WaterElevationOffset) * UnitHeight;
+    public float GetWaterSurfaceHeight(Tile tile) => HexMetrics.GetWaterSurfaceHeight(tile.WaterLevel);
 
     public Vector3 GetFirstWaterCorner(Tile tile, int idx, float radius = 1f, float size = 1f) =>
         GetFirstCorner(tile, idx, radius, size * HexMetrics.WaterFactor);
@@ -421,9 +414,6 @@ public class TileService(
         GetSecondCorner(tile, idx, radius, size * HexMetrics.WaterFactor);
 
     #endregion
-
-    public float GetWallHeight() => UnitHeight * HexMetrics.WallHeight;
-    public float GetWallThickness() => UnitHeight * HexMetrics.WallThickness;
 
     public void UpdateTileLabel(Tile tile, string text)
     {
