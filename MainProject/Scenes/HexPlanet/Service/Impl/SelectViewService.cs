@@ -42,7 +42,7 @@ public class SelectViewService(ITileService tileService, IAStarService aStarServ
             var color = Colors.DarkGreen with { A = 0.8f };
             var tiles = tileService.GetTilesInDistance(tile, SelectViewSize);
             var vi = 0;
-            var viewRadius = HexMetrics.MaxHeight;
+            var viewRadius = HexMetrics.Radius + HexMetrics.MaxHeight;
             foreach (var t in tiles)
                 vi += AddHexFrame(t, color, viewRadius, surfaceTool, vi);
             return surfaceTool.Commit();

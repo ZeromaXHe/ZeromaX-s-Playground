@@ -354,8 +354,8 @@ public partial class HexPlanetHud : Control
         _radiusLineEdit.Text = $"{_hexPlanetManager.Radius:F2}";
         _divisionLineEdit.Text = $"{_hexPlanetManager.Divisions}";
         _chunkDivisionLineEdit.Text = $"{_hexPlanetManager.ChunkDivisions}";
-        _chunkCountLabel.Text = $"地块总数：{_chunkService.GetCount()}";
-        _tileCountLabel.Text = $"分块总数：{_tileService.GetCount()}";
+        _chunkCountLabel.Text = $"分块总数：{_chunkService.GetCount()}";
+        _tileCountLabel.Text = $"地块总数：{_tileService.GetCount()}";
     }
 
     public override void _Process(double delta)
