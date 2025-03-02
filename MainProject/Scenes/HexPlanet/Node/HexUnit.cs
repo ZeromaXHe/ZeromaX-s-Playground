@@ -67,26 +67,18 @@ public partial class HexUnit : CsgBox3D
 
     private HexUnitPath _path;
     private int _pathToTileId;
-    private float _pathProgress;
     private bool _pathOriented;
     private const float PathRotationSpeed = Mathf.Pi;
+    private const float PathMoveSpeed = 30f; // 每秒走 30f 标准距离
 
     public override void _Process(double delta)
     {
         if (_path == null) return;
-        var deltaProgress = (float)delta * HexMetrics.StandardScale * 30f; // 每秒走 30f 标准距离
+        var deltaProgress = (float)delta * HexMetrics.StandardScale * PathMoveSpeed;
         if (_pathOriented)
         {
-            _pathProgress += deltaProgress;
-            if (_pathProgress >= _path.Curve.GetBakedLength())
-            {
-                FinishPath();
-                return;
-            }
-
-            var now = _path.Curve.SampleBaked(_pathProgress, true);
-            var before = _path.Curve.SampleBaked(_pathProgress - deltaProgress, true);
-            Node3dUtil.PlaceOnSphere(this, now, alignForward: before.DirectionTo(now));
+            var before = _path.Curve.SampleBaked(_path.GetProgress() - deltaProgress, true);
+            Node3dUtil.AlignYAxisToDirection(this, Position, alignForward: before.DirectionTo(Position));
         }
         else
         {
@@ -97,6 +89,7 @@ public partial class HexUnit : CsgBox3D
             {
                 Rotate(Position.Normalized(), angle);
                 _pathOriented = true;
+                _path.HandleMove(this);
             }
             else
                 Rotate(Position.Normalized(), deltaAngle);
@@ -107,11 +100,10 @@ public partial class HexUnit : CsgBox3D
     {
         _path = path;
         _pathToTileId = toTileId;
-        _pathProgress = 0;
         _pathOriented = false;
     }
 
-    private void FinishPath()
+    public void FinishPath()
     {
         GD.Print($"Unit {Id} arrived at Tile {_pathToTileId}");
         var forward = -Basis.Z;

@@ -352,7 +352,7 @@ public partial class HexPlanetManager : Node3D
         var toIdx = toTile.GetNeighborIdx(fromTile);
         var fromEdgeMid = _tileService.GetSolidEdgeMiddle(fromTile, fromIdx, Radius + fromHeight);
         var toEdgeMid = _tileService.GetSolidEdgeMiddle(toTile, toIdx, Radius + toHeight);
-
+        // 需要注意下面 in out 入参 / 2f 的操作，用于避免 in out 入参太长（前后相交于 centroid），导致 Curve3D 不连续
         curve.AddPoint(fromCentroid, @out: (fromEdgeMid - fromCentroid) / 2f);
         curve.AddPoint(fromEdgeMid, (fromCentroid - fromEdgeMid) / 2f, (toEdgeMid - fromEdgeMid) / 2f);
         curve.AddPoint(toEdgeMid, (fromEdgeMid - toEdgeMid) / 2f, (toCentroid - toEdgeMid) / 2f);
