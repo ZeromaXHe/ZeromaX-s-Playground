@@ -368,16 +368,19 @@ public partial class HexPlanetHud : Control
                 return;
             }
 
-            if (Input.IsActionJustPressed("destroy_unit"))
+            if (_editMode)
             {
-                _hexPlanetManager.DestroyUnit();
-                return;
-            }
+                if (Input.IsActionJustPressed("destroy_unit"))
+                {
+                    _hexPlanetManager.DestroyUnit();
+                    return;
+                }
 
-            if (Input.IsActionJustPressed("create_unit"))
-            {
-                _hexPlanetManager.CreateUnit();
-                return;
+                if (Input.IsActionJustPressed("create_unit"))
+                {
+                    _hexPlanetManager.CreateUnit();
+                    return;
+                }
             }
         }
 
@@ -401,7 +404,11 @@ public partial class HexPlanetHud : Control
             _previousTile = ChosenTile;
         }
         else
+        {
+            if (!_editMode)
+                _hexPlanetManager.FindPath(ChosenTile);
             _previousTile = null;
+        }
     }
 
     private void ValidateDrag(Tile currentTile)

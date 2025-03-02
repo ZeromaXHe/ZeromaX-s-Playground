@@ -25,6 +25,6 @@ material = SubResource("StandardMaterial3D_bhv5k")
 shape = SubResource("BoxShape3D_65s3s")
 
 [node name="Weapon" type="CSGBox3D" parent="."]
-transform = Transform3D(0.965926, 0.258819, 0, -0.23457, 0.875426, -0.422618, -0.109382, 0.408218, 0.906308, -1.5961, 4.55012, 1.42014)
+transform = Transform3D(0.965926, -0.258819, 0, 0.23457, 0.875426, 0.422618, -0.109382, -0.408218, 0.906308, 1.596, 4.55, -1.42)
 size = Vector3(0.1, 6, 0.5)
 material = SubResource("StandardMaterial3D_ul8vi")

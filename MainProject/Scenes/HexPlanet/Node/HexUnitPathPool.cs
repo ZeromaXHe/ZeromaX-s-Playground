@@ -10,10 +10,11 @@ public partial class HexUnitPathPool : Node3D
 
     private readonly List<HexUnitPath> _paths = [];
 
-    public void NewTask(HexUnit unit, Curve3D curve, Action onFinished)
+    public void NewTask(HexUnit unit, Curve3D curve, int toTileId)
     {
         var path = FetchPath();
-        path.NewTask(unit, curve, onFinished);
+        path.TaskStart(curve);
+        unit.StartPath(path, toTileId);
     }
 
     private HexUnitPath FetchPath()

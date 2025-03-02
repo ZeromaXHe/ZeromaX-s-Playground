@@ -87,6 +87,17 @@ public partial class HexPlanetManager : Node3D
     private bool _editMode;
     private int _pathFromTileId;
 
+    private int PathFromTileId
+    {
+        get => _pathFromTileId;
+        set
+        {
+            _pathFromTileId = value;
+            if (_pathFromTileId == 0)
+                _selectViewService.ClearPath();
+        }
+    }
+
     private float _oldRadius;
     private int _oldDivisions;
     private int _oldChunkDivisions;
@@ -289,7 +300,7 @@ public partial class HexPlanetManager : Node3D
     public void SetEditMode(bool mode)
     {
         _editMode = mode;
-        _pathFromTileId = 0;
+        PathFromTileId = 0;
         UpdateSelectTileViewer();
         foreach (var gridChunk in _gridChunks.Values)
             gridChunk.ShowUi(!mode); // 游戏模式下才显示地块 UI
@@ -299,14 +310,16 @@ public partial class HexPlanetManager : Node3D
     {
         if (_pathFromTileId != 0)
         {
-            if (tile.Id == _pathFromTileId)
+            if (tile == null || tile.Id == _pathFromTileId)
+            {
                 // 重复点选同一地块，则取消选择
-                _pathFromTileId = 0;
+                PathFromTileId = 0;
+            }
             else MoveUnit(tile);
         }
         else
             // 当前没有选择地块（即没有选中单位）的话，则在有单位时选择该地块
-            _pathFromTileId = tile.UnitId == 0 ? 0 : tile.Id;
+            PathFromTileId = tile == null || tile.UnitId == 0 ? 0 : tile.Id;
     }
 
     private void MoveUnit(Tile toTile)
@@ -318,21 +331,19 @@ public partial class HexPlanetManager : Node3D
             // 确实有找到从出发点到 tile 的路径
             var unit = _units[fromTile.UnitId];
             var curve = TransPathToCurve(path);
-            _hexUnitPathPool.NewTask(unit, curve, () => unit.TileId = toTile.Id);
-            _pathFromTileId = 0;
+            _hexUnitPathPool.NewTask(unit, curve, toTile.Id);
         }
 
-        _selectViewService.ClearPath();
+        PathFromTileId = 0;
     }
-    
-    public Curve3D TransPathToCurve(List<Tile> path)
+
+    private Curve3D TransPathToCurve(List<Tile> path)
     {
         // 转换为曲线
         var curve = new Curve3D();
         var fromTile = path[0];
         var fromHeight = _tileService.GetHeight(fromTile);
         var fromCentroid = fromTile.GetCentroid(Radius + fromHeight);
-        var origin = fromCentroid;
         var toTile = path[1];
         var toHeight = _tileService.GetHeight(toTile);
         var toCentroid = toTile.GetCentroid(Radius + toHeight);
@@ -342,9 +353,9 @@ public partial class HexPlanetManager : Node3D
         var fromEdgeMid = _tileService.GetSolidEdgeMiddle(fromTile, fromIdx, Radius + fromHeight);
         var toEdgeMid = _tileService.GetSolidEdgeMiddle(toTile, toIdx, Radius + toHeight);
 
-        curve.AddPoint(fromCentroid - origin, @out: fromEdgeMid - fromCentroid);
-        curve.AddPoint(fromEdgeMid - origin, fromCentroid - fromEdgeMid, toEdgeMid - fromEdgeMid);
-        curve.AddPoint(toEdgeMid - origin, fromEdgeMid - toEdgeMid, toCentroid - toEdgeMid);
+        curve.AddPoint(fromCentroid, @out: (fromEdgeMid - fromCentroid) / 2f);
+        curve.AddPoint(fromEdgeMid, (fromCentroid - fromEdgeMid) / 2f, (toEdgeMid - fromEdgeMid) / 2f);
+        curve.AddPoint(toEdgeMid, (fromEdgeMid - toEdgeMid) / 2f, (toCentroid - toEdgeMid) / 2f);
         for (var i = 1; i < path.Count - 1; i++)
         {
             fromTile = toTile;
@@ -359,11 +370,11 @@ public partial class HexPlanetManager : Node3D
             toIdx = toTile.GetNeighborIdx(fromTile);
             fromEdgeMid = _tileService.GetSolidEdgeMiddle(fromTile, fromIdx, Radius + fromHeight);
             toEdgeMid = _tileService.GetSolidEdgeMiddle(toTile, toIdx, Radius + toHeight);
-            curve.AddPoint(fromEdgeMid - origin, fromCentroid - fromEdgeMid, toEdgeMid - fromEdgeMid);
-            curve.AddPoint(toEdgeMid - origin, fromEdgeMid - toEdgeMid, toCentroid - toEdgeMid);
+            curve.AddPoint(fromEdgeMid, (fromCentroid - fromEdgeMid) / 2f, (toEdgeMid - fromEdgeMid) / 2f);
+            curve.AddPoint(toEdgeMid, (fromEdgeMid - toEdgeMid) / 2f, (toCentroid - toEdgeMid) / 2f);
         }
 
-        curve.AddPoint(toCentroid - origin, toEdgeMid - toCentroid);
+        curve.AddPoint(toCentroid, (toEdgeMid - toCentroid) / 2f);
         return curve;
     }
 

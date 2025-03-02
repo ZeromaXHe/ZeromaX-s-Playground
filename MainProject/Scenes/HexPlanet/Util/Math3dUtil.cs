@@ -54,6 +54,7 @@ public static class Math3dUtil
             return 0f; // 或根据需求抛出异常
         // 4. 计算投影向量的夹角（弧度制）
         var angle = Mathf.Acos(aProj.Normalized().Dot(bProj.Normalized()));
+        if (float.IsNaN(angle)) return 0f;
         if (!signed) return angle;
         // signed 需要返回范围 [-Pi, Pi] 的带方向角度
         var cross = aProj.Cross(bProj);
@@ -61,7 +62,7 @@ public static class Math3dUtil
         return sign * angle;
     }
     
-    
+    // 未经检验的实现
     public static Transform3D PlaceOnSphere(Basis basis, Vector3 position, float addHeight = 0, Vector3 alignForward = default)
     {
         var transform = Transform3D.Identity;
@@ -72,7 +73,7 @@ public static class Math3dUtil
     }
 
     /// <summary>
-    /// 对齐基变换的正方向到指定的方向向量。
+    /// 对齐基变换的正方向到指定的方向向量。（未经检验的实现）
     /// </summary>
     /// <param name="basis">基</param>
     /// <param name="direction">目标方向向量</param>

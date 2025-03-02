@@ -65,44 +65,61 @@ public partial class HexUnit : CsgBox3D
         }
     }
 
-    private bool _moving;
-    private Vector3? _beforePos;
+    private HexUnitPath _path;
+    private int _pathToTileId;
+    private float _pathProgress;
+    private bool _pathOriented;
+    private const float PathRotationSpeed = Mathf.Pi;
 
-    // public override void _Process(double delta)
-    // {
-    //     if (!_moving) return;
-    //     if (Position.IsFinite())
-    //     {
-    //         GD.Print("position.IsFinite");
-    //         return;
-    //     }
-    //     if (_beforePos == null)
-    //     {
-    //         GD.Print("before = null");
-    //         _beforePos = Position;
-    //         return;
-    //     }
-    //     var before = (Vector3)_beforePos;
-    //     if (before.IsEqualApprox(Position) || Position.IsFinite())
-    //     {
-    //         GD.Print("before = position");
-    //         return;
-    //     }
-    //     var dir = before.DirectionTo(Position);
-    //     Node3dUtil.AlignYAxisToDirection(this, Position, dir);
-    //     _beforePos = Position;
-    //     GD.Print("rotated to dir");
-    // }
-
-    public void StartPath()
+    public override void _Process(double delta)
     {
-        _moving = true;
+        if (_path == null) return;
+        var deltaProgress = (float)delta * HexMetrics.StandardScale * 30f; // 每秒走 30f 标准距离
+        if (_pathOriented)
+        {
+            _pathProgress += deltaProgress;
+            if (_pathProgress >= _path.Curve.GetBakedLength())
+            {
+                FinishPath();
+                return;
+            }
+
+            var now = _path.Curve.SampleBaked(_pathProgress, true);
+            var before = _path.Curve.SampleBaked(_pathProgress - deltaProgress, true);
+            Node3dUtil.PlaceOnSphere(this, now, alignForward: before.DirectionTo(now));
+        }
+        else
+        {
+            var forward = Position.DirectionTo(_path.Curve.SampleBaked(deltaProgress, true));
+            var angle = Math3dUtil.GetPlanarAngle(-Basis.Z, forward, Position, true);
+            var deltaAngle = float.Sign(angle) * PathRotationSpeed * (float)delta;
+            if (Mathf.Abs(deltaAngle) > Mathf.Abs(angle))
+            {
+                Rotate(Position.Normalized(), angle);
+                _pathOriented = true;
+            }
+            else
+                Rotate(Position.Normalized(), deltaAngle);
+        }
     }
 
-    public void FinishPath()
+    public void StartPath(HexUnitPath path, int toTileId)
     {
-        _moving = false;
-        _beforePos = null;
+        _path = path;
+        _pathToTileId = toTileId;
+        _pathProgress = 0;
+        _pathOriented = false;
+    }
+
+    private void FinishPath()
+    {
+        GD.Print($"Unit {Id} arrived at Tile {_pathToTileId}");
+        var forward = -Basis.Z;
+        TileId = _pathToTileId;
+        Orientation = Math3dUtil.GetPlanarAngle(-Basis.Z, forward, Position, true);
+        _path.TaskFinished();
+        _path = null;
+        _pathToTileId = 0;
     }
 
     public void ValidateLocation()
