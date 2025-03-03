@@ -299,7 +299,7 @@ public partial class HexPlanetManager : Node3D
     private void InitHexasphere()
     {
         GD.Print($"InitHexasphere with radius {Radius}, divisions {Divisions}, start at: {Time.GetTicksMsec()}");
-        _pointService.SubdivideIcosahedron(Divisions);
+        _pointService.SubdivideIcosahedronForTiles(Divisions);
         _tileService.InitTiles();
         BuildMesh();
     }

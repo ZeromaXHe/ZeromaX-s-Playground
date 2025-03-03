@@ -8,6 +8,6 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 public class Face(Vector3 center, int id = -1) : AEntity(id)
 {
     public Vector3 Center { get; } = center; // 三角形重心 median point
-    public List<int> PointIds;
-    public bool IsAdjacentTo(Face face) => PointIds.Intersect(face.PointIds).Count() == 2;
+    public Vector3[] TriVertices; // 第一个顶点是非水平边的顶点
+    public bool IsAdjacentTo(Face face) => TriVertices.Intersect(face.TriVertices).Count() == 2;
 }

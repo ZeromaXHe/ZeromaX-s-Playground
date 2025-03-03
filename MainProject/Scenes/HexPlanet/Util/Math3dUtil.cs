@@ -5,6 +5,17 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 public static class Math3dUtil
 {
+    public static Vector3[] Subdivide(Vector3 from, Vector3 target, int count)
+    {
+        var segments = new Vector3[count + 1];
+        segments[0] = from;
+        for (var i = 1; i < count; i++)
+            // 注意这里用 Slerp 而不是 Lerp，让所有的点都在单位球面而不是单位正二十面体上，方便我们后面 VP 树找最近点
+            segments[i] = from.Slerp(target, (float)i / count);
+        segments[count] = target;
+        return segments;
+    }
+
     public static Vector3 GetNormal(Vector3 v0, Vector3 v1, Vector3 v2)
     {
         var side1 = v1 - v0;
@@ -39,7 +50,7 @@ public static class Math3dUtil
     /// <param name="signed">返回是否带符号，默认不带。带的话则对应 dir 角度下顺时针方向为正</param>
     /// <returns>两个投影向量间的夹角（弧度制）</returns>
     /// <exception cref="ArgumentException"></exception>
-    public static float GetPlanarAngle(Vector3 a, Vector3 b, Vector3 dir, bool signed = false) 
+    public static float GetPlanarAngle(Vector3 a, Vector3 b, Vector3 dir, bool signed = false)
     {
         // 异常处理：入参向量均不能为零
         if (a == Vector3.Zero || b == Vector3.Zero || dir == Vector3.Zero)
@@ -61,9 +72,10 @@ public static class Math3dUtil
         float sign = Mathf.Sign(cross.Dot(dir.Normalized()));
         return sign * angle;
     }
-    
+
     // 未经检验的实现
-    public static Transform3D PlaceOnSphere(Basis basis, Vector3 position, float addHeight = 0, Vector3 alignForward = default)
+    public static Transform3D PlaceOnSphere(Basis basis, Vector3 position, float addHeight = 0,
+        Vector3 alignForward = default)
     {
         var transform = Transform3D.Identity;
         var scale = HexMetrics.StandardScale;
