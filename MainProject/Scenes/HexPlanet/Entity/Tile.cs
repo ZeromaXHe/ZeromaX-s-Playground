@@ -96,6 +96,6 @@ public class Tile(
 
     public int ViewElevation => Mathf.Max(Elevation, WaterLevel);
     
-    public bool IsExplored = true;
+    public bool Explored { get; set; }
     public bool Explorable = true;
 }

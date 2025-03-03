@@ -77,7 +77,7 @@ public class TileShaderService : ITileShaderService
         {
             var tile = _tileService.GetById(tileId);
             _tileTextureData[tileId].R8 = tile.IsVisible ? 255 : 0;
-            _tileTextureData[tileId].G8 = tile.IsExplored ? 255 : 0;
+            _tileTextureData[tileId].G8 = tile.Explored ? 255 : 0;
             ChangeTilePixel(tileId, _tileTextureData[tileId]);
         }
         else if (!_visibilityTransitions[tileId])
@@ -156,7 +156,10 @@ public class TileShaderService : ITileShaderService
     {
         tile.Visibility++;
         if (tile.Visibility == 1)
+        {
+            tile.Explored = true;
             RefreshVisibility(tile.Id);
+        }
     }
 
     private void DecreaseVisibility(Tile tile)
@@ -182,7 +185,7 @@ public class TileShaderService : ITileShaderService
         var data = _tileTextureData[id];
         var stillUpdating = false;
         var tile = _tileService.GetById(id);
-        if (tile.IsExplored && data.G8 < 255)
+        if (tile.Explored && data.G8 < 255)
         {
             stillUpdating = true;
             var t = data.G8 + delta;

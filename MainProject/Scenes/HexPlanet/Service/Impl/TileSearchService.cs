@@ -151,7 +151,7 @@ public class TileSearchService(ITileService tileService) : ITileSearchService
 
     private static bool IsValidDestination(Tile tile)
     {
-        return tile.IsExplored && tile.Explorable && !tile.IsUnderwater && !tile.HasUnit;
+        return tile.Explored && tile.Explorable && !tile.IsUnderwater && !tile.HasUnit;
     }
 
     private int GetMoveCost(Tile fromTile, Tile toTile)
