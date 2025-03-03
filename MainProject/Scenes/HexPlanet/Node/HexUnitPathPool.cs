@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Godot;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 
@@ -10,11 +11,11 @@ public partial class HexUnitPathPool : Node3D
 
     private readonly List<HexUnitPath> _paths = [];
 
-    public void NewTask(HexUnit unit, Curve3D curve, int toTileId)
+    public void NewTask(HexUnit unit, List<Tile> pathTiles, int toTileId)
     {
         var path = FetchPath();
-        path.TaskStart(curve);
-        unit.StartPath(path, toTileId);
+        path.TaskStart(pathTiles);
+        unit.Travel(path);
     }
 
     private HexUnitPath FetchPath()

@@ -37,6 +37,8 @@ public partial class HexPlanetManager : Node3D
         {
             _radius = value;
             HexMetrics.Radius = _radius;
+            RenderingServer.GlobalShaderParameterSet("radius", _radius);
+            RenderingServer.GlobalShaderParameterSet("max_height", HexMetrics.MaxHeight);
             if (_ready)
             {
                 _orbitCamera.Reset();
@@ -111,6 +113,8 @@ public partial class HexPlanetManager : Node3D
     private IUnitService _unitService;
     private IChunkService _chunkService;
     private ITileService _tileService;
+    private ITileShaderService _tileShaderService;
+    private ITileSearchService _tileSearchService;
     private IFaceService _faceService;
     private IPointService _pointService;
     private IAStarService _aStarService;
@@ -121,6 +125,8 @@ public partial class HexPlanetManager : Node3D
         _unitService = Context.GetBean<IUnitService>();
         _chunkService = Context.GetBean<IChunkService>();
         _tileService = Context.GetBean<ITileService>();
+        _tileShaderService = Context.GetBean<ITileShaderService>();
+        _tileSearchService = Context.GetBean<ITileSearchService>();
         _faceService = Context.GetBean<IFaceService>();
         _pointService = Context.GetBean<IPointService>();
         _aStarService = Context.GetBean<IAStarService>();
@@ -170,8 +176,11 @@ public partial class HexPlanetManager : Node3D
 
     public override void _Process(double delta)
     {
+        if (!_ready) return;
+        _tileShaderService.UpdateData((float)delta);
+
         _lastUpdated += (float)delta;
-        if (!_ready || _lastUpdated < 0.1f) return; // 每 0.1s 更新一次
+        if (_lastUpdated < 0.1f) return; // 每 0.1s 更新一次
         if (Mathf.Abs(_oldRadius - Radius) > 0.001f
             || _oldDivisions != Divisions
             || _oldChunkDivisions != ChunkDivisions)
@@ -271,7 +280,20 @@ public partial class HexPlanetManager : Node3D
         _chunkService.InitChunks(ChunkDivisions);
         InitHexasphere();
         _aStarService.Init();
+        _tileShaderService.Initialize();
+        _tileSearchService.InitSearchData(_tileService.GetCount());
+        RefreshAllTiles();
         EmitSignal(SignalName.NewPlanetGenerated);
+    }
+
+    private void RefreshAllTiles()
+    {
+        foreach (var tile in _tileService.GetAll())
+        {
+            _tileSearchService.RefreshTileSearchData(tile.Id);
+            _tileShaderService.RefreshTerrain(tile.Id);
+            _tileShaderService.RefreshVisibility(tile.Id);
+        }
     }
 
     private void InitHexasphere()
@@ -300,6 +322,7 @@ public partial class HexPlanetManager : Node3D
     public void SetEditMode(bool mode)
     {
         _editMode = mode;
+        RenderingServer.GlobalShaderParameterSet("hex_map_edit_mode", mode);
         PathFromTileId = 0;
         UpdateSelectTileViewer();
         foreach (var gridChunk in _gridChunks.Values)
@@ -330,52 +353,10 @@ public partial class HexPlanetManager : Node3D
         {
             // 确实有找到从出发点到 tile 的路径
             var unit = _units[fromTile.UnitId];
-            var curve = TransPathToCurve(path);
-            _hexUnitPathPool.NewTask(unit, curve, toTile.Id);
+            _hexUnitPathPool.NewTask(unit, path, toTile.Id);
         }
 
         PathFromTileId = 0;
-    }
-
-    private Curve3D TransPathToCurve(List<Tile> path)
-    {
-        // 转换为曲线
-        var curve = new Curve3D();
-        var fromTile = path[0];
-        var fromHeight = _tileService.GetHeight(fromTile);
-        var fromCentroid = fromTile.GetCentroid(Radius + fromHeight);
-        var toTile = path[1];
-        var toHeight = _tileService.GetHeight(toTile);
-        var toCentroid = toTile.GetCentroid(Radius + toHeight);
-
-        var fromIdx = fromTile.GetNeighborIdx(toTile);
-        var toIdx = toTile.GetNeighborIdx(fromTile);
-        var fromEdgeMid = _tileService.GetSolidEdgeMiddle(fromTile, fromIdx, Radius + fromHeight);
-        var toEdgeMid = _tileService.GetSolidEdgeMiddle(toTile, toIdx, Radius + toHeight);
-        // 需要注意下面 in out 入参 / 2f 的操作，用于避免 in out 入参太长（前后相交于 centroid），导致 Curve3D 不连续
-        curve.AddPoint(fromCentroid, @out: (fromEdgeMid - fromCentroid) / 2f);
-        curve.AddPoint(fromEdgeMid, (fromCentroid - fromEdgeMid) / 2f, (toEdgeMid - fromEdgeMid) / 2f);
-        curve.AddPoint(toEdgeMid, (fromEdgeMid - toEdgeMid) / 2f, (toCentroid - toEdgeMid) / 2f);
-        for (var i = 1; i < path.Count - 1; i++)
-        {
-            fromTile = toTile;
-            fromHeight = toHeight;
-            fromCentroid = toCentroid;
-
-            toTile = path[i + 1];
-            toHeight = _tileService.GetHeight(toTile);
-            toCentroid = toTile.GetCentroid(Radius + toHeight);
-
-            fromIdx = fromTile.GetNeighborIdx(toTile);
-            toIdx = toTile.GetNeighborIdx(fromTile);
-            fromEdgeMid = _tileService.GetSolidEdgeMiddle(fromTile, fromIdx, Radius + fromHeight);
-            toEdgeMid = _tileService.GetSolidEdgeMiddle(toTile, toIdx, Radius + toHeight);
-            curve.AddPoint(fromEdgeMid, (fromCentroid - fromEdgeMid) / 2f, (toEdgeMid - fromEdgeMid) / 2f);
-            curve.AddPoint(toEdgeMid, (fromEdgeMid - toEdgeMid) / 2f, (toCentroid - toEdgeMid) / 2f);
-        }
-
-        curve.AddPoint(toCentroid, (toEdgeMid - toCentroid) / 2f);
-        return curve;
     }
 
     public void CreateUnit()

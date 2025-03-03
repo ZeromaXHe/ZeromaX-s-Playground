@@ -37,6 +37,8 @@ public static class Context
         var faceService = new FaceService(faceRepo, pointRepo);
         var pointService = new PointService(faceService, pointRepo);
         var tileService = new TileService(chunkService, faceService, tileRepo, faceRepo, pointRepo);
+        var tileSearchService = new TileSearchService(tileService);
+        var tileShaderService = new TileShaderService(tileService, tileSearchService, unitService);
         var aStarService = new AStarService(tileService);
         var selectViewService = new SelectViewService(tileService, aStarService);
         Register(nameof(IUnitService), unitService);
@@ -44,6 +46,8 @@ public static class Context
         Register(nameof(IFaceService), faceService);
         Register(nameof(IPointService), pointService);
         Register(nameof(ITileService), tileService);
+        Register(nameof(ITileSearchService), tileSearchService);
+        Register(nameof(ITileShaderService), tileShaderService);
         Register(nameof(IAStarService), aStarService);
         Register(nameof(ISelectViewService), selectViewService);
     }

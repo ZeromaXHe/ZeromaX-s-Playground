@@ -18,13 +18,14 @@ render_priority = 0
 shader = ExtResource("3_rfwa1")
 shader_parameter/color = Color(1, 1, 1, 1)
 shader_parameter/glossiness = 0.3
-shader_parameter/metallic = 0.0
+shader_parameter/specular = 0.2
+shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
 shader_parameter/main_tex = ExtResource("4_cvd6l")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_15o55"]
 render_priority = 9
 shader = ExtResource("3_8fnhi")
-shader_parameter/color = Color(0, 0.298039, 0.768627, 0.501961)
+shader_parameter/color = Color(0.117647, 0.572549, 1, 0.752941)
 shader_parameter/glossiness = 0.5
 shader_parameter/specular = 0.2
 shader_parameter/main_tex = ExtResource("4_0ithq")
@@ -40,7 +41,7 @@ shader_parameter/main_tex = ExtResource("4_0ithq")
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ca3lj"]
 render_priority = 8
 shader = ExtResource("6_lmcr6")
-shader_parameter/color = Color(0, 0.298039, 0.768627, 0.501961)
+shader_parameter/color = Color(0.117647, 0.572549, 1, 0.752941)
 shader_parameter/glossiness = 0.5
 shader_parameter/specular = 0.2
 shader_parameter/main_tex = ExtResource("4_0ithq")
@@ -48,7 +49,7 @@ shader_parameter/main_tex = ExtResource("4_0ithq")
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_dbpkw"]
 render_priority = 7
 shader = ExtResource("7_fod8i")
-shader_parameter/color = Color(0, 0.298039, 0.768627, 0.501961)
+shader_parameter/color = Color(0.117647, 0.572549, 1, 0.752941)
 shader_parameter/glossiness = 0.5
 shader_parameter/specular = 0.2
 shader_parameter/main_tex = ExtResource("4_0ithq")
@@ -56,7 +57,7 @@ shader_parameter/main_tex = ExtResource("4_0ithq")
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_s7ofq"]
 render_priority = 6
 shader = ExtResource("8_sg70y")
-shader_parameter/color = Color(0, 0.298039, 0.768627, 0.501961)
+shader_parameter/color = Color(0.117647, 0.572549, 1, 0.752941)
 shader_parameter/glossiness = 0.5
 shader_parameter/specular = 0.2
 shader_parameter/main_tex = ExtResource("4_0ithq")
@@ -78,26 +79,30 @@ _labelScene = ExtResource("2_puro1")
 [node name="Terrain" parent="." instance=ExtResource("2_yhs87")]
 material_override = SubResource("ShaderMaterial_we61a")
 UseCollider = true
-UseColor = true
-UseTerrainTypes = true
+UseCellData = true
 
 [node name="Rivers" parent="." instance=ExtResource("2_yhs87")]
 material_override = SubResource("ShaderMaterial_15o55")
+UseCellData = true
 UseUvCoordinates = true
 
 [node name="Roads" parent="." instance=ExtResource("2_yhs87")]
 material_override = SubResource("ShaderMaterial_7iseu")
+UseCellData = true
 UseUvCoordinates = true
 
 [node name="Water" parent="." instance=ExtResource("2_yhs87")]
 material_override = SubResource("ShaderMaterial_ca3lj")
+UseCellData = true
 
 [node name="WaterShore" parent="." instance=ExtResource("2_yhs87")]
 material_override = SubResource("ShaderMaterial_dbpkw")
+UseCellData = true
 UseUvCoordinates = true
 
 [node name="Estuaries" parent="." instance=ExtResource("2_yhs87")]
 material_override = SubResource("ShaderMaterial_s7ofq")
+UseCellData = true
 UseUvCoordinates = true
 UseUv2Coordinates = true
 

@@ -7,34 +7,60 @@ shader_type spatial;
 uniform vec4 color: source_color = vec4(1.0, 1.0, 1.0, 1.0);
 uniform sampler2DArray main_tex: source_color, filter_linear_mipmap, repeat_enable;
 uniform float glossiness: hint_range(0.0, 1.0) = 0.3;
-uniform float metallic: hint_range(0.0, 1.0) = 0.0;
+uniform float specular = 0.2;
+uniform vec3 background_color: source_color = vec3(0.2, 0.169, 0.133);
+global uniform float radius;
+global uniform float max_height;
 
-#include "HexMetrics.gdshaderinc"
+#include "HexCellData.gdshaderinc"
 
-varying vec3 terrain; // 用 varying 在 vertex 和 fragment 间传递数据
+varying vec4 terrain; // 用 varying 在 vertex 和 fragment 间传递数据
+varying vec4 visibility;
 
-void vertex() {
-	terrain = CUSTOM0.xyz;
+vec3 ColorizeSubmergence(vec3 baseColor, float surfaceY, float waterY) {
+	float submergence = waterY - max(surfaceY, 0);
+	vec3 colorFilter = vec3(0.25, 0.25, 0.75);
+	float filterRange = 2.0 / max_height;
+	return baseColor * mix(vec3(1.0), colorFilter,
+		clamp(submergence * filterRange, 0.0, 1.0));
 }
 
-vec4 GetTerrainColor(vec3 world_pos, int index, vec4 inColor) {
-	vec2 pos = vec2(world_pos.x - world_pos.y * 0.5 - world_pos.z * 0.5,
-		(world_pos.y - world_pos.z) * OUTER_TO_INNER);
-	vec3 uvw = vec3(pos * 0.02, terrain[index]);
+void vertex() {
+	vec4 cell0 = GetCellData(CUSTOM0, 0);
+	vec4 cell1 = GetCellData(CUSTOM0, 1);
+	vec4 cell2 = GetCellData(CUSTOM0, 2);
+	terrain.x = cell0.w; // w: 地形类型
+	terrain.y = cell1.w;
+	terrain.z = cell2.w;
+	terrain.w = max(max(cell0.z, cell1.z), cell2.z) * max_height; // z: 水面高度
+	visibility.x = cell0.x; // x: 可见
+	visibility.y = cell1.x;
+	visibility.z = cell2.x;
+	visibility.xyz = mix(vec3(0.25), vec3(1.0), visibility.xyz);
+	visibility.w = cell0.y * COLOR.x + cell1.y * COLOR.y + cell2.y * COLOR.z; // y: 已探索
+}
+
+vec4 GetTerrainColor(vec3 world_pos, int index, vec4 weights, vec4 inVisibility) {
+	vec2 sphere_uv = WorldPosToSphereUV(world_pos);
+	vec3 uvw = vec3(sphere_uv * (2.0 * TILING_SCALE), terrain[index]);
 	vec4 c = texture(main_tex, uvw);
-	return c * inColor[index];
+	return c * (weights[index] * inVisibility[index]);
 }
 
 void fragment() {
 	// 获取世界坐标
 	vec3 world_pos = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	vec4 c = GetTerrainColor(world_pos, 0, COLOR) +
-		GetTerrainColor(world_pos, 1, COLOR) +
-		GetTerrainColor(world_pos, 2, COLOR);
+	vec4 inColor = COLOR;
+	vec4 c = GetTerrainColor(world_pos, 0, inColor, visibility) +
+		GetTerrainColor(world_pos, 1, inColor, visibility) +
+		GetTerrainColor(world_pos, 2, inColor, visibility);
+	vec3 baseColor = ColorizeSubmergence(c.rgb, length(world_pos) - radius, terrain.w);
+	float explored = visibility.w;
 	// 设置漫反射颜色
-	ALBEDO = c.rgb * color.rgb;
-	// 设置金属度
-	METALLIC = metallic;
+	ALBEDO = baseColor * color.rgb * explored;
+	SPECULAR = specular * explored;
+	AO = explored;
+	EMISSION = background_color * (1.0 - explored);
 	// 设置光滑度
 	ROUGHNESS = 1.0 - glossiness;
 	// 设置透明度

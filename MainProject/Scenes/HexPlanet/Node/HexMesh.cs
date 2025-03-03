@@ -8,10 +8,9 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 public partial class HexMesh : MeshInstance3D
 {
     [Export] public bool UseCollider { get; set; }
-    [Export] public bool UseColor { get; set; }
+    [Export] public bool UseCellData { get; set; }
     [Export] public bool UseUvCoordinates { get; set; }
     [Export] public bool UseUv2Coordinates { get; set; }
-    [Export] public bool UseTerrainTypes { get; set; }
     private SurfaceTool _surfaceTool = new();
     private int _vIdx;
 
@@ -24,7 +23,7 @@ public partial class HexMesh : MeshInstance3D
         _surfaceTool.Clear();
         _surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
         _surfaceTool.SetSmoothGroup(uint.MaxValue);
-        if (UseTerrainTypes)
+        if (UseCellData)
             _surfaceTool.SetCustomFormat(0, SurfaceTool.CustomFormat.RgbFloat);
     }
 
@@ -37,23 +36,33 @@ public partial class HexMesh : MeshInstance3D
             CreateTrimeshCollision();
     }
 
-    public void AddTriangle(Vector3[] vs, Color[] cs = null,
-        Vector2[] uvs = null, Vector2[] uvs2 = null, Vector3 t = default) =>
-        AddTriangleUnperturbed(vs.Select(HexMetrics.Perturb).ToArray(), cs, uvs, uvs2, t);
+    /// <summary>
+    /// 绘制三角形
+    /// </summary>
+    /// <param name="vs">顶点数组 vertices</param>
+    /// <param name="tws">地块权重 tWeights</param>
+    /// <param name="uvs">UV</param>
+    /// <param name="uvs2">UV2</param>
+    /// <param name="tis">地块ID tileIds</param>
+    public void AddTriangle(Vector3[] vs, Color[] tws = null,
+        Vector2[] uvs = null, Vector2[] uvs2 = null, Vector3 tis = default) =>
+        AddTriangleUnperturbed(vs.Select(HexMetrics.Perturb).ToArray(), tws, uvs, uvs2, tis);
 
-    public void AddTriangleUnperturbed(Vector3[] vs, Color[] cs = null,
-        Vector2[] uvs = null, Vector2[] uvs2 = null, Vector3 t = default)
+    public void AddTriangleUnperturbed(Vector3[] vs, Color[] tws = null,
+        Vector2[] uvs = null, Vector2[] uvs2 = null, Vector3 tis = default)
     {
         for (var i = 0; i < 3; i++)
         {
-            if (UseColor && cs != null)
-                _surfaceTool.SetColor(cs[i]);
+            if (UseCellData && tws != null)
+            {
+                _surfaceTool.SetColor(tws[i]);
+                _surfaceTool.SetCustom(0, new Color(tis.X, tis.Y, tis.Z));
+            }
+
             if (UseUvCoordinates && uvs != null)
                 _surfaceTool.SetUV(uvs[i]);
             if (UseUv2Coordinates && uvs2 != null)
                 _surfaceTool.SetUV2(uvs2[i]);
-            if (UseTerrainTypes)
-                _surfaceTool.SetCustom(0, new Color(t.X, t.Y, t.Z));
             _surfaceTool.AddVertex(vs[i]);
         }
 
@@ -63,23 +72,24 @@ public partial class HexMesh : MeshInstance3D
         _vIdx += 3;
     }
 
-    public void AddQuad(Vector3[] vs, Color[] cs = null,
-        Vector2[] uvs = null, Vector2[] uvs2 = null, Vector3 t = default) =>
-        AddQuadUnperturbed(vs.Select(HexMetrics.Perturb).ToArray(), cs, uvs, uvs2, t);
+    public void AddQuad(Vector3[] vs, Color[] tws = null,
+        Vector2[] uvs = null, Vector2[] uvs2 = null, Vector3 tis = default) =>
+        AddQuadUnperturbed(vs.Select(HexMetrics.Perturb).ToArray(), tws, uvs, uvs2, tis);
 
-    public void AddQuadUnperturbed(Vector3[] vs, Color[] cs = null,
-        Vector2[] uvs = null, Vector2[] uvs2 = null, Vector3 t = default)
+    public void AddQuadUnperturbed(Vector3[] vs, Color[] tws = null,
+        Vector2[] uvs = null, Vector2[] uvs2 = null, Vector3 tis = default)
     {
         for (var i = 0; i < 4; i++)
         {
-            if (UseColor && cs != null)
-                _surfaceTool.SetColor(cs[i]);
+            if (UseCellData && tws != null)
+            {
+                _surfaceTool.SetColor(tws[i]);
+                _surfaceTool.SetCustom(0, new Color(tis.X, tis.Y, tis.Z));
+            }
             if (UseUvCoordinates && uvs != null)
                 _surfaceTool.SetUV(uvs[i]);
             if (UseUvCoordinates && uvs2 != null)
                 _surfaceTool.SetUV2(uvs2[i]);
-            if (UseTerrainTypes)
-                _surfaceTool.SetCustom(0, new Color(t.X, t.Y, t.Z));
             _surfaceTool.AddVertex(vs[i]);
         }
 

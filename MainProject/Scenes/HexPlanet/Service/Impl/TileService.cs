@@ -16,6 +16,8 @@ public class TileService(
 {
     public event ITileService.UpdateTileAStarEvent UpdateTileAStar;
     public event ITileService.UnitValidateLocationEvent UnitValidateLocation;
+    public event ITileService.RefreshTerrainShaderEvent RefreshTerrainShader;
+    public event ITileService.ViewElevationChangedEvent ViewElevationChanged;
 
     private void Refresh(Tile tile)
     {
@@ -52,10 +54,13 @@ public class TileService(
         if (tile.Elevation == elevation) return;
         tile.Elevation = elevation;
         ValidateRivers(tile);
-        for (var i = 0; i < tile.Roads.Length; i++)
-            if (tile.Roads[i] && GetElevationDifference(tile, i) > 1)
-                SetRoad(tile, i, false);
+        if (!ValidateRoadsWater(tile))
+            for (var i = 0; i < tile.Roads.Length; i++)
+                if (tile.Roads[i] && GetElevationDifference(tile, i) > 1)
+                    SetRoad(tile, i, false);
         Refresh(tile);
+        RefreshTerrainShader?.Invoke(tile.Id);
+        ViewElevationChanged?.Invoke(tile.Id);
         UpdateTileAStar?.Invoke(tile.Id);
         if (tile.UnitId != 0)
             UnitValidateLocation?.Invoke(tile.UnitId);
@@ -66,6 +71,7 @@ public class TileService(
         if (tile.TerrainTypeIndex == idx) return;
         tile.TerrainTypeIndex = idx;
         Refresh(tile);
+        RefreshTerrainShader?.Invoke(tile.Id);
     }
 
     public void SetWaterLevel(Tile tile, int waterLevel)
@@ -73,7 +79,10 @@ public class TileService(
         if (tile.WaterLevel == waterLevel) return;
         tile.WaterLevel = waterLevel;
         ValidateRivers(tile);
+        ValidateRoadsWater(tile);
         Refresh(tile);
+        RefreshTerrainShader?.Invoke(tile.Id);
+        ViewElevationChanged?.Invoke(tile.Id);
         UpdateTileAStar?.Invoke(tile.Id);
     }
 
@@ -376,11 +385,20 @@ public class TileService(
 
     private void AddRoad(Tile tile, int idx)
     {
+        var neighbor = GetNeighborByIdx(tile, idx);
         if (!tile.Roads[idx]
             && !HasRiverThroughEdge(tile, idx)
-            && !tile.IsSpecial && !GetNeighborByIdx(tile, idx).IsSpecial
+            && !tile.IsSpecial && !neighbor.IsSpecial
+            && !tile.IsUnderwater && !neighbor.IsUnderwater // 不在水下生成道路
             && GetElevationDifference(tile, idx) <= 1)
             SetRoad(tile, idx, true);
+    }
+
+    private bool ValidateRoadsWater(Tile tile)
+    {
+        if (tile.IsUnderwater)
+            RemoveRoads(tile);
+        return tile.IsUnderwater;
     }
 
     public void RemoveRoads(Tile tile)

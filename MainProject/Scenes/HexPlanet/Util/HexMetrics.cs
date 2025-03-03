@@ -37,7 +37,7 @@ public static class HexMetrics
     public static float UnitHeight { get; private set; } = 1.5f;
     public static float MaxHeight { get; private set; } = 15f;
     public static float MaxHeightRatio { get; private set; } = 0.1f;
-    private const float MaxHeightRadiusRatio = 0.1f;
+    private const float MaxHeightRadiusRatio = 0.2f;
 
     private static void CalcUnitHeight()
     {

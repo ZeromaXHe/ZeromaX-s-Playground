@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
@@ -19,11 +18,13 @@ public partial class HexUnit : CsgBox3D
     #region 服务
 
     private static ITileService _tileService;
+    private static ITileShaderService _tileShaderService;
     private static IUnitService _unitService;
 
     private static void InitServices()
     {
         _tileService ??= Context.GetBean<ITileService>();
+        _tileShaderService ??= Context.GetBean<ITileShaderService>();
         _unitService ??= Context.GetBean<IUnitService>();
     }
 
@@ -41,12 +42,15 @@ public partial class HexUnit : CsgBox3D
             if (_tileId > 0)
             {
                 var preTile = _tileService.GetById(_tileId);
+                _tileShaderService.DecreaseVisibility(preTile, Unit.VisionRange);
                 _tileService.SetUnitId(preTile, 0);
             }
 
             _tileId = value;
+            _unitService.GetById(Id).TileId = _tileId;
             ValidateLocation();
             var tile = _tileService.GetById(_tileId);
+            _tileShaderService.IncreaseVisibility(tile, Unit.VisionRange);
             _tileService.SetUnitId(tile, Id);
         }
     }
@@ -66,7 +70,7 @@ public partial class HexUnit : CsgBox3D
     }
 
     private HexUnitPath _path;
-    private int _pathToTileId;
+    private int _pathTileIdx;
     private bool _pathOriented;
     private const float PathRotationSpeed = Mathf.Pi;
     private const float PathMoveSpeed = 30f; // 每秒走 30f 标准距离
@@ -77,7 +81,16 @@ public partial class HexUnit : CsgBox3D
         var deltaProgress = (float)delta * HexMetrics.StandardScale * PathMoveSpeed;
         if (_pathOriented)
         {
-            var before = _path.Curve.SampleBaked(_path.GetProgress() - deltaProgress, true);
+            var prePathTileIdx = _pathTileIdx;
+            var progress = _path.GetProgress();
+            while (_pathTileIdx < _path.Progresses.Count && _path.Progresses[_pathTileIdx] < progress)
+                _pathTileIdx++;
+            if (prePathTileIdx != _pathTileIdx)
+            {
+                _tileShaderService.DecreaseVisibility(_path.Tiles[prePathTileIdx], Unit.VisionRange);
+                _tileShaderService.IncreaseVisibility(_path.Tiles[_pathTileIdx], Unit.VisionRange);
+            }
+            var before = _path.Curve.SampleBaked(progress - deltaProgress, true);
             Node3dUtil.AlignYAxisToDirection(this, Position, alignForward: before.DirectionTo(Position));
         }
         else
@@ -85,33 +98,33 @@ public partial class HexUnit : CsgBox3D
             var forward = Position.DirectionTo(_path.Curve.SampleBaked(deltaProgress, true));
             var angle = Math3dUtil.GetPlanarAngle(-Basis.Z, forward, Position, true);
             var deltaAngle = float.Sign(angle) * PathRotationSpeed * (float)delta;
-            if (Mathf.Abs(deltaAngle) > Mathf.Abs(angle))
+            if (Mathf.Abs(deltaAngle) >= Mathf.Abs(angle))
             {
                 Rotate(Position.Normalized(), angle);
                 _pathOriented = true;
-                _path.HandleMove(this);
+                _path.StartMove(this);
             }
             else
                 Rotate(Position.Normalized(), deltaAngle);
         }
     }
 
-    public void StartPath(HexUnitPath path, int toTileId)
+    public void Travel(HexUnitPath path)
     {
         _path = path;
-        _pathToTileId = toTileId;
         _pathOriented = false;
+        _pathTileIdx = 0;
+        // 提前把实际单位数据设置到目标 Tile 中
+        var fromTile = _tileService.GetById(_tileId);
+        _tileService.SetUnitId(fromTile, 0);
+        var toTile = _path.Tiles[^1];
+        _tileService.SetUnitId(toTile, Id);
+        _unitService.GetById(Id).TileId = toTile.Id;
     }
 
     public void FinishPath()
     {
-        GD.Print($"Unit {Id} arrived at Tile {_pathToTileId}");
-        var forward = -Basis.Z;
-        TileId = _pathToTileId;
-        Orientation = Math3dUtil.GetPlanarAngle(-Basis.Z, forward, Position, true);
-        _path.TaskFinished();
         _path = null;
-        _pathToTileId = 0;
     }
 
     public void ValidateLocation()
@@ -125,7 +138,9 @@ public partial class HexUnit : CsgBox3D
     public void Die()
     {
         _unitService.Delete(Id);
-        _tileService.SetUnitId(_tileService.GetById(_tileId), 0);
+        var tile = _tileService.GetById(_tileId);
+        _tileShaderService.DecreaseVisibility(tile, Unit.VisionRange);
+        _tileService.SetUnitId(tile, 0);
         QueueFree();
     }
 }

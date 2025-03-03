@@ -14,6 +14,14 @@ public interface ITileService
 
     event UnitValidateLocationEvent UnitValidateLocation;
 
+    delegate void RefreshTerrainShaderEvent(int unitId);
+
+    event RefreshTerrainShaderEvent RefreshTerrainShader;
+
+    delegate void ViewElevationChangedEvent(int unitId);
+
+    event ViewElevationChangedEvent ViewElevationChanged;
+
     #region 透传存储库方法
 
     Tile GetById(int id);

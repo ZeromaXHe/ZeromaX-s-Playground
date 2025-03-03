@@ -89,4 +89,13 @@ public class Tile(
     #endregion
 
     public int UnitId { get; set; }
+    public bool HasUnit => UnitId > 0;
+
+    public int Visibility { get; set; }
+    public bool IsVisible => Visibility > 0;
+
+    public int ViewElevation => Mathf.Max(Elevation, WaterLevel);
+    
+    public bool IsExplored = true;
+    public bool Explorable = true;
 }

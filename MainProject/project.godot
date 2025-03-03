@@ -81,3 +81,26 @@ choose_unit={
 
 lights_and_shadows/directional_shadow/size=16384
 lights_and_shadows/directional_shadow/soft_shadow_filter_quality=4
+
+[shader_globals]
+
+hex_map_edit_mode={
+"type": "bool",
+"value": true
+}
+max_height={
+"type": "float",
+"value": 0.0
+}
+radius={
+"type": "float",
+"value": 0.0
+}
+hex_tile_data={
+"type": "sampler2D",
+"value": ""
+}
+hex_tile_data_texel_size={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
