@@ -52,6 +52,7 @@ public class TileService(
     public void SetElevation(Tile tile, int elevation)
     {
         if (tile.Elevation == elevation) return;
+        var originalViewElevation = tile.ViewElevation;
         tile.Elevation = elevation;
         ValidateRivers(tile);
         if (!ValidateRoadsWater(tile))
@@ -60,7 +61,8 @@ public class TileService(
                     SetRoad(tile, i, false);
         Refresh(tile);
         RefreshTerrainShader?.Invoke(tile.Id);
-        ViewElevationChanged?.Invoke(tile.Id);
+        if (tile.ViewElevation != originalViewElevation)
+            ViewElevationChanged?.Invoke(tile.Id);
         UpdateTileAStar?.Invoke(tile.Id);
         if (tile.UnitId != 0)
             UnitValidateLocation?.Invoke(tile.UnitId);
@@ -77,12 +79,14 @@ public class TileService(
     public void SetWaterLevel(Tile tile, int waterLevel)
     {
         if (tile.WaterLevel == waterLevel) return;
+        var originalViewElevation = tile.ViewElevation;
         tile.WaterLevel = waterLevel;
         ValidateRivers(tile);
         ValidateRoadsWater(tile);
         Refresh(tile);
         RefreshTerrainShader?.Invoke(tile.Id);
-        ViewElevationChanged?.Invoke(tile.Id);
+        if (tile.ViewElevation != originalViewElevation)
+            ViewElevationChanged?.Invoke(tile.Id);
         UpdateTileAStar?.Invoke(tile.Id);
     }
 

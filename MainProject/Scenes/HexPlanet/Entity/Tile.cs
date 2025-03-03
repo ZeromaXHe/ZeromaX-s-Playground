@@ -92,10 +92,17 @@ public class Tile(
     public bool HasUnit => UnitId > 0;
 
     public int Visibility { get; set; }
-    public bool IsVisible => Visibility > 0;
+    public bool IsVisible => Visibility > 0 && Explorable;
 
     public int ViewElevation => Mathf.Max(Elevation, WaterLevel);
-    
-    public bool Explored { get; set; }
-    public bool Explorable = true;
+
+    private bool _explored;
+
+    public bool Explored
+    {
+        get => _explored && Explorable;
+        set => _explored = value;
+    }
+
+    public bool Explorable { get; set; } = true;
 }
