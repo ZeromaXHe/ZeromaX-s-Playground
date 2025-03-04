@@ -1,6 +1,6 @@
 [gd_scene load_steps=25 format=3 uid="uid://b13ifb8lsuuab"]
 
-[ext_resource type="Script" path="res://Scenes/HexPlanet/Node/HexFeatureManager.cs" id="1_k0wat"]
+[ext_resource type="Script" uid="uid://d2poopvfkoaq6" path="res://Scenes/HexPlanet/Node/HexFeatureManager.cs" id="1_k0wat"]
 [ext_resource type="PackedScene" uid="uid://bbdfywr3yrf3e" path="res://Scenes/HexPlanet/Scene/Feature/UrbanHigh1.tscn" id="2_vtclx"]
 [ext_resource type="PackedScene" uid="uid://h7u6gcxutpum" path="res://Scenes/HexPlanet/Scene/Feature/UrbanHigh2.tscn" id="3_isbyd"]
 [ext_resource type="PackedScene" uid="uid://bk67vbh7aa8lv" path="res://Scenes/HexPlanet/Scene/Feature/UrbanMid1.tscn" id="4_8ob4h"]

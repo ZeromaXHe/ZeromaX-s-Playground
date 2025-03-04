@@ -1,6 +1,6 @@
 [gd_scene load_steps=4 format=3 uid="uid://dh6xnpfagor8y"]
 
-[ext_resource type="Script" path="res://Scenes/HexPlanet/Node/OrbitCamera.cs" id="1_ln8xr"]
+[ext_resource type="Script" uid="uid://cw3q2tblulmvg" path="res://Scenes/HexPlanet/Node/OrbitCamera.cs" id="1_ln8xr"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3cikn"]
 shading_mode = 0

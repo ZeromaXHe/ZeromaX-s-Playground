@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://cbelq6g353rvc"]
 
-[ext_resource type="Script" path="res://Scenes/HexPlanet/HexPlanetHud.cs" id="1_r2qro"]
+[ext_resource type="Script" uid="uid://b8bgqilvr6phu" path="res://Scenes/HexPlanet/HexPlanetHud.cs" id="1_r2qro"]
 [ext_resource type="PackedScene" uid="uid://cau1rm86t1or4" path="res://Scenes/HexPlanet/HexPlanetManager.tscn" id="2_6efwr"]
 
 [node name="HexPlanetHud" type="Control" node_paths=PackedStringArray("_hexPlanetManager")]

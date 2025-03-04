@@ -1,7 +1,7 @@
 [gd_scene load_steps=10 format=3 uid="uid://d13a4r7nl4nar"]
 
-[ext_resource type="Script" path="res://Scenes/HexPlanet/Node/HexUnitPath.cs" id="1_3kd1s"]
-[ext_resource type="Shader" path="res://Shaders/HexPlanet/UnitPath.gdshader" id="2_j2fds"]
+[ext_resource type="Script" uid="uid://xtjdj852fkdd" path="res://Scenes/HexPlanet/Node/HexUnitPath.cs" id="1_3kd1s"]
+[ext_resource type="Shader" uid="uid://qp1l6fq4oj6h" path="res://Shaders/HexPlanet/UnitPath.gdshader" id="2_j2fds"]
 
 [sub_resource type="Curve3D" id="Curve3D_db4c7"]
 _data = {
@@ -30,9 +30,9 @@ gradient = SubResource("Gradient_njl6w")
 render_priority = 0
 shader = ExtResource("2_j2fds")
 shader_parameter/color = Color(1, 1, 1, 1)
+shader_parameter/main_tex = SubResource("GradientTexture2D_a0r3b")
 shader_parameter/glossiness = 0.5
 shader_parameter/metallic = 0.0
-shader_parameter/main_tex = SubResource("GradientTexture2D_a0r3b")
 
 [node name="HexUnitPath" type="Path3D"]
 curve = SubResource("Curve3D_db4c7")

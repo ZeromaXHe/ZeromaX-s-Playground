@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://dx4v3ulf7tnq"]
 
-[ext_resource type="Script" path="res://Scenes/HexPlanet/Node/HexTileLabel.cs" id="1_0b8ty"]
+[ext_resource type="Script" uid="uid://crwhpp8gbjt1m" path="res://Scenes/HexPlanet/Node/HexTileLabel.cs" id="1_0b8ty"]
 
 [node name="HexTileLabel" type="Node3D"]
 script = ExtResource("1_0b8ty")

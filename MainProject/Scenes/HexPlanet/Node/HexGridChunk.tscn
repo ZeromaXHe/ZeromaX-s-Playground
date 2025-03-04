@@ -1,66 +1,66 @@
 [gd_scene load_steps=20 format=3 uid="uid://b31wafba56bca"]
 
-[ext_resource type="Script" path="res://Scenes/HexPlanet/Node/HexGridChunk.cs" id="1_tueog"]
+[ext_resource type="Script" uid="uid://blowyxjsrl52c" path="res://Scenes/HexPlanet/Node/HexGridChunk.cs" id="1_tueog"]
 [ext_resource type="PackedScene" uid="uid://dx4v3ulf7tnq" path="res://Scenes/HexPlanet/Node/HexTileLabel.tscn" id="2_puro1"]
 [ext_resource type="PackedScene" uid="uid://c3gfjhdjv65f7" path="res://Scenes/HexPlanet/Node/HexMesh.tscn" id="2_yhs87"]
-[ext_resource type="Shader" path="res://Shaders/HexPlanet/River.gdshader" id="3_8fnhi"]
-[ext_resource type="Shader" path="res://Shaders/HexPlanet/Terrain.gdshader" id="3_rfwa1"]
+[ext_resource type="Shader" uid="uid://di45tt52ba6d7" path="res://Shaders/HexPlanet/River.gdshader" id="3_8fnhi"]
+[ext_resource type="Shader" uid="uid://bptlc4t3ghfxc" path="res://Shaders/HexPlanet/Terrain.gdshader" id="3_rfwa1"]
 [ext_resource type="Texture2D" uid="uid://c6n6jlweg0ly3" path="res://Assets/HexPlanet/Noise/noise.png" id="4_0ithq"]
 [ext_resource type="CompressedTexture2DArray" uid="uid://c0c8ewbq680ys" path="res://Assets/HexPlanet/Terrain/terrain.png" id="4_cvd6l"]
-[ext_resource type="Shader" path="res://Shaders/HexPlanet/Road.gdshader" id="5_exuhm"]
-[ext_resource type="Shader" path="res://Shaders/HexPlanet/Water.gdshader" id="6_lmcr6"]
-[ext_resource type="Shader" path="res://Shaders/HexPlanet/WaterShore.gdshader" id="7_fod8i"]
-[ext_resource type="Shader" path="res://Shaders/HexPlanet/Estuary.gdshader" id="8_sg70y"]
+[ext_resource type="Shader" uid="uid://bm5nt2w1xkhyt" path="res://Shaders/HexPlanet/Road.gdshader" id="5_exuhm"]
+[ext_resource type="Shader" uid="uid://bnfjj1chq2s6a" path="res://Shaders/HexPlanet/Water.gdshader" id="6_lmcr6"]
+[ext_resource type="Shader" uid="uid://cxl43pwxofyne" path="res://Shaders/HexPlanet/WaterShore.gdshader" id="7_fod8i"]
+[ext_resource type="Shader" uid="uid://bw8jhtgmmfrep" path="res://Shaders/HexPlanet/Estuary.gdshader" id="8_sg70y"]
 [ext_resource type="PackedScene" uid="uid://b13ifb8lsuuab" path="res://Scenes/HexPlanet/Node/HexFeatureManager.tscn" id="9_11vh8"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_we61a"]
 render_priority = 0
 shader = ExtResource("3_rfwa1")
 shader_parameter/color = Color(1, 1, 1, 1)
+shader_parameter/main_tex = ExtResource("4_cvd6l")
 shader_parameter/glossiness = 0.3
 shader_parameter/specular = 0.2
 shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
-shader_parameter/main_tex = ExtResource("4_cvd6l")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_15o55"]
 render_priority = 9
 shader = ExtResource("3_8fnhi")
 shader_parameter/color = Color(0.117647, 0.572549, 1, 0.752941)
+shader_parameter/main_tex = ExtResource("4_0ithq")
 shader_parameter/glossiness = 0.5
 shader_parameter/specular = 0.2
-shader_parameter/main_tex = ExtResource("4_0ithq")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_7iseu"]
 render_priority = 10
 shader = ExtResource("5_exuhm")
 shader_parameter/color = Color(0.831373, 0, 0, 1)
+shader_parameter/main_tex = ExtResource("4_0ithq")
 shader_parameter/glossiness = 0.5
 shader_parameter/specular = 0.2
-shader_parameter/main_tex = ExtResource("4_0ithq")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ca3lj"]
 render_priority = 8
 shader = ExtResource("6_lmcr6")
 shader_parameter/color = Color(0.117647, 0.572549, 1, 0.752941)
+shader_parameter/main_tex = ExtResource("4_0ithq")
 shader_parameter/glossiness = 0.5
 shader_parameter/specular = 0.2
-shader_parameter/main_tex = ExtResource("4_0ithq")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_dbpkw"]
 render_priority = 7
 shader = ExtResource("7_fod8i")
 shader_parameter/color = Color(0.117647, 0.572549, 1, 0.752941)
+shader_parameter/main_tex = ExtResource("4_0ithq")
 shader_parameter/glossiness = 0.5
 shader_parameter/specular = 0.2
-shader_parameter/main_tex = ExtResource("4_0ithq")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_s7ofq"]
 render_priority = 6
 shader = ExtResource("8_sg70y")
 shader_parameter/color = Color(0.117647, 0.572549, 1, 0.752941)
+shader_parameter/main_tex = ExtResource("4_0ithq")
 shader_parameter/glossiness = 0.5
 shader_parameter/specular = 0.2
-shader_parameter/main_tex = ExtResource("4_0ithq")
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_y7q0c"]
 albedo_color = Color(0.742188, 0, 0, 1)

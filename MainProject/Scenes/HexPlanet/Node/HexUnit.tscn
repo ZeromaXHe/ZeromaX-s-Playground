@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3 uid="uid://dq4tp7ykc437w"]
 
-[ext_resource type="Script" path="res://Scenes/HexPlanet/Node/HexUnit.cs" id="1_5uv8s"]
+[ext_resource type="Script" uid="uid://uw7l5w3x1fn6" path="res://Scenes/HexPlanet/Node/HexUnit.cs" id="1_5uv8s"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bhv5k"]
 albedo_color = Color(0.203922, 0.282353, 0.870588, 1)
