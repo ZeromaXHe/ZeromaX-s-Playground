@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util.HexPlaneGrid;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util.HexSphereGrid;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 
@@ -15,11 +15,11 @@ public interface ITileService
 
     event UnitValidateLocationEvent UnitValidateLocation;
 
-    delegate void RefreshTerrainShaderEvent(int unitId);
+    delegate void RefreshTerrainShaderEvent(int tileId);
 
     event RefreshTerrainShaderEvent RefreshTerrainShader;
 
-    delegate void ViewElevationChangedEvent(int unitId);
+    delegate void ViewElevationChangedEvent(int tileId);
 
     event ViewElevationChangedEvent ViewElevationChanged;
 
@@ -50,6 +50,7 @@ public interface ITileService
 
     // 最近邻搜索 Tile id
     int? SearchNearestTileId(Vector3 pos);
+    SphereAxial GetSphereAxial(Tile tile);
 
     float GetHeight(Tile tile);
     float GetHeightById(int id);

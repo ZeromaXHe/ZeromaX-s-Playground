@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://cbelq6g353rvc"]
+[gd_scene load_steps=4 format=3 uid="uid://cbelq6g353rvc"]
 
 [ext_resource type="Script" uid="uid://b8bgqilvr6phu" path="res://Scenes/HexPlanet/HexPlanetHud.cs" id="1_r2qro"]
 [ext_resource type="PackedScene" uid="uid://cau1rm86t1or4" path="res://Scenes/HexPlanet/HexPlanetManager.tscn" id="2_6efwr"]
+[ext_resource type="PackedScene" uid="uid://cpewnyu5aelo4" path="res://Scenes/HexPlanet/Node/MiniMapManager.tscn" id="3_kbj0e"]
 
 [node name="HexPlanetHud" type="Control" node_paths=PackedStringArray("_hexPlanetManager")]
 layout_mode = 3
@@ -375,3 +376,28 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "0"
 editable = false
+
+[node name="RightPanel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -360.0
+offset_bottom = 170.0
+grow_horizontal = 0
+
+[node name="Center" type="CenterContainer" parent="RightPanel"]
+layout_mode = 2
+
+[node name="MiniMap" type="SubViewportContainer" parent="RightPanel/Center"]
+custom_minimum_size = Vector2(350, 160)
+layout_mode = 2
+stretch = true
+
+[node name="SubViewport" type="SubViewport" parent="RightPanel/Center/MiniMap"]
+handle_input_locally = false
+size = Vector2i(350, 160)
+render_target_update_mode = 4
+
+[node name="MiniMapManager" parent="RightPanel/Center/MiniMap/SubViewport" instance=ExtResource("3_kbj0e")]
+unique_name_in_owner = true

@@ -37,7 +37,8 @@ public class Tile(
 
     public int Elevation { get; set; } = GD.RandRange(0, 10);
     public HexEdgeType GetEdgeType(Tile neighbor) => HexMetrics.GetEdgeType(Elevation, neighbor.Elevation);
-    public int TerrainTypeIndex { get; set; } = GD.RandRange(0, 5);
+    // 0 沙漠、1 草原、2 泥地、3 岩石、4 雪地
+    public int TerrainTypeIndex { get; set; } = GD.RandRange(0, 4);
 
     #region 河流
 

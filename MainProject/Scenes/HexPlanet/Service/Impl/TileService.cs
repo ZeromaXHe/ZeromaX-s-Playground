@@ -4,6 +4,7 @@ using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repo;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util.HexSphereGrid;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 
@@ -143,6 +144,8 @@ public class TileService(
         _tilePointVpTree.Search(pos, 1, out var results, out _);
         return pointRepo.GetIdByPosition(results[0]); // Tile id 就是对应 Point id
     }
+
+    public SphereAxial GetSphereAxial(Tile tile) => pointRepo.GetById(tile.CenterId).Coords;
 
     public float GetHeight(Tile tile) => (tile.Elevation + GetPerturbHeight(tile)) * HexMetrics.UnitHeight;
     public float GetHeightById(int id) => GetHeight(GetById(id));

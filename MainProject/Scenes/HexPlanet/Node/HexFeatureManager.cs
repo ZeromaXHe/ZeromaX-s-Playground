@@ -43,6 +43,9 @@ public partial class HexFeatureManager : Node3D
         tower.Rotate(position.Normalized(),
             tower.Basis.X.SignedAngleTo(rightDirection, position.Normalized()));
         _container.AddChild(tower);
+        // 编辑器里大量报错：
+        // ERROR: servers/rendering/renderer_rd/storage_rd/material_storage.cpp:1791 - Condition "global_shader_uniforms.instance_buffer_pos.has(p_instance)" is true. Returning: -1
+        // ERROR: Too many instances using shader instance variables. Increase buffer size in Project Settings.
         tower.SetInstanceShaderParameter("tile_id", tile.Id);
     }
 

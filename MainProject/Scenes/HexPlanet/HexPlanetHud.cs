@@ -1,6 +1,7 @@
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
@@ -21,6 +22,8 @@ public partial class HexPlanetHud : Control
 
     private SubViewportContainer _subViewportContainer;
     private CheckButton _wireframeCheckButton;
+    // 小地图
+    private MiniMapManager _miniMapManager;
 
     // 星球信息
     private TabBar _planetTabBar;
@@ -69,6 +72,8 @@ public partial class HexPlanetHud : Control
     {
         _subViewportContainer = GetNode<SubViewportContainer>("%SubViewportContainer");
         _wireframeCheckButton = GetNode<CheckButton>("%WireframeCheckButton");
+        // 小地图
+        _miniMapManager = GetNode<MiniMapManager>("%MiniMapManager");
         // 星球信息
         _planetTabBar = GetNode<TabBar>("%PlanetTabBar");
         _planetGrid = GetNode<GridContainer>("%PlanetGrid");
@@ -248,11 +253,14 @@ public partial class HexPlanetHud : Control
         SelectTerrain(0);
         UpdateNewPlanetInfo();
         InitSignals();
+
+        _miniMapManager.Init();
     }
 
     private void InitSignals()
     {
         _hexPlanetManager.NewPlanetGenerated += UpdateNewPlanetInfo;
+        _hexPlanetManager.NewPlanetGenerated += _miniMapManager.Init;
 
         _wireframeCheckButton.Toggled += toggle =>
             _hexPlanetManager.GetViewport()

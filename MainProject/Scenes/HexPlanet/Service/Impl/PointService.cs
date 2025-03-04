@@ -189,7 +189,7 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
             var nowLine = Math3dUtil.Subdivide(southEast[i], southWest[i], divisions - i);
             if (i < divisions)
                 addPoint(nowLine[0], new SphereAxial(-divisions * col - i, divisions + i,
-                    SphereAxial.TypeEnum.Edges, col * 6 + 5));
+                    SphereAxial.TypeEnum.EdgesSpecial, col * 6 + 5));
             for (var j = 0; j <= divisions - i; j++)
             {
                 if (j > 0)
