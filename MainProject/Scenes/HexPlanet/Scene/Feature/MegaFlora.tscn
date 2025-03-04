@@ -1,39 +1,94 @@
-[gd_scene load_steps=2 format=3 uid="uid://bv4hm0dcsi308"]
+[gd_scene load_steps=9 format=3 uid="uid://bv4hm0dcsi308"]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l1f6h"]
-albedo_color = Color(0.168627, 0.552941, 0.12549, 1)
+[ext_resource type="Shader" uid="uid://bjtlxgie7wf01" path="res://Shaders/HexPlanet/Feature.gdshader" id="1_ky42j"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_wq0ku"]
+render_priority = 0
+shader = ExtResource("1_ky42j")
+shader_parameter/color = Color(0.168627, 0.552941, 0.12549, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ycuyi"]
+render_priority = 0
+shader = ExtResource("1_ky42j")
+shader_parameter/color = Color(0.168627, 0.552941, 0.12549, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_1ctyn"]
+render_priority = 0
+shader = ExtResource("1_ky42j")
+shader_parameter/color = Color(0.168627, 0.552941, 0.12549, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_0xvts"]
+render_priority = 0
+shader = ExtResource("1_ky42j")
+shader_parameter/color = Color(0.168627, 0.552941, 0.12549, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_2rw1j"]
+render_priority = 0
+shader = ExtResource("1_ky42j")
+shader_parameter/color = Color(0.168627, 0.552941, 0.12549, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_kxhux"]
+render_priority = 0
+shader = ExtResource("1_ky42j")
+shader_parameter/color = Color(0.168627, 0.552941, 0.12549, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_t2o7j"]
+render_priority = 0
+shader = ExtResource("1_ky42j")
+shader_parameter/color = Color(0.168627, 0.552941, 0.12549, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
 
 [node name="MegaFlora" type="CSGBox3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 0)
 size = Vector3(2, 10, 2)
-material = SubResource("StandardMaterial3D_l1f6h")
+material = SubResource("ShaderMaterial_wq0ku")
 
 [node name="Flora1" type="CSGBox3D" parent="."]
 transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, 3, -0.5, 0)
 size = Vector3(1.5, 9, 1.5)
-material = SubResource("StandardMaterial3D_l1f6h")
+material = SubResource("ShaderMaterial_ycuyi")
 
 [node name="Flora2" type="CSGBox3D" parent="."]
 transform = Transform3D(0.866025, 0, 0.5, 0, 1, 0, -0.5, 0, 0.866025, 3, -2.5, 3.5)
 size = Vector3(3, 5, 3)
-material = SubResource("StandardMaterial3D_l1f6h")
+material = SubResource("ShaderMaterial_1ctyn")
 
 [node name="Flora3" type="CSGBox3D" parent="."]
 transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, -3, -1, -2)
 size = Vector3(3, 8, 2)
-material = SubResource("StandardMaterial3D_l1f6h")
+material = SubResource("ShaderMaterial_0xvts")
 
 [node name="Flora4" type="CSGBox3D" parent="."]
 transform = Transform3D(0.866025, 0, 0.5, 0, 1, 0, -0.5, 0, 0.866025, -3, -3, 1)
 size = Vector3(1.5, 4, 1.5)
-material = SubResource("StandardMaterial3D_l1f6h")
+material = SubResource("ShaderMaterial_2rw1j")
 
 [node name="Flora5" type="CSGBox3D" parent="."]
 transform = Transform3D(0.5, 0, 0.866025, 0, 1, 0, -0.866025, 0, 0.5, -1, -1.5, 3)
 size = Vector3(2, 7, 1.5)
-material = SubResource("StandardMaterial3D_l1f6h")
+material = SubResource("ShaderMaterial_kxhux")
 
 [node name="Flora6" type="CSGBox3D" parent="."]
 transform = Transform3D(0.5, 0, 0.866025, 0, 1, 0, -0.866025, 0, 0.5, 1, -2, -3)
 size = Vector3(2, 6, 3)
-material = SubResource("StandardMaterial3D_l1f6h")
+material = SubResource("ShaderMaterial_t2o7j")

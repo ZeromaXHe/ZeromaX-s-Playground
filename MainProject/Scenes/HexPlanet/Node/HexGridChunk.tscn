@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3 uid="uid://b31wafba56bca"]
+[gd_scene load_steps=21 format=3 uid="uid://b31wafba56bca"]
 
 [ext_resource type="Script" uid="uid://blowyxjsrl52c" path="res://Scenes/HexPlanet/Node/HexGridChunk.cs" id="1_tueog"]
 [ext_resource type="PackedScene" uid="uid://dx4v3ulf7tnq" path="res://Scenes/HexPlanet/Node/HexTileLabel.tscn" id="2_puro1"]
@@ -12,6 +12,7 @@
 [ext_resource type="Shader" uid="uid://cxl43pwxofyne" path="res://Shaders/HexPlanet/WaterShore.gdshader" id="7_fod8i"]
 [ext_resource type="Shader" uid="uid://bw8jhtgmmfrep" path="res://Shaders/HexPlanet/Estuary.gdshader" id="8_sg70y"]
 [ext_resource type="PackedScene" uid="uid://b13ifb8lsuuab" path="res://Scenes/HexPlanet/Node/HexFeatureManager.tscn" id="9_11vh8"]
+[ext_resource type="Shader" uid="uid://bv0pfy5qktl25" path="res://Shaders/HexPlanet/Wall.gdshader" id="13_eemjk"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_we61a"]
 render_priority = 0
@@ -62,8 +63,13 @@ shader_parameter/main_tex = ExtResource("4_0ithq")
 shader_parameter/glossiness = 0.5
 shader_parameter/specular = 0.2
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_y7q0c"]
-albedo_color = Color(0.742188, 0, 0, 1)
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ec07q"]
+render_priority = 0
+shader = ExtResource("13_eemjk")
+shader_parameter/color = Color(0.741176, 0, 0, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
 
 [node name="HexGridChunk" type="Node3D" node_paths=PackedStringArray("_terrain", "_rivers", "_roads", "_water", "_waterShore", "_estuary", "_features")]
 script = ExtResource("1_tueog")
@@ -110,7 +116,8 @@ UseUv2Coordinates = true
 _walls = NodePath("../Walls")
 
 [node name="Walls" parent="." instance=ExtResource("2_yhs87")]
-material_override = SubResource("StandardMaterial3D_y7q0c")
+material_override = SubResource("ShaderMaterial_ec07q")
+UseCellData = true
 
 [node name="Labels" type="Node3D" parent="."]
 unique_name_in_owner = true

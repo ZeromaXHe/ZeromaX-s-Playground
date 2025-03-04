@@ -1,8 +1,15 @@
-[gd_scene load_steps=2 format=3 uid="uid://ddxoclskrrkfu"]
+[gd_scene load_steps=3 format=3 uid="uid://ddxoclskrrkfu"]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l1f6h"]
-albedo_color = Color(0.0509804, 0.447059, 0, 1)
+[ext_resource type="Shader" uid="uid://bjtlxgie7wf01" path="res://Shaders/HexPlanet/Feature.gdshader" id="1_06eyy"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sd8si"]
+render_priority = 0
+shader = ExtResource("1_06eyy")
+shader_parameter/color = Color(0.0509804, 0.447059, 0, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
 
 [node name="PlantLow1" type="CSGBox3D"]
 size = Vector3(1, 2, 1)
-material = SubResource("StandardMaterial3D_l1f6h")
+material = SubResource("ShaderMaterial_sd8si")

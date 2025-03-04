@@ -1,13 +1,28 @@
-[gd_scene load_steps=2 format=3 uid="uid://cb3hih1yushe7"]
+[gd_scene load_steps=4 format=3 uid="uid://cb3hih1yushe7"]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l1f6h"]
-albedo_color = Color(1, 0, 0, 1)
+[ext_resource type="Shader" uid="uid://bjtlxgie7wf01" path="res://Shaders/HexPlanet/Feature.gdshader" id="1_7d1gj"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_5e6ea"]
+render_priority = 0
+shader = ExtResource("1_7d1gj")
+shader_parameter/color = Color(1, 0, 0, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_7d1gj"]
+render_priority = 0
+shader = ExtResource("1_7d1gj")
+shader_parameter/color = Color(1, 0, 0, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
 
 [node name="WallTower" type="CSGBox3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
 size = Vector3(2, 4, 2)
-material = SubResource("StandardMaterial3D_l1f6h")
+material = SubResource("ShaderMaterial_5e6ea")
 
 [node name="Top" type="CSGBox3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
-material = SubResource("StandardMaterial3D_l1f6h")
+material = SubResource("ShaderMaterial_7d1gj")

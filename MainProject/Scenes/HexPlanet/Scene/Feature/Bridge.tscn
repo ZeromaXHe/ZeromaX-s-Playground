@@ -1,19 +1,42 @@
-[gd_scene load_steps=2 format=3 uid="uid://b02qcji2dsoxj"]
+[gd_scene load_steps=5 format=3 uid="uid://b02qcji2dsoxj"]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l1f6h"]
-albedo_color = Color(1, 0, 0, 1)
+[ext_resource type="Shader" uid="uid://bjtlxgie7wf01" path="res://Shaders/HexPlanet/Feature.gdshader" id="1_hpfv6"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_24wpr"]
+render_priority = 0
+shader = ExtResource("1_hpfv6")
+shader_parameter/color = Color(1, 0, 0, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_6dcnl"]
+render_priority = 0
+shader = ExtResource("1_hpfv6")
+shader_parameter/color = Color(1, 0, 0, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_qua5l"]
+render_priority = 0
+shader = ExtResource("1_hpfv6")
+shader_parameter/color = Color(1, 0, 0, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
 
 [node name="Bridge" type="CSGBox3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.647119, 0)
 size = Vector3(2, 1, 3)
-material = SubResource("StandardMaterial3D_l1f6h")
+material = SubResource("ShaderMaterial_24wpr")
 
 [node name="LeftArc" type="CSGBox3D" parent="."]
 transform = Transform3D(0.925871, -0.377841, 0, 0.377841, 0.925871, 0, 0, 0, 1, -2.21, -0.531, 0)
 size = Vector3(3, 1, 3)
-material = SubResource("StandardMaterial3D_l1f6h")
+material = SubResource("ShaderMaterial_6dcnl")
 
 [node name="RightArc" type="CSGBox3D" parent="."]
 transform = Transform3D(0.92616, 0.37713, 0, -0.37713, 0.92616, 0, 0, 0, 1, 2.21058, -0.531392, 0)
 size = Vector3(3, 1, 3)
-material = SubResource("StandardMaterial3D_l1f6h")
+material = SubResource("ShaderMaterial_qua5l")

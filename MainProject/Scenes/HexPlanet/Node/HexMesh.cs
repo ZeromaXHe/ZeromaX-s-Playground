@@ -13,7 +13,14 @@ public partial class HexMesh : MeshInstance3D
     [Export] public bool UseUv2Coordinates { get; set; }
     private SurfaceTool _surfaceTool = new();
     private int _vIdx;
-
+    
+    public static readonly Color Weights1 = Colors.Red;
+    public static readonly Color Weights2 = Colors.Green;
+    public static readonly Color Weights3 = Colors.Blue;
+    public static T[] TriArr<T>(T c) => [c, c, c];
+    public static T[] QuadArr<T>(T c) => [c, c, c, c];
+    public static T[] QuadArr<T>(T c1, T c2) => [c1, c1, c2, c2];
+    
     public void Clear()
     {
         // 清理之前的碰撞体

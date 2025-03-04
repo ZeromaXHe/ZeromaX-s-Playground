@@ -34,7 +34,7 @@ public partial class HexFeatureManager : Node3D
 
     public void Apply() => _walls.Apply();
 
-    public void AddTower(Vector3 left, Vector3 right)
+    public void AddTower(Tile tile, Vector3 left, Vector3 right)
     {
         var tower = _wallTowerScene.Instantiate<CsgBox3D>();
         var position = (left + right) * 0.5f;
@@ -43,9 +43,10 @@ public partial class HexFeatureManager : Node3D
         tower.Rotate(position.Normalized(),
             tower.Basis.X.SignedAngleTo(rightDirection, position.Normalized()));
         _container.AddChild(tower);
+        tower.SetInstanceShaderParameter("tile_id", tile.Id);
     }
 
-    public void AddBridge(Vector3 roadCenter1, Vector3 roadCenter2)
+    public void AddBridge(Tile tile, Vector3 roadCenter1, Vector3 roadCenter2)
     {
         roadCenter1 = HexMetrics.Perturb(roadCenter1);
         roadCenter2 = HexMetrics.Perturb(roadCenter2);
@@ -60,6 +61,7 @@ public partial class HexFeatureManager : Node3D
         bridge.Rotate(position.Normalized(),
             bridge.Basis.X.SignedAngleTo(roadCenter2 - roadCenter1, position.Normalized()));
         _container.AddChild(bridge);
+        bridge.SetInstanceShaderParameter("tile_id", tile.Id);
     }
 
     public void AddSpecialFeature(Tile tile, Vector3 position)
@@ -70,6 +72,7 @@ public partial class HexFeatureManager : Node3D
         var hash = HexMetrics.SampleHashGrid(position);
         instance.Rotate(position.Normalized(), hash.E * Mathf.Tau); // 入参 axis 还是得用全局坐标
         _container.AddChild(instance);
+        instance.SetInstanceShaderParameter("tile_id", tile.Id);
     }
 
     public void AddFeature(Tile tile, Vector3 position)
@@ -108,6 +111,7 @@ public partial class HexFeatureManager : Node3D
         Node3dUtil.PlaceOnSphere(instance, position, 0.5f * instance.Size.Y);
         instance.Rotate(position.Normalized(), hash.E * Mathf.Tau); // 入参 axis 还是得用全局坐标
         _container.AddChild(instance);
+        instance.SetInstanceShaderParameter("tile_id", tile.Id);
     }
 
     private PackedScene PickScene(Array<Array<PackedScene>> scenes, int level, float hash, float choice)
@@ -127,19 +131,19 @@ public partial class HexFeatureManager : Node3D
             || nearTile.IsUnderwater || farTile.IsUnderwater
             || nearTile.GetEdgeType(farTile) == HexEdgeType.Cliff)
             return;
-        AddWallSegment(near.V1, far.V1, near.V2, far.V2);
+        AddWallSegment(nearTile, farTile, near.V1, far.V1, near.V2, far.V2);
         if (hasRiver || hasRoad)
         {
-            AddWallCap(near.V2, far.V2);
-            AddWallCap(far.V4, near.V4);
+            AddWallCap(nearTile, near.V2, farTile, far.V2);
+            AddWallCap(farTile, far.V4, nearTile, near.V4);
         }
         else
         {
-            AddWallSegment(near.V2, far.V2, near.V3, far.V3);
-            AddWallSegment(near.V3, far.V3, near.V4, far.V4);
+            AddWallSegment(nearTile, farTile, near.V2, far.V2, near.V3, far.V3);
+            AddWallSegment(nearTile, farTile, near.V3, far.V3, near.V4, far.V4);
         }
 
-        AddWallSegment(near.V4, far.V4, near.V5, far.V5);
+        AddWallSegment(nearTile, farTile, near.V4, far.V4, near.V5, far.V5);
     }
 
     public void AddWall(Vector3 c1, Tile tile1, Vector3 c2, Tile tile2, Vector3 c3,
@@ -166,7 +170,7 @@ public partial class HexFeatureManager : Node3D
             AddWallSegment(c3, tile3, c1, tile1, c2, tile2);
     }
 
-    private void AddWallSegment(Vector3 nearLeft, Vector3 farLeft,
+    private void AddWallSegment(Tile nearTile, Tile farTile, Vector3 nearLeft, Vector3 farLeft,
         Vector3 nearRight, Vector3 farRight, bool addTower = false)
     {
         nearLeft = HexMetrics.Perturb(nearLeft);
@@ -184,17 +188,18 @@ public partial class HexFeatureManager : Node3D
         v2 = v4 = HexMetrics.WallThicknessOffset(nearRight, farRight, true, thickness);
         v3 = Math3dUtil.ProjectToSphere(v3, leftTop);
         v4 = Math3dUtil.ProjectToSphere(v4, rightTop);
-        _walls.AddQuadUnperturbed([v1, v2, v3, v4]);
+        var ids = new Vector3(nearTile.Id, farTile.Id, nearTile.Id);
+        _walls.AddQuadUnperturbed([v1, v2, v3, v4], HexMesh.QuadArr(HexMesh.Weights1), tis: ids);
         Vector3 t1 = v3, t2 = v4;
         v1 = v3 = HexMetrics.WallThicknessOffset(nearLeft, farLeft, false, thickness);
         v2 = v4 = HexMetrics.WallThicknessOffset(nearRight, farRight, false, thickness);
         v3 = Math3dUtil.ProjectToSphere(v3, leftTop);
         v4 = Math3dUtil.ProjectToSphere(v4, rightTop);
-        _walls.AddQuadUnperturbed([v2, v1, v4, v3]);
-        _walls.AddQuadUnperturbed([t1, t2, v3, v4]);
+        _walls.AddQuadUnperturbed([v2, v1, v4, v3], HexMesh.QuadArr(HexMesh.Weights2), tis: ids);
+        _walls.AddQuadUnperturbed([t1, t2, v3, v4], HexMesh.QuadArr(HexMesh.Weights1, HexMesh.Weights2), tis: ids);
 
         if (addTower)
-            AddTower(left, right);
+            AddTower(nearTile, left, right);
     }
 
     // pivot 有墙，left\right 没有墙的情况
@@ -215,23 +220,24 @@ public partial class HexFeatureManager : Node3D
                     hasTower = hash.E < HexMetrics.WallTowerThreshold;
                 }
 
-                AddWallSegment(pivot, left, pivot, right, hasTower);
+                // 这里入参还得观察一下会不会 bug
+                AddWallSegment(pivotTile, leftTile, pivot, left, pivot, right, hasTower);
             }
             else if (leftTile.Elevation < rightTile.Elevation)
-                AddWallWedge(pivot, left, right);
+                AddWallWedge(pivotTile, pivot, leftTile, left, rightTile, right);
             else
-                AddWallCap(pivot, left);
+                AddWallCap(pivotTile, pivot, leftTile, left);
         }
         else if (hasRightWall)
         {
             if (rightTile.Elevation < leftTile.Elevation)
-                AddWallWedge(right, pivot, left);
+                AddWallWedge(rightTile, right, pivotTile, pivot, leftTile, left);
             else
-                AddWallCap(right, pivot);
+                AddWallCap(rightTile, right, pivotTile, pivot);
         }
     }
 
-    private void AddWallCap(Vector3 near, Vector3 far)
+    private void AddWallCap(Tile nearTile, Vector3 near, Tile farTile, Vector3 far)
     {
         near = HexMetrics.Perturb(near);
         far = HexMetrics.Perturb(far);
@@ -244,10 +250,12 @@ public partial class HexFeatureManager : Node3D
         v2 = v4 = HexMetrics.WallThicknessOffset(near, far, false, thickness);
         v3 = Math3dUtil.ProjectToSphere(v3, centerTop);
         v4 = Math3dUtil.ProjectToSphere(v4, centerTop);
-        _walls.AddQuadUnperturbed([v1, v2, v3, v4]);
+        _walls.AddQuadUnperturbed([v1, v2, v3, v4],
+            [HexMesh.Weights1, HexMesh.Weights2, HexMesh.Weights1, HexMesh.Weights2],
+            tis: new Vector3(nearTile.Id, farTile.Id, nearTile.Id));
     }
 
-    private void AddWallWedge(Vector3 near, Vector3 far, Vector3 point)
+    private void AddWallWedge(Tile nearTile, Vector3 near, Tile farTile, Vector3 far, Tile pointTile, Vector3 point)
     {
         near = HexMetrics.Perturb(near);
         far = HexMetrics.Perturb(far);
@@ -263,8 +271,12 @@ public partial class HexFeatureManager : Node3D
         v2 = v4 = HexMetrics.WallThicknessOffset(near, far, false, thickness);
         v3 = Math3dUtil.ProjectToSphere(v3, centerTop);
         v4 = Math3dUtil.ProjectToSphere(v4, centerTop);
-        _walls.AddQuadUnperturbed([v1, point, v3, pointTop]);
-        _walls.AddQuadUnperturbed([point, v2, pointTop, v4]);
-        _walls.AddTriangleUnperturbed([pointTop, v3, v4]);
+        var ids = new Vector3(nearTile.Id, farTile.Id, pointTile.Id);
+        _walls.AddQuadUnperturbed([v1, point, v3, pointTop],
+            [HexMesh.Weights1, HexMesh.Weights3, HexMesh.Weights1, HexMesh.Weights3], tis: ids);
+        _walls.AddQuadUnperturbed([point, v2, pointTop, v4],
+            [HexMesh.Weights2, HexMesh.Weights3, HexMesh.Weights2, HexMesh.Weights3], tis: ids);
+        _walls.AddTriangleUnperturbed([pointTop, v3, v4],
+            [HexMesh.Weights3, HexMesh.Weights1, HexMesh.Weights2], tis: ids);
     }
 }

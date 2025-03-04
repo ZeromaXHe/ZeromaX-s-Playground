@@ -1,19 +1,42 @@
-[gd_scene load_steps=2 format=3 uid="uid://cvgqxn1cv5one"]
+[gd_scene load_steps=5 format=3 uid="uid://cvgqxn1cv5one"]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l1f6h"]
-albedo_color = Color(1, 0, 0, 1)
+[ext_resource type="Shader" uid="uid://bjtlxgie7wf01" path="res://Shaders/HexPlanet/Feature.gdshader" id="1_4lshx"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_yuytr"]
+render_priority = 0
+shader = ExtResource("1_4lshx")
+shader_parameter/color = Color(1, 0, 0, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_4lshx"]
+render_priority = 0
+shader = ExtResource("1_4lshx")
+shader_parameter/color = Color(1, 0, 0, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_nlgb5"]
+render_priority = 0
+shader = ExtResource("1_4lshx")
+shader_parameter/color = Color(1, 0, 0, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
 
 [node name="Ziggurat" type="CSGBox3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, 0)
 size = Vector3(8, 2.5, 8)
-material = SubResource("StandardMaterial3D_l1f6h")
+material = SubResource("ShaderMaterial_yuytr")
 
 [node name="Mid" type="CSGBox3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
 size = Vector3(5, 1.5, 5)
-material = SubResource("StandardMaterial3D_l1f6h")
+material = SubResource("ShaderMaterial_4lshx")
 
 [node name="Top" type="CSGBox3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.25, 0)
 size = Vector3(2, 1, 2)
-material = SubResource("StandardMaterial3D_l1f6h")
+material = SubResource("ShaderMaterial_nlgb5")
