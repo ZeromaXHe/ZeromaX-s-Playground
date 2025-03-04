@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util.HexPlaneGrid;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 
@@ -73,7 +74,6 @@ public interface ITileService
     Vector3 GetSecondSolidCorner(Tile tile, int idx, float radius = 1f, float size = 1f);
     Vector3 GetEdgeMiddle(Tile tile, int idx, float radius = 1f, float size = 1f);
     Vector3 GetSolidEdgeMiddle(Tile tile, int idx, float radius = 1f, float size = 1f);
-    Vector3 GetCenter(Tile tile, float radius);
 
     #region 邻居
 

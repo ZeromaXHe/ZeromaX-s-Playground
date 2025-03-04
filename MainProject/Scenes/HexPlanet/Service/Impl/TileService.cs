@@ -160,7 +160,7 @@ public class TileService(
     public void InitTiles()
     {
         var time = Time.GetTicksMsec();
-        foreach (var point in pointRepo.GetAll())
+        foreach (var point in pointRepo.GetAll()) // 虽然没有排序，但好像默认也有顺序？不过不能依赖这一点
         {
             var hexFaces = GetOrderedFaces(point);
             var neighborCenters = GetNeighbourCenterIds(hexFaces, point)
@@ -256,9 +256,6 @@ public class TileService(
 
     public Vector3 GetSolidEdgeMiddle(Tile tile, int idx, float radius = 1f, float size = 1f) =>
         GetEdgeMiddle(tile, idx, radius, size * HexMetrics.SolidFactor);
-
-    public Vector3 GetCenter(Tile tile, float radius) =>
-        Math3dUtil.ProjectToSphere(pointRepo.GetById(tile.CenterId).Position, radius);
 
     #region 邻居
 

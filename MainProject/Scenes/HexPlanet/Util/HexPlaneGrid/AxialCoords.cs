@@ -12,7 +12,7 @@ public readonly struct AxialCoords(int q, int r)
 {
     public readonly int Q = q;
     public readonly int R = r;
-
+    public override string ToString() => $"({Q}, {R})";
     public static readonly AxialCoords Error = new(int.MinValue, int.MinValue);
 
     private static readonly AxialCoords[] DirVectors =
@@ -33,7 +33,7 @@ public readonly struct AxialCoords(int q, int r)
     public static AxialCoords operator *(AxialCoords a, int scale) => new(a.Q * scale, a.R * scale);
     public static AxialCoords operator *(int scale, AxialCoords a) => new(a.Q * scale, a.R * scale);
 
-    // 顺时针旋转
+    // 顺时针旋转 60 度
     public AxialCoords RotateRight() => new(-R, Q + R);
 
     public AxialCoords RotateRightAround(AxialCoords pivot)
@@ -42,7 +42,7 @@ public readonly struct AxialCoords(int q, int r)
         return pivot + vec.RotateRight();
     }
 
-    // 逆时针旋转
+    // 逆时针旋转 60 度
     public AxialCoords RotateLeft() => new(Q + R, -Q);
 
     public AxialCoords RotateLeftAround(AxialCoords pivot)
@@ -192,7 +192,8 @@ public readonly struct AxialCoords(int q, int r)
     // 像素位置转为顶点朝上的六边形坐标
     public AxialCoords FromPointyTopPixel(Vector2 point, float size = 1f) =>
         RoundVec2(new Vector2(Sqrt3 / 3f * point.X - point.Y / 3f, 2f / 3f * point.Y) / size);
+
     // 像素位置转为平边朝上的六边形坐标
     public AxialCoords FromFlatTopPixel(Vector2 point, float size = 1f) =>
-        RoundVec2(new Vector2(2f / 3f * point.X, - point.X / 3f + Sqrt3 / 3f * point.Y) / size);
+        RoundVec2(new Vector2(2f / 3f * point.X, -point.X / 3f + Sqrt3 / 3f * point.Y) / size);
 }

@@ -2,9 +2,9 @@ using System;
 using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Constant;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Enum;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repo;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util.HexSphereGrid;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 
@@ -13,12 +13,11 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
 {
     public void Truncate() => pointRepo.Truncate();
 
-    // 切记 pointRepo 的数据相当于存储 Tile 生成前的准备工作，Tile 生成后即可释放全部 Point
     public void SubdivideIcosahedronForTiles(int divisions)
     {
         var time = Time.GetTicksMsec();
         SubdivideIcosahedron(divisions,
-            (v, type, typeIdx) => pointRepo.Add(v, type, typeIdx),
+            (v, coords) => pointRepo.Add(v, coords),
             v => faceService.Add(v));
         InitPointFaceIds();
         GD.Print($"SubdivideIcosahedron cost: {Time.GetTicksMsec() - time} ms");
@@ -36,14 +35,15 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
     }
 
     // 初始化 Point 和 Face
-    public void SubdivideIcosahedron(int divisions, Action<Vector3, TileType, int> addPoint,
+    public void SubdivideIcosahedron(int divisions, Action<Vector3, SphereAxial> addPoint,
         Action<Vector3[]> addFace = null)
     {
         var pn = IcosahedronConstants.Vertices[0]; // 北极点
         var ps = IcosahedronConstants.Vertices[6]; // 南极点
-        addPoint(pn, TileType.PoleVertices, 0);
-        addPoint(ps, TileType.PoleVertices, 1);
-        var edges = GenEdgeVectors(divisions, pn, ps, addPoint);
+        // 轴坐标系（0,0）放在第一组竖列四面的北回归线最东端
+        addPoint(pn, new SphereAxial(0, -divisions, SphereAxial.TypeEnum.PoleVertices, 0));
+        addPoint(ps, new SphereAxial(-divisions, 2 * divisions, SphereAxial.TypeEnum.PoleVertices, 1));
+        var edges = GenEdgeVectors(divisions, pn, ps);
         for (var col = 0; col < 5; col++)
         {
             InitNorthTriangle(edges, col, divisions, addPoint, addFace);
@@ -52,7 +52,7 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
         }
     }
 
-    private Vector3[][] GenEdgeVectors(int divisions, Vector3 pn, Vector3 ps, Action<Vector3, TileType, int> addPoint)
+    private Vector3[][] GenEdgeVectors(int divisions, Vector3 pn, Vector3 ps)
     {
         var points = IcosahedronConstants.Vertices;
         var indices = IcosahedronConstants.Indices;
@@ -79,7 +79,7 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
 
     // 构造北部的第一个面
     private static void InitNorthTriangle(Vector3[][] edges, int col, int divisions,
-        Action<Vector3, TileType, int> addPoint, Action<Vector3[]> addFace)
+        Action<Vector3, SphereAxial> addPoint, Action<Vector3[]> addFace)
     {
         var nextCol = (col + 1) % 5;
         var northEast = edges[col * 6]; // 北极出来的靠东的边界
@@ -92,18 +92,21 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
                 ? tropicOfCancer
                 : Math3dUtil.Subdivide(northEast[i], northWest[i], i);
             if (i == divisions)
-                addPoint(nowLine[0], TileType.MidVertices, col * 2);
+                addPoint(nowLine[0], new SphereAxial(-divisions * col, 0, SphereAxial.TypeEnum.MidVertices, col * 2));
             else
-                addPoint(nowLine[0], TileType.Edges, col * 6);
+                addPoint(nowLine[0],
+                    new SphereAxial(-divisions * col, i - divisions, SphereAxial.TypeEnum.EdgesSpecial, col * 6));
             for (var j = 0; j < i; j++)
             {
                 if (j > 0)
                 {
                     addFace?.Invoke([nowLine[j], preLine[j], preLine[j - 1]]);
                     if (i == divisions)
-                        addPoint(nowLine[j], TileType.Edges, col * 6 + 1);
+                        addPoint(nowLine[j], new SphereAxial(-divisions * col - j, 0,
+                            j == i - 1 ? SphereAxial.TypeEnum.EdgesSpecial : SphereAxial.TypeEnum.Edges, col * 6 + 1));
                     else
-                        addPoint(nowLine[j], TileType.Faces, col * 4);
+                        addPoint(nowLine[j], new SphereAxial(-divisions * col - j, i - divisions,
+                            j == i - 1 ? SphereAxial.TypeEnum.FacesSpecial : SphereAxial.TypeEnum.Faces, col * 4));
                 }
 
                 addFace?.Invoke([preLine[j], nowLine[j], nowLine[j + 1]]);
@@ -115,7 +118,7 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
 
     // 赤道两个面（第二、三面）的构造
     private static void InitEquatorTwoTriangles(Vector3[][] edges, int col, int divisions,
-        Action<Vector3, TileType, int> addPoint, Action<Vector3[]> addFace)
+        Action<Vector3, SphereAxial> addPoint, Action<Vector3[]> addFace)
     {
         var nextCol = (col + 1) % 5;
         var equatorWest = edges[nextCol * 6 + 3]; // 向东南方斜跨赤道的靠西的边界
@@ -131,19 +134,21 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
                 : Math3dUtil.Subdivide(equatorEast[i], equatorMid[i], i);
             var nowLineWest = Math3dUtil.Subdivide(equatorMid[i], equatorWest[i], divisions - i);
             // 构造东边面（第三面）
-            if (i == divisions)
-                addPoint(nowLineEast[0], TileType.MidVertices, col * 2 + 1);
-            else
-                addPoint(nowLineEast[0], TileType.Edges, col * 6 + 3);
+            addPoint(nowLineEast[0],
+                i == divisions
+                    ? new SphereAxial(-divisions * col, i, SphereAxial.TypeEnum.MidVertices, col * 2 + 1)
+                    : new SphereAxial(-divisions * col, i, SphereAxial.TypeEnum.Edges, col * 6 + 3));
             for (var j = 0; j < i; j++)
             {
                 if (j > 0)
                 {
                     addFace?.Invoke([nowLineEast[j], preLineEast[j], preLineEast[j - 1]]);
                     if (i == divisions)
-                        addPoint(nowLineEast[j], TileType.Edges, col * 6 + 4);
+                        addPoint(nowLineEast[j], new SphereAxial(-divisions * col - j, i,
+                            j == i - 1 ? SphereAxial.TypeEnum.EdgesSpecial : SphereAxial.TypeEnum.Edges, col * 6 + 4));
                     else
-                        addPoint(nowLineEast[j], TileType.Faces, col * 4 + 2);
+                        addPoint(nowLineEast[j], new SphereAxial(
+                            -divisions * col - j, i, SphereAxial.TypeEnum.Faces, col * 4 + 2));
                 }
 
                 addFace?.Invoke([preLineEast[j], nowLineEast[j], nowLineEast[j + 1]]);
@@ -151,14 +156,16 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
 
             // 构造西边面（第二面）
             if (i < divisions)
-                addPoint(nowLineWest[0], TileType.Edges, col * 6 + 2);
+                addPoint(nowLineWest[0],
+                    new SphereAxial(-divisions * col - i, i, SphereAxial.TypeEnum.Edges, col * 6 + 2));
             for (var j = 0; j <= divisions - i; j++)
             {
                 if (j > 0)
                 {
                     addFace?.Invoke([preLineWest[j], nowLineWest[j - 1], nowLineWest[j]]);
                     if (j < divisions - i)
-                        addPoint(nowLineWest[j], TileType.Faces, col * 4 + 1);
+                        addPoint(nowLineWest[j], new SphereAxial(-divisions * col - i - j, i,
+                            SphereAxial.TypeEnum.Faces, col * 4 + 1));
                 }
 
                 addFace?.Invoke([nowLineWest[j], preLineWest[j + 1], preLineWest[j]]);
@@ -171,7 +178,7 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
 
     // 构造南部的最后一面（列的第四面）
     private static void InitSouthTriangle(Vector3[][] edges, int col, int divisions,
-        Action<Vector3, TileType, int> addPoint, Action<Vector3[]> addFace)
+        Action<Vector3, SphereAxial> addPoint, Action<Vector3[]> addFace)
     {
         var nextCol = (col + 1) % 5;
         var southWest = edges[nextCol * 6 + 5]; // 向南方连接南极的靠西的边界
@@ -181,14 +188,17 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
         {
             var nowLine = Math3dUtil.Subdivide(southEast[i], southWest[i], divisions - i);
             if (i < divisions)
-                addPoint(nowLine[0], TileType.Edges, col * 6 + 5);
+                addPoint(nowLine[0], new SphereAxial(-divisions * col - i, divisions + i,
+                    SphereAxial.TypeEnum.Edges, col * 6 + 5));
             for (var j = 0; j <= divisions - i; j++)
             {
                 if (j > 0)
                 {
                     addFace?.Invoke([preLine[j], nowLine[j - 1], nowLine[j]]);
                     if (j < divisions - i)
-                        addPoint(nowLine[j], TileType.Faces, col * 4 + 3);
+                        addPoint(nowLine[j], new SphereAxial(-divisions * col - i - j, divisions + i,
+                            j == divisions - i - 1 ? SphereAxial.TypeEnum.FacesSpecial : SphereAxial.TypeEnum.Faces,
+                            col * 4 + 3));
                 }
 
                 addFace?.Invoke([nowLine[j], preLine[j + 1], preLine[j]]);

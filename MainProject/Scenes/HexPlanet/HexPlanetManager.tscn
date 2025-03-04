@@ -56,7 +56,7 @@ disable_receive_shadows = true
 [node name="HexPlanetManager" type="Node3D"]
 script = ExtResource("1_414p1")
 Divisions = 10
-ChunkDivisions = 1
+ChunkDivisions = 2
 _noiseSource = ExtResource("2_w1eb8")
 _gridChunkScene = ExtResource("3_8r8o6")
 _unitScene = ExtResource("4_558l3")
