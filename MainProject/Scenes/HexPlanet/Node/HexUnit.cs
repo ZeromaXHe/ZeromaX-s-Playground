@@ -120,6 +120,7 @@ public partial class HexUnit : CsgBox3D
         var toTile = _path.Tiles[^1];
         _tileService.SetUnitId(toTile, Id);
         _unitService.GetById(Id).TileId = toTile.Id;
+        _tileId = toTile.Id;
     }
 
     public void FinishPath()
