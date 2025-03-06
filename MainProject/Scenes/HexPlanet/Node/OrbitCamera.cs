@@ -90,44 +90,62 @@ public partial class OrbitCamera : Node3D
             Reset();
     }
 
+    private const float MouseMoveSensitivity = 0.01f;
+
     public override void _Process(double delta)
     {
         if (Engine.IsEditorHint()) return;
+        var floatDelta = (float)delta;
         // 旋转
-        var rotationDelta = (float)delta * Input.GetAxis("cam_rotate_left", "cam_rotate_right");
-        if (rotationDelta != 0f)
-        {
-            _focusBackStick.RotateY(Mathf.DegToRad(rotationDelta * _rotationSpeed));
-            Zoom = _zoom; // 更新 FocusBackStick 方向
-        }
-
+        var rotationDelta = floatDelta * Input.GetAxis("cam_rotate_left", "cam_rotate_right");
+        RotateCamera(rotationDelta);
         // 移动
         var xDelta = Input.GetAxis("cam_move_left", "cam_move_right");
         var zDelta = Input.GetAxis("cam_move_forward", "cam_move_back");
-        if (xDelta != 0f || zDelta != 0f)
+        MoveCamera(xDelta, zDelta, floatDelta);
+        if (Input.IsMouseButtonPressed(MouseButton.Middle))
         {
-            var direction = (Vector3.Right * xDelta + Vector3.Back * zDelta).Normalized();
-            var damping = Mathf.Max(Mathf.Abs(xDelta), Mathf.Abs(zDelta));
-            var distance = Mathf.Lerp(_moveSpeedMinZoom, _moveSpeedMaxZoom, Zoom) * Radius
-                * _antiStuckSpeedMultiplier * damping * (float)delta;
-            var target = _focusBase.GlobalPosition - GlobalPosition +
-                         _focusBackStick.GlobalBasis * (direction * distance);
-            // 现在在速度很慢，半径很大的时候，容易在南北极卡住（游戏开始后，只按 WS 即可走到南北极）
-            // 所以检查一下按下移动键后，是否没能真正移动。如果没移动，则每帧放大速度 1.5 倍
-            var prePos = _focusBase.GlobalPosition;
-            LookAt(target, _focusBase.GlobalBasis.Z);
-            _antiStuckSpeedMultiplier = prePos.IsEqualApprox(_focusBase.GlobalPosition)
-                ? _antiStuckSpeedMultiplier * 1.5f
-                : 1f;
+            xDelta = -Input.GetLastMouseVelocity().X * MouseMoveSensitivity;
+            zDelta = -Input.GetLastMouseVelocity().Y * MouseMoveSensitivity;
+            MoveCamera(xDelta, zDelta, (float)delta);
         }
 
         // 根据相对于全局太阳光的位置，控制灯光亮度
-        if (!Engine.IsEditorHint() && _sun != null)
-        {
-            var lightSunAngle = _light.GlobalPosition.AngleTo(_sun.GlobalPosition);
-            // 从 60 度开始到 120 度之间，灯光亮度逐渐从 0 增加到 1
-            _light.LightEnergy = Mathf.Clamp((lightSunAngle - Mathf.Pi / 3) / (Mathf.Pi / 3), 0f, 1f);
-        }
+        if (_sun == null)
+            return;
+        var lightSunAngle = _light.GlobalPosition.AngleTo(_sun.GlobalPosition);
+        // 从 60 度开始到 120 度之间，灯光亮度逐渐从 0 增加到 1
+        _light.LightEnergy = Mathf.Clamp((lightSunAngle - Mathf.Pi / 3) / (Mathf.Pi / 3), 0f, 1f);
+    }
+
+    private bool RotateCamera(float rotationDelta)
+    {
+        // 旋转
+        if (rotationDelta == 0f)
+            return false;
+        _focusBackStick.RotateY(Mathf.DegToRad(rotationDelta * _rotationSpeed));
+        Zoom = _zoom; // 更新 FocusBackStick 方向
+        return true;
+    }
+
+    private bool MoveCamera(float xDelta, float zDelta, float delta)
+    {
+        if (xDelta == 0f && zDelta == 0f)
+            return false;
+        var direction = (Vector3.Right * xDelta + Vector3.Back * zDelta).Normalized();
+        var damping = Mathf.Max(Mathf.Abs(xDelta), Mathf.Abs(zDelta));
+        var distance = Mathf.Lerp(_moveSpeedMinZoom, _moveSpeedMaxZoom, Zoom)
+                       * Radius * _antiStuckSpeedMultiplier * damping * delta;
+        var target = _focusBase.GlobalPosition - GlobalPosition +
+                     _focusBackStick.GlobalBasis * (direction * distance);
+        // 现在在速度很慢，半径很大的时候，容易在南北极卡住（游戏开始后，只按 WS 即可走到南北极）
+        // 所以检查一下按下移动键后，是否没能真正移动。如果没移动，则每帧放大速度 1.5 倍
+        var prePos = _focusBase.GlobalPosition;
+        LookAt(target, _focusBase.GlobalBasis.Z);
+        _antiStuckSpeedMultiplier = prePos.IsEqualApprox(_focusBase.GlobalPosition)
+            ? _antiStuckSpeedMultiplier * 1.5f
+            : 1f;
+        return true;
     }
 
     public override void _UnhandledInput(InputEvent @event)

@@ -27,7 +27,7 @@ public class TileSearchService(ITileService tileService) : ITileSearchService
         if (!useCache || fromTile.Id != _currentPathFromId || toTile.Id != _currentPathToId)
         {
             HasPath = IsValidDestination(toTile) && SearchPath(fromTile, toTile);
-            GD.Print($"SearchPath from {fromTile.Id} to {toTile.Id} result: {HasPath}");
+            // GD.Print($"SearchPath from {fromTile.Id} to {toTile.Id} result: {HasPath}");
         }
         _currentPathFromId = fromTile.Id;
         _currentPathToId = toTile.Id;
