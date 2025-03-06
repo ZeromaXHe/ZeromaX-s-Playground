@@ -1,3 +1,4 @@
+using System.Linq;
 using Godot;
 using Godot.Collections;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
@@ -24,6 +25,24 @@ public partial class HexFeatureManager : Node3D
 
     private Node3D _container;
 
+    private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.List<Node3D>>
+        _unexploredContainer = new();
+
+    public void ExploreFeatures(int tileId)
+    {
+        if (!_unexploredContainer.TryGetValue(tileId, out var list) || list is not { Count: > 0 }) return;
+        foreach (var unexplored in list)
+            unexplored.Visible = true;
+        _unexploredContainer.Remove(tileId);
+    }
+
+    public void ShowUnexploredFeatures(bool show)
+    {
+        if (_unexploredContainer.Count <= 0) return;
+        foreach (var feature in _unexploredContainer.Values.SelectMany(list => list))
+            feature.Visible = show;
+    }
+
     public void Clear()
     {
         _container?.QueueFree();
@@ -43,10 +62,15 @@ public partial class HexFeatureManager : Node3D
         tower.Rotate(position.Normalized(),
             tower.Basis.X.SignedAngleTo(rightDirection, position.Normalized()));
         _container.AddChild(tower);
-        // 编辑器里大量报错：
+        if (tile.Explored) return;
+        if (_unexploredContainer.TryGetValue(tile.Id, out var list))
+            list.Add(tower);
+        else
+            _unexploredContainer.Add(tile.Id, [tower]);
+        // 不能采用 instance shader uniform 的解决方案，编辑器里会大量报错：
         // ERROR: servers/rendering/renderer_rd/storage_rd/material_storage.cpp:1791 - Condition "global_shader_uniforms.instance_buffer_pos.has(p_instance)" is true. Returning: -1
         // ERROR: Too many instances using shader instance variables. Increase buffer size in Project Settings.
-        tower.SetInstanceShaderParameter("tile_id", tile.Id);
+        // tower.SetInstanceShaderParameter("tile_id", tile.Id);
     }
 
     public void AddBridge(Tile tile, Vector3 roadCenter1, Vector3 roadCenter2)
@@ -64,7 +88,11 @@ public partial class HexFeatureManager : Node3D
         bridge.Rotate(position.Normalized(),
             bridge.Basis.X.SignedAngleTo(roadCenter2 - roadCenter1, position.Normalized()));
         _container.AddChild(bridge);
-        bridge.SetInstanceShaderParameter("tile_id", tile.Id);
+        if (tile.Explored) return;
+        if (_unexploredContainer.TryGetValue(tile.Id, out var list))
+            list.Add(bridge);
+        else
+            _unexploredContainer.Add(tile.Id, [bridge]);
     }
 
     public void AddSpecialFeature(Tile tile, Vector3 position)
@@ -75,7 +103,11 @@ public partial class HexFeatureManager : Node3D
         var hash = HexMetrics.SampleHashGrid(position);
         instance.Rotate(position.Normalized(), hash.E * Mathf.Tau); // 入参 axis 还是得用全局坐标
         _container.AddChild(instance);
-        instance.SetInstanceShaderParameter("tile_id", tile.Id);
+        if (tile.Explored) return;
+        if (_unexploredContainer.TryGetValue(tile.Id, out var list))
+            list.Add(instance);
+        else
+            _unexploredContainer.Add(tile.Id, [instance]);
     }
 
     public void AddFeature(Tile tile, Vector3 position)
@@ -114,10 +146,14 @@ public partial class HexFeatureManager : Node3D
         Node3dUtil.PlaceOnSphere(instance, position, 0.5f * instance.Size.Y);
         instance.Rotate(position.Normalized(), hash.E * Mathf.Tau); // 入参 axis 还是得用全局坐标
         _container.AddChild(instance);
-        instance.SetInstanceShaderParameter("tile_id", tile.Id);
+        if (tile.Explored) return;
+        if (_unexploredContainer.TryGetValue(tile.Id, out var list))
+            list.Add(instance);
+        else
+            _unexploredContainer.Add(tile.Id, [instance]);
     }
 
-    private PackedScene PickScene(Array<Array<PackedScene>> scenes, int level, float hash, float choice)
+    private static PackedScene PickScene(Array<Array<PackedScene>> scenes, int level, float hash, float choice)
     {
         if (level <= 0) return null;
         var thresholds = HexMetrics.GetFeatureThreshold(level - 1);

@@ -1,16 +1,9 @@
-[gd_scene load_steps=3 format=3 uid="uid://bkhxoy2yl4ite"]
+[gd_scene load_steps=2 format=3 uid="uid://bkhxoy2yl4ite"]
 
-[ext_resource type="Shader" uid="uid://bjtlxgie7wf01" path="res://Shaders/HexPlanet/Feature.gdshader" id="1_f25mq"]
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_d5dbx"]
-render_priority = 0
-shader = ExtResource("1_f25mq")
-shader_parameter/color = Color(0.67451, 0.866667, 0.12549, 1)
-shader_parameter/glossiness = 0.5
-shader_parameter/specular = 0.2
-shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l1f6h"]
+albedo_color = Color(0.67451, 0.866667, 0.12549, 1)
 
 [node name="FarmLow2" type="CSGBox3D"]
 cast_shadow = 0
 size = Vector3(1.5, 0.1, 0.75)
-material = SubResource("ShaderMaterial_d5dbx")
+material = SubResource("StandardMaterial3D_l1f6h")

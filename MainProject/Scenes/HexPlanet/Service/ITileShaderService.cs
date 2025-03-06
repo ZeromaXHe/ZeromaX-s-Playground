@@ -4,6 +4,9 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 
 public interface ITileShaderService
 {
+    delegate void TileExploredEvent(int tileId);
+
+    event TileExploredEvent TileExplored;
     void Initialize();
     void RefreshTerrain(int tileId);
     void RefreshVisibility(int tileId);

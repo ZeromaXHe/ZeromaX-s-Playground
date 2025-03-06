@@ -42,11 +42,14 @@ public partial class HexGridChunk : Node3D
 
     private IChunkService _chunkService;
     private ITileService _tileService;
+    private ITileShaderService _tileShaderService;
 
     private void InitServices()
     {
         _chunkService = Context.GetBean<IChunkService>();
         _tileService = Context.GetBean<ITileService>();
+        _tileShaderService = Context.GetBean<ITileShaderService>();
+        _tileShaderService.TileExplored += ExploreFeatures;
     }
 
     #endregion
@@ -57,6 +60,8 @@ public partial class HexGridChunk : Node3D
         InitLabels();
         Refresh();
     }
+
+    private void ExploreFeatures(int tileId) => _features.ExploreFeatures(tileId);
 
     private void InitLabels()
     {
@@ -121,9 +126,8 @@ public partial class HexGridChunk : Node3D
     }
 
     public void Refresh() => SetProcess(true);
-
-    public void ShowUi(bool show) =>
-        _labels.Visible = show;
+    public void ShowUi(bool show) => _labels.Visible = show;
+    public void ShowUnexploredFeatures(bool show) => _features.ShowUnexploredFeatures(show);
 
     private void Triangulate(Tile tile)
     {

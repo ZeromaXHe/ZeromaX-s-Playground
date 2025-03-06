@@ -326,7 +326,10 @@ public partial class HexPlanetManager : Node3D
         PathFromTileId = 0;
         UpdateSelectTileViewer();
         foreach (var gridChunk in _gridChunks.Values)
+        {
             gridChunk.ShowUi(!mode); // 游戏模式下才显示地块 UI
+            gridChunk.ShowUnexploredFeatures(mode);
+        }
     }
 
     public void FindPath(Tile tile)

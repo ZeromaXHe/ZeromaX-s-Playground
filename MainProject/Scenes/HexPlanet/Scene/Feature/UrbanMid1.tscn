@@ -1,15 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://bk67vbh7aa8lv"]
+[gd_scene load_steps=2 format=3 uid="uid://bk67vbh7aa8lv"]
 
-[ext_resource type="Shader" uid="uid://bjtlxgie7wf01" path="res://Shaders/HexPlanet/Feature.gdshader" id="1_tgqiq"]
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_ut752"]
-render_priority = 0
-shader = ExtResource("1_tgqiq")
-shader_parameter/color = Color(1, 0, 0, 1)
-shader_parameter/glossiness = 0.5
-shader_parameter/specular = 0.2
-shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l1f6h"]
+albedo_color = Color(1, 0, 0, 1)
 
 [node name="UrbanMid1" type="CSGBox3D"]
 size = Vector3(1.5, 2, 1.5)
-material = SubResource("ShaderMaterial_ut752")
+material = SubResource("StandardMaterial3D_l1f6h")

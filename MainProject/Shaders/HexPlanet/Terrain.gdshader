@@ -38,6 +38,10 @@ void vertex() {
 	visibility.z = cell2.x;
 	visibility.xyz = mix(vec3(0.25), vec3(1.0), visibility.xyz);
 	visibility.w = cell0.y * COLOR.x + cell1.y * COLOR.y + cell2.y * COLOR.z; // y: 已探索
+	
+	// 将未探索地块高度放大到最大高度，防止特征显现
+	float len = length(VERTEX);
+	VERTEX = VERTEX / len * mix(len, radius + max_height, 1. - visibility.w);
 }
 
 vec4 GetTerrainColor(vec3 world_pos, int index, vec4 weights, vec4 inVisibility) {

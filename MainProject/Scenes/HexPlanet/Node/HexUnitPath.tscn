@@ -40,7 +40,7 @@ script = ExtResource("1_3kd1s")
 
 [node name="PathFollow3D" type="PathFollow3D" parent="."]
 unique_name_in_owner = true
-transform = Transform3D(7.40056e-08, 0.196113, 0.980568, -7.45036e-09, 0.980567, -0.196114, -0.999971, 7.20813e-09, 7.40308e-08, 1, 0, 0)
+transform = Transform3D(7.40056e-08, 0.196113, 0.980568, -7.45036e-09, 0.980567, -0.196114, -0.999971, 7.20812e-09, 7.40308e-08, 1, 0, 0)
 loop = false
 
 [node name="RemoteTransform3D" type="RemoteTransform3D" parent="PathFollow3D"]
@@ -76,6 +76,7 @@ path_interval_type = 0
 path_interval = 1.0
 path_simplify_angle = 0.0
 path_rotation = 2
+path_rotation_accurate = false
 path_local = true
 path_continuous_u = true
 path_u_distance = 5.0

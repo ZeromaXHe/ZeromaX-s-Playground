@@ -7,6 +7,8 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 
 public class TileShaderService : ITileShaderService
 {
+    public event ITileShaderService.TileExploredEvent TileExplored;
+
     private readonly ITileService _tileService;
     private readonly ITileSearchService _tileSearchService;
     private readonly IUnitService _unitService;
@@ -159,6 +161,7 @@ public class TileShaderService : ITileShaderService
         {
             tile.Explored = true;
             RefreshVisibility(tile.Id);
+            TileExplored?.Invoke(tile.Id);
         }
     }
 
