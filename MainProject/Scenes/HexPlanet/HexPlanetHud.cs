@@ -9,6 +9,8 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 
 public partial class HexPlanetHud : Control
 {
+    public HexPlanetHud() => InitServices();
+    
     enum OptionalToggle
     {
         Ignore,
@@ -247,7 +249,6 @@ public partial class HexPlanetHud : Control
     public override void _Ready()
     {
         InitOnReadyNodes();
-        InitServices();
 
         SetEditMode(_editCheckButton.ButtonPressed);
         SelectTerrain(0);

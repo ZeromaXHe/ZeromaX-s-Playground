@@ -15,16 +15,33 @@ public class TileSearchService(ITileService tileService) : ITileSearchService
     private int _currentPathFromId = -1;
     private int _currentPathToId = -1;
 
-    public bool HasPath { get; private set; } = false;
+    public bool HasPath { get; private set; }
 
-    public void InitSearchData(int tileCount) => _searchData = new TileSearchData[tileCount + 1];
+    public void InitSearchData() => _searchData = new TileSearchData[tileService.GetCount() + 1];
     public void RefreshTileSearchData(int tileId) => _searchData[tileId].SearchPhase = 0;
 
     private const int UnitSpeed = 24;
 
-    public void FindPath(Tile fromTile, Tile toTile)
+    public List<Tile> FindPath(Tile fromTile, Tile toTile, bool useCache = false)
     {
-        
+        if (!useCache || fromTile.Id != _currentPathFromId || toTile.Id != _currentPathToId)
+        {
+            HasPath = SearchPath(fromTile, toTile);
+            GD.Print($"SearchPath from {fromTile.Id} to {toTile.Id} result: {HasPath}");
+        }
+        _currentPathFromId = fromTile.Id;
+        _currentPathToId = toTile.Id;
+        if (!HasPath) return [];
+        var currentId = _currentPathToId;
+        var res = new List<Tile>();
+        while (currentId != _currentPathFromId)
+        {
+            res.Add(tileService.GetById(currentId));
+            currentId = _searchData[currentId].PathFrom;
+        }
+        res.Add(fromTile);
+        res.Reverse();
+        return res;
     }
 
     public void ClearPath()
@@ -37,13 +54,15 @@ public class TileSearchService(ITileService tileService) : ITileSearchService
                 tileService.UpdateTileLabel(tileService.GetById(currentId), "");
                 currentId = _searchData[currentId].PathFrom;
             }
+
             HasPath = false;
         }
+
         _currentPathFromId = -1;
         _currentPathToId = -1;
     }
-    
-    public bool SearchByTurn(Tile fromTile, Tile toTile)
+
+    public bool SearchPath(Tile fromTile, Tile toTile)
     {
         _searchFrontierPhase += 2;
         _searchFrontier ??= new TilePriorityQueue(_searchData);
@@ -57,7 +76,6 @@ public class TileSearchService(ITileService tileService) : ITileSearchService
             _searchData[currentId].SearchPhase++;
             if (current == toTile)
                 return true;
-            var currentTurn = (currentDistance - 1) / UnitSpeed;
             foreach (var neighbor in tileService.GetNeighbors(current))
             {
                 var neighborData = _searchData[neighbor.Id];
@@ -67,8 +85,6 @@ public class TileSearchService(ITileService tileService) : ITileSearchService
                 if (moveCost < 0)
                     continue;
                 var distance = currentDistance + moveCost;
-                var turn = (distance - 1) / UnitSpeed;
-                distance = turn > currentTurn ? turn * UnitSpeed + moveCost : distance;
                 if (neighborData.SearchPhase < _searchFrontierPhase)
                 {
                     _searchData[neighbor.Id] = new TileSearchData
@@ -91,7 +107,7 @@ public class TileSearchService(ITileService tileService) : ITileSearchService
 
         return false;
     }
-    
+
     public List<Tile> GetVisibleTiles(Tile fromTile, int range)
     {
         var visibleTiles = new List<Tile>();
@@ -154,7 +170,7 @@ public class TileSearchService(ITileService tileService) : ITileSearchService
         return tile.Explored && tile.Explorable && !tile.IsUnderwater && !tile.HasUnit;
     }
 
-    private int GetMoveCost(Tile fromTile, Tile toTile)
+    public int GetMoveCost(Tile fromTile, Tile toTile)
     {
         var edgeType = fromTile.GetEdgeType(toTile);
         if (edgeType == HexEdgeType.Cliff)

@@ -14,14 +14,15 @@ public partial class HexPlanetManager : Node3D
 {
     // Godot C# 的生命周期方法执行顺序：
     // 父节点构造函数 -> 子节点构造函数
+    // （构造函数这个顺序存疑。目前 4.4 发现闪退现象，因为 HexGridChunk 构造函数优先于 HexPlanetManager 构造函数执行了！
+    // 目前猜想可能是因为引入 uid 后，[Export] PackageScene 挂载的脚本构造函数生命周期提前了？）
     // -> 父节点 _EnterTree() -> 子节点 _EnterTree()（从上到下）
     // -> 子节点 _Ready()（从下到上） -> 父节点 _Ready() 【特别注意这里的顺序！！！】
     // -> 父节点 _Process() -> 子节点 _Process()（从上到下）
     // -> 子节点 _ExitTree()（从下到上） -> 父节点 _ExitTree() 【特别注意这里的顺序！！！】
     public HexPlanetManager()
     {
-        Context.Init();
-        InitServices();
+        InitServices(); // 现在 4.4 甚至构造函数会执行两次！奇了怪了，不知道之前 4.3 是不是也是这样
     }
 
     [Signal]
@@ -117,7 +118,6 @@ public partial class HexPlanetManager : Node3D
     private ITileSearchService _tileSearchService;
     private IFaceService _faceService;
     private IPointService _pointService;
-    private IAStarService _aStarService;
     private ISelectViewService _selectViewService;
 
     private void InitServices()
@@ -129,7 +129,6 @@ public partial class HexPlanetManager : Node3D
         _tileSearchService = Context.GetBean<ITileSearchService>();
         _faceService = Context.GetBean<IFaceService>();
         _pointService = Context.GetBean<IPointService>();
-        _aStarService = Context.GetBean<IAStarService>();
         _selectViewService = Context.GetBean<ISelectViewService>();
         _chunkService.RefreshChunk += id => _gridChunks[id].Refresh();
         _chunkService.RefreshChunkTileLabel +=
@@ -171,7 +170,7 @@ public partial class HexPlanetManager : Node3D
 
         HexMetrics.NoiseSource = _noiseSource.GetImage();
         HexMetrics.InitializeHashGrid(Seed);
-        DrawHexasphereMesh();
+        DrawHexSphereMesh();
     }
 
     public override void _Process(double delta)
@@ -184,7 +183,7 @@ public partial class HexPlanetManager : Node3D
         if (Mathf.Abs(_oldRadius - Radius) > 0.001f
             || _oldDivisions != Divisions
             || _oldChunkDivisions != ChunkDivisions)
-            DrawHexasphereMesh();
+            DrawHexSphereMesh();
         if (!Engine.IsEditorHint())
             UpdateSelectTileViewer();
         _lastUpdated = 0f; // 每一秒检查一次
@@ -262,7 +261,6 @@ public partial class HexPlanetManager : Node3D
         _tileService.Truncate();
         _pointService.Truncate();
         _faceService.Truncate();
-        _aStarService.ClearOldData();
         _selectViewService.ClearPath();
         _gridChunks.Clear();
         foreach (var child in _chunks.GetChildren())
@@ -270,7 +268,7 @@ public partial class HexPlanetManager : Node3D
         ClearAllUnits();
     }
 
-    private void DrawHexasphereMesh()
+    private void DrawHexSphereMesh()
     {
         _oldRadius = Radius;
         _oldDivisions = Divisions;
@@ -278,10 +276,9 @@ public partial class HexPlanetManager : Node3D
         _lastUpdated = 0f;
         ClearOldData();
         _chunkService.InitChunks(ChunkDivisions);
-        InitHexasphere();
-        _aStarService.Init();
+        InitHexSphere();
         _tileShaderService.Initialize();
-        _tileSearchService.InitSearchData(_tileService.GetCount());
+        _tileSearchService.InitSearchData();
         RefreshAllTiles();
         EmitSignal(SignalName.NewPlanetGenerated);
     }
@@ -296,9 +293,9 @@ public partial class HexPlanetManager : Node3D
         }
     }
 
-    private void InitHexasphere()
+    private void InitHexSphere()
     {
-        GD.Print($"InitHexasphere with radius {Radius}, divisions {Divisions}, start at: {Time.GetTicksMsec()}");
+        GD.Print($"InitHexSphere with radius {Radius}, divisions {Divisions}, start at: {Time.GetTicksMsec()}");
         _pointService.SubdivideIcosahedronForTiles(Divisions);
         _tileService.InitTiles();
         BuildMesh();
@@ -351,7 +348,7 @@ public partial class HexPlanetManager : Node3D
     private void MoveUnit(Tile toTile)
     {
         var fromTile = _tileService.GetById(_pathFromTileId);
-        var path = _aStarService.FindPath(fromTile, toTile);
+        var path = _tileSearchService.FindPath(fromTile, toTile, true);
         if (path is { Count: > 1 })
         {
             // 确实有找到从出发点到 tile 的路径

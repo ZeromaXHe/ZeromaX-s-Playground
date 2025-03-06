@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
@@ -6,19 +5,12 @@ using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 
-public class SelectViewService(ITileService tileService, IAStarService aStarService) : ISelectViewService
+public class SelectViewService(ITileService tileService, ITileSearchService tileSearchService) : ISelectViewService
 {
     private int? _selectTileCenterId;
     private int _pathFromTileId;
-    private readonly List<Tile> _pathTiles = [];
 
-    public void ClearPath()
-    {
-        // 清空之前寻路的标签
-        foreach (var pathTile in _pathTiles)
-            tileService.UpdateTileLabel(pathTile, "");
-        _pathTiles.Clear();
-    }
+    public void ClearPath() => tileSearchService.ClearPath();
 
     public int SelectViewSize { get; set; }
 
@@ -78,12 +70,11 @@ public class SelectViewService(ITileService tileService, IAStarService aStarServ
                 vi += AddHexFrame(toTile, Colors.Red,
                     1.01f * (HexMetrics.Radius + tileService.GetHeight(toTile)),
                     surfaceTool, vi); // 目标点为红色框
-                var tiles = aStarService.FindPath(fromTile, toTile);
+                var tiles = tileSearchService.FindPath(fromTile, toTile);
                 if (tiles.Count > 0)
                 {
                     var cost = 0;
                     var preTile = fromTile;
-                    tileService.UpdateTileLabel(fromTile, "0");
                     for (var i = 1; i < tiles.Count; i++)
                     {
                         var nextTile = tiles[i];
@@ -91,13 +82,12 @@ public class SelectViewService(ITileService tileService, IAStarService aStarServ
                             vi += AddHexFrame(nextTile, Colors.White,
                                 1.01f * (HexMetrics.Radius + tileService.GetHeight(nextTile)),
                                 surfaceTool, vi); // 路径点为白色框
-                        cost += aStarService.Cost(preTile, nextTile);
+                        cost += tileSearchService.GetMoveCost(preTile, nextTile);
                         tileService.UpdateTileLabel(nextTile, cost.ToString());
                         preTile = nextTile;
                     }
                 }
 
-                _pathTiles.AddRange(tiles);
                 return surfaceTool.Commit();
             }
 
