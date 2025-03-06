@@ -11,6 +11,7 @@ public partial class HexMesh : MeshInstance3D
     [Export] public bool UseCellData { get; set; }
     [Export] public bool UseUvCoordinates { get; set; }
     [Export] public bool UseUv2Coordinates { get; set; }
+    [Export] public bool Smooth { get; set; }
     private SurfaceTool _surfaceTool = new();
     private int _vIdx;
     
@@ -29,7 +30,8 @@ public partial class HexMesh : MeshInstance3D
         _vIdx = 0;
         _surfaceTool.Clear();
         _surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
-        _surfaceTool.SetSmoothGroup(uint.MaxValue);
+        if (!Smooth)
+            _surfaceTool.SetSmoothGroup(uint.MaxValue);
         if (UseCellData)
             _surfaceTool.SetCustomFormat(0, SurfaceTool.CustomFormat.RgbFloat);
     }

@@ -91,6 +91,7 @@ UseCellData = true
 material_override = SubResource("ShaderMaterial_15o55")
 UseCellData = true
 UseUvCoordinates = true
+Smooth = true
 
 [node name="Roads" parent="." instance=ExtResource("2_yhs87")]
 material_override = SubResource("ShaderMaterial_7iseu")
@@ -100,17 +101,20 @@ UseUvCoordinates = true
 [node name="Water" parent="." instance=ExtResource("2_yhs87")]
 material_override = SubResource("ShaderMaterial_ca3lj")
 UseCellData = true
+Smooth = true
 
 [node name="WaterShore" parent="." instance=ExtResource("2_yhs87")]
 material_override = SubResource("ShaderMaterial_dbpkw")
 UseCellData = true
 UseUvCoordinates = true
+Smooth = true
 
 [node name="Estuaries" parent="." instance=ExtResource("2_yhs87")]
 material_override = SubResource("ShaderMaterial_s7ofq")
 UseCellData = true
 UseUvCoordinates = true
 UseUv2Coordinates = true
+Smooth = true
 
 [node name="Features" parent="." node_paths=PackedStringArray("_walls") instance=ExtResource("9_11vh8")]
 _walls = NodePath("../Walls")

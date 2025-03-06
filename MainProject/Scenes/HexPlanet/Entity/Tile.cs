@@ -35,10 +35,10 @@ public class Tile(
     public int GetNeighborIdx(Tile neighbor) =>
         NeighborCenterIds.FindIndex(cId => cId == neighbor.CenterId);
 
-    public int Elevation { get; set; } = GD.RandRange(0, 10);
+    public int Elevation { get; set; }
     public HexEdgeType GetEdgeType(Tile neighbor) => HexMetrics.GetEdgeType(Elevation, neighbor.Elevation);
     // 0 沙漠、1 草原、2 泥地、3 岩石、4 雪地
-    public int TerrainTypeIndex { get; set; } = GD.RandRange(0, 4);
+    public int TerrainTypeIndex { get; set; }
 
     #region 河流
 
@@ -73,17 +73,17 @@ public class Tile(
 
     #region 水面
 
-    public int WaterLevel { get; set; } = HexMetrics.ElevationStep / 2;
+    public int WaterLevel { get; set; }
     public bool IsUnderwater => WaterLevel > Elevation;
 
     #endregion
 
     #region 特征
 
-    public int UrbanLevel { get; set; } = GD.RandRange(0, 3);
-    public int FarmLevel { get; set; } = GD.RandRange(0, 3);
-    public int PlantLevel { get; set; } = GD.RandRange(0, 3);
-    public bool Walled { get; set; } = GD.Randf() < 0.1f;
+    public int UrbanLevel { get; set; }
+    public int FarmLevel { get; set; }
+    public int PlantLevel { get; set; }
+    public bool Walled { get; set; }
     public int SpecialIndex { get; set; }
     public bool IsSpecial => SpecialIndex > 0;
 

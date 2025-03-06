@@ -42,59 +42,62 @@ public readonly struct SphereAxial(int q, int r, SphereAxial.TypeEnum type, int 
     public bool SpecialNeighbor => Type is TypeEnum.EdgesSpecial or TypeEnum.FacesSpecial;
 
     // 正二十面体索引，0 ~ 19
-    public int Index => Type switch
+    public readonly int Index = type switch
     {
-        TypeEnum.PoleVertices => TypeIdx == 0 ? 0 : 3,
-        TypeEnum.MidVertices => TypeIdx / 2 * 4 + 1 + TypeIdx % 2,
-        TypeEnum.Edges or TypeEnum.EdgesSpecial => TypeIdx / 6 * 4 + (TypeIdx % 6 + 1) / 2,
-        TypeEnum.Faces or TypeEnum.FacesSpecial => TypeIdx / 4 * 4 + TypeIdx % 4,
+        TypeEnum.PoleVertices => typeIdx == 0 ? 0 : 3,
+        TypeEnum.MidVertices => typeIdx / 2 * 4 + 1 + typeIdx % 2,
+        TypeEnum.Edges or TypeEnum.EdgesSpecial => typeIdx / 6 * 4 + (typeIdx % 6 + 1) / 2,
+        TypeEnum.Faces or TypeEnum.FacesSpecial => typeIdx / 4 * 4 + typeIdx % 4,
         _ => -1
     };
 
     // 获取列索引，从右到左 0 ~ 4
-    public int Column => Type switch
+    public readonly int Column = type switch
     {
         TypeEnum.PoleVertices => 0,
-        TypeEnum.MidVertices => TypeIdx / 2,
-        TypeEnum.Edges or TypeEnum.EdgesSpecial => TypeIdx / 6,
-        TypeEnum.Faces or TypeEnum.FacesSpecial => TypeIdx / 4,
+        TypeEnum.MidVertices => typeIdx / 2,
+        TypeEnum.Edges or TypeEnum.EdgesSpecial => typeIdx / 6,
+        TypeEnum.Faces or TypeEnum.FacesSpecial => typeIdx / 4,
         _ => -1
     };
 
     // 获取行索引，从上到下 0 ~ 3
-    public int Row => Type switch
+    public readonly int Row = type switch
     {
-        TypeEnum.PoleVertices => TypeIdx == 0 ? 0 : 3,
-        TypeEnum.MidVertices => 1 + TypeIdx % 2,
-        TypeEnum.Edges or TypeEnum.EdgesSpecial => (TypeIdx % 6 + 1) / 2,
-        TypeEnum.Faces or TypeEnum.FacesSpecial => TypeIdx % 4,
+        TypeEnum.PoleVertices => typeIdx == 0 ? 0 : 3,
+        TypeEnum.MidVertices => 1 + typeIdx % 2,
+        TypeEnum.Edges or TypeEnum.EdgesSpecial => (typeIdx % 6 + 1) / 2,
+        TypeEnum.Faces or TypeEnum.FacesSpecial => typeIdx % 4,
         _ => -1
     };
 
     // 在北边的 5 个面上
-    public bool North5 =>
-        (Type is TypeEnum.Faces or TypeEnum.FacesSpecial && TypeIdx % 4 == 0) ||
-        (Type is TypeEnum.Edges or TypeEnum.EdgesSpecial && TypeIdx % 6 == 0) ||
-        (Type == TypeEnum.PoleVertices && TypeIdx == 0);
+    public bool IsNorth5 => Row == 0;
+    // (type is TypeEnum.Faces or TypeEnum.FacesSpecial && typeIdx % 4 == 0) ||
+    // (type is TypeEnum.Edges or TypeEnum.EdgesSpecial && typeIdx % 6 == 0) ||
+    // (type == TypeEnum.PoleVertices && typeIdx == 0);
 
     // 在南边的 5 个面上
-    public bool South5 =>
-        (Type is TypeEnum.Faces or TypeEnum.FacesSpecial && TypeIdx % 4 == 3) ||
-        (Type is TypeEnum.Edges or TypeEnum.EdgesSpecial && TypeIdx % 6 == 5) ||
-        (Type == TypeEnum.PoleVertices && TypeIdx == 1);
+    public bool IsSouth5 => Row == 3;
+    // (type is TypeEnum.Faces or TypeEnum.FacesSpecial && typeIdx % 4 == 3) ||
+    // (type is TypeEnum.Edges or TypeEnum.EdgesSpecial && typeIdx % 6 == 5) ||
+    // (type == TypeEnum.PoleVertices && typeIdx == 1);
 
-    public bool Pole10 => North5 || South5;
-    public bool Equator10 => !Pole10;
+    // 属于极地十面
+    public bool IsPole10 => IsNorth5 || IsSouth5;
 
-    public bool EquatorWest =>
-        (Type is TypeEnum.Edges or TypeEnum.EdgesSpecial && (TypeIdx % 6 == 1 || TypeIdx % 6 == 2))
-        || (Type is TypeEnum.Faces or TypeEnum.FacesSpecial && TypeIdx % 4 == 1)
-        || (Type is TypeEnum.MidVertices && TypeIdx % 2 == 0);
+    // 属于赤道十面
+    public bool IsEquator10 => !IsPole10;
 
-    public bool EquatorEast =>
-        (Type is TypeEnum.Edges or TypeEnum.EdgesSpecial && (TypeIdx % 6 == 3 || TypeIdx % 6 == 4))
-        || (Type is TypeEnum.Faces or TypeEnum.FacesSpecial && TypeIdx % 4 == 2)
-        || (Type is TypeEnum.MidVertices && TypeIdx % 2 == 1);
+    public bool IsEquatorWest => Row == 1;
+    // (type is TypeEnum.Edges or TypeEnum.EdgesSpecial && (typeIdx % 6 == 1 || typeIdx % 6 == 2))
+    // || (type is TypeEnum.Faces or TypeEnum.FacesSpecial && typeIdx % 4 == 1)
+    // || (type is TypeEnum.MidVertices && typeIdx % 2 == 0);
+
+    public bool IsEquatorEast => Row == 2;
+    // (type is TypeEnum.Edges or TypeEnum.EdgesSpecial && (typeIdx % 6 == 3 || typeIdx % 6 == 4))
+    // || (type is TypeEnum.Faces or TypeEnum.FacesSpecial && typeIdx % 4 == 2)
+    // || (type is TypeEnum.MidVertices && typeIdx % 2 == 1);
 
     private static int Width => HexMetrics.Divisions * 5;
     private static int Div => HexMetrics.Divisions;
@@ -118,5 +121,194 @@ public readonly struct SphereAxial(int q, int r, SphereAxial.TypeEnum type, int 
         if (r > Div)
             return Mathf.PosMod(q, Div) <= 2 * Div - r;
         return true;
+    }
+
+    // TODO：现在只能先分情况全写一遍了…… 有点蠢，后续优化
+    public int DistanceTo(SphereAxial sa)
+    {
+        if (Column == sa.Column) // 同一列可以直接按平面求距离
+            return Coords.DistanceTo(sa.Coords);
+        if (IsEquator10 && sa.IsEquator10) // 两者都在赤道十面内
+        {
+            var left = Index > sa.Index ? this : sa;
+            var right = Index < sa.Index ? this : sa;
+            return Mathf.Min(left.Coords.DistanceTo(right.Coords),
+                right.Coords.DistanceTo(left.Coords + new AxialCoords(Width, 0)));
+        }
+
+        // 有其中一个是极点的话，则直接求 R 的差值即可
+        if (Type == TypeEnum.PoleVertices)
+            return TypeIdx == 1
+                ? 2 * Div - sa.Coords.R
+                : sa.Coords.R + Div;
+        if (sa.Type == TypeEnum.PoleVertices)
+            return sa.TypeIdx == 1
+                ? 2 * Div - Coords.R
+                : Coords.R + Div;
+        return DistanceOnePole(sa);
+    }
+
+    private int DistanceOnePole(SphereAxial sa)
+    {
+        if (IsNorth5)
+        {
+            // 北极五面
+            switch (Mathf.PosMod(sa.Index - Index, 20))
+            {
+                case 6:
+                case 7:
+                    // sa 在逆斜列上的情况，直接按平面求距离
+                {
+                    return Index < sa.Index
+                        ? sa.Coords.DistanceTo(Coords)
+                        : sa.Coords.DistanceTo(Coords + new AxialCoords(Width, 0));
+                }
+                case 4:
+                case 5:
+                case 10:
+                case 11:
+                    // sa 在左边逆斜列的情况
+                    var rotLeft = Coords.RotateLeftAround(new AxialCoords(-(Column + 1) * Div, 0));
+                {
+                    return Index < sa.Index
+                        ? sa.Coords.DistanceTo(rotLeft)
+                        : sa.Coords.DistanceTo(rotLeft + new AxialCoords(Width, 0));
+                }
+                case 8:
+                case 9:
+                    // sa 在左边隔一列的逆斜列的情况
+                    var rotLeft2 = Coords
+                        .RotateLeftAround(new AxialCoords(-(Column + 1) * Div, 0))
+                        .RotateLeftAround(new AxialCoords(-(Column + 2) * Div, 0));
+                {
+                    return Index < sa.Index
+                        ? sa.Coords.DistanceTo(rotLeft2)
+                        : sa.Coords.DistanceTo(rotLeft2 + new AxialCoords(Width, 0));
+                }
+                case 14:
+                case 15:
+                    // 14，15 是边界情况，可能看作左边隔一列的逆斜列近，也可能看作右边隔一列的斜列近
+                    var rot2Left = Coords
+                        .RotateLeftAround(new AxialCoords(-(Column + 1) * Div, 0))
+                        .RotateLeftAround(new AxialCoords(-(Column + 2) * Div, 0));
+                    var rot2Right = Coords
+                        .RotateRightAround(new AxialCoords(-Column * Div, 0))
+                        .RotateRightAround(new AxialCoords(-(Column - 1) * Div, 0));
+                {
+                    return Mathf.Min(
+                        Index < sa.Index
+                            ? sa.Coords.DistanceTo(rot2Left)
+                            : sa.Coords.DistanceTo(rot2Left + new AxialCoords(Width, 0)),
+                        Index < sa.Index
+                            ? rot2Right.DistanceTo(sa.Coords)
+                            : rot2Right.DistanceTo(sa.Coords + new AxialCoords(Width, 0)));
+                }
+                case 12:
+                case 13:
+                    // sa 在右边隔一列的斜列的情况
+                    var rotRight2 = Coords
+                        .RotateRightAround(new AxialCoords(-Column * Div, 0))
+                        .RotateRightAround(new AxialCoords(-(Column - 1) * Div, 0));
+                {
+                    return Index < sa.Index
+                        ? rotRight2.DistanceTo(sa.Coords)
+                        : rotRight2.DistanceTo(sa.Coords + new AxialCoords(Width, 0));
+                }
+                case 16:
+                case 17:
+                case 18:
+                case 19:
+                    // sa 在右边斜列上的情况
+                    var rotRight = Coords
+                        .RotateRightAround(new AxialCoords(-Column * Div, 0));
+                {
+                    return Index < sa.Index
+                        ? rotRight.DistanceTo(sa.Coords)
+                        : rotRight.DistanceTo(sa.Coords + new AxialCoords(Width, 0));
+                }
+            }
+        }
+        else if (IsSouth5)
+        {
+            // 南极五面
+            switch (Mathf.PosMod(sa.Index - Index, 20))
+            {
+                case 1:
+                case 2:
+                case 3:
+                case 4:
+                    // sa 在左边斜列上的情况
+                    var rotLeft = Coords.RotateLeftAround(new AxialCoords(-(Column + 1) * Div, Div));
+                {
+                    return Index < sa.Index
+                        ? sa.Coords.DistanceTo(rotLeft)
+                        : sa.Coords.DistanceTo(rotLeft + new AxialCoords(Width, 0));
+                }
+                case 7:
+                case 8:
+                    // sa 在左边隔一列的斜列上的情况
+                    var rotLeft2 = Coords
+                        .RotateLeftAround(new AxialCoords(-(Column + 1) * Div, Div))
+                        .RotateLeftAround(new AxialCoords(-(Column + 2) * Div, Div));
+                {
+                    return Index < sa.Index
+                        ? sa.Coords.DistanceTo(rotLeft2)
+                        : sa.Coords.DistanceTo(rotLeft2 + new AxialCoords(Width, 0));
+                }
+                case 5:
+                case 6:
+                    // 5，6 是边界情况，可能看作左边隔一列的逆斜列近，也可能看作右边隔一列的斜列近
+                    var rot2Left = Coords
+                        .RotateLeftAround(new AxialCoords(-(Column + 1) * Div, Div))
+                        .RotateLeftAround(new AxialCoords(-(Column + 2) * Div, Div));
+                    var rot2Right = Coords
+                        .RotateRightAround(new AxialCoords(-Column * Div, Div))
+                        .RotateRightAround(new AxialCoords(-(Column - 1) * Div, Div));
+                {
+                    return Mathf.Min(
+                        Index < sa.Index
+                            ? sa.Coords.DistanceTo(rot2Left)
+                            : sa.Coords.DistanceTo(rot2Left + new AxialCoords(Width, 0)),
+                        Index < sa.Index
+                            ? rot2Right.DistanceTo(sa.Coords)
+                            : rot2Right.DistanceTo(sa.Coords + new AxialCoords(Width, 0)));
+                }
+                case 11:
+                case 12:
+                    // sa 在右边隔一列的逆斜列上的情况
+                    var rotRight2 = Coords
+                        .RotateRightAround(new AxialCoords(-Column * Div, Div))
+                        .RotateRightAround(new AxialCoords(-(Column - 1) * Div, Div));
+                {
+                    return Index < sa.Index
+                        ? rotRight2.DistanceTo(sa.Coords)
+                        : rotRight2.DistanceTo(sa.Coords + new AxialCoords(Width, 0));
+                }
+                case 9:
+                case 10:
+                case 15:
+                case 16:
+                    // sa 在右边逆斜列上的情况
+                    var rotRight = Coords
+                        .RotateRightAround(new AxialCoords(-Column * Div, Div));
+                {
+                    return Index < sa.Index
+                        ? rotRight.DistanceTo(sa.Coords)
+                        : rotRight.DistanceTo(sa.Coords + new AxialCoords(Width, 0));
+                }
+                case 13:
+                case 14:
+                    // sa 在逆斜列上的情况，直接按平面求距离
+                {
+                    return Index < sa.Index
+                        ? Coords.DistanceTo(sa.Coords)
+                        : Coords.DistanceTo(sa.Coords + new AxialCoords(Width, 0));
+                }
+            }
+        }
+        else
+            return sa.DistanceOnePole(this);
+
+        throw new System.NotImplementedException(); // 按道理不应该走到这里
     }
 }

@@ -145,6 +145,7 @@ public partial class HexPlanetManager : Node3D
     private OrbitCamera _orbitCamera;
     private MeshInstance3D _selectTileViewer;
     private HexUnitPathPool _hexUnitPathPool;
+    private HexMapGenerator _hexMapGenerator;
 
     private void InitOnReadyNodes()
     {
@@ -153,6 +154,7 @@ public partial class HexPlanetManager : Node3D
         // 此处要求 OrbitCamera 也是 [Tool]，否则编辑器里会转型失败
         _orbitCamera = GetNode<OrbitCamera>("%OrbitCamera");
         _selectTileViewer = GetNode<MeshInstance3D>("%SelectTileViewer");
+        _hexMapGenerator = GetNode<HexMapGenerator>("%HexMapGenerator");
         // 没有 [Tool] 特性也不需要在编辑器下使用，所以这里判断一下，否则会强转失败
         if (!Engine.IsEditorHint())
             _hexUnitPathPool = GetNode<HexUnitPathPool>("%HexUnitPathPool");
@@ -277,8 +279,6 @@ public partial class HexPlanetManager : Node3D
         ClearOldData();
         _chunkService.InitChunks(ChunkDivisions);
         InitHexSphere();
-        _tileShaderService.Initialize();
-        _tileSearchService.InitSearchData();
         RefreshAllTiles();
         EmitSignal(SignalName.NewPlanetGenerated);
     }
@@ -298,6 +298,9 @@ public partial class HexPlanetManager : Node3D
         GD.Print($"InitHexSphere with radius {Radius}, divisions {Divisions}, start at: {Time.GetTicksMsec()}");
         _pointService.SubdivideIcosahedronForTiles(Divisions);
         _tileService.InitTiles();
+        _tileShaderService.Initialize();
+        _tileSearchService.InitSearchData();
+        _hexMapGenerator.GenerateMap();
         BuildMesh();
     }
 

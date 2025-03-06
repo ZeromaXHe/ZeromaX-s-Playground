@@ -7,10 +7,6 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 
 public interface ITileService
 {
-    delegate void UpdateTileAStarEvent(int tileId);
-
-    event UpdateTileAStarEvent UpdateTileAStar;
-
     delegate void UnitValidateLocationEvent(int unitId);
 
     event UnitValidateLocationEvent UnitValidateLocation;

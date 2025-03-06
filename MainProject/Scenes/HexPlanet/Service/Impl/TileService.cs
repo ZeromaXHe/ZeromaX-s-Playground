@@ -15,7 +15,6 @@ public class TileService(
     IFaceRepo faceRepo,
     IPointRepo pointRepo) : ITileService
 {
-    public event ITileService.UpdateTileAStarEvent UpdateTileAStar;
     public event ITileService.UnitValidateLocationEvent UnitValidateLocation;
     public event ITileService.RefreshTerrainShaderEvent RefreshTerrainShader;
     public event ITileService.ViewElevationChangedEvent ViewElevationChanged;
@@ -64,7 +63,6 @@ public class TileService(
         RefreshTerrainShader?.Invoke(tile.Id);
         if (tile.ViewElevation != originalViewElevation)
             ViewElevationChanged?.Invoke(tile.Id);
-        UpdateTileAStar?.Invoke(tile.Id);
         if (tile.UnitId != 0)
             UnitValidateLocation?.Invoke(tile.UnitId);
     }
@@ -88,7 +86,6 @@ public class TileService(
         RefreshTerrainShader?.Invoke(tile.Id);
         if (tile.ViewElevation != originalViewElevation)
             ViewElevationChanged?.Invoke(tile.Id);
-        UpdateTileAStar?.Invoke(tile.Id);
     }
 
     public void SetUrbanLevel(Tile tile, int urbanLevel)
@@ -117,7 +114,6 @@ public class TileService(
         if (tile.Walled == walled) return;
         tile.Walled = walled;
         Refresh(tile);
-        UpdateTileAStar?.Invoke(tile.Id);
     }
 
     public void SetSpecialIndex(Tile tile, int specialIndex)
@@ -132,7 +128,6 @@ public class TileService(
     {
         if (tile.UnitId == unitId) return;
         tile.UnitId = unitId;
-        UpdateTileAStar?.Invoke(tile.Id);
     }
 
     #endregion
@@ -189,13 +184,26 @@ public class TileService(
         {
             var faces = center.FaceIds.Select(faceRepo.GetById).ToList();
             if (faces.Count == 0) return faces;
+            // 将第一个面设置为最接近北方顺时针方向第一个的面
+            var first = faces[0];
+            var minAngle = Mathf.Tau;
+            foreach (var face in faces)
+            {
+                var angle = center.Position.DirectionTo(face.Center).AngleTo(Vector3.Up);
+                if (angle < minAngle)
+                {
+                    minAngle = angle;
+                    first = face;
+                }
+            }
+
             // 第二个面必须保证和第一个面形成顺时针方向，从而保证所有都是顺时针
             var second =
                 faces.First(face =>
-                    face.Id != faces[0].Id
-                    && face.IsAdjacentTo(faces[0])
-                    && Math3dUtil.IsRightVSeq(Vector3.Zero, center.Position, faces[0].Center, face.Center));
-            var orderedList = new List<Face> { faces[0], second };
+                    face.Id != first.Id
+                    && face.IsAdjacentTo(first)
+                    && Math3dUtil.IsRightVSeq(Vector3.Zero, center.Position, first.Center, face.Center));
+            var orderedList = new List<Face> { first, second };
             var currentFace = orderedList[1];
             while (orderedList.Count < faces.Count)
             {
@@ -417,14 +425,17 @@ public class TileService(
     private void SetRoad(Tile tile, int idx, bool state)
     {
         if (tile.Roads[idx] != state)
-            UpdateTileAStar?.Invoke(tile.Id);
-        tile.Roads[idx] = state;
+        {
+            tile.Roads[idx] = state;
+            RefreshSelfOnly(tile);
+        }
+
         var neighbor = GetNeighborByIdx(tile, idx);
         if (neighbor.Roads[neighbor.GetNeighborIdx(tile)] != state)
-            UpdateTileAStar?.Invoke(neighbor.Id);
-        neighbor.Roads[neighbor.GetNeighborIdx(tile)] = state;
-        RefreshSelfOnly(neighbor);
-        RefreshSelfOnly(tile);
+        {
+            neighbor.Roads[neighbor.GetNeighborIdx(tile)] = state;
+            RefreshSelfOnly(neighbor);
+        }
     }
 
     #endregion
