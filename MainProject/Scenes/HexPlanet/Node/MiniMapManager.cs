@@ -96,9 +96,9 @@ public partial class MiniMapManager : Node2D
 
     private static Vector2I? TerrainAtlas(Tile tile)
     {
-        if (tile.IsUnderwater)
-            return tile.WaterLevel - tile.Elevation > 1 ? new Vector2I(0, 1) : new Vector2I(1, 1);
-        return tile.TerrainTypeIndex switch
+        if (tile.Data.IsUnderwater)
+            return tile.Data.WaterLevel - tile.Data.Elevation > 1 ? new Vector2I(0, 1) : new Vector2I(1, 1);
+        return tile.Data.TerrainTypeIndex switch
         {
             0 => new Vector2I(3, 0), // 0 沙漠
             1 => new Vector2I(0, 0), // 1 草原

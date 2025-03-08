@@ -3,6 +3,7 @@ using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Base;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Enum;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Struct;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
@@ -35,75 +36,11 @@ public class Tile(
     public int GetNeighborIdx(Tile neighbor) =>
         NeighborCenterIds.FindIndex(cId => cId == neighbor.CenterId);
 
-    public int Elevation { get; set; }
-    public HexEdgeType GetEdgeType(Tile neighbor) => HexMetrics.GetEdgeType(Elevation, neighbor.Elevation);
-    // 0 沙漠、1 草原、2 泥地、3 岩石、4 雪地
-    public int TerrainTypeIndex { get; set; }
-
-    #region 河流
-
-    public bool HasIncomingRiver { get; set; }
-    public bool HasOutgoingRiver { get; set; }
-
-    // 流入河流的邻居 Tile Id
-    public int IncomingRiverNId { get; set; }
-
-    // 流出河流的邻居 Tile Id
-    public int OutgoingRiverNId { get; set; }
-    public bool HasRiver => HasIncomingRiver || HasOutgoingRiver;
-    public bool HasRiverBeginOrEnd => HasIncomingRiver != HasOutgoingRiver;
-    public int RiverBeginOrEndNId => HasIncomingRiver ? IncomingRiverNId : OutgoingRiverNId;
-
-    public bool HasRiverToNeighbor(int neighborId) =>
-        (HasIncomingRiver && IncomingRiverNId == neighborId)
-        || (HasOutgoingRiver && OutgoingRiverNId == neighborId);
-
-    public bool IsValidRiverDestination(Tile neighbor) =>
-        Elevation >= neighbor.Elevation || WaterLevel == neighbor.Elevation;
-
-    #endregion
-
-    #region 道路
-
-    public bool[] Roads { get; } = new bool[hexFaceIds.Count];
-    public bool HasRoadThroughEdge(int idx) => Roads[idx];
-    public bool HasRoads => Roads.Any(r => r); // C# 貌似没有类似 Java Function.identity() 方法，或者 F# id 的这种默认实现
-
-    #endregion
-
-    #region 水面
-
-    public int WaterLevel { get; set; }
-    public bool IsUnderwater => WaterLevel > Elevation;
-
-    #endregion
-
-    #region 特征
-
-    public int UrbanLevel { get; set; }
-    public int FarmLevel { get; set; }
-    public int PlantLevel { get; set; }
-    public bool Walled { get; set; }
-    public int SpecialIndex { get; set; }
-    public bool IsSpecial => SpecialIndex > 0;
-
-    #endregion
-
+    public HexTileData Data { get; set; } = new();
+    
     public int UnitId { get; set; }
     public bool HasUnit => UnitId > 0;
 
     public int Visibility { get; set; }
-    public bool IsVisible => Visibility > 0 && Explorable;
-
-    public int ViewElevation => Mathf.Max(Elevation, WaterLevel);
-
-    private bool _explored;
-
-    public bool Explored
-    {
-        get => _explored && Explorable;
-        set => _explored = value;
-    }
-
-    public bool Explorable { get; set; } = true;
+    public bool IsVisible => Visibility > 0 && Data.IsExplorable;
 }

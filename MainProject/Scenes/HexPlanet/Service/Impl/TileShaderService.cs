@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Enum;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
@@ -64,10 +65,10 @@ public class TileShaderService : ITileShaderService
     {
         var tile = _tileService.GetById(tileId);
         var data = _tileTextureData[tileId];
-        data.B8 = tile.IsUnderwater
-            ? (int)(_tileService.GetWaterSurfaceHeight(tile) * (255f / HexMetrics.MaxHeight))
+        data.B8 = tile.Data.IsUnderwater
+            ? (int)(tile.Data.WaterSurfaceY * (255f / HexMetrics.MaxHeight))
             : 0;
-        data.A8 = tile.TerrainTypeIndex;
+        data.A8 = tile.Data.TerrainTypeIndex;
         _tileTextureData[tileId] = data;
         ChangeTilePixel(tileId, data);
         _enabled = true;
@@ -79,7 +80,7 @@ public class TileShaderService : ITileShaderService
         {
             var tile = _tileService.GetById(tileId);
             _tileTextureData[tileId].R8 = tile.IsVisible ? 255 : 0;
-            _tileTextureData[tileId].G8 = tile.Explored ? 255 : 0;
+            _tileTextureData[tileId].G8 = tile.Data.IsExplored ? 255 : 0;
             ChangeTilePixel(tileId, _tileTextureData[tileId]);
         }
         else if (!_visibilityTransitions[tileId])
@@ -159,7 +160,7 @@ public class TileShaderService : ITileShaderService
         tile.Visibility++;
         if (tile.Visibility == 1)
         {
-            tile.Explored = true;
+            tile.Data = tile.Data with { Flags = tile.Data.Flags.With(HexFlags.Explored) };
             RefreshVisibility(tile.Id);
             TileExplored?.Invoke(tile.Id);
         }
@@ -175,8 +176,8 @@ public class TileShaderService : ITileShaderService
     public void ViewElevationChanged(int tileId)
     {
         var tile = _tileService.GetById(tileId);
-        _tileTextureData[tileId].B8 = tile.IsUnderwater
-            ? (int)(_tileService.GetWaterSurfaceHeight(tile) * (255f / HexMetrics.MaxHeight))
+        _tileTextureData[tileId].B8 = tile.Data.IsUnderwater
+            ? (int)(tile.Data.WaterSurfaceY * (255f / HexMetrics.MaxHeight))
             : 0;
         ChangeTilePixel(tileId, _tileTextureData[tileId]);
         _needsVisiblityReset = true;
@@ -188,7 +189,7 @@ public class TileShaderService : ITileShaderService
         var data = _tileTextureData[id];
         var stillUpdating = false;
         var tile = _tileService.GetById(id);
-        if (tile.Explored && data.G8 < 255)
+        if (tile.Data.IsExplored && data.G8 < 255)
         {
             stillUpdating = true;
             var t = data.G8 + delta;

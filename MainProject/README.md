@@ -1,3 +1,9 @@
+# 灵感
+
+1. 自发光 Shader 可以参考[全息图着色器](https://www.bilibili.com/video/BV18e41197Yz)，用来做地球暗面的城市灯光？
+
+
+
 # TODO
 
 ## 旧功能

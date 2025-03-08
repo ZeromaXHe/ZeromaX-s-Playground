@@ -392,6 +392,7 @@ text = "高度："
 unique_name_in_owner = true
 layout_mode = 2
 text = "0"
+editable = false
 
 [node name="ElevationLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
 layout_mode = 2

@@ -2,7 +2,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Enum;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repo;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Struct;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util.HexSphereGrid;
 
@@ -44,24 +46,19 @@ public class TileService(
 
     #region 修改 Tile 属性的方法（相当于 Update）
 
-    public void SetHeight(Tile tile, float height) =>
-        SetElevation(tile,
-            Mathf.Clamp((int)((height - GetPerturbHeight(tile)) / HexMetrics.UnitHeight),
-                0, HexMetrics.ElevationStep));
-
     public void SetElevation(Tile tile, int elevation)
     {
-        if (tile.Elevation == elevation) return;
-        var originalViewElevation = tile.ViewElevation;
-        tile.Elevation = elevation;
+        if (tile.Data.Elevation == elevation) return;
+        var originalViewElevation = tile.Data.ViewElevation;
+        tile.Data = tile.Data with { Values = tile.Data.Values.WithElevation(elevation) };
         ValidateRivers(tile);
         if (!ValidateRoadsWater(tile))
-            for (var i = 0; i < tile.Roads.Length; i++)
-                if (tile.Roads[i] && GetElevationDifference(tile, i) > 1)
+            for (var i = 0; i < (tile.IsPentagon() ? 5 : 6); i++)
+                if (tile.Data.Flags.HasRoad(i) && GetElevationDifference(tile, i) > 1)
                     SetRoad(tile, i, false);
         Refresh(tile);
         RefreshTerrainShader?.Invoke(tile.Id);
-        if (tile.ViewElevation != originalViewElevation)
+        if (tile.Data.ViewElevation != originalViewElevation)
             ViewElevationChanged?.Invoke(tile.Id);
         if (tile.UnitId != 0)
             UnitValidateLocation?.Invoke(tile.UnitId);
@@ -69,57 +66,60 @@ public class TileService(
 
     public void SetTerrainTypeIndex(Tile tile, int idx)
     {
-        if (tile.TerrainTypeIndex == idx) return;
-        tile.TerrainTypeIndex = idx;
+        if (tile.Data.TerrainTypeIndex == idx) return;
+        tile.Data = tile.Data with { Values = tile.Data.Values.WithTerrainTypeIndex(idx) };
         Refresh(tile);
         RefreshTerrainShader?.Invoke(tile.Id);
     }
 
     public void SetWaterLevel(Tile tile, int waterLevel)
     {
-        if (tile.WaterLevel == waterLevel) return;
-        var originalViewElevation = tile.ViewElevation;
-        tile.WaterLevel = waterLevel;
+        if (tile.Data.WaterLevel == waterLevel) return;
+        var originalViewElevation = tile.Data.ViewElevation;
+        tile.Data = tile.Data with { Values = tile.Data.Values.WithWaterLevel(waterLevel) };
         ValidateRivers(tile);
         ValidateRoadsWater(tile);
         Refresh(tile);
         RefreshTerrainShader?.Invoke(tile.Id);
-        if (tile.ViewElevation != originalViewElevation)
+        if (tile.Data.ViewElevation != originalViewElevation)
             ViewElevationChanged?.Invoke(tile.Id);
     }
 
     public void SetUrbanLevel(Tile tile, int urbanLevel)
     {
-        if (tile.UrbanLevel == urbanLevel) return;
-        tile.UrbanLevel = urbanLevel;
+        if (tile.Data.UrbanLevel == urbanLevel) return;
+        tile.Data = tile.Data with { Values = tile.Data.Values.WithUrbanLevel(urbanLevel) };
         RefreshSelfOnly(tile);
     }
 
     public void SetFarmLevel(Tile tile, int farmLevel)
     {
-        if (tile.FarmLevel == farmLevel) return;
-        tile.FarmLevel = farmLevel;
+        if (tile.Data.FarmLevel == farmLevel) return;
+        tile.Data = tile.Data with { Values = tile.Data.Values.WithFarmLevel(farmLevel) };
         RefreshSelfOnly(tile);
     }
 
     public void SetPlantLevel(Tile tile, int plantLevel)
     {
-        if (tile.PlantLevel == plantLevel) return;
-        tile.PlantLevel = plantLevel;
+        if (tile.Data.PlantLevel == plantLevel) return;
+        tile.Data = tile.Data with { Values = tile.Data.Values.WithPlantLevel(plantLevel) };
         RefreshSelfOnly(tile);
     }
 
     public void SetWalled(Tile tile, bool walled)
     {
-        if (tile.Walled == walled) return;
-        tile.Walled = walled;
+        if (tile.Data.Walled == walled) return;
+        if (walled)
+            tile.Data = tile.Data with { Flags = tile.Data.Flags.With(HexFlags.Walled) };
+        else
+            tile.Data = tile.Data with { Flags = tile.Data.Flags.Without(HexFlags.Walled) };
         Refresh(tile);
     }
 
     public void SetSpecialIndex(Tile tile, int specialIndex)
     {
-        if (tile.SpecialIndex == specialIndex && !tile.HasRiver) return;
-        tile.SpecialIndex = specialIndex;
+        if (tile.Data.SpecialIndex == specialIndex && !tile.Data.HasRiver) return;
+        tile.Data = tile.Data with { Values = tile.Data.Values.WithSpecialIndex(specialIndex) };
         RemoveRoads(tile);
         RefreshSelfOnly(tile);
     }
@@ -142,7 +142,7 @@ public class TileService(
 
     public SphereAxial GetSphereAxial(Tile tile) => pointRepo.GetById(tile.CenterId).Coords;
 
-    public float GetHeight(Tile tile) => (tile.Elevation + GetPerturbHeight(tile)) * HexMetrics.UnitHeight;
+    public float GetHeight(Tile tile) => (tile.Data.Elevation + GetPerturbHeight(tile)) * HexMetrics.UnitHeight;
     public float GetHeightById(int id) => GetHeight(GetById(id));
 
     private static float GetPerturbHeight(Tile tile) =>
@@ -151,7 +151,7 @@ public class TileService(
 
     public int GetElevationDifference(Tile tile, int idx)
     {
-        var diff = tile.Elevation - GetNeighborByIdx(tile, idx).Elevation;
+        var diff = tile.Data.Elevation - GetNeighborByIdx(tile, idx).Data.Elevation;
         return diff >= 0 ? diff : -diff;
     }
 
@@ -322,32 +322,37 @@ public class TileService(
 
     #region 河流
 
+    private bool IsValidRiverDestination(Tile tile, Tile neighbor) =>
+        tile.Data.Elevation >= neighbor.Data.Elevation || tile.Data.WaterLevel == neighbor.Data.Elevation;
+
     private void ValidateRivers(Tile tile)
     {
-        if (tile.HasOutgoingRiver && !tile.IsValidRiverDestination(GetById(tile.OutgoingRiverNId)))
+        if (tile.Data.HasOutgoingRiver
+            && !IsValidRiverDestination(tile, GetNeighborByIdx(tile, tile.Data.OutgoingRiver)))
             RemoveOutgoingRiver(tile);
-        if (tile.HasIncomingRiver && !GetById(tile.IncomingRiverNId).IsValidRiverDestination(tile))
+        if (tile.Data.HasIncomingRiver
+            && !IsValidRiverDestination(GetNeighborByIdx(tile, tile.Data.IncomingRiver), tile))
             RemoveIncomingRiver(tile);
     }
 
     private void RemoveOutgoingRiver(Tile tile)
     {
-        if (!tile.HasOutgoingRiver) return;
-        tile.HasOutgoingRiver = false;
-        RefreshSelfOnly(tile);
-        var neighbor = GetById(tile.OutgoingRiverNId);
-        neighbor.HasIncomingRiver = false;
+        if (!tile.Data.HasOutgoingRiver) return;
+        var neighbor = GetNeighborByIdx(tile, tile.Data.Flags.RiverOutDirection());
+        tile.Data = tile.Data with { Flags = tile.Data.Flags.Without(HexFlags.RiverOut) };
+        neighbor.Data = neighbor.Data with { Flags = neighbor.Data.Flags.Without(HexFlags.RiverIn) };
         RefreshSelfOnly(neighbor);
+        RefreshSelfOnly(tile);
     }
 
     private void RemoveIncomingRiver(Tile tile)
     {
-        if (!tile.HasIncomingRiver) return;
-        tile.HasIncomingRiver = false;
-        RefreshSelfOnly(tile);
-        var neighbor = GetById(tile.IncomingRiverNId);
-        neighbor.HasOutgoingRiver = false;
+        if (!tile.Data.HasIncomingRiver) return;
+        var neighbor = GetNeighborByIdx(tile, tile.Data.Flags.RiverInDirection());
+        tile.Data = tile.Data with { Flags = tile.Data.Flags.Without(HexFlags.RiverIn) };
+        neighbor.Data = neighbor.Data with { Flags = neighbor.Data.Flags.Without(HexFlags.RiverOut) };
         RefreshSelfOnly(neighbor);
+        RefreshSelfOnly(tile);
     }
 
     public void RemoveRiver(Tile tile)
@@ -358,8 +363,9 @@ public class TileService(
 
     public void SetOutgoingRiver(Tile tile, Tile riverToTile)
     {
-        if (tile.HasOutgoingRiver && tile.OutgoingRiverNId == riverToTile.Id) return;
-        if (!tile.IsValidRiverDestination(riverToTile))
+        if (tile.Data.HasOutgoingRiver &&
+            GetNeighborByIdx(tile, tile.Data.Flags.RiverOutDirection()).Id == riverToTile.Id) return;
+        if (!IsValidRiverDestination(tile, riverToTile))
         {
             GD.Print($"SetOutgoingRiver tile {tile.Id} to {riverToTile.Id} failed because neighbor higher");
             return;
@@ -367,27 +373,22 @@ public class TileService(
 
         GD.Print($"Setting Outgoing River from {tile.Id} to {riverToTile.Id}");
         RemoveOutgoingRiver(tile);
-        if (tile.HasIncomingRiver && tile.IncomingRiverNId == riverToTile.Id)
+        if (tile.Data.HasIncomingRiver &&
+            GetNeighborByIdx(tile, tile.Data.Flags.RiverInDirection()).Id == riverToTile.Id)
             RemoveIncomingRiver(tile);
-        tile.HasOutgoingRiver = true;
-        tile.OutgoingRiverNId = riverToTile.Id;
-        tile.SpecialIndex = 0;
+        tile.Data = new HexTileData
+        {
+            Flags = tile.Data.Flags.WithRiverOut(tile.GetNeighborIdx(riverToTile)),
+            Values = tile.Data.Values.WithSpecialIndex(0)
+        };
         RemoveIncomingRiver(riverToTile);
-        riverToTile.HasIncomingRiver = true;
-        riverToTile.IncomingRiverNId = tile.Id;
-        riverToTile.SpecialIndex = 0;
+        riverToTile.Data = new HexTileData
+        {
+            Flags = riverToTile.Data.Flags.WithRiverIn(riverToTile.GetNeighborIdx(tile)),
+            Values = riverToTile.Data.Values.WithSpecialIndex(0)
+        };
         SetRoad(tile, tile.GetNeighborIdx(riverToTile), false);
     }
-
-    public float GetStreamBedHeight(Tile tile) => HexMetrics.GetStreamBedHeight(tile.Elevation);
-
-    public bool HasRiverThroughEdge(Tile tile, int idx) =>
-        tile.HasRiverToNeighbor(GetNeighborByIdx(tile, idx).Id);
-
-    public float GetRiverSurfaceHeight(Tile tile) => HexMetrics.GetWaterSurfaceHeight(tile.Elevation);
-
-    public int GetRiverBeginOrEndIdx(Tile tile) =>
-        tile.HasRiverBeginOrEnd ? tile.GetNeighborIdx(GetById(tile.RiverBeginOrEndNId)) : -1;
 
     #endregion
 
@@ -398,42 +399,45 @@ public class TileService(
     private void AddRoad(Tile tile, int idx)
     {
         var neighbor = GetNeighborByIdx(tile, idx);
-        if (!tile.Roads[idx]
-            && !HasRiverThroughEdge(tile, idx)
-            && !tile.IsSpecial && !neighbor.IsSpecial
-            && !tile.IsUnderwater && !neighbor.IsUnderwater // 不在水下生成道路
+        if (!tile.Data.HasRoadThroughEdge(idx)
+            && !tile.Data.HasRiverThroughEdge(idx)
+            && !tile.Data.IsSpecial && !neighbor.Data.IsSpecial
+            && !tile.Data.IsUnderwater && !neighbor.Data.IsUnderwater // 不在水下生成道路
             && GetElevationDifference(tile, idx) <= 1)
             SetRoad(tile, idx, true);
     }
 
     private bool ValidateRoadsWater(Tile tile)
     {
-        if (tile.IsUnderwater)
+        if (tile.Data.IsUnderwater)
             RemoveRoads(tile);
-        return tile.IsUnderwater;
+        return tile.Data.IsUnderwater;
     }
 
     public void RemoveRoads(Tile tile)
     {
-        for (var i = 0; i < tile.Roads.Length; i++)
+        for (var i = 0; i < (tile.IsPentagon() ? 5 : 6); i++)
         {
-            if (tile.Roads[i])
+            if (tile.Data.HasRoadThroughEdge(i))
                 SetRoad(tile, i, false);
         }
     }
 
     private void SetRoad(Tile tile, int idx, bool state)
     {
-        if (tile.Roads[idx] != state)
+        if (tile.Data.HasRoadThroughEdge(idx) != state)
         {
-            tile.Roads[idx] = state;
+            var flags = state ? tile.Data.Flags.WithRoad(idx) : tile.Data.Flags.WithoutRoad(idx);
+            tile.Data = tile.Data with { Flags = flags };
             RefreshSelfOnly(tile);
         }
 
         var neighbor = GetNeighborByIdx(tile, idx);
-        if (neighbor.Roads[neighbor.GetNeighborIdx(tile)] != state)
+        if (neighbor.Data.HasRoadThroughEdge(neighbor.GetNeighborIdx(tile)) != state)
         {
-            neighbor.Roads[neighbor.GetNeighborIdx(tile)] = state;
+            var neighborIdx = neighbor.GetNeighborIdx(tile);
+            var flags = state ? neighbor.Data.Flags.WithRoad(neighborIdx) : neighbor.Data.Flags.WithoutRoad(neighborIdx);
+            neighbor.Data = neighbor.Data with { Flags = flags };
             RefreshSelfOnly(neighbor);
         }
     }
@@ -441,8 +445,6 @@ public class TileService(
     #endregion
 
     #region 水面
-
-    public float GetWaterSurfaceHeight(Tile tile) => HexMetrics.GetWaterSurfaceHeight(tile.WaterLevel);
 
     public Vector3 GetFirstWaterCorner(Tile tile, int idx, float radius = 1f, float size = 1f) =>
         GetFirstCorner(tile, idx, radius, size * HexMetrics.WaterFactor);

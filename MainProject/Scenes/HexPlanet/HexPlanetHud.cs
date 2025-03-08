@@ -244,7 +244,7 @@ public partial class HexPlanetHud : Control
                 _coordsLineEdit.TooltipText = $"{_tileService.GetSphereAxial(_chosenTile)}";
                 _heightLineEdit.Text = $"{_tileService.GetHeight(_chosenTile):F2}";
                 _heightLineEdit.Editable = true;
-                _elevationLineEdit.Text = _chosenTile.Elevation.ToString();
+                _elevationLineEdit.Text = _chosenTile.Data.Elevation.ToString();
             }
             else
             {
@@ -316,22 +316,6 @@ public partial class HexPlanetHud : Control
             var vis = !_tileVBox.Visible;
             _tileVBox.Visible = vis;
             _tileGrid.Visible = vis;
-        };
-
-        _heightLineEdit.TextSubmitted += text =>
-        {
-            if (_chosenTile != null)
-            {
-                var chosenTileId = _chosenTile.Id;
-                if (float.TryParse(text, out var height))
-                {
-                    var tile = _tileService.GetById(chosenTileId);
-                    if (Mathf.Abs(height - _tileService.GetHeight(tile)) < 0.0001f) return;
-                    _tileService.SetHeight(tile, height);
-                }
-                else _heightLineEdit.Text = $"{_tileService.GetHeightById(chosenTileId):F2}";
-            }
-            else _heightLineEdit.Text = "-"; // 应该不会进入这个分支，控制了此时不可编辑
         };
 
         _editTabBar.TabClicked += _ =>

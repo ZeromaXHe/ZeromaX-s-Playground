@@ -140,7 +140,7 @@ public partial class HexMapGenerator : Node3D
         GD.Print($"Generating map with seed {_seed}");
         _random.Seed = (ulong)_seed;
         foreach (var tile in _tileService.GetAll())
-            tile.WaterLevel = _waterLevel;
+            tile.Data = tile.Data with { Values = tile.Data.Values.WithWaterLevel(_waterLevel) };
         CreateRegions();
         CreateLand();
         ErodeLand();
@@ -167,8 +167,11 @@ public partial class HexMapGenerator : Node3D
             var index = _random.RandiRange(0, erodibleTiles.Count - 1);
             var tile = erodibleTiles[index];
             var targetTile = GetErosionTarget(tile);
-            tile.Elevation--;
-            targetTile.Elevation++;
+            tile.Data = tile.Data with { Values = tile.Data.Values.WithElevation(tile.Data.Elevation - 1) };
+            targetTile.Data = targetTile.Data with
+            {
+                Values = targetTile.Data.Values.WithElevation(targetTile.Data.Elevation + 1)
+            };
             if (!IsErodible(tile))
             {
                 var lastIndex = erodibleTiles.Count - 1;
@@ -178,7 +181,7 @@ public partial class HexMapGenerator : Node3D
 
             foreach (var neighbor in _tileService.GetNeighbors(tile))
             {
-                if (neighbor.Elevation == tile.Elevation + 2 && !erodibleTiles.Contains(neighbor))
+                if (neighbor.Data.Elevation == tile.Data.Elevation + 2 && !erodibleTiles.Contains(neighbor))
                     erodibleTiles.Add(neighbor);
             }
 
@@ -187,7 +190,7 @@ public partial class HexMapGenerator : Node3D
             foreach (var neighbor in _tileService.GetNeighbors(targetTile))
             {
                 // 有一个台阶上去就不是悬崖孤台了
-                if (neighbor.Elevation == targetTile.Elevation + 1 && !IsErodible(neighbor))
+                if (neighbor.Data.Elevation == targetTile.Data.Elevation + 1 && !IsErodible(neighbor))
                     erodibleTiles.Remove(neighbor);
             }
         }
@@ -195,16 +198,16 @@ public partial class HexMapGenerator : Node3D
 
     private bool IsErodible(Tile tile)
     {
-        var erodibleElevation = tile.Elevation - 2;
+        var erodibleElevation = tile.Data.Elevation - 2;
         return _tileService.GetNeighbors(tile)
-            .Any(neighbor => neighbor.Elevation <= erodibleElevation);
+            .Any(neighbor => neighbor.Data.Elevation <= erodibleElevation);
     }
 
     private Tile GetErosionTarget(Tile tile)
     {
-        var erodibleElevation = tile.Elevation - 2;
+        var erodibleElevation = tile.Data.Elevation - 2;
         var candidates = _tileService.GetNeighbors(tile)
-            .Where(neighbor => neighbor.Elevation <= erodibleElevation)
+            .Where(neighbor => neighbor.Data.Elevation <= erodibleElevation)
             .ToList();
         return candidates[_random.RandiRange(0, candidates.Count - 1)];
     }
@@ -232,7 +235,7 @@ public partial class HexMapGenerator : Node3D
     private void EvolveClimate(Tile tile)
     {
         var tileClimate = _climate[tile.Id];
-        if (tile.IsUnderwater)
+        if (tile.Data.IsUnderwater)
         {
             tileClimate.Moisture = 1f;
             tileClimate.Clouds += _evaporationFactor;
@@ -247,7 +250,7 @@ public partial class HexMapGenerator : Node3D
         var precipitation = tileClimate.Clouds * _precipitationFactor;
         tileClimate.Clouds -= precipitation;
         tileClimate.Moisture += precipitation;
-        var cloudMaximum = 1f - tile.ViewElevation / (_elevationMaximum + 1f);
+        var cloudMaximum = 1f - tile.Data.ViewElevation / (_elevationMaximum + 1f);
         if (tileClimate.Clouds > cloudMaximum)
         {
             tileClimate.Moisture += tileClimate.Clouds - cloudMaximum;
@@ -266,7 +269,7 @@ public partial class HexMapGenerator : Node3D
                 neighborClimate.Clouds += cloudDispersal * _windStrength;
             else
                 neighborClimate.Clouds += cloudDispersal;
-            var elevationDelta = neighbor.ViewElevation - tile.ViewElevation;
+            var elevationDelta = neighbor.Data.ViewElevation - tile.Data.ViewElevation;
             if (elevationDelta < 0)
             {
                 tileClimate.Moisture -= runoff;
@@ -294,9 +297,9 @@ public partial class HexMapGenerator : Node3D
         var riverOrigins = new List<Tile>();
         foreach (var tile in _tileService.GetAll())
         {
-            if (tile.IsUnderwater) continue;
+            if (tile.Data.IsUnderwater) continue;
             var data = _climate[tile.Id];
-            var weight = data.Moisture * (tile.Elevation - _waterLevel) / (_elevationMaximum - _waterLevel);
+            var weight = data.Moisture * (tile.Data.Elevation - _waterLevel) / (_elevationMaximum - _waterLevel);
             if (weight > 0.75f)
             {
                 riverOrigins.Add(tile);
@@ -318,10 +321,10 @@ public partial class HexMapGenerator : Node3D
             var origin = riverOrigins[index];
             riverOrigins[index] = riverOrigins[lastIndex];
             riverOrigins.RemoveAt(lastIndex);
-            if (!origin.HasRiver)
+            if (!origin.Data.HasRiver)
             {
                 var isValidOrigin = _tileService.GetNeighbors(origin)
-                    .All(neighbor => !neighbor.HasRiver && !neighbor.IsUnderwater);
+                    .All(neighbor => !neighbor.Data.HasRiver && !neighbor.Data.IsUnderwater);
                 if (isValidOrigin)
                     riverBudget -= CreateRiver(origin);
             }
@@ -338,21 +341,21 @@ public partial class HexMapGenerator : Node3D
         var length = 1;
         var tile = origin;
         var direction = 0;
-        while (!tile.IsUnderwater)
+        while (!tile.Data.IsUnderwater)
         {
             var minNeighborElevation = int.MaxValue;
             _flowDirections.Clear();
             var neighbors = _tileService.GetNeighbors(tile).ToList();
             foreach (var neighbor in neighbors)
             {
-                if (neighbor.Elevation < minNeighborElevation)
-                    minNeighborElevation = neighbor.Elevation;
-                if (neighbor == origin || neighbor.HasIncomingRiver)
+                if (neighbor.Data.Elevation < minNeighborElevation)
+                    minNeighborElevation = neighbor.Data.Elevation;
+                if (neighbor == origin || neighbor.Data.HasIncomingRiver)
                     continue;
-                var delta = neighbor.Elevation - tile.Elevation;
+                var delta = neighbor.Data.Elevation - tile.Data.Elevation;
                 if (delta > 0)
                     continue;
-                if (neighbor.HasOutgoingRiver)
+                if (neighbor.Data.HasOutgoingRiver)
                 {
                     _tileService.SetOutgoingRiver(tile, neighbor);
                     return length;
@@ -375,11 +378,14 @@ public partial class HexMapGenerator : Node3D
             {
                 if (length == 1)
                     return 0;
-                if (minNeighborElevation >= tile.Elevation)
+                if (minNeighborElevation >= tile.Data.Elevation)
                 {
-                    tile.WaterLevel = minNeighborElevation;
-                    if (minNeighborElevation == tile.Elevation)
-                        tile.Elevation = minNeighborElevation - 1;
+                    tile.Data = tile.Data with { Values = tile.Data.Values.WithWaterLevel(minNeighborElevation) };
+                    if (minNeighborElevation == tile.Data.Elevation)
+                        tile.Data = tile.Data with
+                        {
+                            Values = tile.Data.Values.WithElevation(minNeighborElevation - 1)
+                        };
                 }
 
                 break;
@@ -389,14 +395,17 @@ public partial class HexMapGenerator : Node3D
             var riverToTile = _tileService.GetNeighborByIdx(tile, direction);
             _tileService.SetOutgoingRiver(tile, riverToTile);
             length++;
-            if (minNeighborElevation >= tile.Elevation && _random.Randf() < _extraLakeProbability)
+            if (minNeighborElevation >= tile.Data.Elevation && _random.Randf() < _extraLakeProbability)
             {
                 // 湖泊
-                tile.WaterLevel = tile.Elevation;
+                tile.Data = tile.Data with { Values = tile.Data.Values.WithWaterLevel(tile.Data.Elevation) };
                 // 由于我们现在水面的绘制原理是连接实际的水面高度，所以需要把周围一圈邻居的水面高度都修改一下
                 foreach (var neighbor in neighbors)
-                    neighbor.WaterLevel = tile.WaterLevel;
-                tile.Elevation -= 1;
+                    neighbor.Data = neighbor.Data with
+                    {
+                        Values = neighbor.Data.Values.WithWaterLevel(tile.Data.WaterLevel)
+                    };
+                tile.Data = tile.Data with { Values = tile.Data.Values.WithElevation(tile.Data.Elevation - 1) };
             }
 
             tile = riverToTile;
@@ -413,7 +422,7 @@ public partial class HexMapGenerator : Node3D
         {
             var temperature = DetermineTemperature(tile);
             var moisture = _climate[tile.Id].Moisture;
-            if (!tile.IsUnderwater)
+            if (!tile.Data.IsUnderwater)
             {
                 var t = 0;
                 for (; t < _temperatureBands.Length; t++)
@@ -427,31 +436,34 @@ public partial class HexMapGenerator : Node3D
                 if (tileBiome.Terrain == 0)
                 {
                     // 假设如果一个单元格的高度比水位更接近最高高度，沙子就会变成岩石。这是岩石沙漠高程线
-                    if (tile.Elevation >= rockDesertElevation)
+                    if (tile.Data.Elevation >= rockDesertElevation)
                         tileBiome.Terrain = 3;
                 }
                 // 强制处于最高海拔的单元格变成雪盖，无论它们有多暖和，只要它们不太干燥
-                else if (tile.Elevation == _elevationMaximum)
+                else if (tile.Data.Elevation == _elevationMaximum)
                     tileBiome.Terrain = 4;
 
                 // 确保植物不会出现在雪地上
                 if (tileBiome.Terrain == 4)
                     tileBiome.Plant = 0;
                 // 如果等级还没有达到最高点，让我们也增加河流沿岸的植物等级
-                else if (tileBiome.Plant < 3 && tile.HasRiver)
+                else if (tileBiome.Plant < 3 && tile.Data.HasRiver)
                     tileBiome.Plant++;
-                tile.TerrainTypeIndex = tileBiome.Terrain;
-                tile.PlantLevel = tileBiome.Plant;
+                tile.Data = tile.Data with
+                {
+                    Values = tile.Data.Values.WithTerrainTypeIndex(tileBiome.Terrain)
+                        .WithPlantLevel(tileBiome.Plant)
+                };
             }
             else
             {
                 int terrain;
-                if (tile.Elevation == _waterLevel - 1)
+                if (tile.Data.Elevation == _waterLevel - 1)
                 {
                     int cliffs = 0, slopes = 0;
                     foreach (var neighbor in _tileService.GetNeighbors(tile))
                     {
-                        var delta = neighbor.Elevation - tile.WaterLevel;
+                        var delta = neighbor.Data.Elevation - tile.Data.WaterLevel;
                         if (delta == 0)
                             slopes++;
                         else if (delta > 0)
@@ -468,10 +480,10 @@ public partial class HexMapGenerator : Node3D
                         terrain = 1;
                 }
                 // 用草来建造比水位更高的单元格，这些是由河流形成的湖泊
-                else if (tile.Elevation >= _waterLevel)
+                else if (tile.Data.Elevation >= _waterLevel)
                     terrain = 1;
                 // 负海拔的单元格位于深处，让我们用岩石来做
-                else if (tile.Elevation < 0)
+                else if (tile.Data.Elevation < 0)
                     terrain = 3;
                 else
                     terrain = 2;
@@ -479,7 +491,7 @@ public partial class HexMapGenerator : Node3D
                 // 确保在最冷的温度带内不会出现绿色的水下单元格。用泥代替这些单元格
                 if (terrain == 1 && temperature < _temperatureBands[0])
                     terrain = 2;
-                tile.TerrainTypeIndex = terrain;
+                tile.Data = tile.Data with { Values = tile.Data.Values.WithTerrainTypeIndex(terrain) };
             }
         }
     }
@@ -493,7 +505,7 @@ public partial class HexMapGenerator : Node3D
         if (latitude > 1f)
             latitude = 2f - latitude;
         var temperature = Mathf.Lerp(_lowTemperature, _highTemperature, latitude);
-        temperature *= 1f - (tile.ViewElevation - _waterLevel) / (_elevationMaximum - _waterLevel + 1f);
+        temperature *= 1f - (tile.Data.ViewElevation - _waterLevel) / (_elevationMaximum - _waterLevel + 1f);
         var jitter = HexMetrics.SampleNoise(tile.GetCentroid(HexMetrics.StandardRadius))[_temperatureJitterChannel];
         temperature += (jitter * 2f - 1f) * _temperatureJitter;
         return temperature;

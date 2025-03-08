@@ -123,7 +123,7 @@ public class TileSearchService(ITileService tileService) : ITileSearchService
         _searchFrontierPhase += 2;
         _searchFrontier ??= new TilePriorityQueue(_searchData);
         _searchFrontier.Clear();
-        range += fromTile.ViewElevation;
+        range += fromTile.Data.ViewElevation;
         _searchData[fromTile.Id] = new TileSearchData
         {
             SearchPhase = _searchFrontierPhase,
@@ -139,10 +139,10 @@ public class TileSearchService(ITileService tileService) : ITileSearchService
             foreach (var neighbor in tileService.GetNeighbors(current))
             {
                 var neighborData = _searchData[neighbor.Id];
-                if (neighborData.SearchPhase > _searchFrontierPhase || !neighbor.Explorable)
+                if (neighborData.SearchPhase > _searchFrontierPhase || !neighbor.Data.IsExplorable)
                     continue;
                 var distance = _searchData[currentId].Distance + 1;
-                if (distance + neighbor.ViewElevation > range
+                if (distance + neighbor.Data.ViewElevation > range
                     || distance > fromCoords.DistanceTo(tileService.GetSphereAxial(neighbor)))
                     // 没法直接拿到两地块间的最短间距，使用启发式值（估算球面距离）/ √3 * 2 作为最短间距
                     continue;
@@ -179,19 +179,20 @@ public class TileSearchService(ITileService tileService) : ITileSearchService
 
     private static bool IsValidDestination(Tile tile)
     {
-        return tile.Explored && tile.Explorable && !tile.IsUnderwater && !tile.HasUnit;
+        return tile.Data is { IsExplored: true, IsExplorable: true, IsUnderwater: false } && !tile.HasUnit;
     }
 
     public int GetMoveCost(Tile fromTile, Tile toTile)
     {
-        var edgeType = fromTile.GetEdgeType(toTile);
+        var edgeType = fromTile.Data.GetEdgeType(toTile.Data);
         if (edgeType == HexEdgeType.Cliff)
             return -1;
-        if (fromTile.HasRoadThroughEdge(fromTile.GetNeighborIdx(toTile)))
+        if (fromTile.Data.HasRoadThroughEdge(fromTile.GetNeighborIdx(toTile)))
             return 1;
-        if (fromTile.Walled != toTile.Walled)
+        if (fromTile.Data.Walled != toTile.Data.Walled)
             return -1;
-        return (edgeType == HexEdgeType.Flat ? 5 : 10) + toTile.UrbanLevel + toTile.FarmLevel + toTile.PlantLevel;
+        return (edgeType == HexEdgeType.Flat ? 5 : 10)
+               + toTile.Data.UrbanLevel + toTile.Data.FarmLevel + toTile.Data.PlantLevel;
     }
 
     // 抬升土地
@@ -209,11 +210,11 @@ public class TileSearchService(ITileService tileService) : ITileSearchService
         while (size < chunkSize && _searchFrontier.TryDequeue(out var id))
         {
             var current = tileService.GetById(id);
-            var originalElevation = current.Elevation;
+            var originalElevation = current.Data.Elevation;
             var newElevation = originalElevation + rise;
             if (newElevation > elevationMaximum)
                 continue;
-            current.Elevation = newElevation;
+            current.Data = current.Data with { Values = current.Data.Values.WithElevation(newElevation) };
             if (originalElevation < waterLevel && newElevation >= waterLevel && --budget == 0)
                 break;
             size++;
@@ -249,11 +250,11 @@ public class TileSearchService(ITileService tileService) : ITileSearchService
         while (size < chunkSize && _searchFrontier.TryDequeue(out var id))
         {
             var current = tileService.GetById(id);
-            var originalElevation = current.Elevation;
+            var originalElevation = current.Data.Elevation;
             var newElevation = originalElevation - sink;
             if (newElevation < elevationMinimum)
                 continue;
-            current.Elevation = newElevation;
+            current.Data = current.Data with { Values = current.Data.Values.WithElevation(newElevation) };
             if (originalElevation >= waterLevel && newElevation < waterLevel)
                 budget++;
             size++;

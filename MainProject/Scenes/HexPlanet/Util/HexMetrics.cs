@@ -144,8 +144,8 @@ public static class HexMetrics
 
     #region 河流与水面
 
-    private const float StreamBedElevationOffset = -1.75f;
-    private const float WaterElevationOffset = -0.5f;
+    public const float StreamBedElevationOffset = -1.75f;
+    public const float WaterElevationOffset = -0.5f;
     public const float WaterFactor = 0.6f;
     public const float WaterBlendFactor = 1f - WaterFactor;
     public static float GetStreamBedHeight(int elevation) => (elevation + StreamBedElevationOffset) * UnitHeight;

@@ -22,6 +22,7 @@ public partial class HexFeatureManager : Node3D
     [Export] private PackedScene _wallTowerScene;
     [Export] private PackedScene _bridgeScene;
     [Export] private PackedScene[] _specialScenes;
+    [Export] private Material _overrideMaterial;
 
     private Node3D _container;
 
@@ -61,8 +62,11 @@ public partial class HexFeatureManager : Node3D
         var rightDirection = right - left;
         tower.Rotate(position.Normalized(),
             tower.Basis.X.SignedAngleTo(rightDirection, position.Normalized()));
+
+        if (_overrideMaterial != null)
+            tower.SetMaterial(_overrideMaterial);
         _container.AddChild(tower);
-        if (tile.Explored) return;
+        if (tile.Data.IsExplored) return;
         if (_unexploredContainer.TryGetValue(tile.Id, out var list))
             list.Add(tower);
         else
@@ -87,8 +91,11 @@ public partial class HexFeatureManager : Node3D
         Node3dUtil.AlignYAxisToDirection(bridge, position);
         bridge.Rotate(position.Normalized(),
             bridge.Basis.X.SignedAngleTo(roadCenter2 - roadCenter1, position.Normalized()));
+
+        if (_overrideMaterial != null)
+            bridge.SetMaterial(_overrideMaterial);
         _container.AddChild(bridge);
-        if (tile.Explored) return;
+        if (tile.Data.IsExplored) return;
         if (_unexploredContainer.TryGetValue(tile.Id, out var list))
             list.Add(bridge);
         else
@@ -97,13 +104,16 @@ public partial class HexFeatureManager : Node3D
 
     public void AddSpecialFeature(Tile tile, Vector3 position)
     {
-        var instance = _specialScenes[tile.SpecialIndex - 1].Instantiate<CsgBox3D>();
+        var instance = _specialScenes[tile.Data.SpecialIndex - 1].Instantiate<CsgBox3D>();
         position = HexMetrics.Perturb(position);
         Node3dUtil.PlaceOnSphere(instance, position, 0.5f * instance.Size.Y);
         var hash = HexMetrics.SampleHashGrid(position);
         instance.Rotate(position.Normalized(), hash.E * Mathf.Tau); // 入参 axis 还是得用全局坐标
+
+        if (_overrideMaterial != null)
+            instance.SetMaterial(_overrideMaterial);
         _container.AddChild(instance);
-        if (tile.Explored) return;
+        if (tile.Data.IsExplored) return;
         if (_unexploredContainer.TryGetValue(tile.Id, out var list))
             list.Add(instance);
         else
@@ -112,10 +122,10 @@ public partial class HexFeatureManager : Node3D
 
     public void AddFeature(Tile tile, Vector3 position)
     {
-        if (tile.IsSpecial) return;
+        if (tile.Data.IsSpecial) return;
         var hash = HexMetrics.SampleHashGrid(position);
-        var scene = PickScene(_urbanScenes, tile.UrbanLevel, hash.A, hash.D);
-        var otherScene = PickScene(_farmScenes, tile.FarmLevel, hash.B, hash.D);
+        var scene = PickScene(_urbanScenes, tile.Data.UrbanLevel, hash.A, hash.D);
+        var otherScene = PickScene(_farmScenes, tile.Data.FarmLevel, hash.B, hash.D);
         var usedHash = hash.A;
         if (scene != null)
         {
@@ -131,7 +141,7 @@ public partial class HexFeatureManager : Node3D
             usedHash = hash.B;
         }
 
-        otherScene = PickScene(_plantScenes, tile.PlantLevel, hash.C, hash.D);
+        otherScene = PickScene(_plantScenes, tile.Data.PlantLevel, hash.C, hash.D);
         if (scene != null)
         {
             if (otherScene != null && hash.C < usedHash)
@@ -145,8 +155,11 @@ public partial class HexFeatureManager : Node3D
         position = HexMetrics.Perturb(position);
         Node3dUtil.PlaceOnSphere(instance, position, 0.5f * instance.Size.Y);
         instance.Rotate(position.Normalized(), hash.E * Mathf.Tau); // 入参 axis 还是得用全局坐标
+
+        if (_overrideMaterial != null)
+            instance.SetMaterial(_overrideMaterial);
         _container.AddChild(instance);
-        if (tile.Explored) return;
+        if (tile.Data.IsExplored) return;
         if (_unexploredContainer.TryGetValue(tile.Id, out var list))
             list.Add(instance);
         else
@@ -166,9 +179,9 @@ public partial class HexFeatureManager : Node3D
     public void AddWall(EdgeVertices near, Tile nearTile, EdgeVertices far, Tile farTile,
         bool hasRiver, bool hasRoad)
     {
-        if (nearTile.Walled == farTile.Walled
-            || nearTile.IsUnderwater || farTile.IsUnderwater
-            || nearTile.GetEdgeType(farTile) == HexEdgeType.Cliff)
+        if (nearTile.Data.Walled == farTile.Data.Walled
+            || nearTile.Data.IsUnderwater || farTile.Data.IsUnderwater
+            || nearTile.Data.GetEdgeType(farTile.Data) == HexEdgeType.Cliff)
             return;
         AddWallSegment(nearTile, farTile, near.V1, far.V1, near.V2, far.V2);
         if (hasRiver || hasRoad)
@@ -188,24 +201,24 @@ public partial class HexFeatureManager : Node3D
     public void AddWall(Vector3 c1, Tile tile1, Vector3 c2, Tile tile2, Vector3 c3,
         Tile tile3)
     {
-        if (tile1.Walled)
+        if (tile1.Data.Walled)
         {
-            if (tile2.Walled)
+            if (tile2.Data.Walled)
             {
-                if (!tile3.Walled)
+                if (!tile3.Data.Walled)
                     AddWallSegment(c3, tile3, c1, tile1, c2, tile2);
             }
-            else if (tile3.Walled)
+            else if (tile3.Data.Walled)
                 AddWallSegment(c2, tile2, c3, tile3, c1, tile1);
             else
                 AddWallSegment(c1, tile1, c2, tile2, c3, tile3);
         }
-        else if (tile2.Walled)
-            if (tile3.Walled)
+        else if (tile2.Data.Walled)
+            if (tile3.Data.Walled)
                 AddWallSegment(c1, tile1, c2, tile2, c3, tile3);
             else
                 AddWallSegment(c2, tile2, c3, tile3, c1, tile1);
-        else if (tile3.Walled)
+        else if (tile3.Data.Walled)
             AddWallSegment(c3, tile3, c1, tile1, c2, tile2);
     }
 
@@ -245,15 +258,15 @@ public partial class HexFeatureManager : Node3D
     private void AddWallSegment(Vector3 pivot, Tile pivotTile,
         Vector3 left, Tile leftTile, Vector3 right, Tile rightTile)
     {
-        if (pivotTile.IsUnderwater) return;
-        var hasLeftWall = !leftTile.IsUnderwater && pivotTile.GetEdgeType(leftTile) != HexEdgeType.Cliff;
-        var hasRightWall = !rightTile.IsUnderwater && pivotTile.GetEdgeType(rightTile) != HexEdgeType.Cliff;
+        if (pivotTile.Data.IsUnderwater) return;
+        var hasLeftWall = !leftTile.Data.IsUnderwater && pivotTile.Data.GetEdgeType(leftTile.Data) != HexEdgeType.Cliff;
+        var hasRightWall = !rightTile.Data.IsUnderwater && pivotTile.Data.GetEdgeType(rightTile.Data) != HexEdgeType.Cliff;
         if (hasLeftWall)
         {
             if (hasRightWall)
             {
                 var hasTower = false;
-                if (leftTile.Elevation == rightTile.Elevation)
+                if (leftTile.Data.Elevation == rightTile.Data.Elevation)
                 {
                     var hash = HexMetrics.SampleHashGrid((pivot + left + right) / 3f);
                     hasTower = hash.E < HexMetrics.WallTowerThreshold;
@@ -262,14 +275,14 @@ public partial class HexFeatureManager : Node3D
                 // 这里入参还得观察一下会不会 bug
                 AddWallSegment(pivotTile, leftTile, pivot, left, pivot, right, hasTower);
             }
-            else if (leftTile.Elevation < rightTile.Elevation)
+            else if (leftTile.Data.Elevation < rightTile.Data.Elevation)
                 AddWallWedge(pivotTile, pivot, leftTile, left, rightTile, right);
             else
                 AddWallCap(pivotTile, pivot, leftTile, left);
         }
         else if (hasRightWall)
         {
-            if (rightTile.Elevation < leftTile.Elevation)
+            if (rightTile.Data.Elevation < leftTile.Data.Elevation)
                 AddWallWedge(rightTile, right, pivotTile, pivot, leftTile, left);
             else
                 AddWallCap(rightTile, right, pivotTile, pivot);

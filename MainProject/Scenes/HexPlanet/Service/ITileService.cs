@@ -31,7 +31,6 @@ public interface ITileService
 
     #region 修改 Tile 属性的方法（相当于 Update）
 
-    void SetHeight(Tile tile, float height);
     void SetElevation(Tile tile, int elevation);
     void SetTerrainTypeIndex(Tile tile, int idx);
     void SetWaterLevel(Tile tile, int waterLevel);
@@ -103,10 +102,6 @@ public interface ITileService
 
     void RemoveRiver(Tile tile);
     void SetOutgoingRiver(Tile tile, Tile riverToTile);
-    float GetStreamBedHeight(Tile tile);
-    bool HasRiverThroughEdge(Tile tile, int idx);
-    float GetRiverSurfaceHeight(Tile tile);
-    int GetRiverBeginOrEndIdx(Tile tile);
 
     #endregion
 
@@ -119,7 +114,6 @@ public interface ITileService
 
     #region 水面
 
-    float GetWaterSurfaceHeight(Tile tile);
     Vector3 GetFirstWaterCorner(Tile tile, int idx, float radius = 1f, float size = 1f);
     Vector3 GetSecondWaterCorner(Tile tile, int idx, float radius = 1f, float size = 1f);
 
