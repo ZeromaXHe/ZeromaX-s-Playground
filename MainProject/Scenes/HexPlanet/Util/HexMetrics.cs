@@ -2,6 +2,7 @@ using System;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Enum;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Struct;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util.HexSphereGrid;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
@@ -29,6 +30,7 @@ public static class HexMetrics
         set
         {
             _divisions = value;
+            SphereAxial.Div = _divisions; // TODO：后续修改这个逻辑，临时在这里处理以方便测试 SphereAxial
             CalcUnitHeight();
         }
     }

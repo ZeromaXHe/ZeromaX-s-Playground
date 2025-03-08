@@ -10,8 +10,8 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 public partial class HexPlanetHud : Control
 {
     public HexPlanetHud() => InitServices();
-    
-    enum OptionalToggle
+
+    private enum OptionalToggle
     {
         Ignore,
         Yes,
@@ -42,6 +42,7 @@ public partial class HexPlanetHud : Control
     private GridContainer _tileGrid;
     private LineEdit _idLineEdit;
     private LineEdit _chunkLineEdit;
+    private LineEdit _coordsLineEdit;
     private LineEdit _heightLineEdit;
     private LineEdit _elevationLineEdit;
 
@@ -90,6 +91,7 @@ public partial class HexPlanetHud : Control
         _tileGrid = GetNode<GridContainer>("%TileGrid");
         _idLineEdit = GetNode<LineEdit>("%IdLineEdit");
         _chunkLineEdit = GetNode<LineEdit>("%ChunkLineEdit");
+        _coordsLineEdit = GetNode<LineEdit>("%CoordsLineEdit");
         _heightLineEdit = GetNode<LineEdit>("%HeightLineEdit");
         _elevationLineEdit = GetNode<LineEdit>("%ElevationLineEdit");
         // 编辑功能
@@ -227,6 +229,8 @@ public partial class HexPlanetHud : Control
             {
                 _idLineEdit.Text = _chosenTile.Id.ToString();
                 _chunkLineEdit.Text = _chosenTile.ChunkId.ToString();
+                _coordsLineEdit.Text = $"{_tileService.GetSphereAxial(_chosenTile)}";
+                _coordsLineEdit.TooltipText = $"{_tileService.GetSphereAxial(_chosenTile)}";
                 _heightLineEdit.Text = $"{_tileService.GetHeight(_chosenTile):F2}";
                 _heightLineEdit.Editable = true;
                 _elevationLineEdit.Text = _chosenTile.Elevation.ToString();
@@ -235,6 +239,8 @@ public partial class HexPlanetHud : Control
             {
                 _idLineEdit.Text = "-";
                 _chunkLineEdit.Text = "-";
+                _coordsLineEdit.Text = "-";
+                _coordsLineEdit.TooltipText = null;
                 _heightLineEdit.Text = "-";
                 _heightLineEdit.Editable = false;
                 _elevationLineEdit.Text = "-";

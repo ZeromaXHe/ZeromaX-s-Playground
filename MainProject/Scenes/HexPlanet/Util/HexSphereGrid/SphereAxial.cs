@@ -1,3 +1,4 @@
+using System;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util.HexPlaneGrid;
 
@@ -39,6 +40,7 @@ public readonly struct SphereAxial(int q, int r, SphereAxial.TypeEnum type, int 
     public readonly TypeEnum Type = type;
     public readonly int TypeIdx = typeIdx;
 
+    public override string ToString() => $"({Coords}, {Type}, {TypeIdx})";
     public bool SpecialNeighbor => Type is TypeEnum.EdgesSpecial or TypeEnum.FacesSpecial;
 
     // 正二十面体索引，0 ~ 19
@@ -73,34 +75,20 @@ public readonly struct SphereAxial(int q, int r, SphereAxial.TypeEnum type, int 
 
     // 在北边的 5 个面上
     public bool IsNorth5 => Row == 0;
-    // (type is TypeEnum.Faces or TypeEnum.FacesSpecial && typeIdx % 4 == 0) ||
-    // (type is TypeEnum.Edges or TypeEnum.EdgesSpecial && typeIdx % 6 == 0) ||
-    // (type == TypeEnum.PoleVertices && typeIdx == 0);
 
     // 在南边的 5 个面上
     public bool IsSouth5 => Row == 3;
-    // (type is TypeEnum.Faces or TypeEnum.FacesSpecial && typeIdx % 4 == 3) ||
-    // (type is TypeEnum.Edges or TypeEnum.EdgesSpecial && typeIdx % 6 == 5) ||
-    // (type == TypeEnum.PoleVertices && typeIdx == 1);
 
     // 属于极地十面
     public bool IsPole10 => IsNorth5 || IsSouth5;
 
     // 属于赤道十面
     public bool IsEquator10 => !IsPole10;
-
     public bool IsEquatorWest => Row == 1;
-    // (type is TypeEnum.Edges or TypeEnum.EdgesSpecial && (typeIdx % 6 == 1 || typeIdx % 6 == 2))
-    // || (type is TypeEnum.Faces or TypeEnum.FacesSpecial && typeIdx % 4 == 1)
-    // || (type is TypeEnum.MidVertices && typeIdx % 2 == 0);
-
     public bool IsEquatorEast => Row == 2;
-    // (type is TypeEnum.Edges or TypeEnum.EdgesSpecial && (typeIdx % 6 == 3 || typeIdx % 6 == 4))
-    // || (type is TypeEnum.Faces or TypeEnum.FacesSpecial && typeIdx % 4 == 2)
-    // || (type is TypeEnum.MidVertices && typeIdx % 2 == 1);
 
-    private static int Width => HexMetrics.Divisions * 5;
-    private static int Div => HexMetrics.Divisions;
+    private static int Width => Div * 5;
+    public static int Div { get; set; }
 
     private static bool ValidateAxial(int q, int r)
     {
@@ -309,6 +297,6 @@ public readonly struct SphereAxial(int q, int r, SphereAxial.TypeEnum type, int 
         else
             return sa.DistanceOnePole(this);
 
-        throw new System.NotImplementedException(); // 按道理不应该走到这里
+        throw new NotImplementedException(); // 按道理不应该走到这里
     }
 }

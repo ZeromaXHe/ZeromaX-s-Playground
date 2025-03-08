@@ -358,6 +358,16 @@ layout_mode = 2
 text = "99"
 editable = false
 
+[node name="CoordsLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+layout_mode = 2
+text = "所属分块："
+
+[node name="CoordsLineEdit" type="LineEdit" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "99"
+editable = false
+
 [node name="HeightLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
 layout_mode = 2
 text = "高度："

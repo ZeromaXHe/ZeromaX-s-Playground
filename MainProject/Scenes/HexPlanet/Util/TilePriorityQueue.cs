@@ -37,7 +37,7 @@ public class TilePriorityQueue(TileSearchData[] data)
     public void Change(int tileId, int oldPriority)
     {
         var current = _list[oldPriority];
-        var next = data[tileId].NextWithSamePriority;
+        var next = data[current].NextWithSamePriority;
         if (current == tileId)
             _list[oldPriority] = next;
         else

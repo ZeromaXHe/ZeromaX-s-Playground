@@ -99,7 +99,7 @@ public class TileSearchService(ITileService tileService) : ITileSearchService
                     {
                         Distance = distance,
                         PathFrom = currentId,
-                        Heuristic = (int)HeuristicCost(neighbor, toTile),
+                        Heuristic = HeuristicCost(neighbor, toTile),
                         SearchPhase = _searchFrontierPhase
                     };
                     _searchFrontier.Enqueue(neighbor.Id);
@@ -130,6 +130,7 @@ public class TileSearchService(ITileService tileService) : ITileSearchService
             PathFrom = _searchData[fromTile.Id].PathFrom
         };
         _searchFrontier.Enqueue(fromTile.Id);
+        var fromCoords = tileService.GetSphereAxial(fromTile);
         while (_searchFrontier.TryDequeue(out var currentId))
         {
             var current = tileService.GetById(currentId);
@@ -142,8 +143,7 @@ public class TileSearchService(ITileService tileService) : ITileSearchService
                     continue;
                 var distance = _searchData[currentId].Distance + 1;
                 if (distance + neighbor.ViewElevation > range
-                    || distance > tileService.GetSphereAxial(fromTile)
-                        .DistanceTo(tileService.GetSphereAxial(neighbor)))
+                    || distance > fromCoords.DistanceTo(tileService.GetSphereAxial(neighbor)))
                     // 没法直接拿到两地块间的最短间距，使用启发式值（估算球面距离）/ √3 * 2 作为最短间距
                     continue;
                 if (neighborData.SearchPhase < _searchFrontierPhase)
@@ -156,7 +156,7 @@ public class TileSearchService(ITileService tileService) : ITileSearchService
                     };
                     _searchFrontier.Enqueue(neighbor.Id);
                 }
-                else if (distance < neighborData.Distance)
+                else if (distance < _searchData[neighbor.Id].Distance)
                 {
                     _searchData[neighbor.Id].Distance = distance;
                     _searchFrontier.Change(neighbor.Id, neighborData.SearchPriority);
@@ -167,8 +167,15 @@ public class TileSearchService(ITileService tileService) : ITileSearchService
         return visibleTiles;
     }
 
-    private float HeuristicCost(Tile from, Tile to) =>
+    private int HeuristicCost(Tile from, Tile to) =>
         tileService.GetSphereAxial(from).DistanceTo(tileService.GetSphereAxial(to));
+    // {
+    //     var fromSa = tileService.GetSphereAxial(from);
+    //     var toSa = tileService.GetSphereAxial(to);
+    //     var dist = fromSa.DistanceTo(toSa);
+    //     GD.Print($"Heuristic: Tile {from.Id} {fromSa} to Tile {to.Id} {toSa} distance {dist}");
+    //     return dist;
+    // }
 
     private static bool IsValidDestination(Tile tile)
     {

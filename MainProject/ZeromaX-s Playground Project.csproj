@@ -4,4 +4,10 @@
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <RootNamespace>ZeromaXsPlaygroundProject</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="UnitTest\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Remove="UnitTest\**" />
+  </ItemGroup>
 </Project>
