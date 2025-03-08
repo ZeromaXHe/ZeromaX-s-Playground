@@ -23,7 +23,9 @@ public partial class HexPlanetHud : Control
     #region on-ready 节点
 
     private SubViewportContainer _subViewportContainer;
+
     private CheckButton _wireframeCheckButton;
+
     // 小地图
     private MiniMapManager _miniMapManager;
 
@@ -39,6 +41,7 @@ public partial class HexPlanetHud : Control
     private VBoxContainer _tileVBox;
     private Label _chunkCountLabel;
     private Label _tileCountLabel;
+    private OptionButton _showLableOptionButton;
     private GridContainer _tileGrid;
     private LineEdit _idLineEdit;
     private LineEdit _chunkLineEdit;
@@ -88,6 +91,7 @@ public partial class HexPlanetHud : Control
         _tileVBox = GetNode<VBoxContainer>("%TileVBox");
         _chunkCountLabel = GetNode<Label>("%ChunkCountLabel");
         _tileCountLabel = GetNode<Label>("%TileCountLabel");
+        _showLableOptionButton = GetNode<OptionButton>("%ShowLabelOptionButton");
         _tileGrid = GetNode<GridContainer>("%TileGrid");
         _idLineEdit = GetNode<LineEdit>("%IdLineEdit");
         _chunkLineEdit = GetNode<LineEdit>("%ChunkLineEdit");
@@ -146,6 +150,7 @@ public partial class HexPlanetHud : Control
     #region 编辑功能
 
     private bool _editMode;
+    private int _showLabelMode;
     private bool _applyTerrain;
     private int _activeTerrain;
     private bool _applyElevation;
@@ -169,6 +174,12 @@ public partial class HexPlanetHud : Control
     {
         _editMode = toggle;
         _hexPlanetManager.SetEditMode(toggle);
+    }
+
+    private void SetShowLabelMode(long mode)
+    {
+        _showLabelMode = (int)mode;
+        _hexPlanetManager.SetShowLabelMode(_showLabelMode);
     }
 
     private void SelectTerrain(long index)
@@ -257,6 +268,7 @@ public partial class HexPlanetHud : Control
         InitOnReadyNodes();
 
         SetEditMode(_editCheckButton.ButtonPressed);
+        SetShowLabelMode(_showLableOptionButton.Selected);
         SelectTerrain(0);
         UpdateNewPlanetInfo();
         InitSignals();
@@ -339,6 +351,7 @@ public partial class HexPlanetHud : Control
         };
 
         _editCheckButton.Toggled += SetEditMode;
+        _showLableOptionButton.ItemSelected += SetShowLabelMode;
         _terrainOptionButton.ItemSelected += SelectTerrain;
         _elevationVSlider.ValueChanged += SetElevation;
         _elevationCheckButton.Toggled += SetApplyElevation;

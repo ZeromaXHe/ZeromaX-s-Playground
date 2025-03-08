@@ -87,6 +87,38 @@ public partial class HexGridChunk : Node3D
     public void RefreshTileLabel(int tileId, string text) =>
         _tileUis[tileId].Label.Text = text;
 
+    public void RefreshTilesLabelMode(int mode)
+    {
+        switch (mode)
+        {
+            case 0:
+                // 不显示
+                foreach (var (_, label) in _tileUis)
+                {
+                    label.Label.Text = "";
+                    label.Label.FontSize = 64;
+                }
+                break;
+            case 1:
+                // 坐标
+                foreach (var (tileId, label) in _tileUis)
+                {
+                    var coords = _tileService.GetSphereAxial(_tileService.GetById(tileId));
+                    label.Label.Text = $"{coords.Coords}\n{coords.Type},{coords.TypeIdx}";
+                    label.Label.FontSize = 24;
+                }
+                break;
+            case 2:
+                // ID
+                foreach (var (tileId, label) in _tileUis)
+                {
+                    label.Label.Text = tileId.ToString();
+                    label.Label.FontSize = 64;
+                }
+                break;
+        }
+    }
+
     public override void _Ready()
     {
         InitOnReadyNodes();

@@ -337,6 +337,22 @@ unique_name_in_owner = true
 layout_mode = 2
 columns = 2
 
+[node name="ShowLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+layout_mode = 2
+text = "标签显示："
+
+[node name="ShowLabelOptionButton" type="OptionButton" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 2
+item_count = 3
+popup/item_0/text = "无"
+popup/item_0/id = 0
+popup/item_1/text = "坐标"
+popup/item_1/id = 1
+popup/item_2/text = "ID"
+popup/item_2/id = 2
+
 [node name="IdLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
 layout_mode = 2
 text = "ID："

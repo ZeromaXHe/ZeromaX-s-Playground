@@ -88,6 +88,7 @@ public partial class HexPlanetManager : Node3D
     private bool _ready;
 
     private bool _editMode;
+    private int _labelMode;
     private int _pathFromTileId;
 
     private int PathFromTileId
@@ -321,15 +322,28 @@ public partial class HexPlanetManager : Node3D
 
     public void SetEditMode(bool mode)
     {
+        if (mode && !_editMode && _labelMode != 0) 
+            // 开启编辑模式
+            foreach (var gridChunk in _gridChunks.Values)
+                gridChunk.RefreshTilesLabelMode(_labelMode);
+        else if (!mode && _editMode)
+            // 关闭编辑模式
+            foreach (var gridChunk in _gridChunks.Values)
+                gridChunk.RefreshTilesLabelMode(0);
         _editMode = mode;
         RenderingServer.GlobalShaderParameterSet("hex_map_edit_mode", mode);
         PathFromTileId = 0;
         UpdateSelectTileViewer();
         foreach (var gridChunk in _gridChunks.Values)
-        {
-            gridChunk.ShowUi(!mode); // 游戏模式下才显示地块 UI
             gridChunk.ShowUnexploredFeatures(mode);
-        }
+    }
+
+    public void SetShowLabelMode(int mode)
+    {
+        _labelMode = mode;
+        if (!_editMode) return;
+        foreach (var gridChunk in _gridChunks.Values)
+            gridChunk.RefreshTilesLabelMode(mode);
     }
 
     public void FindPath(Tile tile)
