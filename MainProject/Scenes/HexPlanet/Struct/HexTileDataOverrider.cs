@@ -44,7 +44,10 @@ public struct HexTileDataOverrider
     public bool IsOverrideNoRoad(Tile tile) => IsOverrideTile(tile) && RoadMode == OptionalToggle.No;
 
     public int Elevation(Tile tile) =>
-        IsOverrideTile(tile) && ApplyElevation ? ActiveElevation : tile.Data.Elevation;
+        // 现在低于陆地高度的不再绘制低于高度的部分
+        IsOverrideTile(tile) && ApplyElevation && ActiveElevation > tile.Data.Elevation
+            ? ActiveElevation
+            : tile.Data.Elevation;
 
     public int WaterLevel(Tile tile) =>
         IsOverrideTile(tile) && ApplyWaterLevel ? ActiveWaterLevel : tile.Data.WaterLevel;

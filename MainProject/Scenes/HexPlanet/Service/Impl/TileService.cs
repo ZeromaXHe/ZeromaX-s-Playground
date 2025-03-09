@@ -145,7 +145,7 @@ public class TileService(
     public float GetHeight(Tile tile) => (tile.Data.Elevation + GetPerturbHeight(tile)) * HexMetrics.UnitHeight;
 
     public float GetOverrideHeight(Tile tile, HexTileDataOverrider tileDataOverrider) =>
-        (tileDataOverrider.Elevation(tile) + GetPerturbHeight(tile)) * HexMetrics.UnitHeight;
+        (tileDataOverrider.Elevation(tile) + GetPerturbHeight(tile) + 0.05f) * HexMetrics.UnitHeight;
 
     public float GetHeightById(int id) => GetHeight(GetById(id));
 
@@ -392,6 +392,8 @@ public class TileService(
             Values = riverToTile.Data.Values.WithSpecialIndex(0)
         };
         SetRoad(tile, tile.GetNeighborIdx(riverToTile), false);
+        RefreshSelfOnly(tile);
+        RefreshSelfOnly(riverToTile);
     }
 
     #endregion

@@ -123,7 +123,7 @@ public partial class OrbitCamera : Node3D
         // 旋转
         if (rotationDelta == 0f)
             return false;
-        _focusBackStick.RotateY(Mathf.DegToRad(rotationDelta * _rotationSpeed));
+        _focusBackStick.RotateY(-Mathf.DegToRad(rotationDelta * _rotationSpeed));
         Zoom = _zoom; // 更新 FocusBackStick 方向
         return true;
     }
