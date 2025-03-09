@@ -3,6 +3,7 @@ using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Struct;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
@@ -10,13 +11,6 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 public partial class HexPlanetHud : Control
 {
     public HexPlanetHud() => InitServices();
-
-    private enum OptionalToggle
-    {
-        Ignore,
-        Yes,
-        No
-    }
 
     [Export] private HexPlanetManager _hexPlanetManager;
 
@@ -149,30 +143,12 @@ public partial class HexPlanetHud : Control
 
     #region 编辑功能
 
-    private bool _editMode;
     private int _showLabelMode;
-    private bool _applyTerrain;
-    private int _activeTerrain;
-    private bool _applyElevation;
-    private int _activeElevation;
-    private bool _applyWaterLevel;
-    private int _activeWaterLevel;
-    private int _brushSize;
-    private OptionalToggle _riverMode;
-    private OptionalToggle _roadMode;
-    private bool _applyUrbanLevel;
-    private int _activeUrbanLevel;
-    private bool _applyFarmLevel;
-    private int _activeFarmLevel;
-    private bool _applyPlantLevel;
-    private int _activePlantLevel;
-    private OptionalToggle _walledMode;
-    private bool _applySpecialIndex;
-    private int _activeSpecialIndex;
+    private HexTileDataOverrider _tileOverrider = new();
 
     private void SetEditMode(bool toggle)
     {
-        _editMode = toggle;
+        _tileOverrider = _tileOverrider with { EditMode = toggle };
         _hexPlanetManager.SetEditMode(toggle);
     }
 
@@ -184,47 +160,51 @@ public partial class HexPlanetHud : Control
 
     private void SelectTerrain(long index)
     {
-        _applyTerrain = index > 0;
-        if (_applyTerrain)
+        _tileOverrider = _tileOverrider with { ApplyTerrain = index > 0 };
+        if (_tileOverrider.ApplyTerrain)
         {
-            _activeTerrain = (int)index - 1;
+            _tileOverrider = _tileOverrider with { ActiveTerrain = (int)index - 1 };
         }
     }
 
     private void SetElevation(double elevation)
     {
-        _activeElevation = (int)elevation;
-        _elevationValueLabel.Text = _activeElevation.ToString();
+        _tileOverrider = _tileOverrider with { ActiveElevation = (int)elevation };
+        _elevationValueLabel.Text = _tileOverrider.ActiveElevation.ToString();
     }
 
-    private void SetApplyElevation(bool toggle) => _applyElevation = toggle;
+    private void SetApplyElevation(bool toggle) => _tileOverrider = _tileOverrider with { ApplyElevation = toggle };
 
     private void SetBrushSize(double brushSize)
     {
-        _brushSize = (int)brushSize;
-        _selectViewService.SelectViewSize = _brushSize;
-        _brushLabel.Text = $"笔刷大小：{_brushSize}";
+        _tileOverrider = _tileOverrider with { BrushSize = (int)brushSize };
+        _selectViewService.SelectViewSize = _tileOverrider.BrushSize;
+        _brushLabel.Text = $"笔刷大小：{_tileOverrider.BrushSize}";
     }
 
-    private void SetRiverMode(long mode) => _riverMode = (OptionalToggle)mode;
-    private void SetRoadMode(long mode) => _roadMode = (OptionalToggle)mode;
-    private void SetApplyWaterLevel(bool toggle) => _applyWaterLevel = toggle;
+    private void SetRiverMode(long mode) => _tileOverrider = _tileOverrider with { RiverMode = (OptionalToggle)mode };
+    private void SetRoadMode(long mode) => _tileOverrider = _tileOverrider with { RoadMode = (OptionalToggle)mode };
+    private void SetApplyWaterLevel(bool toggle) => _tileOverrider = _tileOverrider with { ApplyWaterLevel = toggle };
 
     private void SetWaterLevel(double level)
     {
-        _activeWaterLevel = (int)level;
-        _waterValueLabel.Text = _activeWaterLevel.ToString();
+        _tileOverrider = _tileOverrider with { ActiveWaterLevel = (int)level };
+        _waterValueLabel.Text = _tileOverrider.ActiveWaterLevel.ToString();
     }
 
-    private void SetApplyUrbanLevel(bool toggle) => _applyUrbanLevel = toggle;
-    private void SetUrbanLevel(double level) => _activeUrbanLevel = (int)level;
-    private void SetApplyFarmLevel(bool toggle) => _applyFarmLevel = toggle;
-    private void SetFarmLevel(double level) => _activeFarmLevel = (int)level;
-    private void SetApplyPlantLevel(bool toggle) => _applyPlantLevel = toggle;
-    private void SetPlantLevel(double level) => _activePlantLevel = (int)level;
-    private void SetWalledMode(long mode) => _walledMode = (OptionalToggle)mode;
-    private void SetApplySpecialIndex(bool toggle) => _applySpecialIndex = toggle;
-    private void SetSpecialIndex(long index) => _activeSpecialIndex = (int)index;
+    private void SetApplyUrbanLevel(bool toggle) => _tileOverrider = _tileOverrider with { ApplyUrbanLevel = toggle };
+    private void SetUrbanLevel(double level) => _tileOverrider = _tileOverrider with { ActiveUrbanLevel = (int)level };
+    private void SetApplyFarmLevel(bool toggle) => _tileOverrider = _tileOverrider with { ApplyFarmLevel = toggle };
+    private void SetFarmLevel(double level) => _tileOverrider = _tileOverrider with { ActiveFarmLevel = (int)level };
+    private void SetApplyPlantLevel(bool toggle) => _tileOverrider = _tileOverrider with { ApplyPlantLevel = toggle };
+    private void SetPlantLevel(double level) => _tileOverrider = _tileOverrider with { ActivePlantLevel = (int)level };
+    private void SetWalledMode(long mode) => _tileOverrider = _tileOverrider with { WalledMode = (OptionalToggle)mode };
+
+    private void SetApplySpecialIndex(bool toggle) =>
+        _tileOverrider = _tileOverrider with { ApplySpecialIndex = toggle };
+
+    private void SetSpecialIndex(long index) =>
+        _tileOverrider = _tileOverrider with { ActiveSpecialIndex = (int)index };
 
     #endregion
 
@@ -329,8 +309,8 @@ public partial class HexPlanetHud : Control
             }
             else
             {
-                _applyTerrain = false;
-                _applyElevation = false;
+                _tileOverrider.ApplyTerrain = false;
+                _tileOverrider.ApplyElevation = false;
             }
         };
 
@@ -380,8 +360,10 @@ public partial class HexPlanetHud : Control
                 return;
             }
 
-            if (_editMode)
+            if (_tileOverrider.EditMode)
             {
+                // 编辑模式下更新预览网格
+                _hexPlanetManager.UpdateEditPreviewChunk(_tileOverrider);
                 if (Input.IsActionJustPressed("destroy_unit"))
                 {
                     _hexPlanetManager.DestroyUnit();
@@ -409,7 +391,7 @@ public partial class HexPlanetHud : Control
                 ValidateDrag(ChosenTile);
             else
                 _isDrag = false;
-            if (_editMode)
+            if (_tileOverrider.EditMode)
                 EditTiles(ChosenTile);
             else if (Input.IsActionJustPressed("choose_unit"))
                 _hexPlanetManager.FindPath(ChosenTile);
@@ -417,7 +399,7 @@ public partial class HexPlanetHud : Control
         }
         else
         {
-            if (!_editMode)
+            if (!_tileOverrider.EditMode)
                 _hexPlanetManager.FindPath(ChosenTile);
             _previousTile = null;
         }
@@ -431,37 +413,37 @@ public partial class HexPlanetHud : Control
 
     private void EditTiles(Tile tile)
     {
-        foreach (var t in _tileService.GetTilesInDistance(tile, _brushSize))
+        foreach (var t in _tileService.GetTilesInDistance(tile, _tileOverrider.BrushSize))
             EditTile(t);
     }
 
     private void EditTile(Tile tile)
     {
-        if (_applyTerrain)
-            _tileService.SetTerrainTypeIndex(tile, _activeTerrain);
-        if (_applyElevation)
-            _tileService.SetElevation(tile, _activeElevation);
-        if (_applyWaterLevel)
-            _tileService.SetWaterLevel(tile, _activeWaterLevel);
-        if (_applySpecialIndex)
-            _tileService.SetSpecialIndex(tile, _activeSpecialIndex);
-        if (_applyUrbanLevel)
-            _tileService.SetUrbanLevel(tile, _activeUrbanLevel);
-        if (_applyFarmLevel)
-            _tileService.SetFarmLevel(tile, _activeFarmLevel);
-        if (_applyPlantLevel)
-            _tileService.SetPlantLevel(tile, _activePlantLevel);
-        if (_riverMode == OptionalToggle.No)
+        if (_tileOverrider.ApplyTerrain)
+            _tileService.SetTerrainTypeIndex(tile, _tileOverrider.ActiveTerrain);
+        if (_tileOverrider.ApplyElevation)
+            _tileService.SetElevation(tile, _tileOverrider.ActiveElevation);
+        if (_tileOverrider.ApplyWaterLevel)
+            _tileService.SetWaterLevel(tile, _tileOverrider.ActiveWaterLevel);
+        if (_tileOverrider.ApplySpecialIndex)
+            _tileService.SetSpecialIndex(tile, _tileOverrider.ActiveSpecialIndex);
+        if (_tileOverrider.ApplyUrbanLevel)
+            _tileService.SetUrbanLevel(tile, _tileOverrider.ActiveUrbanLevel);
+        if (_tileOverrider.ApplyFarmLevel)
+            _tileService.SetFarmLevel(tile, _tileOverrider.ActiveFarmLevel);
+        if (_tileOverrider.ApplyPlantLevel)
+            _tileService.SetPlantLevel(tile, _tileOverrider.ActivePlantLevel);
+        if (_tileOverrider.RiverMode == OptionalToggle.No)
             _tileService.RemoveRiver(tile);
-        if (_roadMode == OptionalToggle.No)
+        if (_tileOverrider.RoadMode == OptionalToggle.No)
             _tileService.RemoveRoads(tile);
-        if (_walledMode != OptionalToggle.Ignore)
-            _tileService.SetWalled(tile, _walledMode == OptionalToggle.Yes);
+        if (_tileOverrider.WalledMode != OptionalToggle.Ignore)
+            _tileService.SetWalled(tile, _tileOverrider.WalledMode == OptionalToggle.Yes);
         if (_isDrag)
         {
-            if (_riverMode == OptionalToggle.Yes)
+            if (_tileOverrider.RiverMode == OptionalToggle.Yes)
                 _tileService.SetOutgoingRiver(_previousTile, _dragTile);
-            if (_roadMode == OptionalToggle.Yes)
+            if (_tileOverrider.RoadMode == OptionalToggle.Yes)
                 _tileService.AddRoad(_previousTile, _dragTile);
         }
 

@@ -5,6 +5,7 @@ using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Struct;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
@@ -145,6 +146,7 @@ public partial class HexPlanetManager : Node3D
     private Node3D _chunks;
     private OrbitCamera _orbitCamera;
     private MeshInstance3D _selectTileViewer;
+    private EditPreviewChunk _editPreviewChunk;
     private HexUnitPathPool _hexUnitPathPool;
     private HexMapGenerator _hexMapGenerator;
 
@@ -156,9 +158,13 @@ public partial class HexPlanetManager : Node3D
         _orbitCamera = GetNode<OrbitCamera>("%OrbitCamera");
         _selectTileViewer = GetNode<MeshInstance3D>("%SelectTileViewer");
         _hexMapGenerator = GetNode<HexMapGenerator>("%HexMapGenerator");
-        // 没有 [Tool] 特性也不需要在编辑器下使用，所以这里判断一下，否则会强转失败
         if (!Engine.IsEditorHint())
+        {
+            // 没有 [Tool] 特性也不需要在编辑器下使用的节点。所以这里需要判断一下再赋值，否则会强转失败
+            _editPreviewChunk = GetNode<EditPreviewChunk>("%EditPreviewChunk");
             _hexUnitPathPool = GetNode<HexUnitPathPool>("%HexUnitPathPool");
+        }
+
         _ready = true;
     }
 
@@ -219,6 +225,7 @@ public partial class HexPlanetManager : Node3D
     {
         if (position != Vector3.Zero)
         {
+            // 更新选择地块框
             _selectTileViewer.Visible = true;
             var mesh = _selectViewService.GenerateMeshForEditMode(position);
             if (mesh != null)
@@ -229,6 +236,19 @@ public partial class HexPlanetManager : Node3D
             // GD.Print("No tile under cursor, _selectTileViewer not visible");
             _selectTileViewer.Visible = false;
         }
+    }
+
+    public void UpdateEditPreviewChunk(HexTileDataOverrider tileOverrider)
+    {
+        var tile = GetTileUnderCursor();
+        if (tile != null)
+        {
+            // 更新地块预览
+            _editPreviewChunk.Refresh(tileOverrider, _tileService.GetTilesInDistance(tile, tileOverrider.BrushSize));
+            _editPreviewChunk.Visible = true;
+        }
+        else
+            _editPreviewChunk.Visible = false;
     }
 
     private Godot.Collections.Dictionary GetTileCollisionResult()
@@ -322,14 +342,21 @@ public partial class HexPlanetManager : Node3D
 
     public void SetEditMode(bool mode)
     {
-        if (mode && !_editMode && _labelMode != 0) 
+        if (mode && !_editMode && _labelMode != 0)
+        {
             // 开启编辑模式
             foreach (var gridChunk in _gridChunks.Values)
                 gridChunk.RefreshTilesLabelMode(_labelMode);
+        }
         else if (!mode && _editMode)
+        {
             // 关闭编辑模式
+            // 游戏模式下永远不显示编辑预览网格
+            _editPreviewChunk.Visible = false;
             foreach (var gridChunk in _gridChunks.Values)
                 gridChunk.RefreshTilesLabelMode(0);
+        }
+
         _editMode = mode;
         RenderingServer.GlobalShaderParameterSet("hex_map_edit_mode", mode);
         PathFromTileId = 0;

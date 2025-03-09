@@ -1,0 +1,12 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://jo0hnqc2dau6"]
+
+[ext_resource type="Shader" uid="uid://d0345bd6g2g3x" path="res://Shaders/HexPlanet/Hologram.gdshader" id="1_mxw6v"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_mxw6v")
+shader_parameter/color = Color(0, 1, 0.367188, 1)
+shader_parameter/lines1 = 160.0
+shader_parameter/lines2 = 50.0
+shader_parameter/_emission = 3.0
+shader_parameter/_fresnel = 1.0

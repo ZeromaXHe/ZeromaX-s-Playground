@@ -71,15 +71,15 @@ shader_parameter/glossiness = 0.5
 shader_parameter/specular = 0.2
 shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
 
-[node name="HexGridChunk" type="Node3D" node_paths=PackedStringArray("_terrain", "_rivers", "_roads", "_water", "_waterShore", "_estuary", "_features")]
+[node name="HexGridChunk" type="Node3D" node_paths=PackedStringArray("Terrain", "Rivers", "Roads", "Water", "WaterShore", "Estuary", "Features")]
 script = ExtResource("1_tueog")
-_terrain = NodePath("Terrain")
-_rivers = NodePath("Rivers")
-_roads = NodePath("Roads")
-_water = NodePath("Water")
-_waterShore = NodePath("WaterShore")
-_estuary = NodePath("Estuaries")
-_features = NodePath("Features")
+Terrain = NodePath("Terrain")
+Rivers = NodePath("Rivers")
+Roads = NodePath("Roads")
+Water = NodePath("Water")
+WaterShore = NodePath("WaterShore")
+Estuary = NodePath("Estuaries")
+Features = NodePath("Features")
 _labelScene = ExtResource("2_puro1")
 
 [node name="Terrain" parent="." instance=ExtResource("2_yhs87")]
