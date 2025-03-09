@@ -3,8 +3,13 @@ render_mode unshaded, shadows_disabled, world_vertex_coords;
 uniform vec3 color: source_color;
 uniform float lines1: hint_range(0.0, 200.0, 1.0) = 2.0;
 uniform float lines2: hint_range(0.0, 100.0, 1.0) = 2.0;
-uniform float _emission: hint_range(0.0, 10.0) = 1.0;
+uniform float distortion_strength: hint_range(0.0, 1.0) = 0.4;
+uniform float distortion_percentage: hint_range(0.0, 1.0) = 0.02;
+uniform float _emission_min: hint_range(0.0, 10.0) = 1.0;
+uniform float _emission_max: hint_range(0.0, 10.0) = 4.0;
 uniform float _fresnel: hint_range(0.0, 10.0) = 1.0;
+global uniform float max_height;
+global uniform float radius;
 
 float random(float x) {
 	return fract(sin(x * 12.9898 * 78.233) * 43758.5433);
@@ -23,8 +28,8 @@ varying float rand_dist;
 void vertex() {
 	float distortion = sin(TIME * 10.0 + VERTEX.y * 20.0) * 0.04;
 	float rand_time = random(TIME);
-	rand_dist = step(rand_time, 0.02);
-	VERTEX.x += distortion * rand_dist;
+	rand_dist = step(rand_time, 1. - distortion_percentage);
+	VERTEX *= 1. + distortion * rand_dist * distortion_strength * max_height / radius;
 }
 
 void fragment() {
@@ -44,5 +49,5 @@ void fragment() {
 	
 	float m = f * n * l1 * l2;
 	ALPHA = m;
-	ALBEDO = color * mix(_emission, _emission + 5.0, rand_dist);
+	ALBEDO = color * mix(_emission_min, _emission_max, rand_dist); // 变形时高亮
 }

@@ -143,6 +143,10 @@ public class TileService(
     public SphereAxial GetSphereAxial(Tile tile) => pointRepo.GetById(tile.CenterId).Coords;
 
     public float GetHeight(Tile tile) => (tile.Data.Elevation + GetPerturbHeight(tile)) * HexMetrics.UnitHeight;
+
+    public float GetOverrideHeight(Tile tile, HexTileDataOverrider tileDataOverrider) =>
+        (tileDataOverrider.Elevation(tile) + GetPerturbHeight(tile)) * HexMetrics.UnitHeight;
+
     public float GetHeightById(int id) => GetHeight(GetById(id));
 
     private static float GetPerturbHeight(Tile tile) =>
@@ -436,7 +440,9 @@ public class TileService(
         if (neighbor.Data.HasRoadThroughEdge(neighbor.GetNeighborIdx(tile)) != state)
         {
             var neighborIdx = neighbor.GetNeighborIdx(tile);
-            var flags = state ? neighbor.Data.Flags.WithRoad(neighborIdx) : neighbor.Data.Flags.WithoutRoad(neighborIdx);
+            var flags = state
+                ? neighbor.Data.Flags.WithRoad(neighborIdx)
+                : neighbor.Data.Flags.WithoutRoad(neighborIdx);
             neighbor.Data = neighbor.Data with { Flags = flags };
             RefreshSelfOnly(neighbor);
         }

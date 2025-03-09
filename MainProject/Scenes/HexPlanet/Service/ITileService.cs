@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Struct;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util.HexSphereGrid;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
@@ -48,6 +49,7 @@ public interface ITileService
     SphereAxial GetSphereAxial(Tile tile);
 
     float GetHeight(Tile tile);
+    float GetOverrideHeight(Tile tile, HexTileDataOverrider tileDataOverrider);
     float GetHeightById(int id);
 
     // 初始化地块

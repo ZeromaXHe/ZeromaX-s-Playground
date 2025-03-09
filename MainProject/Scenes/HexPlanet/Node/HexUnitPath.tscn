@@ -27,7 +27,7 @@ colors = PackedColorArray(0.0745098, 0.411765, 0.129412, 0, 0.0452728, 0.269531,
 gradient = SubResource("Gradient_njl6w")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_3x4am"]
-render_priority = 0
+render_priority = 11
 shader = ExtResource("2_j2fds")
 shader_parameter/color = Color(1, 1, 1, 1)
 shader_parameter/main_tex = SubResource("GradientTexture2D_a0r3b")

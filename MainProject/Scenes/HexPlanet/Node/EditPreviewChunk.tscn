@@ -17,7 +17,6 @@ Features = NodePath("Features")
 
 [node name="Terrain" parent="." instance=ExtResource("3_l1ntm")]
 material_override = ExtResource("12_ye4n8")
-UseCollider = true
 UseCellData = true
 
 [node name="Rivers" parent="." instance=ExtResource("3_l1ntm")]

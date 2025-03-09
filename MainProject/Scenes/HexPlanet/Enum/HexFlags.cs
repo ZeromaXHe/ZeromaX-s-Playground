@@ -232,6 +232,7 @@ public static class HexFlagsExtensions
             0b000100 => 2,
             0b001000 => 3,
             0b010000 => 4,
-            _ => 5
+            0b100000 => 5,
+            _ => -1
         };
 }
