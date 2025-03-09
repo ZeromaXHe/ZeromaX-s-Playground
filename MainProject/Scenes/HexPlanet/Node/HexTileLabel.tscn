@@ -9,6 +9,7 @@ script = ExtResource("1_0b8ty")
 unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0, 0)
 pixel_size = 0.1
+double_sided = false
 render_priority = 2
 outline_render_priority = 1
 modulate = Color(0, 0, 0, 1)

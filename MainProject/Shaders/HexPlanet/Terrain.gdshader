@@ -11,6 +11,9 @@ uniform float specular = 0.2;
 uniform vec3 background_color: source_color = vec3(0.2, 0.169, 0.133);
 global uniform float radius;
 global uniform float max_height;
+global uniform int divisions;
+global uniform vec3 mouse_over_tile_pos;
+global uniform int editor_brush_size;
 
 #include "HexCellData.gdshaderinc"
 
@@ -67,10 +70,15 @@ void fragment() {
 	EMISSION = background_color * (1.0 - explored);
 	// 设置光滑度
 	ROUGHNESS = 1.0 - glossiness;
+	
+	// 1.07824796 是连接共边两点和球心的夹角弧度
+	// 这里作用是让笔刷附近的地形透明，以便显示降低高度时的效果
+	float tile_distance = 1.07824796 * radius * (float(editor_brush_size) + 1.2) / float(divisions);
+	float alpha_factor = clamp(mix(1., 0., tile_distance - distance(world_pos, mouse_over_tile_pos)), 0., 1.);
 	// 设置透明度
 	// 直接设置这个会导致河面、道路、水面等等涉及到透明度的和地形前后渲染关系混乱。
 	// 而且标签的黑边也会消失……
 	// 需要同时调整其他这些的材质的渲染优先度，将其他的优先度设置为 1，这里地形默认 0
 	// 目前因为都是地形都是不透明的，直接不设置透明度方便些，这样也省的给标签加材质，再改渲染优先度
-	ALPHA = c.a;
+	ALPHA = c.a * clamp(0.95 + 0.05 * alpha_factor, 0., 1.);
 }

@@ -56,10 +56,10 @@ public class ChunkTriangulation
         {
             if (!Overrider.HasRiver(tile) && !Overrider.HasRoads(tile))
                 _chunk.Features.AddFeature(tile,
-                    tile.GetCentroid(HexMetrics.Radius + _tileService.GetHeight(tile)), Overrider);
+                    tile.GetCentroid(HexMetrics.Radius + GetOverrideHeight(tile)), Overrider);
             if (Overrider.IsSpecial(tile))
                 _chunk.Features.AddSpecialFeature(tile,
-                    tile.GetCentroid(HexMetrics.Radius + _tileService.GetHeight(tile)), Overrider);
+                    tile.GetCentroid(HexMetrics.Radius + GetOverrideHeight(tile)), Overrider);
         }
     }
 
@@ -217,18 +217,18 @@ public class ChunkTriangulation
         if (Overrider.HasRiverThroughEdge(tile, tile.NextIdx(idx)))
         {
             if (Overrider.HasRiverThroughEdge(tile, tile.PreviousIdx(idx)))
-                centroid = _tileService.GetSolidEdgeMiddle(tile, idx, HexMetrics.Radius + _tileService.GetHeight(tile),
+                centroid = _tileService.GetSolidEdgeMiddle(tile, idx, HexMetrics.Radius + GetOverrideHeight(tile),
                     0.5f * HexMetrics.InnerToOuter);
             else if (!tile.IsPentagon() && Overrider.HasRiverThroughEdge(tile, tile.Previous2Idx(idx)))
                 // 注意五边形没有直线河流，一边临河另一边隔一个方向临河的情况是对应钝角河的外河岸，依然在 centroid
-                centroid = _tileService.GetFirstSolidCorner(tile, idx, HexMetrics.Radius + _tileService.GetHeight(tile),
+                centroid = _tileService.GetFirstSolidCorner(tile, idx, HexMetrics.Radius + GetOverrideHeight(tile),
                     0.25f);
         }
         else if (!tile.IsPentagon()
                  && Overrider.HasRiverThroughEdge(tile, tile.PreviousIdx(idx))
                  && Overrider.HasRiverThroughEdge(tile, tile.Next2Idx(idx)))
             // 注意五边形没有直线河流，一边临河另一边隔一个方向临河的情况是对应钝角河的外河岸，依然在 centroid
-            centroid = _tileService.GetSecondSolidCorner(tile, idx, HexMetrics.Radius + _tileService.GetHeight(tile),
+            centroid = _tileService.GetSecondSolidCorner(tile, idx, HexMetrics.Radius + GetOverrideHeight(tile),
                 0.25f);
 
         var m = new EdgeVertices(centroid.Lerp(e.V1, 0.5f), centroid.Lerp(e.V5, 0.5f));
@@ -253,10 +253,10 @@ public class ChunkTriangulation
             var riverBeginOrEndIdx = Overrider.HasIncomingRiver(tile) ? incomingRiverIdx : outgoingRiverIdx;
             if (tile.IsPentagon())
                 roadCenter += _tileService.GetFirstSolidCorner(tile, tile.OppositeIdx(riverBeginOrEndIdx),
-                    HexMetrics.Radius + _tileService.GetHeight(tile), HexMetrics.OuterToInner / 3f) - centroid;
+                    HexMetrics.Radius + GetOverrideHeight(tile), HexMetrics.OuterToInner / 3f) - centroid;
             else
                 roadCenter += _tileService.GetSolidEdgeMiddle(tile, tile.OppositeIdx(riverBeginOrEndIdx),
-                    HexMetrics.Radius + _tileService.GetHeight(tile), 1f / 3f) - centroid;
+                    HexMetrics.Radius + GetOverrideHeight(tile), 1f / 3f) - centroid;
         }
         else
         {
@@ -268,13 +268,13 @@ public class ChunkTriangulation
                 {
                     if (!hasRoadThroughEdge && !Overrider.HasRoadThroughEdge(tile, tile.NextIdx(idx))) return;
                     corner = _tileService.GetSecondSolidCorner(tile, idx,
-                        HexMetrics.Radius + _tileService.GetHeight(tile));
+                        HexMetrics.Radius + GetOverrideHeight(tile));
                 }
                 else
                 {
                     if (!hasRoadThroughEdge && !Overrider.HasRoadThroughEdge(tile, tile.PreviousIdx(idx))) return;
                     corner = _tileService.GetFirstSolidCorner(tile, idx,
-                        HexMetrics.Radius + _tileService.GetHeight(tile));
+                        HexMetrics.Radius + GetOverrideHeight(tile));
                 }
 
                 roadCenter += (corner - centroid) * 0.5f;
@@ -288,20 +288,20 @@ public class ChunkTriangulation
             {
                 // 河流走势是逆时针锐角的情况
                 roadCenter -= _tileService.GetSecondCorner(tile, incomingRiverIdx,
-                    HexMetrics.Radius + _tileService.GetHeight(tile), 0.2f) - centroid;
+                    HexMetrics.Radius + GetOverrideHeight(tile), 0.2f) - centroid;
             }
             else if (incomingRiverIdx == tile.NextIdx(outgoingRiverIdx))
             {
                 // 河流走势是顺时针锐角的情况
                 roadCenter -= _tileService.GetFirstCorner(tile, incomingRiverIdx,
-                    HexMetrics.Radius + _tileService.GetHeight(tile), 0.2f) - centroid;
+                    HexMetrics.Radius + GetOverrideHeight(tile), 0.2f) - centroid;
             }
             else if (previousHasRiver && nextHasRiver)
             {
                 // 河流走势是钝角的情况，且当前方向被夹在河流出入角中间
                 if (!hasRoadThroughEdge) return;
                 var offset = _tileService.GetSolidEdgeMiddle(tile, idx,
-                    HexMetrics.Radius + _tileService.GetHeight(tile),
+                    HexMetrics.Radius + GetOverrideHeight(tile),
                     HexMetrics.InnerToOuter);
                 roadCenter += (offset - centroid) * 0.7f;
                 centroid += (offset - centroid) * 0.5f;
@@ -313,7 +313,7 @@ public class ChunkTriangulation
                 if (!Overrider.HasRoadThroughEdge(tile, firstIdx) &&
                     !Overrider.HasRoadThroughEdge(tile, tile.NextIdx(firstIdx))) return;
                 var offset = _tileService.GetSecondSolidCorner(tile, firstIdx,
-                    HexMetrics.Radius + _tileService.GetHeight(tile));
+                    HexMetrics.Radius + GetOverrideHeight(tile));
                 roadCenter += (offset - centroid) * 0.25f * HexMetrics.OuterToInner;
                 if (idx == firstIdx && Overrider.HasRoadThroughEdge(tile, tile.Previous2Idx(firstIdx)))
                     _chunk.Features.AddBridge(tile, roadCenter,
@@ -334,7 +334,7 @@ public class ChunkTriangulation
                     && !Overrider.HasRoadThroughEdge(tile, tile.NextIdx(middleIdx)))
                     return;
                 var offset = _tileService.GetSolidEdgeMiddle(tile, middleIdx,
-                    HexMetrics.Radius + _tileService.GetHeight(tile));
+                    HexMetrics.Radius + GetOverrideHeight(tile));
                 roadCenter += (offset - centroid) * 0.25f;
                 if (idx == middleIdx && Overrider.HasRoadThroughEdge(tile, tile.OppositeIdx(idx)))
                     _chunk.Features.AddBridge(tile, roadCenter,
@@ -379,7 +379,7 @@ public class ChunkTriangulation
     {
         Vector3 centerL;
         Vector3 centerR;
-        var height = _tileService.GetHeight(tile);
+        var height = GetOverrideHeight(tile);
         if (!tile.IsPentagon() && Overrider.HasRiverThroughEdge(tile, tile.OppositeIdx(idx))) // 注意五边形没有对边的情况
         {
             // 直线河流
@@ -558,9 +558,9 @@ public class ChunkTriangulation
 
     private void TriangulateConnection(Tile tile, int idx, EdgeVertices e)
     {
-        var tileHeight = _tileService.GetHeight(tile);
+        var tileHeight = GetOverrideHeight(tile);
         var neighbor = _tileService.GetNeighborByIdx(tile, idx);
-        var neighborHeight = _tileService.GetHeight(neighbor);
+        var neighborHeight = GetOverrideHeight(neighbor);
         // 连接将由更低的地块或相同高度时 Id 更大的地块生成
         if (tileHeight > neighborHeight ||
             (Mathf.Abs(tileHeight - neighborHeight) < 0.00001f && tile.Id < neighbor.Id)) return;
@@ -603,7 +603,7 @@ public class ChunkTriangulation
         _chunk.Features.AddWall(e, tile, en, neighbor, hasRiver, hasRoad, Overrider);
 
         var preNeighbor = _tileService.GetNeighborByIdx(tile, tile.PreviousIdx(idx));
-        var preNeighborHeight = _tileService.GetHeight(preNeighbor);
+        var preNeighborHeight = GetOverrideHeight(preNeighbor);
         if (tileHeight < preNeighborHeight
             || (Mathf.Abs(tileHeight - preNeighborHeight) < 0.00001f && tile.Id > preNeighbor.Id))
         {

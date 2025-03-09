@@ -59,6 +59,7 @@ public partial class HexPlanetManager : Node3D
         {
             _divisions = value;
             HexMetrics.Divisions = _divisions;
+            RenderingServer.GlobalShaderParameterSet("divisions", _divisions);
             _chunkDivisions = Mathf.Min(Mathf.Max(1, _divisions / 4), _chunkDivisions);
             if (_ready)
                 _orbitCamera.Reset();
@@ -75,6 +76,7 @@ public partial class HexPlanetManager : Node3D
         {
             _chunkDivisions = value;
             _divisions = Mathf.Max(Mathf.Min(100, _chunkDivisions * 4), _divisions);
+            RenderingServer.GlobalShaderParameterSet("divisions", _divisions);
             HexMetrics.Divisions = _divisions;
             if (_ready)
                 _orbitCamera.Reset();
@@ -223,6 +225,7 @@ public partial class HexPlanetManager : Node3D
 
     private void UpdateSelectTileInEditMode(Vector3 position)
     {
+        RenderingServer.GlobalShaderParameterSet("mouse_over_tile_pos", position);
         if (position != Vector3.Zero)
         {
             // 更新选择地块框
@@ -359,6 +362,8 @@ public partial class HexPlanetManager : Node3D
 
         _editMode = mode;
         RenderingServer.GlobalShaderParameterSet("hex_map_edit_mode", mode);
+        if (!mode)
+            RenderingServer.GlobalShaderParameterSet("mouse_over_tile_pos", Vector3.Zero);
         PathFromTileId = 0;
         UpdateSelectTileViewer();
         foreach (var gridChunk in _gridChunks.Values)

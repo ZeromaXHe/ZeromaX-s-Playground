@@ -177,6 +177,7 @@ public partial class HexPlanetHud : Control
 
     private void SetBrushSize(double brushSize)
     {
+        RenderingServer.GlobalShaderParameterSet("editor_brush_size", (int)brushSize);
         _tileOverrider = _tileOverrider with { BrushSize = (int)brushSize };
         _selectViewService.SelectViewSize = _tileOverrider.BrushSize;
         _brushLabel.Text = $"笔刷大小：{_tileOverrider.BrushSize}";

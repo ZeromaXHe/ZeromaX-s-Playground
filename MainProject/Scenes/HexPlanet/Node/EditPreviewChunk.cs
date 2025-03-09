@@ -13,6 +13,7 @@ public partial class EditPreviewChunk : Node3D, IChunk
         _chunkTriangulation = new ChunkTriangulation(this);
 
     [Export] public HexMesh Terrain { get; set; }
+    [Export] public ShaderMaterial[] TerrainMaterials { get; set; }
     [Export] public HexMesh Rivers { get; set; }
     [Export] public HexMesh Roads { get; set; }
     [Export] public HexMesh Water { get; set; }
@@ -22,6 +23,7 @@ public partial class EditPreviewChunk : Node3D, IChunk
 
     private readonly ChunkTriangulation _chunkTriangulation;
     public HexTileDataOverrider TileDataOverrider { get; set; } = new();
+    private int _terrainMaterialIdx = 0;
 
     public override void _Process(double delta)
     {
@@ -53,6 +55,19 @@ public partial class EditPreviewChunk : Node3D, IChunk
     public void Refresh(HexTileDataOverrider tileDataOverrider, IEnumerable<Tile> tiles)
     {
         TileDataOverrider = tileDataOverrider with { OverrideTiles = tiles.ToHashSet() };
+        var newMaterialIdx = GetTerrainMaterialIdx();
+        if (newMaterialIdx != _terrainMaterialIdx)
+        {
+            Terrain.MaterialOverride = TerrainMaterials[newMaterialIdx];
+            _terrainMaterialIdx = newMaterialIdx;
+        }
+
         SetProcess(true);
+    }
+
+    private int GetTerrainMaterialIdx()
+    {
+        if (!TileDataOverrider.ApplyTerrain) return 0;
+        return TileDataOverrider.ActiveTerrain + 1;
     }
 }

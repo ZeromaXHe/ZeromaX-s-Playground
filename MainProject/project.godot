@@ -104,3 +104,15 @@ hex_tile_data_texel_size={
 "type": "vec4",
 "value": Vector4(0, 0, 0, 0)
 }
+divisions={
+"type": "int",
+"value": 10
+}
+mouse_over_tile_pos={
+"type": "vec3",
+"value": Vector3(0, 0, 0)
+}
+editor_brush_size={
+"type": "int",
+"value": 0
+}

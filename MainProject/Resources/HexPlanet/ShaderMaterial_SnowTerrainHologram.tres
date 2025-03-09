@@ -1,0 +1,15 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://cibn44c6xdv6y"]
+
+[ext_resource type="Shader" uid="uid://d0345bd6g2g3x" path="res://Shaders/HexPlanet/Hologram.gdshader" id="1_ww31u"]
+
+[resource]
+render_priority = 11
+shader = ExtResource("1_ww31u")
+shader_parameter/color = Color(0.882353, 0.862745, 0.827451, 1)
+shader_parameter/lines1 = 160.0
+shader_parameter/lines2 = 50.0
+shader_parameter/distortion_strength = 0.0
+shader_parameter/distortion_percentage = 0.01
+shader_parameter/_emission_min = 1.0
+shader_parameter/_emission_max = 2.0
+shader_parameter/_fresnel = 0.3
