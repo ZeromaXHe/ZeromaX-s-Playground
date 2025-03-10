@@ -43,6 +43,8 @@ public partial class HexPlanetHud : Control
     private LineEdit _coordsLineEdit;
     private LineEdit _heightLineEdit;
     private LineEdit _elevationLineEdit;
+    private LineEdit _lonLineEdit;
+    private LineEdit _latLineEdit;
 
     // 编辑功能
     private CheckButton _editCheckButton;
@@ -93,6 +95,8 @@ public partial class HexPlanetHud : Control
         _coordsLineEdit = GetNode<LineEdit>("%CoordsLineEdit");
         _heightLineEdit = GetNode<LineEdit>("%HeightLineEdit");
         _elevationLineEdit = GetNode<LineEdit>("%ElevationLineEdit");
+        _lonLineEdit = GetNode<LineEdit>("%LonLineEdit");
+        _latLineEdit = GetNode<LineEdit>("%LatLineEdit");
         // 编辑功能
         _editCheckButton = GetNode<CheckButton>("%EditCheckButton");
         _editTabBar = GetNode<TabBar>("%EditTabBar");
@@ -221,11 +225,17 @@ public partial class HexPlanetHud : Control
             {
                 _idLineEdit.Text = _chosenTile.Id.ToString();
                 _chunkLineEdit.Text = _chosenTile.ChunkId.ToString();
-                _coordsLineEdit.Text = $"{_tileService.GetSphereAxial(_chosenTile)}";
-                _coordsLineEdit.TooltipText = $"{_tileService.GetSphereAxial(_chosenTile)}";
+                var sa = _tileService.GetSphereAxial(_chosenTile);
+                _coordsLineEdit.Text = sa.ToString();
+                _coordsLineEdit.TooltipText = _coordsLineEdit.Text;
                 _heightLineEdit.Text = $"{_tileService.GetHeight(_chosenTile):F2}";
                 _heightLineEdit.Editable = true;
                 _elevationLineEdit.Text = _chosenTile.Data.Elevation.ToString();
+                var lonLat = sa.ToLongitudeAndLatitude();
+                _lonLineEdit.Text = lonLat.GetLongitudeString();
+                _lonLineEdit.TooltipText = _lonLineEdit.Text;
+                _latLineEdit.Text = lonLat.GetLatitudeString();
+                _latLineEdit.TooltipText = _latLineEdit.Text;
             }
             else
             {
@@ -236,6 +246,10 @@ public partial class HexPlanetHud : Control
                 _heightLineEdit.Text = "-";
                 _heightLineEdit.Editable = false;
                 _elevationLineEdit.Text = "-";
+                _lonLineEdit.Text = "-";
+                _lonLineEdit.TooltipText = ""; // 试了一下，null 和 "" 效果一样
+                _latLineEdit.Text = "-";
+                _latLineEdit.TooltipText = null;
             }
         }
     }

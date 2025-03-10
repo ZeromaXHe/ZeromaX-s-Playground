@@ -7,6 +7,6 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 public class Face(Vector3 center, int id = -1) : AEntity(id)
 {
     public Vector3 Center { get; } = center; // 三角形重心 median point
-    public Vector3[] TriVertices; // 第一个顶点是非水平边的顶点
+    public Vector3[] TriVertices; // 第一个顶点是非水平边的顶点，后续水平边的两点按照顺时针方向排列
     public bool IsAdjacentTo(Face face) => TriVertices.Intersect(face.TriVertices).Count() == 2;
 }

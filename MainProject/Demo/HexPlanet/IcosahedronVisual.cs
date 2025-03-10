@@ -43,7 +43,7 @@ public partial class IcosahedronVisual : Node3D
             textMeshIns.Position = v * 1.1f;
             AddChild(textMeshIns);
 
-            if (Mathf.Abs(v.X) > 0.0001f || Mathf.Abs(v.Z) > 0.0001f)
+            if (Mathf.Abs(v.X) > 0.001f || Mathf.Abs(v.Z) > 0.001f)
                 textMeshIns.LookAt(-textMeshIns.Position, Vector3.Up);
             else
                 textMeshIns.LookAt(-textMeshIns.Position, Vector3.Forward * float.Sign(v.Y));

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util.HexPlaneGrid;
 
@@ -109,6 +111,111 @@ public readonly struct SphereAxial(int q, int r, SphereAxial.TypeEnum type, int 
         if (r > Div)
             return Mathf.PosMod(q, Div) <= 2 * Div - r;
         return true;
+    }
+
+    // 距离左边最近的边的 Q 差值
+    // （当 Column 4 向左跨越回 Column 0 时，保持返回与普通情况一致性，即：将 Column 0 视作 6 的位置计算）
+    private int LeftEdgeDiffQ()
+    {
+        return Row switch
+        {
+            0 => Coords.Q + Coords.R + Div + Column * Div,
+            1 => Coords.Q + Div + Column * Div,
+            2 => Coords.Q + Coords.R + Column * Div,
+            3 => Coords.Q + Div + Column * Div,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+
+    // 距离右边最近的边的 Q 差值（向右不存在特殊情况）
+    private int RightEdgeDiffQ()
+    {
+        return Row switch
+        {
+            0 => -Column * Div - Coords.Q,
+            1 => -Column * Div - Coords.Q - Coords.R,
+            2 => -Column * Div - Coords.Q,
+            3 => -Column * Div - Coords.Q - Coords.R + Div,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+
+    // 左右边最近的边的 Q 差值（特殊情况的处理规则同左边情况）
+    private int LeftRightEdgeDiffQ()
+    {
+        return Row switch
+        {
+            0 => Coords.R + Div,
+            1 => Div - Coords.R,
+            2 => Coords.R,
+            3 => 2 * Div - Coords.R,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+
+    /// <summary>
+    /// 获取原始正二十面体的三角形的三个顶点
+    /// </summary>
+    /// <returns>按照非平行于 XZ 平面的边的单独点第一个，然后两个平行边上的点按顺时针顺序排列，返回三个点的数组</returns>
+    private IEnumerable<SphereAxial> TriangleVertices()
+    {
+        var nextColumn = (Column + 1) % 5;
+        return Row switch
+        {
+            0 =>
+            [
+                new SphereAxial(0, -Div, TypeEnum.PoleVertices, 0),
+                new SphereAxial(-Column * Div, 0, TypeEnum.MidVertices, Column * 2),
+                new SphereAxial(-nextColumn * Div, 0, TypeEnum.MidVertices, nextColumn * 2)
+            ],
+            1 =>
+            [
+                new SphereAxial(-nextColumn * Div, Div, TypeEnum.MidVertices, nextColumn * 2 + 1),
+                new SphereAxial(-nextColumn * Div, 0, TypeEnum.MidVertices, nextColumn * 2),
+                new SphereAxial(-Column * Div, 0, TypeEnum.MidVertices, Column * 2)
+            ],
+            2 =>
+            [
+                new SphereAxial(-Column * Div, 0, TypeEnum.MidVertices, Column * 2),
+                new SphereAxial(-Column * Div, Div, TypeEnum.MidVertices, Column * 2 + 1),
+                new SphereAxial(-nextColumn * Div, Div, TypeEnum.MidVertices, nextColumn * 2 + 1)
+            ],
+            3 =>
+            [
+                new SphereAxial(-Div, 2 * Div, TypeEnum.PoleVertices, 1),
+                new SphereAxial(-nextColumn * Div, Div, TypeEnum.MidVertices, nextColumn * 2 + 1),
+                new SphereAxial(-Column * Div, Div, TypeEnum.MidVertices, Column * 2 + 1)
+            ],
+            _ => null
+        };
+    }
+
+    // 转经纬度
+    public LongitudeLatitudeCoords ToLongitudeAndLatitude()
+    {
+        switch (Type)
+        {
+            case TypeEnum.PoleVertices:
+                return new LongitudeLatitudeCoords(0f, 90f * (TypeIdx == 0 ? 1 : -1));
+            case TypeEnum.MidVertices:
+                var longitude = TypeIdx / 2 * 72f - TypeIdx % 2 * 36f;
+                var latitude = TypeIdx % 2 == 0 ? 29.141262794f : -29.141262794f;
+                return new LongitudeLatitudeCoords(longitude, latitude);
+            case TypeEnum.Edges:
+            case TypeEnum.EdgesSpecial:
+            case TypeEnum.Faces:
+            case TypeEnum.FacesSpecial:
+                var tri = TriangleVertices().ToArray();
+                var triCoords = tri.Select(sa => sa.ToLongitudeAndLatitude()).ToArray();
+                var horizontalCoords1 = triCoords[0].Slerp(triCoords[1],
+                    (float)Mathf.Abs(Coords.R - tri[0].Coords.R) / Div);
+                var horizontalCoords2 = triCoords[0].Slerp(triCoords[2],
+                    (float)Mathf.Abs(Coords.R - tri[0].Coords.R) / Div);
+                return horizontalCoords1.Slerp(horizontalCoords2,
+                    (float)(Row % 2 == 1 ? LeftEdgeDiffQ() : RightEdgeDiffQ()) / LeftRightEdgeDiffQ());
+            default:
+                throw new ArgumentException($"暂不支持的类型：{Type}");
+        }
     }
 
     // TODO：现在只能先分情况全写一遍了…… 有点蠢，后续优化

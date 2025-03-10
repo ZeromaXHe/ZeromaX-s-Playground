@@ -44,7 +44,8 @@ public partial class LongitudeLatitude : Node3D
         _meshIns = new MeshInstance3D();
         AddChild(_meshIns);
         _visibility = FullVisibility;
-        SignalBus.Instance.CameraMoved += OnCameraMoved;
+        if (!Engine.IsEditorHint())
+            SignalBus.Instance.CameraMoved += OnCameraMoved;
     }
 
     public override void _Process(double delta)
