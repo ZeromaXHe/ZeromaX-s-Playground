@@ -1,5 +1,6 @@
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
+using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
@@ -258,8 +259,8 @@ public partial class HexPlanetHud : Control
 
     private void InitSignals()
     {
-        _hexPlanetManager.NewPlanetGenerated += UpdateNewPlanetInfo;
-        _hexPlanetManager.NewPlanetGenerated += _miniMapManager.Init;
+        SignalBus.Instance.NewPlanetGenerated += UpdateNewPlanetInfo;
+        SignalBus.Instance.NewPlanetGenerated += _miniMapManager.Init;
 
         _wireframeCheckButton.Toggled += toggle =>
             _hexPlanetManager.GetViewport()

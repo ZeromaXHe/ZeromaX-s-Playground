@@ -1,5 +1,6 @@
 using System;
 using Godot;
+using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 
@@ -22,17 +23,59 @@ public partial class LongitudeLatitude : Node3D
     [Export] public Color Degree90LongitudeColor { get; set; } = Colors.Orange; // 东西经 90 度颜色
     [Export] public Color MeridianColor { get; set; } = Colors.Red; // 子午线颜色
 
-    [ExportGroup("开关特定线显示")] [Export] public bool DrawTropicOfCancer = true; // 是否绘制北回归线
-    [Export] public bool DrawTropicOfCapricorn = true; // 是否绘制南回归线
-    [Export] public bool DrawArcticCircle = true; // 是否绘制北极圈
-    [Export] public bool DrawAntarcticCircle = true; // 是否绘制南极圈
+    [ExportGroup("开关特定线显示")] [Export] public bool DrawTropicOfCancer { get; set; } = true; // 是否绘制北回归线
+    [Export] public bool DrawTropicOfCapricorn { get; set; } = true; // 是否绘制南回归线
+    [Export] public bool DrawArcticCircle { get; set; } = true; // 是否绘制北极圈
+    [Export] public bool DrawAntarcticCircle { get; set; } = true; // 是否绘制南极圈
+
+    [ExportGroup("透明度设置")]
+    [Export(PropertyHint.Range, "0.01, 5")]
+    public float FullVisibilityTime { get; set; } = 0.25f;
+
+    [Export(PropertyHint.Range, "0, 1")] public float FullVisibility { get; set; } = 0.5f;
+
     private float _radius = 110;
     private MeshInstance3D _meshIns;
+    private float _visibility = 1f;
+    private bool _fadeVisibility;
 
     public override void _Ready()
     {
         _meshIns = new MeshInstance3D();
         AddChild(_meshIns);
+        _visibility = FullVisibility;
+        SignalBus.Instance.CameraMoved += OnCameraMoved;
+    }
+
+    public override void _Process(double delta)
+    {
+        if (Engine.IsEditorHint())
+        {
+            SetProcess(false);
+            return;
+        }
+
+        if (_fadeVisibility)
+            _visibility -= (float)delta / FullVisibilityTime;
+        _fadeVisibility = true;
+
+        if (LineMaterial is ShaderMaterial shaderMaterial)
+            shaderMaterial.SetShaderParameter("alpha_factor", _visibility);
+
+        if (_visibility > 0) return;
+        _visibility = 0;
+        Hide();
+        SetProcess(false);
+    }
+
+    private void OnCameraMoved(Vector3 pos, float delta)
+    {
+        Show();
+        _visibility += delta / FullVisibilityTime;
+        if (_visibility > FullVisibility)
+            _visibility = FullVisibility;
+        _fadeVisibility = false;
+        SetProcess(true);
     }
 
     public void Draw(float radius)

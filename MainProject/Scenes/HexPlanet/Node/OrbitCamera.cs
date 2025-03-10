@@ -1,4 +1,5 @@
 using Godot;
+using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
@@ -94,7 +95,11 @@ public partial class OrbitCamera : Node3D
 
     public override void _Process(double delta)
     {
-        if (Engine.IsEditorHint()) return;
+        if (Engine.IsEditorHint())
+        {
+            SetProcess(false);
+            return;
+        }
         var floatDelta = (float)delta;
         // 旋转
         var rotationDelta = floatDelta * Input.GetAxis("cam_rotate_left", "cam_rotate_right");
@@ -145,6 +150,7 @@ public partial class OrbitCamera : Node3D
         _antiStuckSpeedMultiplier = prePos.IsEqualApprox(_focusBase.GlobalPosition)
             ? _antiStuckSpeedMultiplier * 1.5f
             : 1f;
+        SignalBus.EmitCameraMoved(_focusBase.GlobalPosition, delta);
         return true;
     }
 

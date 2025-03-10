@@ -126,7 +126,7 @@ unique_name_in_owner = true
 [node name="HexMapGenerator" parent="." instance=ExtResource("9_nxupj")]
 unique_name_in_owner = true
 _windStrength = 0.0
-_seed = -1975066899
+_seed = 1132614140
 
 [node name="LongitudeLatitude" parent="." instance=ExtResource("11_smp2p")]
 unique_name_in_owner = true
@@ -138,3 +138,5 @@ CircleColor = Color(0, 1, 1, 0.25098)
 EquatorColor = Color(1, 1, 0, 0.25098)
 Degree90LongitudeColor = Color(1, 0.647059, 0, 0.25098)
 MeridianColor = Color(1, 0, 0, 0.25098)
+FullVisibilityTime = 1.2
+FullVisibility = 0.6

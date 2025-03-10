@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
+using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
@@ -25,9 +26,6 @@ public partial class HexPlanetManager : Node3D
     {
         InitServices(); // 现在 4.4 甚至构造函数会执行两次！奇了怪了，不知道之前 4.3 是不是也是这样
     }
-
-    [Signal]
-    public delegate void NewPlanetGeneratedEventHandler();
 
     private float _radius = 100f;
 
@@ -336,7 +334,7 @@ public partial class HexPlanetManager : Node3D
         _chunkService.InitChunks(ChunkDivisions);
         InitHexSphere();
         RefreshAllTiles();
-        EmitSignal(SignalName.NewPlanetGenerated);
+        SignalBus.EmitNewPlanetGenerated();
     }
 
     private void RefreshAllTiles()
