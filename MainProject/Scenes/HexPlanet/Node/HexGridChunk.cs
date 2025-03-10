@@ -54,16 +54,16 @@ public partial class HexGridChunk : Node3D, IChunk
 
     #endregion
 
-    public void Init(int id)
+    public void Init(int id, int mode)
     {
         _id = id;
-        InitLabels();
+        InitLabels(mode);
         Refresh();
     }
 
     private void ExploreFeatures(int tileId) => Features.ExploreFeatures(tileId);
 
-    private void InitLabels()
+    private void InitLabels(int mode)
     {
         // 清楚之前的标签
 
@@ -79,9 +79,9 @@ public partial class HexGridChunk : Node3D, IChunk
             Node3dUtil.AlignYAxisToDirection(label, position, Vector3.Up);
             _tileUis.Add(tile.Id, label);
             _labels.AddChild(label);
-            // 在场景树中 _Ready 后 Label 才非 null
-            label.Label.Text = Engine.IsEditorHint() ? tile.Id.ToString() : "";
         }
+        // 在场景树中 _Ready 后 Label 才非 null
+        RefreshTilesLabelMode(mode);
     }
 
     public void RefreshTileLabel(int tileId, string text) =>

@@ -366,7 +366,7 @@ public partial class HexPlanetManager : Node3D
             var hexGridChunk = _gridChunkScene.Instantiate<HexGridChunk>();
             hexGridChunk.Name = $"HexGridChunk{id}";
             _chunks.AddChild(hexGridChunk); // 必须先加入场景树，否则 _Ready() 还没执行
-            hexGridChunk.Init(id);
+            hexGridChunk.Init(id, _editMode ? _labelMode : 0);
             _gridChunks.Add(id, hexGridChunk);
         }
 
