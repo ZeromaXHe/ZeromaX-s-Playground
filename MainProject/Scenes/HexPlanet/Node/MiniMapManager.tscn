@@ -1,7 +1,8 @@
-[gd_scene load_steps=5 format=4 uid="uid://cpewnyu5aelo4"]
+[gd_scene load_steps=6 format=4 uid="uid://cpewnyu5aelo4"]
 
 [ext_resource type="Texture2D" uid="uid://bcukmv7nq23p" path="res://Assets/HexPlanet/MyPaint/minimap_tiles.svg" id="1_f71kh"]
 [ext_resource type="Script" uid="uid://cdfsvnv5pin76" path="res://Scenes/HexPlanet/Node/MiniMapManager.cs" id="1_o804j"]
+[ext_resource type="Texture2D" uid="uid://b1kutkqhqcl40" path="res://icon.svg" id="3_cit20"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_o804j"]
 texture = ExtResource("1_f71kh")
@@ -50,3 +51,8 @@ tile_set = SubResource("TileSet_cit20")
 [node name="Camera2D" type="Camera2D" parent="."]
 unique_name_in_owner = true
 position = Vector2(-138, 30)
+
+[node name="CameraIcon" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+scale = Vector2(0.3, 0.3)
+texture = ExtResource("3_cit20")

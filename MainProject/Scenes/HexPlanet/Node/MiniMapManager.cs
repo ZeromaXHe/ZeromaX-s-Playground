@@ -1,5 +1,6 @@
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
+using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
@@ -14,12 +15,14 @@ public partial class MiniMapManager : Node2D
     private TileMapLayer _terrainLayer;
     private TileMapLayer _colorLayer;
     private Camera2D _camera;
+    private Sprite2D _cameraIcon;
 
     private void InitOnReadyNodes()
     {
         _terrainLayer = GetNode<TileMapLayer>("%TerrainLayer");
         _colorLayer = GetNode<TileMapLayer>("%ColorLayer");
         _camera = GetNode<Camera2D>("%Camera2D");
+        _cameraIcon = GetNode<Sprite2D>("%CameraIcon");
     }
 
     #endregion
@@ -40,6 +43,22 @@ public partial class MiniMapManager : Node2D
     {
         InitOnReadyNodes();
         InitServices();
+        SignalBus.Instance.CameraMoved += OnCameraMoved;
+    }
+
+    private void OnCameraMoved(Vector3 pos, float delta)
+    {
+        var tileId = _tileService.SearchNearestTileId(pos);
+        if (tileId == null)
+        {
+            GD.PrintErr($"未找到摄像机对应地块：{pos}");
+            return;
+        }
+
+        var sa = _tileService.GetSphereAxial(_tileService.GetById((int)tileId));
+        // TODO: 缓动，以及更精确的位置转换
+        _cameraIcon.GlobalPosition = _terrainLayer.ToGlobal(
+            _terrainLayer.MapToLocal(sa.Coords.ToVector2I()));
     }
 
     // 标准摄像机对应 Divisions = 10
@@ -66,8 +85,8 @@ public partial class MiniMapManager : Node2D
                 case SphereAxial.TypeEnum.PoleVertices or SphereAxial.TypeEnum.MidVertices:
                     _colorLayer.SetCell(sphereAxial.Coords.ToVector2I(), 0, new Vector2I(2, 3));
                     break;
-                case SphereAxial.TypeEnum.EdgesSpecial 
-                     when sphereAxial.TypeIdx % 6 == 0 || sphereAxial.TypeIdx % 6 == 5:
+                case SphereAxial.TypeEnum.EdgesSpecial
+                    when sphereAxial.TypeIdx % 6 == 0 || sphereAxial.TypeIdx % 6 == 5:
                     _colorLayer.SetCell(sphereAxial.Coords.ToVector2I(), 0, EdgeAtlas(sphereAxial));
                     break;
             }
