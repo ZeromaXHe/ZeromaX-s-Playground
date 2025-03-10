@@ -6,6 +6,7 @@ using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Struct;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util.HexSphereGrid;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 
@@ -23,6 +24,8 @@ public partial class HexPlanetHud : Control
 
     // 小地图
     private MiniMapManager _miniMapManager;
+    private Label _camLatLonLabel;
+    private CheckButton _latLonFixCheckButton;
 
     // 星球信息
     private TabBar _planetTabBar;
@@ -77,6 +80,8 @@ public partial class HexPlanetHud : Control
         _wireframeCheckButton = GetNode<CheckButton>("%WireframeCheckButton");
         // 小地图
         _miniMapManager = GetNode<MiniMapManager>("%MiniMapManager");
+        _camLatLonLabel = GetNode<Label>("%CamLatLonLabel");
+        _latLonFixCheckButton = GetNode<CheckButton>("%LatLonFixCheckButton");
         // 星球信息
         _planetTabBar = GetNode<TabBar>("%PlanetTabBar");
         _planetGrid = GetNode<GridContainer>("%PlanetGrid");
@@ -273,13 +278,15 @@ public partial class HexPlanetHud : Control
 
     private void InitSignals()
     {
-        SignalBus.Instance.NewPlanetGenerated += UpdateNewPlanetInfo;
-        SignalBus.Instance.NewPlanetGenerated += _miniMapManager.Init;
+        _hexPlanetManager.NewPlanetGenerated += UpdateNewPlanetInfo;
+        _hexPlanetManager.NewPlanetGenerated += _miniMapManager.Init;
 
         _wireframeCheckButton.Toggled += toggle =>
             _hexPlanetManager.GetViewport()
                 .SetDebugDraw(toggle ? Viewport.DebugDrawEnum.Wireframe : Viewport.DebugDrawEnum.Disabled);
 
+        _latLonFixCheckButton.Toggled += _hexPlanetManager.FixLatLon;
+        SignalBus.Instance.CameraMoved += OnCameraMoved;
         _planetTabBar.TabClicked += _ => _planetGrid.Visible = !_planetGrid.Visible;
 
         _radiusLineEdit.TextSubmitted += text =>
@@ -350,6 +357,9 @@ public partial class HexPlanetHud : Control
         _specialFeatureOptionButton.ItemSelected += SetSpecialIndex;
     }
 
+    private void OnCameraMoved(Vector3 pos, float delta) =>
+        _camLatLonLabel.Text = $"相机位置：{LongitudeLatitudeCoords.From(pos)}";
+
     private void UpdateNewPlanetInfo()
     {
         UpdatePlanetUi();
@@ -407,7 +417,12 @@ public partial class HexPlanetHud : Control
             else
                 _isDrag = false;
             if (_tileOverrider.EditMode)
+            {
                 EditTiles(ChosenTile);
+                ChosenTile = _chosenTile; // 刷新 GUI 地块信息
+                // 编辑模式下绘制选择地块框
+                _hexPlanetManager.SelectEditingTile(ChosenTile);
+            }
             else if (Input.IsActionJustPressed("choose_unit"))
                 _hexPlanetManager.FindPath(ChosenTile);
             _previousTile = ChosenTile;
@@ -416,6 +431,9 @@ public partial class HexPlanetHud : Control
         {
             if (!_tileOverrider.EditMode)
                 _hexPlanetManager.FindPath(ChosenTile);
+            else
+                // 清理选择地块框
+                _hexPlanetManager.CleanEditingTile();
             _previousTile = null;
         }
     }
@@ -461,7 +479,5 @@ public partial class HexPlanetHud : Control
             if (_tileOverrider.RoadMode == OptionalToggle.Yes)
                 _tileService.AddRoad(_previousTile, _dragTile);
         }
-
-        ChosenTile = tile; // 刷新 GUI 地块信息
     }
 }

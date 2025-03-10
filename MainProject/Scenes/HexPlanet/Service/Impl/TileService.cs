@@ -136,7 +136,8 @@ public class TileService(
 
     public int? SearchNearestTileId(Vector3 pos)
     {
-        _tilePointVpTree.Search(pos, 1, out var results, out _);
+        // 存储的 Point 是单位球上，所以 pos 单位化减小误差
+        _tilePointVpTree.Search(pos.Normalized(), 1, out var results, out _);
         return pointRepo.GetIdByPosition(results[0]); // Tile id 就是对应 Point id
     }
 

@@ -1,4 +1,3 @@
-using System;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
 
@@ -33,48 +32,87 @@ public partial class LongitudeLatitude : Node3D
     public float FullVisibilityTime { get; set; } = 0.25f;
 
     [Export(PropertyHint.Range, "0, 1")] public float FullVisibility { get; set; } = 0.5f;
+    private bool _fixFullVisibility;
+
+    // 是否锁定开启完全显示
+    [Export]
+    public bool FixFullVisibility
+    {
+        get => _fixFullVisibility;
+        set
+        {
+            _fixFullVisibility = value;
+            if (value)
+            {
+                Visibility = FullVisibility;
+                _fadeVisibility = false;
+                Show();
+                if (_ready)
+                    SignalBus.Instance.CameraMoved -= OnCameraMoved;
+            }
+            else
+            {
+                if (_ready)
+                    SignalBus.Instance.CameraMoved += OnCameraMoved;
+                SetProcess(true);
+            }
+        }
+    }
+
+    // 对应着色器中的 alpha_factor
+    private float _visibility = 1f;
+
+    private float Visibility
+    {
+        get => _visibility;
+        set
+        {
+            _visibility = Mathf.Clamp(value, 0f, FullVisibility);
+            if (_ready && LineMaterial is ShaderMaterial shaderMaterial)
+                shaderMaterial.SetShaderParameter("alpha_factor", _visibility);
+        }
+    }
+
+    private bool _fadeVisibility;
 
     private float _radius = 110;
     private MeshInstance3D _meshIns;
-    private float _visibility = 1f;
-    private bool _fadeVisibility;
+
+    private bool _ready;
 
     public override void _Ready()
     {
         _meshIns = new MeshInstance3D();
         AddChild(_meshIns);
-        _visibility = FullVisibility;
         if (!Engine.IsEditorHint())
             SignalBus.Instance.CameraMoved += OnCameraMoved;
+        _ready = true;
+        // 在 _ready = true 后面，触发 setter 的着色器参数初始化
+        Visibility = FullVisibility;
     }
 
     public override void _Process(double delta)
     {
-        if (Engine.IsEditorHint())
+        if (Engine.IsEditorHint() || FixFullVisibility)
         {
-            SetProcess(false);
+            SetProcess(false); // 编辑器下以及锁定显示时，无需处理显隐
             return;
         }
 
         if (_fadeVisibility)
-            _visibility -= (float)delta / FullVisibilityTime;
+            Visibility -= (float)delta / FullVisibilityTime;
         _fadeVisibility = true;
 
-        if (LineMaterial is ShaderMaterial shaderMaterial)
-            shaderMaterial.SetShaderParameter("alpha_factor", _visibility);
-
-        if (_visibility > 0) return;
-        _visibility = 0;
+        if (Visibility > 0) return;
         Hide();
         SetProcess(false);
     }
 
     private void OnCameraMoved(Vector3 pos, float delta)
     {
+        if (FixFullVisibility) return; // 锁定显示时不处理事件
         Show();
-        _visibility += delta / FullVisibilityTime;
-        if (_visibility > FullVisibility)
-            _visibility = FullVisibility;
+        Visibility += delta / FullVisibilityTime;
         _fadeVisibility = false;
         SetProcess(true);
     }

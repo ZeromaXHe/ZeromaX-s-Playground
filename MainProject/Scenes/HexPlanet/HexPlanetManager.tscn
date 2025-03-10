@@ -60,7 +60,7 @@ disable_receive_shadows = true
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_2bryy"]
 render_priority = 11
 shader = ExtResource("12_lloi2")
-shader_parameter/alpha_factor = 1.0
+shader_parameter/alpha_factor = 0.6
 shader_parameter/albedo = Color(1, 1, 1, 1)
 shader_parameter/albedo_texture_size = Vector2i(0, 0)
 shader_parameter/point_size = 0.0
@@ -126,7 +126,7 @@ unique_name_in_owner = true
 [node name="HexMapGenerator" parent="." instance=ExtResource("9_nxupj")]
 unique_name_in_owner = true
 _windStrength = 0.0
-_seed = 1132614140
+_seed = -60887491
 
 [node name="LongitudeLatitude" parent="." instance=ExtResource("11_smp2p")]
 unique_name_in_owner = true

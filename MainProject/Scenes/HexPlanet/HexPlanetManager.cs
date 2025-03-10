@@ -27,6 +27,9 @@ public partial class HexPlanetManager : Node3D
         InitServices(); // 现在 4.4 甚至构造函数会执行两次！奇了怪了，不知道之前 4.3 是不是也是这样
     }
 
+    [Signal]
+    public delegate void NewPlanetGeneratedEventHandler();
+
     private float _radius = 100f;
 
     [Export(PropertyHint.Range, "5, 1000")]
@@ -91,6 +94,8 @@ public partial class HexPlanetManager : Node3D
 
     private bool _editMode;
     private int _labelMode;
+    private int EditingTileId { get; set; }
+
     private int _pathFromTileId;
 
     private int PathFromTileId
@@ -242,25 +247,25 @@ public partial class HexPlanetManager : Node3D
 
     private void UpdateSelectTileInPlayMode(Vector3 position)
     {
-        if (_pathFromTileId == 0)
+        if (PathFromTileId == 0)
         {
             _selectTileViewer.Visible = false;
             return;
         }
 
         _selectTileViewer.Visible = true;
-        var mesh = _selectViewService.GenerateMeshForPlayMode(_pathFromTileId, position);
+        var mesh = _selectViewService.GenerateMeshForPlayMode(PathFromTileId, position);
         if (mesh != null)
             _selectTileViewer.Mesh = mesh;
     }
 
     private void UpdateSelectTileInEditMode(Vector3 position)
     {
-        if (position != Vector3.Zero)
+        if (position != Vector3.Zero || EditingTileId > 0)
         {
             // 更新选择地块框
             _selectTileViewer.Visible = true;
-            var mesh = _selectViewService.GenerateMeshForEditMode(position);
+            var mesh = _selectViewService.GenerateMeshForEditMode(EditingTileId, position);
             if (mesh != null)
                 _selectTileViewer.Mesh = mesh;
         }
@@ -307,7 +312,7 @@ public partial class HexPlanetManager : Node3D
     {
         var pos = GetTileCollisionPositionUnderCursor();
         if (pos == Vector3.Zero) return null;
-        var tileId = _tileService.SearchNearestTileId(pos.Normalized());
+        var tileId = _tileService.SearchNearestTileId(pos);
         return tileId == null ? null : _tileService.GetById((int)tileId);
     }
 
@@ -334,7 +339,7 @@ public partial class HexPlanetManager : Node3D
         _chunkService.InitChunks(ChunkDivisions);
         InitHexSphere();
         RefreshAllTiles();
-        SignalBus.EmitNewPlanetGenerated();
+        EmitSignalNewPlanetGenerated(); // 发送信号，这种向直接上级发送信号的情况，不提取到 SignalBus
     }
 
     private void RefreshAllTiles()
@@ -380,6 +385,7 @@ public partial class HexPlanetManager : Node3D
             // 开启编辑模式
             foreach (var gridChunk in _gridChunks.Values)
                 gridChunk.RefreshTilesLabelMode(_labelMode);
+            PathFromTileId = 0;
         }
         else if (!mode && _editMode)
         {
@@ -388,11 +394,11 @@ public partial class HexPlanetManager : Node3D
             _editPreviewChunk.Visible = false;
             foreach (var gridChunk in _gridChunks.Values)
                 gridChunk.RefreshTilesLabelMode(0);
+            EditingTileId = 0;
         }
 
         _editMode = mode;
         RenderingServer.GlobalShaderParameterSet("hex_map_edit_mode", mode);
-        PathFromTileId = 0;
         UpdateSelectTileViewer();
         foreach (var gridChunk in _gridChunks.Values)
             gridChunk.ShowUnexploredFeatures(mode);
@@ -406,11 +412,18 @@ public partial class HexPlanetManager : Node3D
             gridChunk.RefreshTilesLabelMode(mode);
     }
 
+    public void SelectEditingTile(Tile tile)
+    {
+        EditingTileId = tile?.Id ?? 0;
+    }
+
+    public void CleanEditingTile() => EditingTileId = 0;
+
     public void FindPath(Tile tile)
     {
-        if (_pathFromTileId != 0)
+        if (PathFromTileId != 0)
         {
-            if (tile == null || tile.Id == _pathFromTileId)
+            if (tile == null || tile.Id == PathFromTileId)
             {
                 // 重复点选同一地块，则取消选择
                 PathFromTileId = 0;
@@ -424,7 +437,7 @@ public partial class HexPlanetManager : Node3D
 
     private void MoveUnit(Tile toTile)
     {
-        var fromTile = _tileService.GetById(_pathFromTileId);
+        var fromTile = _tileService.GetById(PathFromTileId);
         var path = _tileSearchService.FindPath(fromTile, toTile, true);
         if (path is { Count: > 1 })
         {
@@ -479,4 +492,7 @@ public partial class HexPlanetManager : Node3D
         _units.Clear();
         _unitService.Truncate();
     }
+
+    // 锁定经纬网的显示
+    public void FixLatLon(bool toggle) => _longitudeLatitude.FixFullVisibility = toggle;
 }

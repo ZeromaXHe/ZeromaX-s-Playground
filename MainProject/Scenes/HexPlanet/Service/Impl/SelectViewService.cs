@@ -7,40 +7,53 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 
 public class SelectViewService(ITileService tileService, ITileSearchService tileSearchService) : ISelectViewService
 {
-    private int? _selectTileCenterId;
-    private int _pathFromTileId;
+    private int? _hoverTileCenterId;
+    private int _selectedTileId;
 
     public void ClearPath() => tileSearchService.ClearPath();
 
     public int SelectViewSize { get; set; }
 
-    public Mesh GenerateMeshForEditMode(Vector3 position)
+    public Mesh GenerateMeshForEditMode(int editingTileId, Vector3 position)
     {
-        var centerId = tileService.SearchNearestTileId(position.Normalized());
-        if (centerId != null)
+        var centerId = position == Vector3.Zero ? null : tileService.SearchNearestTileId(position);
+        if (centerId != null || editingTileId > 0)
         {
-            if (centerId == _selectTileCenterId)
-            {
-                // GD.Print($"Same tile! centerId: {centerId}, position: {position}");
+            // 编辑选取点和鼠标悬浮点都没变
+            if (editingTileId == _selectedTileId && centerId == _hoverTileCenterId)
                 return null;
-            }
-
             // GD.Print($"Generating New _selectTileViewer Mesh! {centerId}, position: {position}");
-            _selectTileCenterId = centerId;
-            var tile = tileService.GetByCenterId((int)_selectTileCenterId);
+            _hoverTileCenterId = centerId;
+            _selectedTileId = editingTileId;
+
             var surfaceTool = new SurfaceTool();
             surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
             surfaceTool.SetSmoothGroup(uint.MaxValue);
-            var color = Colors.DarkGreen with { A = 0.8f };
-            var tiles = tileService.GetTilesInDistance(tile, SelectViewSize);
             var vi = 0;
-            var viewRadius = HexMetrics.Radius + HexMetrics.MaxHeight;
-            foreach (var t in tiles)
-                vi += AddHexFrame(t, color, viewRadius, surfaceTool, vi);
+
+            if (_selectedTileId > 0)
+            {
+                var selectedTile = tileService.GetByCenterId(_selectedTileId);
+                vi += AddHexFrame(selectedTile, Colors.Aquamarine,
+                    1.01f * (HexMetrics.Radius + tileService.GetHeight(selectedTile)),
+                    surfaceTool, vi); // 选择地块为蓝色框
+            }
+
+            if (centerId != null)
+            {
+                var hoverTile = tileService.GetByCenterId((int)_hoverTileCenterId);
+
+                var color = Colors.DarkGreen with { A = 0.8f };
+                var tiles = tileService.GetTilesInDistance(hoverTile, SelectViewSize);
+                var viewRadius = HexMetrics.Radius + HexMetrics.MaxHeight;
+                foreach (var t in tiles)
+                    vi += AddHexFrame(t, color, viewRadius, surfaceTool, vi);
+            }
+
             return surfaceTool.Commit();
         }
 
-        GD.PrintErr($"centerId not found! position: {position}");
+        GD.PrintErr($"centerId not found and no editing Tile! position: {position}");
         return null;
     }
 
@@ -49,16 +62,16 @@ public class SelectViewService(ITileService tileService, ITileSearchService tile
         if (position != Vector3.Zero)
         {
             // 有寻路目标时的情况
-            var centerId = tileService.SearchNearestTileId(position.Normalized());
+            var centerId = tileService.SearchNearestTileId(position);
             if (centerId != null)
             {
-                if (pathFindingFromTileId == _pathFromTileId && centerId == _selectTileCenterId)
+                if (pathFindingFromTileId == _selectedTileId && centerId == _hoverTileCenterId)
                     return null; // 寻路出发点和目标点都没变
-                _pathFromTileId = pathFindingFromTileId;
-                _selectTileCenterId = centerId;
+                _selectedTileId = pathFindingFromTileId;
+                _hoverTileCenterId = centerId;
                 ClearPath();
                 var fromTile = tileService.GetById(pathFindingFromTileId);
-                var toTileId = (int)_selectTileCenterId;
+                var toTileId = (int)_hoverTileCenterId;
                 var toTile = tileService.GetById(toTileId);
                 var surfaceTool = new SurfaceTool();
                 surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
@@ -96,8 +109,8 @@ public class SelectViewService(ITileService tileService, ITileSearchService tile
         }
 
         // 没有寻路目标时的情况
-        if (pathFindingFromTileId == _pathFromTileId) return null; // 寻路出发点没变
-        _pathFromTileId = pathFindingFromTileId;
+        if (pathFindingFromTileId == _selectedTileId) return null; // 寻路出发点没变
+        _selectedTileId = pathFindingFromTileId;
         ClearPath();
         var tile = tileService.GetById(pathFindingFromTileId);
         var surfaceTool2 = new SurfaceTool();
