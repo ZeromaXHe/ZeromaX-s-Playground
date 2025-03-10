@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
@@ -127,6 +128,8 @@ public partial class HexMapGenerator : Node3D
 
     public void GenerateMap()
     {
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
         var initState = _random.State;
         if (!_useFixedSeed)
         {
@@ -148,6 +151,8 @@ public partial class HexMapGenerator : Node3D
         CreateRivers();
         SetTerrainType();
         _random.State = initState;
+        stopwatch.Stop();
+        GD.Print($"Generated map in {stopwatch.ElapsedMilliseconds} ms");
     }
 
     private void CreateRegions()

@@ -45,6 +45,7 @@ public partial class HexPlanetManager : Node3D
             {
                 _orbitCamera.Reset();
                 _atmosphereFog.Size = Vector3.One * _radius * 2.7f;
+                _longitudeLatitude.Draw(_radius + HexMetrics.MaxHeight * 1.25f);
             }
         }
     }
@@ -134,15 +135,36 @@ public partial class HexPlanetManager : Node3D
         _faceService = Context.GetBean<IFaceService>();
         _pointService = Context.GetBean<IPointService>();
         _selectViewService = Context.GetBean<ISelectViewService>();
-        _chunkService.RefreshChunk += id =>
-        {
-            // 现在地图生成器也会调用，这时候分块还没创建
-            if (_gridChunks.TryGetValue(id, out var chunk))
-                chunk.Refresh();
-        };
-        _chunkService.RefreshChunkTileLabel +=
-            (chunkId, tileId, text) => _gridChunks[chunkId].RefreshTileLabel(tileId, text);
-        _tileService.UnitValidateLocation += unitId => _units[unitId].ValidateLocation();
+        _chunkService.RefreshChunk += OnChunkServiceRefreshChunk;
+        _chunkService.RefreshChunkTileLabel += OnChunkServiceRefreshChunkTileLabel;
+        _tileService.UnitValidateLocation += OnTileServiceUnitValidateLocation;
+    }
+
+    private void OnChunkServiceRefreshChunk(int id)
+    {
+        // 现在地图生成器也会调用，这时候分块还没创建
+        if (_ready && _gridChunks.TryGetValue(id, out var chunk))
+            chunk.Refresh();
+    }
+
+    private void OnChunkServiceRefreshChunkTileLabel(int chunkId, int tileId, string text) =>
+        _gridChunks[chunkId].RefreshTileLabel(tileId, text);
+
+    private void OnTileServiceUnitValidateLocation(int unitId) => _units[unitId].ValidateLocation();
+
+    private void CleanEventListeners()
+    {
+        // 不小心忽视了事件的解绑，会在编辑器下"重载已保存场景"时出问题报错！
+        // （比如地图生成器逻辑会发出分块刷新信号，这时候老的场景代码貌似还在内存里，
+        // 它接到事件后处理时，字典里的 Chunk 场景都已经释放，不存在了所以报错）
+        // （对于新的场景，新分块字典里没数据，没有问题）
+        // ERROR: /root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/NativeInterop/ExceptionUtils.cs:113 - System.ObjectDisposedException: Cannot access a disposed object.
+        // ERROR: Object name: 'ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node.HexGridChunk'.
+        // 【切记】所以这里需要在退出场景树时清理事件监听！！！
+        _ready = false;
+        _chunkService.RefreshChunk -= OnChunkServiceRefreshChunk;
+        _chunkService.RefreshChunkTileLabel -= OnChunkServiceRefreshChunkTileLabel;
+        _tileService.UnitValidateLocation -= OnTileServiceUnitValidateLocation;
     }
 
     #endregion
@@ -156,6 +178,7 @@ public partial class HexPlanetManager : Node3D
     private EditPreviewChunk _editPreviewChunk;
     private HexUnitPathPool _hexUnitPathPool;
     private HexMapGenerator _hexMapGenerator;
+    private LongitudeLatitude _longitudeLatitude;
 
     private void InitOnReadyNodes()
     {
@@ -165,6 +188,7 @@ public partial class HexPlanetManager : Node3D
         _orbitCamera = GetNode<OrbitCamera>("%OrbitCamera");
         _selectTileViewer = GetNode<MeshInstance3D>("%SelectTileViewer");
         _hexMapGenerator = GetNode<HexMapGenerator>("%HexMapGenerator");
+        _longitudeLatitude = GetNode<LongitudeLatitude>("%LongitudeLatitude");
         if (!Engine.IsEditorHint())
         {
             // 没有 [Tool] 特性也不需要在编辑器下使用的节点。所以这里需要判断一下再赋值，否则会强转失败
@@ -179,6 +203,7 @@ public partial class HexPlanetManager : Node3D
 
     public override void _Ready()
     {
+        GD.Print("HexPlanetManager _Ready start");
         InitOnReadyNodes();
         // 不知道为啥这个时候 setter 又不生效了，没初始化 HexMetrics 里面的数据。手动赋值调用 setter 一下
         Radius = _radius;
@@ -187,7 +212,10 @@ public partial class HexPlanetManager : Node3D
         HexMetrics.NoiseSource = _noiseSource.GetImage();
         HexMetrics.InitializeHashGrid(Seed);
         DrawHexSphereMesh();
+        GD.Print("HexPlanetManager _Ready end");
     }
+
+    public override void _ExitTree() => CleanEventListeners();
 
     public override void _Process(double delta)
     {
