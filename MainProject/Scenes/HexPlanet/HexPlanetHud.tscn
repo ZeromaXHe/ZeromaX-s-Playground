@@ -441,17 +441,18 @@ size_flags_horizontal = 8
 custom_minimum_size = Vector2(360, 170)
 layout_mode = 2
 
-[node name="MiniMap" type="SubViewportContainer" parent="VBoxContainer/RightPanel/Center"]
+[node name="MiniMapContainer" type="SubViewportContainer" parent="VBoxContainer/RightPanel/Center"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(350, 160)
 layout_mode = 2
 stretch = true
 
-[node name="SubViewport" type="SubViewport" parent="VBoxContainer/RightPanel/Center/MiniMap"]
+[node name="SubViewport" type="SubViewport" parent="VBoxContainer/RightPanel/Center/MiniMapContainer"]
 handle_input_locally = false
 size = Vector2i(350, 160)
 render_target_update_mode = 4
 
-[node name="MiniMapManager" parent="VBoxContainer/RightPanel/Center/MiniMap/SubViewport" instance=ExtResource("3_kbj0e")]
+[node name="MiniMapManager" parent="VBoxContainer/RightPanel/Center/MiniMapContainer/SubViewport" instance=ExtResource("3_kbj0e")]
 unique_name_in_owner = true
 
 [node name="CamLatLonLabel" type="Label" parent="VBoxContainer"]

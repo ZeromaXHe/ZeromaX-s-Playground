@@ -41,8 +41,8 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
         var pn = IcosahedronConstants.Vertices[0]; // 北极点
         var ps = IcosahedronConstants.Vertices[6]; // 南极点
         // 轴坐标系（0,0）放在第一组竖列四面的北回归线最东端
-        addPoint(pn, new SphereAxial(0, -divisions, SphereAxial.TypeEnum.PoleVertices, 0));
-        addPoint(ps, new SphereAxial(-divisions, 2 * divisions, SphereAxial.TypeEnum.PoleVertices, 1));
+        addPoint(pn, new SphereAxial(0, -divisions));
+        addPoint(ps, new SphereAxial(-divisions, 2 * divisions));
         var edges = GenEdgeVectors(divisions, pn, ps);
         for (var col = 0; col < 5; col++)
         {
@@ -92,21 +92,18 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
                 ? tropicOfCancer
                 : Math3dUtil.Subdivide(northEast[i], northWest[i], i);
             if (i == divisions)
-                addPoint(nowLine[0], new SphereAxial(-divisions * col, 0, SphereAxial.TypeEnum.MidVertices, col * 2));
+                addPoint(nowLine[0], new SphereAxial(-divisions * col, 0));
             else
-                addPoint(nowLine[0],
-                    new SphereAxial(-divisions * col, i - divisions, SphereAxial.TypeEnum.EdgesSpecial, col * 6));
+                addPoint(nowLine[0], new SphereAxial(-divisions * col, i - divisions));
             for (var j = 0; j < i; j++)
             {
                 if (j > 0)
                 {
                     addFace?.Invoke([nowLine[j], preLine[j], preLine[j - 1]]);
                     if (i == divisions)
-                        addPoint(nowLine[j], new SphereAxial(-divisions * col - j, 0,
-                            j == i - 1 ? SphereAxial.TypeEnum.EdgesSpecial : SphereAxial.TypeEnum.Edges, col * 6 + 1));
+                        addPoint(nowLine[j], new SphereAxial(-divisions * col - j, 0));
                     else
-                        addPoint(nowLine[j], new SphereAxial(-divisions * col - j, i - divisions,
-                            j == i - 1 ? SphereAxial.TypeEnum.FacesSpecial : SphereAxial.TypeEnum.Faces, col * 4));
+                        addPoint(nowLine[j], new SphereAxial(-divisions * col - j, i - divisions));
                 }
 
                 addFace?.Invoke([preLine[j], nowLine[j], nowLine[j + 1]]);
@@ -134,21 +131,16 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
                 : Math3dUtil.Subdivide(equatorEast[i], equatorMid[i], i);
             var nowLineWest = Math3dUtil.Subdivide(equatorMid[i], equatorWest[i], divisions - i);
             // 构造东边面（第三面）
-            addPoint(nowLineEast[0],
-                i == divisions
-                    ? new SphereAxial(-divisions * col, i, SphereAxial.TypeEnum.MidVertices, col * 2 + 1)
-                    : new SphereAxial(-divisions * col, i, SphereAxial.TypeEnum.Edges, col * 6 + 3));
+            addPoint(nowLineEast[0], new SphereAxial(-divisions * col, i));
             for (var j = 0; j < i; j++)
             {
                 if (j > 0)
                 {
                     addFace?.Invoke([nowLineEast[j], preLineEast[j], preLineEast[j - 1]]);
                     if (i == divisions)
-                        addPoint(nowLineEast[j], new SphereAxial(-divisions * col - j, i,
-                            j == i - 1 ? SphereAxial.TypeEnum.EdgesSpecial : SphereAxial.TypeEnum.Edges, col * 6 + 4));
+                        addPoint(nowLineEast[j], new SphereAxial(-divisions * col - j, i));
                     else
-                        addPoint(nowLineEast[j], new SphereAxial(
-                            -divisions * col - j, i, SphereAxial.TypeEnum.Faces, col * 4 + 2));
+                        addPoint(nowLineEast[j], new SphereAxial(-divisions * col - j, i));
                 }
 
                 addFace?.Invoke([preLineEast[j], nowLineEast[j], nowLineEast[j + 1]]);
@@ -156,16 +148,14 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
 
             // 构造西边面（第二面）
             if (i < divisions)
-                addPoint(nowLineWest[0],
-                    new SphereAxial(-divisions * col - i, i, SphereAxial.TypeEnum.Edges, col * 6 + 2));
+                addPoint(nowLineWest[0], new SphereAxial(-divisions * col - i, i));
             for (var j = 0; j <= divisions - i; j++)
             {
                 if (j > 0)
                 {
                     addFace?.Invoke([preLineWest[j], nowLineWest[j - 1], nowLineWest[j]]);
                     if (j < divisions - i)
-                        addPoint(nowLineWest[j], new SphereAxial(-divisions * col - i - j, i,
-                            SphereAxial.TypeEnum.Faces, col * 4 + 1));
+                        addPoint(nowLineWest[j], new SphereAxial(-divisions * col - i - j, i));
                 }
 
                 addFace?.Invoke([nowLineWest[j], preLineWest[j + 1], preLineWest[j]]);
@@ -188,17 +178,14 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
         {
             var nowLine = Math3dUtil.Subdivide(southEast[i], southWest[i], divisions - i);
             if (i < divisions)
-                addPoint(nowLine[0], new SphereAxial(-divisions * col - i, divisions + i,
-                    SphereAxial.TypeEnum.EdgesSpecial, col * 6 + 5));
+                addPoint(nowLine[0], new SphereAxial(-divisions * col - i, divisions + i));
             for (var j = 0; j <= divisions - i; j++)
             {
                 if (j > 0)
                 {
                     addFace?.Invoke([preLine[j], nowLine[j - 1], nowLine[j]]);
                     if (j < divisions - i)
-                        addPoint(nowLine[j], new SphereAxial(-divisions * col - i - j, divisions + i,
-                            j == divisions - i - 1 ? SphereAxial.TypeEnum.FacesSpecial : SphereAxial.TypeEnum.Faces,
-                            col * 4 + 3));
+                        addPoint(nowLine[j], new SphereAxial(-divisions * col - i - j, divisions + i));
                 }
 
                 addFace?.Invoke([nowLine[j], preLine[j + 1], preLine[j]]);

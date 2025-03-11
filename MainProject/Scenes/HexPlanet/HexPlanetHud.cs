@@ -23,6 +23,7 @@ public partial class HexPlanetHud : Control
     private CheckButton _wireframeCheckButton;
 
     // 小地图
+    private SubViewportContainer _miniMapContainer;
     private MiniMapManager _miniMapManager;
     private Label _camLatLonLabel;
     private CheckButton _latLonFixCheckButton;
@@ -79,6 +80,7 @@ public partial class HexPlanetHud : Control
         _subViewportContainer = GetNode<SubViewportContainer>("%SubViewportContainer");
         _wireframeCheckButton = GetNode<CheckButton>("%WireframeCheckButton");
         // 小地图
+        _miniMapContainer = GetNode<SubViewportContainer>("%MiniMapContainer");
         _miniMapManager = GetNode<MiniMapManager>("%MiniMapManager");
         _camLatLonLabel = GetNode<Label>("%CamLatLonLabel");
         _latLonFixCheckButton = GetNode<CheckButton>("%LatLonFixCheckButton");
@@ -402,6 +404,11 @@ public partial class HexPlanetHud : Control
                 }
             }
         }
+        else if (GetViewport().GuiGetHoveredControl() == _miniMapContainer
+                 && Input.IsMouseButtonPressed(MouseButton.Left))
+        {
+            _miniMapManager.ClickOnMiniMap();
+        }
 
         _previousTile = null;
     }
@@ -425,6 +432,7 @@ public partial class HexPlanetHud : Control
             }
             else if (Input.IsActionJustPressed("choose_unit"))
                 _hexPlanetManager.FindPath(ChosenTile);
+
             _previousTile = ChosenTile;
         }
         else

@@ -61,6 +61,15 @@ public partial class MiniMapManager : Node2D
             _terrainLayer.MapToLocal(sa.Coords.ToVector2I()));
     }
 
+    public void ClickOnMiniMap()
+    {
+        var mousePos = _terrainLayer.GetLocalMousePosition();
+        var mapVec = _terrainLayer.LocalToMap(mousePos);
+        var sa = new SphereAxial(mapVec.X, mapVec.Y);
+        if (!sa.IsValid()) return;
+        SignalBus.EmitNewCameraDestination(sa.ToLongitudeAndLatitude().ToDirectionVector3());
+    }
+
     // 标准摄像机对应 Divisions = 10
     private static readonly Vector2 StandardCamPos = new(-345, 75);
     private static readonly Vector2 StandardCamZoom = new(0.4f, 0.4f);

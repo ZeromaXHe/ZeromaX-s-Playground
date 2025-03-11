@@ -13,6 +13,7 @@ public readonly struct AxialCoords(int q, int r)
     public readonly int Q = q;
     public readonly int R = r;
     public override string ToString() => $"({Q}, {R})";
+    public static AxialCoords From(Vector2I v) => new(v.X, v.Y);
     public Vector2I ToVector2I() => new(Q, R);
     public static readonly AxialCoords Error = new(int.MinValue, int.MinValue);
 

@@ -6,7 +6,7 @@ using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util.HexPlaneGrid;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util.HexSphereGrid;
 
-public readonly struct SphereAxial(int q, int r, SphereAxial.TypeEnum type, int typeIdx)
+public readonly struct SphereAxial
 {
     public enum TypeEnum
     {
@@ -36,42 +36,123 @@ public readonly struct SphereAxial(int q, int r, SphereAxial.TypeEnum type, int 
         // 索引：0 ~ 3 第一组竖向四面从北到南，4 ~ 7 第二组，以此类推，16 ~ 19 第五组（最后一组）
         // 相邻的面索引 + 4 即可
         FacesSpecial,
+
+        // 无效坐标
+        Invalid,
     }
 
-    public readonly AxialCoords Coords = new(q, r);
-    public readonly TypeEnum Type = type;
-    public readonly int TypeIdx = typeIdx;
+    public readonly AxialCoords Coords;
+    public readonly TypeEnum Type;
+    public readonly int TypeIdx;
+
+    public SphereAxial(int q, int r)
+    {
+        Coords = new AxialCoords(q, r);
+        if (!ValidateAxial(q, r))
+        {
+            Type = TypeEnum.Invalid;
+            TypeIdx = -1;
+        }
+        else if (r == -Div || r == 2 * Div)
+        {
+            Type = TypeEnum.PoleVertices;
+            TypeIdx = r == -Div ? 0 : 1;
+        }
+        else if (r < 0)
+        {
+            if (-q % Div == 0)
+            {
+                Type = TypeEnum.EdgesSpecial;
+                TypeIdx = -q / Div * 6;
+            }
+            else
+            {
+                Type = -q % Div == Div + r - 1 ? TypeEnum.FacesSpecial : TypeEnum.Faces;
+                TypeIdx = -q / Div * 4;
+            }
+        }
+        else if (r == 0)
+        {
+            if (-q % Div == 0)
+            {
+                Type = TypeEnum.MidVertices;
+                TypeIdx = -q / Div * 2;
+            }
+            else
+            {
+                Type = -q % Div == Div - 1 ? TypeEnum.EdgesSpecial : TypeEnum.Edges;
+                TypeIdx = -q / Div * 6 + 1;
+            }
+        }
+        else if (r < Div)
+        {
+            if (-q % Div == 0)
+            {
+                Type = TypeEnum.Edges;
+                TypeIdx = -q / Div * 6 + 3;
+            }
+            else if (-q % Div == r)
+            {
+                Type = TypeEnum.Edges;
+                TypeIdx = -q / Div * 6 + 2;
+            }
+            else
+            {
+                Type = TypeEnum.Faces;
+                TypeIdx = -q / Div * 4 + (-q % Div > r ? 1 : 2);
+            }
+        }
+        else if (r == Div)
+        {
+            if (-q % Div == 0)
+            {
+                Type = TypeEnum.MidVertices;
+                TypeIdx = -q / Div * 2 + 1;
+            }
+            else
+            {
+                Type = -q % Div == Div - 1 ? TypeEnum.EdgesSpecial : TypeEnum.Edges;
+                TypeIdx = -q / Div * 6 + 4;
+            }
+        }
+        else
+        {
+            if (-q % Div == r - Div)
+            {
+                Type = TypeEnum.EdgesSpecial;
+                TypeIdx = -q / Div * 6 + 5;
+            }
+            else
+            {
+                Type = -q % Div == Div - 1 ? TypeEnum.FacesSpecial : TypeEnum.Faces;
+                TypeIdx = -q / Div * 4 + 3;
+            }
+        }
+    }
 
     public override string ToString() => $"({Coords}, {Type}, {TypeIdx})";
     public bool SpecialNeighbor => Type is TypeEnum.EdgesSpecial or TypeEnum.FacesSpecial;
 
     // 正二十面体索引，0 ~ 19
-    public readonly int Index = type switch
+    public int Index => Type switch
     {
-        TypeEnum.PoleVertices => typeIdx == 0 ? 0 : 3,
-        TypeEnum.MidVertices => typeIdx / 2 * 4 + 1 + typeIdx % 2,
-        TypeEnum.Edges or TypeEnum.EdgesSpecial => typeIdx / 6 * 4 + (typeIdx % 6 + 1) / 2,
-        TypeEnum.Faces or TypeEnum.FacesSpecial => typeIdx / 4 * 4 + typeIdx % 4,
+        TypeEnum.PoleVertices => TypeIdx == 0 ? 0 : 3,
+        TypeEnum.MidVertices => TypeIdx / 2 * 4 + 1 + TypeIdx % 2,
+        TypeEnum.Edges or TypeEnum.EdgesSpecial => TypeIdx / 6 * 4 + (TypeIdx % 6 + 1) / 2,
+        TypeEnum.Faces or TypeEnum.FacesSpecial => TypeIdx / 4 * 4 + TypeIdx % 4,
         _ => -1
     };
 
     // 获取列索引，从右到左 0 ~ 4
-    public readonly int Column = type switch
-    {
-        TypeEnum.PoleVertices => 0,
-        TypeEnum.MidVertices => typeIdx / 2,
-        TypeEnum.Edges or TypeEnum.EdgesSpecial => typeIdx / 6,
-        TypeEnum.Faces or TypeEnum.FacesSpecial => typeIdx / 4,
-        _ => -1
-    };
+    public int Column => Type is not TypeEnum.Invalid ? -Coords.Q / Div : -1;
 
     // 获取行索引，从上到下 0 ~ 3
-    public readonly int Row = type switch
+    public int Row => Type switch
     {
-        TypeEnum.PoleVertices => typeIdx == 0 ? 0 : 3,
-        TypeEnum.MidVertices => 1 + typeIdx % 2,
-        TypeEnum.Edges or TypeEnum.EdgesSpecial => (typeIdx % 6 + 1) / 2,
-        TypeEnum.Faces or TypeEnum.FacesSpecial => typeIdx % 4,
+        TypeEnum.PoleVertices => TypeIdx == 0 ? 0 : 3,
+        TypeEnum.MidVertices => 1 + TypeIdx % 2,
+        TypeEnum.Edges or TypeEnum.EdgesSpecial => (TypeIdx % 6 + 1) / 2,
+        TypeEnum.Faces or TypeEnum.FacesSpecial => TypeIdx % 4,
         _ => -1
     };
 
@@ -92,7 +173,9 @@ public readonly struct SphereAxial(int q, int r, SphereAxial.TypeEnum type, int 
     private static int Width => Div * 5;
     public static int Div { get; set; }
 
-    private static bool ValidateAxial(int q, int r)
+    public bool IsValid() => Type != TypeEnum.Invalid;
+    
+    public static bool ValidateAxial(int q, int r)
     {
         // q 在 (-Width, 0] 之间
         if (q > 0 || q <= -Width)
@@ -105,11 +188,11 @@ public readonly struct SphereAxial(int q, int r, SphereAxial.TypeEnum type, int 
             return q == 0;
         // 南极点
         if (r == 2 * Div)
-            return q == Div;
+            return q == -Div;
         if (r < 0)
-            return Mathf.PosMod(q, Div) > -r;
+            return -q % Div < Div + r;
         if (r > Div)
-            return Mathf.PosMod(q, Div) <= 2 * Div - r;
+            return -q % Div > Div - r;
         return true;
     }
 
@@ -164,27 +247,27 @@ public readonly struct SphereAxial(int q, int r, SphereAxial.TypeEnum type, int 
         {
             0 =>
             [
-                new SphereAxial(0, -Div, TypeEnum.PoleVertices, 0),
-                new SphereAxial(-Column * Div, 0, TypeEnum.MidVertices, Column * 2),
-                new SphereAxial(-nextColumn * Div, 0, TypeEnum.MidVertices, nextColumn * 2)
+                new SphereAxial(0, -Div),
+                new SphereAxial(-Column * Div, 0),
+                new SphereAxial(-nextColumn * Div, 0)
             ],
             1 =>
             [
-                new SphereAxial(-nextColumn * Div, Div, TypeEnum.MidVertices, nextColumn * 2 + 1),
-                new SphereAxial(-nextColumn * Div, 0, TypeEnum.MidVertices, nextColumn * 2),
-                new SphereAxial(-Column * Div, 0, TypeEnum.MidVertices, Column * 2)
+                new SphereAxial(-nextColumn * Div, Div),
+                new SphereAxial(-nextColumn * Div, 0),
+                new SphereAxial(-Column * Div, 0)
             ],
             2 =>
             [
-                new SphereAxial(-Column * Div, 0, TypeEnum.MidVertices, Column * 2),
-                new SphereAxial(-Column * Div, Div, TypeEnum.MidVertices, Column * 2 + 1),
-                new SphereAxial(-nextColumn * Div, Div, TypeEnum.MidVertices, nextColumn * 2 + 1)
+                new SphereAxial(-Column * Div, 0),
+                new SphereAxial(-Column * Div, Div),
+                new SphereAxial(-nextColumn * Div, Div)
             ],
             3 =>
             [
-                new SphereAxial(-Div, 2 * Div, TypeEnum.PoleVertices, 1),
-                new SphereAxial(-nextColumn * Div, Div, TypeEnum.MidVertices, nextColumn * 2 + 1),
-                new SphereAxial(-Column * Div, Div, TypeEnum.MidVertices, Column * 2 + 1)
+                new SphereAxial(-Div, 2 * Div),
+                new SphereAxial(-nextColumn * Div, Div),
+                new SphereAxial(-Column * Div, Div)
             ],
             _ => null
         };

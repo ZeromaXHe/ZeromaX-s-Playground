@@ -10,6 +10,9 @@ public partial class SignalBus : Node
     [Signal]
     public delegate void CameraMovedEventHandler(Vector3 pos, float delta);
 
+    [Signal]
+    public delegate void NewCameraDestinationEventHandler(Vector3 posDirection);
+
     public override void _Ready()
     {
         // 编辑器里的全局自动加载节点好像 _Ready 比常规节点慢？
@@ -20,4 +23,5 @@ public partial class SignalBus : Node
 
     // 4.4 竟然多了自动生成的方法？好像原来没有？不过因为是 protected 的，所以要封装一下
     public static void EmitCameraMoved(Vector3 pos, float delta) => Instance?.EmitSignalCameraMoved(pos, delta);
+    public static void EmitNewCameraDestination(Vector3 posDir) => Instance?.EmitSignalNewCameraDestination(posDir);
 }
