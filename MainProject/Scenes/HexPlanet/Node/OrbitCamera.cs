@@ -9,7 +9,7 @@ public partial class OrbitCamera : Node3D
 {
     private float _radius = 10f;
 
-    [Export]
+    [Export(PropertyHint.Range, "0.01, 1000, or_greater")]
     public float Radius
     {
         get => _radius;
@@ -29,15 +29,20 @@ public partial class OrbitCamera : Node3D
     private float _focusBackZoom = 0.2f;
     private float _lightRangeMultiplier = 1f;
 
-    [Export] private float _stickMinZoom = 1f;
-    [Export] private float _stickMaxZoom = 0.2f;
-    [Export] private float _swivelMinZoom = -90f;
-    [Export] private float _swivelMaxZoom = -45f;
-    [Export] private float _moveSpeedMinZoom = 0.8f;
-    [Export] private float _moveSpeedMaxZoom = 0.2f;
+    [Export(PropertyHint.Range, "0.01, 10")] private float _stickMinZoom = 1f;
+    [Export(PropertyHint.Range, "0.01, 10")] private float _stickMaxZoom = 0.2f;
+    [Export(PropertyHint.Range, "-180, 180")] private float _swivelMinZoom = -90f;
+    [Export(PropertyHint.Range, "-180, 180")] private float _swivelMaxZoom = -45f;
+    [Export(PropertyHint.Range, "0.01, 10")] private float _moveSpeedMinZoom = 0.8f;
+    [Export(PropertyHint.Range, "0.01, 10")] private float _moveSpeedMaxZoom = 0.2f;
     private float _antiStuckSpeedMultiplier = 1f; // 用于防止速度过低的时候相机卡死
-    [Export] private float _rotationSpeed = 180f;
+    [Export(PropertyHint.Range, "0.01, 3600")] private float _rotationSpeed = 180f;
     [Export] private Node3D _sun;
+
+    [ExportGroup("自动导航设置")]
+    // 自动导航速度。该值的倒数，对应自动移动时间：比如 2f 对应 0.5s 抵达
+    [Export(PropertyHint.Range, "0.01, 10")]
+    public float AutoPilotSpeed { get; set; } = 1f;
 
     #region on-ready 节点
 
@@ -81,14 +86,49 @@ public partial class OrbitCamera : Node3D
         }
     }
 
+    private Vector3 _fromDirection = Vector3.Zero;
+    private Vector3 _destinationDirection = Vector3.Zero;
+    private float _autoPilotProgress;
+
     private bool _ready;
 
     public override void _Ready()
     {
         InitOnReadyNodes();
         if (!Engine.IsEditorHint())
+        {
+            SignalBus.Instance.NewCameraDestination += SetAutoPilot;
             // 必须在 _ready = true 后面，触发各数据 setter 的初始化
             Reset();
+        }
+
+        GD.Print("OrbitCamera _Ready");
+    }
+
+    public Vector3 GetFocusBasePos() => _focusBase.GlobalPosition;
+
+    private void SetAutoPilot(Vector3 destinationDirection)
+    {
+        var fromDirection = GetFocusBasePos().Normalized();
+        if (fromDirection.IsEqualApprox(destinationDirection))
+        {
+            GD.Print("设置的自动跳转位置就是当前位置");
+            return;
+        }
+
+        _fromDirection = fromDirection;
+        _destinationDirection = destinationDirection;
+        _autoPilotProgress = 0f;
+    }
+
+    private bool IsAutoPiloting() => _destinationDirection != Vector3.Zero;
+
+    // 取消自动跳转目的地
+    private void CancelAutoPilot()
+    {
+        _fromDirection = Vector3.Zero;
+        _destinationDirection = Vector3.Zero;
+        _autoPilotProgress = 0f;
     }
 
     private const float MouseMoveSensitivity = 0.01f;
@@ -100,7 +140,35 @@ public partial class OrbitCamera : Node3D
             SetProcess(false);
             return;
         }
+
         var floatDelta = (float)delta;
+        // 相机自动跳转
+        if (IsAutoPiloting())
+        {
+            // // 点击左键，打断相机自动跳转（不能这样写，因为点击小地图时左键也是按下的）
+            // if (Input.IsMouseButtonPressed(MouseButton.Left))
+            //     CancelAutoPilot();
+            _autoPilotProgress += AutoPilotSpeed * floatDelta;
+            var arrived = false;
+            if (_autoPilotProgress >= 1f)
+            {
+                _autoPilotProgress = 1f;
+                arrived = true;
+            }
+
+            var lookDir = _fromDirection.Slerp(_destinationDirection, _autoPilotProgress);
+            // 有可能出现一帧内移动距离过短无法 LookAt 的情况
+            if (!lookDir.IsEqualApprox(GetFocusBasePos().Normalized()))
+            {
+                LookAt(lookDir, _focusBase.GlobalBasis.Z);
+                SignalBus.EmitCameraMoved(GetFocusBasePos(), floatDelta);
+            }
+
+            // 抵达目的地，取消自动跳转
+            if (arrived)
+                CancelAutoPilot();
+        }
+
         // 旋转
         var rotationDelta = floatDelta * Input.GetAxis("cam_rotate_left", "cam_rotate_right");
         RotateCamera(rotationDelta);
@@ -141,16 +209,18 @@ public partial class OrbitCamera : Node3D
         var damping = Mathf.Max(Mathf.Abs(xDelta), Mathf.Abs(zDelta));
         var distance = Mathf.Lerp(_moveSpeedMinZoom, _moveSpeedMaxZoom, Zoom)
                        * Radius * _antiStuckSpeedMultiplier * damping * delta;
-        var target = _focusBase.GlobalPosition - GlobalPosition +
+        var target = GetFocusBasePos() - GlobalPosition +
                      _focusBackStick.GlobalBasis * (direction * distance);
         // 现在在速度很慢，半径很大的时候，容易在南北极卡住（游戏开始后，只按 WS 即可走到南北极）
         // 所以检查一下按下移动键后，是否没能真正移动。如果没移动，则每帧放大速度 1.5 倍
-        var prePos = _focusBase.GlobalPosition;
+        var prePos = GetFocusBasePos();
         LookAt(target, _focusBase.GlobalBasis.Z);
-        _antiStuckSpeedMultiplier = prePos.IsEqualApprox(_focusBase.GlobalPosition)
+        _antiStuckSpeedMultiplier = prePos.IsEqualApprox(GetFocusBasePos())
             ? _antiStuckSpeedMultiplier * 1.5f
             : 1f;
-        SignalBus.EmitCameraMoved(_focusBase.GlobalPosition, delta);
+        SignalBus.EmitCameraMoved(GetFocusBasePos(), delta);
+        // 打断自动跳转
+        CancelAutoPilot();
         return true;
     }
 

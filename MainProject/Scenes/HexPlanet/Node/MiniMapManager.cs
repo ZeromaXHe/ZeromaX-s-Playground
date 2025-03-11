@@ -43,10 +43,12 @@ public partial class MiniMapManager : Node2D
     {
         InitOnReadyNodes();
         InitServices();
-        SignalBus.Instance.CameraMoved += OnCameraMoved;
+        SignalBus.Instance.CameraMoved += (pos, _) => SyncCameraIconPos(pos);
+        GD.Print("MiniMapManager _Ready");
     }
 
-    private void OnCameraMoved(Vector3 pos, float delta)
+    // 同步相机标志的位置
+    private void SyncCameraIconPos(Vector3 pos)
     {
         var tileId = _tileService.SearchNearestTileId(pos);
         if (tileId == null)
@@ -80,8 +82,9 @@ public partial class MiniMapManager : Node2D
         _camera.Zoom = StandardCamZoom * 10 / HexMetrics.Divisions;
     }
 
-    public void Init()
+    public void Init(Vector3 orbitCamPos)
     {
+        SyncCameraIconPos(orbitCamPos);
         UpdateCamera();
         _terrainLayer.Clear();
         _colorLayer.Clear();

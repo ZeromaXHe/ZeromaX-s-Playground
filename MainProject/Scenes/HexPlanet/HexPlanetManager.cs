@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
-using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
@@ -495,4 +494,6 @@ public partial class HexPlanetManager : Node3D
 
     // 锁定经纬网的显示
     public void FixLatLon(bool toggle) => _longitudeLatitude.FixFullVisibility = toggle;
+    
+    public Vector3 GetOrbitCameraFocusPos() => _orbitCamera.GetFocusBasePos();
 }

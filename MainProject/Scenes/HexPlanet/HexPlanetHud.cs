@@ -275,13 +275,13 @@ public partial class HexPlanetHud : Control
         UpdateNewPlanetInfo();
         InitSignals();
 
-        _miniMapManager.Init();
+        _miniMapManager.Init(_hexPlanetManager.GetOrbitCameraFocusPos());
     }
 
     private void InitSignals()
     {
         _hexPlanetManager.NewPlanetGenerated += UpdateNewPlanetInfo;
-        _hexPlanetManager.NewPlanetGenerated += _miniMapManager.Init;
+        _hexPlanetManager.NewPlanetGenerated += () => _miniMapManager.Init(_hexPlanetManager.GetOrbitCameraFocusPos());
 
         _wireframeCheckButton.Toggled += toggle =>
             _hexPlanetManager.GetViewport()
