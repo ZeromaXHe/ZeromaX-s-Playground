@@ -333,7 +333,7 @@ public class TileService(
             return;
         }
 
-        GD.Print($"Setting Outgoing River from {tile.Id} to {riverToTile.Id}");
+        // GD.Print($"Setting Outgoing River from {tile.Id} to {riverToTile.Id}");
         RemoveOutgoingRiver(tile);
         if (tile.Data.HasIncomingRiver &&
             GetNeighborByIdx(tile, tile.Data.Flags.RiverInDirection()).Id == riverToTile.Id)

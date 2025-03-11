@@ -25,11 +25,12 @@ public class ChunkService(IPointService pointService, IChunkRepo chunkRepo) : IC
 
     #endregion
 
+    // 单位球上的点 VP 树
     private readonly VpTree<Vector3> _chunkPointVpTree = new();
 
     public Chunk SearchNearest(Vector3 pos)
     {
-        _chunkPointVpTree.Search(pos, 1, out var results, out _);
+        _chunkPointVpTree.Search(pos.Normalized(), 1, out var results, out _);
         var centerId = pointService.GetIdByPosition(true, results[0]);
         return centerId == null ? null : chunkRepo.GetByCenterId((int)centerId);
     }
@@ -52,7 +53,7 @@ public class ChunkService(IPointService pointService, IChunkRepo chunkRepo) : IC
             var neighborCenters = pointService.GetNeighborCenterIds(hexFaces, point)
                 .Select(c => c.Id)
                 .ToList();
-            chunkRepo.Add(point.Id, point.Position * HexMetrics.Radius,
+            chunkRepo.Add(point.Id, point.Position * (HexMetrics.Radius + HexMetrics.MaxHeight),
                 hexFaces.Select(f => f.Id).ToList(), neighborCenters);
         }
 

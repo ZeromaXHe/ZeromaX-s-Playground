@@ -87,7 +87,6 @@ public partial class HexPlanetManager : Node3D
     }
 
     [Export] private Texture2D _noiseSource;
-    [Export] private PackedScene _gridChunkScene;
     [Export] private PackedScene _unitScene;
     [Export] public ulong Seed { get; set; } = 1234;
 
@@ -115,7 +114,6 @@ public partial class HexPlanetManager : Node3D
     private int _oldChunkDivisions;
     private float _lastUpdated;
 
-    private readonly Dictionary<int, HexGridChunk> _gridChunks = new();
     private readonly Dictionary<int, HexUnit> _units = new();
 
     #region services
@@ -139,35 +137,16 @@ public partial class HexPlanetManager : Node3D
         _faceService = Context.GetBean<IFaceService>();
         _pointService = Context.GetBean<IPointService>();
         _selectViewService = Context.GetBean<ISelectViewService>();
-        _chunkService.RefreshChunk += OnChunkServiceRefreshChunk;
-        _chunkService.RefreshChunkTileLabel += OnChunkServiceRefreshChunkTileLabel;
         _tileService.UnitValidateLocation += OnTileServiceUnitValidateLocation;
     }
-
-    private void OnChunkServiceRefreshChunk(int id)
-    {
-        // 现在地图生成器也会调用，这时候分块还没创建
-        if (_ready && _gridChunks.TryGetValue(id, out var chunk))
-            chunk.Refresh();
-    }
-
-    private void OnChunkServiceRefreshChunkTileLabel(int chunkId, int tileId, string text) =>
-        _gridChunks[chunkId].RefreshTileLabel(tileId, text);
 
     private void OnTileServiceUnitValidateLocation(int unitId) => _units[unitId].ValidateLocation();
 
     private void CleanEventListeners()
     {
         // 不小心忽视了事件的解绑，会在编辑器下"重载已保存场景"时出问题报错！
-        // （比如地图生成器逻辑会发出分块刷新信号，这时候老的场景代码貌似还在内存里，
-        // 它接到事件后处理时，字典里的 Chunk 场景都已经释放，不存在了所以报错）
-        // （对于新的场景，新分块字典里没数据，没有问题）
-        // ERROR: /root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/NativeInterop/ExceptionUtils.cs:113 - System.ObjectDisposedException: Cannot access a disposed object.
-        // ERROR: Object name: 'ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node.HexGridChunk'.
         // 【切记】所以这里需要在退出场景树时清理事件监听！！！
         _ready = false;
-        _chunkService.RefreshChunk -= OnChunkServiceRefreshChunk;
-        _chunkService.RefreshChunkTileLabel -= OnChunkServiceRefreshChunkTileLabel;
         _tileService.UnitValidateLocation -= OnTileServiceUnitValidateLocation;
     }
 
@@ -176,7 +155,7 @@ public partial class HexPlanetManager : Node3D
     #region on-ready nodes
 
     private FogVolume _atmosphereFog;
-    private Node3D _chunks;
+    private ChunkManager _chunkManager;
     private OrbitCamera _orbitCamera;
     private MeshInstance3D _selectTileViewer;
     private EditPreviewChunk _editPreviewChunk;
@@ -187,7 +166,7 @@ public partial class HexPlanetManager : Node3D
     private void InitOnReadyNodes()
     {
         _atmosphereFog = GetNode<FogVolume>("%AtmosphereFog");
-        _chunks = GetNode<Node3D>("%Chunks");
+        _chunkManager = GetNode<ChunkManager>("%ChunkManager");
         // 此处要求 OrbitCamera 也是 [Tool]，否则编辑器里会转型失败
         _orbitCamera = GetNode<OrbitCamera>("%OrbitCamera");
         _selectTileViewer = GetNode<MeshInstance3D>("%SelectTileViewer");
@@ -324,9 +303,7 @@ public partial class HexPlanetManager : Node3D
         _pointService.Truncate();
         _faceService.Truncate();
         _selectViewService.ClearPath();
-        _gridChunks.Clear();
-        foreach (var child in _chunks.GetChildren())
-            child.QueueFree();
+        _chunkManager.ClearOldData();
         ClearAllUnits();
     }
 
@@ -360,22 +337,7 @@ public partial class HexPlanetManager : Node3D
         _tileShaderService.Initialize();
         _tileSearchService.InitSearchData();
         _hexMapGenerator.GenerateMap();
-        BuildMesh();
-    }
-
-    private void BuildMesh()
-    {
-        var time = Time.GetTicksMsec();
-        foreach (var id in _chunkService.GetAll().Select(chunk => chunk.Id))
-        {
-            var hexGridChunk = _gridChunkScene.Instantiate<HexGridChunk>();
-            hexGridChunk.Name = $"HexGridChunk{id}";
-            _chunks.AddChild(hexGridChunk); // 必须先加入场景树，否则 _Ready() 还没执行
-            hexGridChunk.Init(id, _editMode ? _labelMode : 0);
-            _gridChunks.Add(id, hexGridChunk);
-        }
-
-        GD.Print($"BuildMesh cost: {Time.GetTicksMsec() - time} ms");
+        _chunkManager.InitChunkNodes(_editMode, _labelMode);
     }
 
     public void SetEditMode(bool mode)
@@ -383,8 +345,7 @@ public partial class HexPlanetManager : Node3D
         if (mode && !_editMode && _labelMode != 0)
         {
             // 开启编辑模式
-            foreach (var gridChunk in _gridChunks.Values)
-                gridChunk.RefreshTilesLabelMode(_labelMode);
+            _chunkManager.RefreshAllChunksTileLabelMode(_labelMode);
             PathFromTileId = 0;
         }
         else if (!mode && _editMode)
@@ -392,24 +353,21 @@ public partial class HexPlanetManager : Node3D
             // 关闭编辑模式
             // 游戏模式下永远不显示编辑预览网格
             _editPreviewChunk.Visible = false;
-            foreach (var gridChunk in _gridChunks.Values)
-                gridChunk.RefreshTilesLabelMode(0);
+            _chunkManager.RefreshAllChunksTileLabelMode(0);
             EditingTileId = 0;
         }
 
         _editMode = mode;
         RenderingServer.GlobalShaderParameterSet("hex_map_edit_mode", mode);
         UpdateSelectTileViewer();
-        foreach (var gridChunk in _gridChunks.Values)
-            gridChunk.ShowUnexploredFeatures(mode);
+        _chunkManager.SetAllChunksShowUnexploredFeatures(mode);
     }
 
     public void SetShowLabelMode(int mode)
     {
         _labelMode = mode;
         if (!_editMode) return;
-        foreach (var gridChunk in _gridChunks.Values)
-            gridChunk.RefreshTilesLabelMode(mode);
+        _chunkManager.RefreshAllChunksTileLabelMode(mode);
     }
 
     public void SelectEditingTile(Tile tile)
@@ -495,6 +453,6 @@ public partial class HexPlanetManager : Node3D
 
     // 锁定经纬网的显示
     public void FixLatLon(bool toggle) => _longitudeLatitude.FixFullVisibility = toggle;
-    
+
     public Vector3 GetOrbitCameraFocusPos() => _orbitCamera.GetFocusBasePos();
 }

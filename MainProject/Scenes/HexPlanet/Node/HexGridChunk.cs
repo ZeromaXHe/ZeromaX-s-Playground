@@ -23,10 +23,6 @@ public partial class HexGridChunk : Node3D, IChunk
     public HexTileDataOverrider TileDataOverrider => new();
     [Export] private PackedScene _labelScene;
 
-    private int _id;
-    private readonly Dictionary<int, HexTileLabel> _tileUis = new();
-    private ChunkTriangulation _chunkTriangulation;
-
     #region on-ready 节点
 
     private Node3D _labels;
@@ -54,6 +50,10 @@ public partial class HexGridChunk : Node3D, IChunk
 
     #endregion
 
+    private int _id;
+    private readonly Dictionary<int, HexTileLabel> _tileUis = new();
+    private ChunkTriangulation _chunkTriangulation;
+
     public void Init(int id, int mode)
     {
         _id = id;
@@ -80,6 +80,7 @@ public partial class HexGridChunk : Node3D, IChunk
             _tileUis.Add(tile.Id, label);
             _labels.AddChild(label);
         }
+
         // 在场景树中 _Ready 后 Label 才非 null
         RefreshTilesLabelMode(mode);
     }
