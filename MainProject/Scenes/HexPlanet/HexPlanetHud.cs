@@ -130,10 +130,10 @@ public partial class HexPlanetHud : Control
         _specialFeatureOptionButton = GetNode<OptionButton>("%SpecialFeatureOptionButton");
 
         // 按照指定的高程分割数量确定 UI
-        _elevationVSlider.MaxValue = HexMetrics.ElevationStep;
-        _elevationVSlider.TickCount = HexMetrics.ElevationStep + 1;
-        _waterVSlider.MaxValue = HexMetrics.ElevationStep;
-        _waterVSlider.TickCount = HexMetrics.ElevationStep + 1;
+        _elevationVSlider.MaxValue = _planetSettingService.ElevationStep;
+        _elevationVSlider.TickCount = _planetSettingService.ElevationStep + 1;
+        _waterVSlider.MaxValue = _planetSettingService.ElevationStep;
+        _waterVSlider.TickCount = _planetSettingService.ElevationStep + 1;
     }
 
     #endregion
@@ -143,12 +143,14 @@ public partial class HexPlanetHud : Control
     private ITileService _tileService;
     private IChunkService _chunkService;
     private ISelectViewService _selectViewService;
+    private IPlanetSettingService _planetSettingService;
 
     private void InitServices()
     {
         _tileService = Context.GetBean<ITileService>();
         _chunkService = Context.GetBean<IChunkService>();
         _selectViewService = Context.GetBean<ISelectViewService>();
+        _planetSettingService = Context.GetBean<IPlanetSettingService>();
     }
 
     #endregion

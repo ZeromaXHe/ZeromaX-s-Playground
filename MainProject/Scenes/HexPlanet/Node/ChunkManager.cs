@@ -5,7 +5,6 @@ using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 
@@ -19,10 +18,12 @@ public partial class ChunkManager : Node3D
     #region services
 
     private IChunkService _chunkService;
+    private IPlanetSettingService _planetSettingService;
 
     private void InitServices()
     {
         _chunkService = Context.GetBean<IChunkService>();
+        _planetSettingService = Context.GetBean<IPlanetSettingService>();
         _chunkService.RefreshChunk += OnChunkServiceRefreshChunk;
         _chunkService.RefreshChunkTileLabel += OnChunkServiceRefreshChunkTileLabel;
     }
@@ -36,6 +37,20 @@ public partial class ChunkManager : Node3D
 
     private void OnChunkServiceRefreshChunkTileLabel(int chunkId, int tileId, string text) =>
         _gridChunks[chunkId]?.RefreshTileLabel(tileId, text);
+
+    private void CleanEventListeners()
+    {
+        // 不小心忽视了事件的解绑，会在编辑器下"重载已保存场景"时出问题报错！
+        // （比如地图生成器逻辑会发出分块刷新信号，这时候老的场景代码貌似还在内存里，
+        // 它接到事件后处理时，字典里的 Chunk 场景都已经释放，不存在了所以报错）
+        // （对于新的场景，新分块字典里没数据，没有问题）
+        // ERROR: /root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/NativeInterop/ExceptionUtils.cs:113 - System.ObjectDisposedException: Cannot access a disposed object.
+        // ERROR: Object name: 'ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node.HexGridChunk'.
+        // 【切记】所以这里需要在退出场景树时清理事件监听！！！
+        _ready = false;
+        _chunkService.RefreshChunk -= OnChunkServiceRefreshChunk;
+        _chunkService.RefreshChunkTileLabel -= OnChunkServiceRefreshChunkTileLabel;
+    }
 
     #endregion
 
@@ -160,20 +175,6 @@ public partial class ChunkManager : Node3D
         _camNearestChunkId = 0;
     }
 
-    private void CleanEventListeners()
-    {
-        // 不小心忽视了事件的解绑，会在编辑器下"重载已保存场景"时出问题报错！
-        // （比如地图生成器逻辑会发出分块刷新信号，这时候老的场景代码貌似还在内存里，
-        // 它接到事件后处理时，字典里的 Chunk 场景都已经释放，不存在了所以报错）
-        // （对于新的场景，新分块字典里没数据，没有问题）
-        // ERROR: /root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/NativeInterop/ExceptionUtils.cs:113 - System.ObjectDisposedException: Cannot access a disposed object.
-        // ERROR: Object name: 'ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node.HexGridChunk'.
-        // 【切记】所以这里需要在退出场景树时清理事件监听！！！
-        _ready = false;
-        _chunkService.RefreshChunk -= OnChunkServiceRefreshChunk;
-        _chunkService.RefreshChunkTileLabel -= OnChunkServiceRefreshChunkTileLabel;
-    }
-
     public void InitChunkNodes(bool editMode, int labelMode)
     {
         _editMode = editMode;
@@ -210,9 +211,9 @@ public partial class ChunkManager : Node3D
 
     // 注意，判断是否在摄像机内，不是用 GetViewport().GetVisibleRect().HasPoint(camera.UnprojectPosition(chunk.Pos))
     // 因为后面要根据相机位置动态更新可见区域，这个仅仅是对应初始时的可见区域
-    private static bool IsChunkInsight(Chunk chunk, Camera3D camera) =>
+    private bool IsChunkInsight(Chunk chunk, Camera3D camera) =>
         Mathf.Cos(chunk.Pos.Normalized().AngleTo(camera.GlobalPosition.Normalized()))
-        > HexMetrics.Radius / camera.GlobalPosition.Length()
+        > _planetSettingService.Radius / camera.GlobalPosition.Length()
         && camera.IsPositionInFrustum(chunk.Pos);
 
     public void RefreshAllChunksTileLabelMode(int labelMode)

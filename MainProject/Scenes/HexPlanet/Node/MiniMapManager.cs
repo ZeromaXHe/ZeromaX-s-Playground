@@ -3,7 +3,6 @@ using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util.HexSphereGrid;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
@@ -30,12 +29,17 @@ public partial class MiniMapManager : Node2D
     #region 服务
 
     private ITileService _tileService;
+    private IPlanetSettingService _planetSettingService;
 
     private void InitServices()
     {
         _tileService = Context.GetBean<ITileService>();
+        _planetSettingService = Context.GetBean<IPlanetSettingService>();
         _tileService.RefreshTerrainShader += RefreshTile;
     }
+
+    private void CleanEventListeners() =>
+        _tileService.RefreshTerrainShader -= RefreshTile;
 
     #endregion
 
@@ -46,6 +50,8 @@ public partial class MiniMapManager : Node2D
         SignalBus.Instance.CameraMoved += (pos, _) => SyncCameraIconPos(pos);
         GD.Print("MiniMapManager _Ready");
     }
+
+    public override void _ExitTree() => CleanEventListeners();
 
     // 同步相机标志的位置
     private void SyncCameraIconPos(Vector3 pos)
@@ -78,8 +84,8 @@ public partial class MiniMapManager : Node2D
 
     public void UpdateCamera()
     {
-        _camera.Position = StandardCamPos / 10 * HexMetrics.Divisions;
-        _camera.Zoom = StandardCamZoom * 10 / HexMetrics.Divisions;
+        _camera.Position = StandardCamPos / 10 * _planetSettingService.Divisions;
+        _camera.Zoom = StandardCamZoom * 10 / _planetSettingService.Divisions;
     }
 
     public void Init(Vector3 orbitCamPos)

@@ -36,17 +36,22 @@ public partial class HexGridChunk : Node3D, IChunk
 
     #region services
 
-    private IChunkService _chunkService;
-    private ITileService _tileService;
-    private ITileShaderService _tileShaderService;
+    private static IChunkService _chunkService;
+    private static ITileService _tileService;
+    private static ITileShaderService _tileShaderService;
+    private static IPlanetSettingService _planetSettingService;
 
     private void InitServices()
     {
-        _chunkService = Context.GetBean<IChunkService>();
-        _tileService = Context.GetBean<ITileService>();
-        _tileShaderService = Context.GetBean<ITileShaderService>();
+        _chunkService ??= Context.GetBean<IChunkService>();
+        _tileService ??= Context.GetBean<ITileService>();
+        _tileShaderService ??= Context.GetBean<ITileShaderService>();
+        _planetSettingService ??= Context.GetBean<IPlanetSettingService>();
         _tileShaderService.TileExplored += ExploreFeatures;
     }
+
+    private void CleanEventListeners() =>
+        _tileShaderService.TileExplored -= ExploreFeatures;
 
     #endregion
 
@@ -72,8 +77,8 @@ public partial class HexGridChunk : Node3D, IChunk
         foreach (var tile in tiles)
         {
             var label = _labelScene.Instantiate<HexTileLabel>();
-            var position = 1.01f * tile.GetCentroid(HexMetrics.Radius + _tileService.GetHeight(tile));
-            var scale = HexMetrics.StandardScale;
+            var position = 1.01f * tile.GetCentroid(_planetSettingService.Radius + _tileService.GetHeight(tile));
+            var scale = _planetSettingService.StandardScale;
             label.Scale = Vector3.One * scale;
             label.Position = position;
             Node3dUtil.AlignYAxisToDirection(label, position, Vector3.Up);
@@ -129,6 +134,8 @@ public partial class HexGridChunk : Node3D, IChunk
         _chunkTriangulation = new ChunkTriangulation(this);
     }
 
+    public override void _ExitTree() => CleanEventListeners();
+
     public override void _Process(double delta)
     {
         if (_id > 0)
@@ -146,7 +153,8 @@ public partial class HexGridChunk : Node3D, IChunk
             foreach (var tile in tiles)
             {
                 _chunkTriangulation.Triangulate(tile);
-                _tileUis[tile.Id].Position = 1.01f * tile.GetCentroid(HexMetrics.Radius + _tileService.GetHeight(tile));
+                _tileUis[tile.Id].Position =
+                    1.01f * tile.GetCentroid(_planetSettingService.Radius + _tileService.GetHeight(tile));
             }
 
             Terrain.Apply();

@@ -7,7 +7,8 @@ using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 
-public class ChunkService(IPointService pointService, IChunkRepo chunkRepo) : IChunkService
+public class ChunkService(IPointService pointService, IPlanetSettingService planetSettingService, IChunkRepo chunkRepo)
+    : IChunkService
 {
     public event IChunkService.RefreshChunkEvent RefreshChunk;
     public event IChunkService.RefreshTileLabelEvent RefreshChunkTileLabel;
@@ -46,19 +47,20 @@ public class ChunkService(IPointService pointService, IChunkRepo chunkRepo) : IC
     public void InitChunks()
     {
         var time = Time.GetTicksMsec();
-        pointService.InitPointsAndFaces(true, HexMetrics.ChunkDivisions);
+        pointService.InitPointsAndFaces(true, planetSettingService.ChunkDivisions);
         foreach (var point in pointService.GetAllByChunky(true))
         {
             var hexFaces = pointService.GetOrderedFaces(point);
             var neighborCenters = pointService.GetNeighborCenterIds(hexFaces, point)
                 .Select(c => c.Id)
                 .ToList();
-            chunkRepo.Add(point.Id, point.Position * (HexMetrics.Radius + HexMetrics.MaxHeight),
+            chunkRepo.Add(point.Id, point.Position * (planetSettingService.Radius + planetSettingService.MaxHeight),
                 hexFaces.Select(f => f.Id).ToList(), neighborCenters);
         }
 
         _chunkPointVpTree.Create(pointService.GetAllByChunky(true).Select(c => c.Position).ToArray(),
             (p0, p1) => p0.DistanceTo(p1));
-        GD.Print($"InitChunks chunkDivisions {HexMetrics.ChunkDivisions}, cost: {Time.GetTicksMsec() - time}");
+        GD.Print($"InitChunks chunkDivisions {
+                planetSettingService.ChunkDivisions}, cost: {Time.GetTicksMsec() - time}");
     }
 }

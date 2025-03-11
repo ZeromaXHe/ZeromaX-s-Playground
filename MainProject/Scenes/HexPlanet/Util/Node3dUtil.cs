@@ -4,9 +4,8 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 public static class Node3dUtil
 {
-    public static void PlaceOnSphere(Node3D node, Vector3 position, float addHeight = 0, Vector3 alignForward = default)
+    public static void PlaceOnSphere(Node3D node, Vector3 position, float scale, float addHeight = 0, Vector3 alignForward = default)
     {
-        var scale = HexMetrics.StandardScale;
         node.Scale = Vector3.One * scale;
         node.Position = position.Normalized() * (position.Length() + addHeight * scale);
         AlignYAxisToDirection(node, position, alignForward);

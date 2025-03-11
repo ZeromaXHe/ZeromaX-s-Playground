@@ -1,4 +1,6 @@
+using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Enum;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Struct;
@@ -9,8 +11,21 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Struct;
 /// 源码地址：https://bitbucket.org/catlikecoding-projects/hex-map-project/src/2399393cdf64ad7d83eaff456f1207aa214356e2/Assets/Scripts/HexCellData.cs?at=release%2F3.4.0
 /// 由 ZeromaXHe 进行针对 Godot 球面六边形地图的改造
 /// </summary>
-public struct HexTileData()
+public struct HexTileData
 {
+    public HexTileData() => InitServices();
+
+    #region 服务
+
+    private static IPlanetSettingService _planetSettingService;
+
+    private static void InitServices()
+    {
+        _planetSettingService ??= Context.GetBean<IPlanetSettingService>();
+    }
+
+    #endregion
+
     /// <summary>
     /// Cell flags.
     /// </summary>
@@ -123,21 +138,21 @@ public struct HexTileData()
     /// </summary>
     public readonly float StreamBedY =>
         (Values.Elevation + HexMetrics.StreamBedElevationOffset) *
-        HexMetrics.UnitHeight;
+        _planetSettingService.UnitHeight;
 
     /// <summary>
     /// Vertical position of the river's surface, if applicable.
     /// </summary>
     public readonly float RiverSurfaceY =>
         (Values.Elevation + HexMetrics.WaterElevationOffset) *
-        HexMetrics.UnitHeight;
+        _planetSettingService.UnitHeight;
 
     /// <summary>
     /// Vertical position of the water surface, if applicable.
     /// </summary>
     public readonly float WaterSurfaceY =>
         (Values.WaterLevel + HexMetrics.WaterElevationOffset) *
-        HexMetrics.UnitHeight;
+        _planetSettingService.UnitHeight;
 
     /// <summary>
     /// Elevation at which the cell is visible.

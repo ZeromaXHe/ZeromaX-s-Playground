@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Enum;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 
@@ -13,14 +12,17 @@ public class TileShaderService : ITileShaderService
     private readonly ITileService _tileService;
     private readonly ITileSearchService _tileSearchService;
     private readonly IUnitService _unitService;
+    private readonly IPlanetSettingService _planetSettingService;
 
-    public TileShaderService(ITileService tileService, ITileSearchService tileSearchService, IUnitService unitService)
+    public TileShaderService(ITileService tileService, ITileSearchService tileSearchService,
+        IUnitService unitService, IPlanetSettingService planetSettingService)
     {
         _tileService = tileService;
         _tileService.RefreshTerrainShader += RefreshTerrain;
         _tileService.ViewElevationChanged += ViewElevationChanged;
         _tileSearchService = tileSearchService;
         _unitService = unitService;
+        _planetSettingService = planetSettingService;
     }
 
     private Image _tileTexture;
@@ -37,8 +39,8 @@ public class TileShaderService : ITileShaderService
     public void Initialize()
     {
         // 地块数等于 20 * div * div / 2 + 2 = 10 * div ^ 2 + 2
-        var x = HexMetrics.Divisions * 5;
-        var z = HexMetrics.Divisions * 2 + 1; // 十二个五边形会导致余数
+        var x = _planetSettingService.Divisions * 5;
+        var z = _planetSettingService.Divisions * 2 + 1; // 十二个五边形会导致余数
         _tileTexture = Image.CreateEmpty(x, z, false, Image.Format.Rgba8);
         _hexTileData = ImageTexture.CreateFromImage(_tileTexture);
         RenderingServer.GlobalShaderParameterSet("hex_tile_data", Variant.CreateFrom(_hexTileData));
@@ -66,7 +68,7 @@ public class TileShaderService : ITileShaderService
         var tile = _tileService.GetById(tileId);
         var data = _tileTextureData[tileId];
         data.B8 = tile.Data.IsUnderwater
-            ? (int)(tile.Data.WaterSurfaceY * (255f / HexMetrics.MaxHeight))
+            ? (int)(tile.Data.WaterSurfaceY * (255f / _planetSettingService.MaxHeight))
             : 0;
         data.A8 = tile.Data.TerrainTypeIndex;
         _tileTextureData[tileId] = data;
@@ -177,7 +179,7 @@ public class TileShaderService : ITileShaderService
     {
         var tile = _tileService.GetById(tileId);
         _tileTextureData[tileId].B8 = tile.Data.IsUnderwater
-            ? (int)(tile.Data.WaterSurfaceY * (255f / HexMetrics.MaxHeight))
+            ? (int)(tile.Data.WaterSurfaceY * (255f / _planetSettingService.MaxHeight))
             : 0;
         ChangeTilePixel(tileId, _tileTextureData[tileId]);
         _needsVisiblityReset = true;

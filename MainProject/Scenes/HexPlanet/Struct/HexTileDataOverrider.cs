@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Enum;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Struct;
@@ -14,6 +16,19 @@ public enum OptionalToggle
 
 public struct HexTileDataOverrider
 {
+    public HexTileDataOverrider() => InitServices();
+
+    #region 服务
+
+    private static IPlanetSettingService _planetSettingService;
+
+    private static void InitServices()
+    {
+        _planetSettingService ??= Context.GetBean<IPlanetSettingService>();
+    }
+
+    #endregion
+
     public bool EditMode;
     public bool ApplyTerrain;
     public int ActiveTerrain;
@@ -35,10 +50,6 @@ public struct HexTileDataOverrider
     public int ActiveSpecialIndex;
     public HashSet<Tile> OverrideTiles = [];
 
-    public HexTileDataOverrider()
-    {
-    }
-
     public bool IsOverrideTile(Tile tile) => EditMode && OverrideTiles.Contains(tile);
     public bool IsOverrideNoRiver(Tile tile) => IsOverrideTile(tile) && RiverMode == OptionalToggle.No;
     public bool IsOverrideNoRoad(Tile tile) => IsOverrideTile(tile) && RoadMode == OptionalToggle.No;
@@ -57,17 +68,17 @@ public struct HexTileDataOverrider
 
     public float StreamBedY(Tile tile) =>
         IsOverrideTile(tile)
-            ? (Elevation(tile) + HexMetrics.StreamBedElevationOffset) * HexMetrics.UnitHeight
+            ? (Elevation(tile) + HexMetrics.StreamBedElevationOffset) * _planetSettingService.UnitHeight
             : tile.Data.StreamBedY;
 
     public float RiverSurfaceY(Tile tile) =>
         IsOverrideTile(tile)
-            ? (Elevation(tile) + HexMetrics.WaterElevationOffset) * HexMetrics.UnitHeight
+            ? (Elevation(tile) + HexMetrics.WaterElevationOffset) * _planetSettingService.UnitHeight
             : tile.Data.RiverSurfaceY;
 
     public float WaterSurfaceY(Tile tile) =>
         IsOverrideTile(tile)
-            ? (WaterLevel(tile) + HexMetrics.WaterElevationOffset) * HexMetrics.UnitHeight
+            ? (WaterLevel(tile) + HexMetrics.WaterElevationOffset) * _planetSettingService.UnitHeight
             : tile.Data.WaterSurfaceY;
 
     public bool HasRiver(Tile tile) => !IsOverrideNoRiver(tile) && tile.Data.HasRiver;

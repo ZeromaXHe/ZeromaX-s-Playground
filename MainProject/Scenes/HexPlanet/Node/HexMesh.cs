@@ -1,12 +1,14 @@
 using System.Linq;
 using Godot;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
+using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 
 [Tool]
 public partial class HexMesh : MeshInstance3D
 {
+    public HexMesh() => InitServices();
     [Export] public bool UseCollider { get; set; }
     [Export] public bool UseCellData { get; set; }
     [Export] public bool UseUvCoordinates { get; set; }
@@ -14,14 +16,25 @@ public partial class HexMesh : MeshInstance3D
     [Export] public bool Smooth { get; set; }
     private SurfaceTool _surfaceTool = new();
     private int _vIdx;
-    
+
+    #region 服务
+
+    private static INoiseService _noiseService;
+
+    private static void InitServices()
+    {
+        _noiseService ??= Context.GetBean<INoiseService>();
+    }
+
+    #endregion
+
     public static readonly Color Weights1 = Colors.Red;
     public static readonly Color Weights2 = Colors.Green;
     public static readonly Color Weights3 = Colors.Blue;
     public static T[] TriArr<T>(T c) => [c, c, c];
     public static T[] QuadArr<T>(T c) => [c, c, c, c];
     public static T[] QuadArr<T>(T c1, T c2) => [c1, c1, c2, c2];
-    
+
     public void Clear()
     {
         // 清理之前的碰撞体
@@ -55,7 +68,7 @@ public partial class HexMesh : MeshInstance3D
     /// <param name="tis">地块ID tileIds</param>
     public void AddTriangle(Vector3[] vs, Color[] tws = null,
         Vector2[] uvs = null, Vector2[] uvs2 = null, Vector3 tis = default) =>
-        AddTriangleUnperturbed(vs.Select(HexMetrics.Perturb).ToArray(), tws, uvs, uvs2, tis);
+        AddTriangleUnperturbed(vs.Select(_noiseService.Perturb).ToArray(), tws, uvs, uvs2, tis);
 
     public void AddTriangleUnperturbed(Vector3[] vs, Color[] tws = null,
         Vector2[] uvs = null, Vector2[] uvs2 = null, Vector3 tis = default)
@@ -83,7 +96,7 @@ public partial class HexMesh : MeshInstance3D
 
     public void AddQuad(Vector3[] vs, Color[] tws = null,
         Vector2[] uvs = null, Vector2[] uvs2 = null, Vector3 tis = default) =>
-        AddQuadUnperturbed(vs.Select(HexMetrics.Perturb).ToArray(), tws, uvs, uvs2, tis);
+        AddQuadUnperturbed(vs.Select(_noiseService.Perturb).ToArray(), tws, uvs, uvs2, tis);
 
     public void AddQuadUnperturbed(Vector3[] vs, Color[] tws = null,
         Vector2[] uvs = null, Vector2[] uvs2 = null, Vector3 tis = default)
@@ -95,6 +108,7 @@ public partial class HexMesh : MeshInstance3D
                 _surfaceTool.SetColor(tws[i]);
                 _surfaceTool.SetCustom(0, new Color(tis.X, tis.Y, tis.Z));
             }
+
             if (UseUvCoordinates && uvs != null)
                 _surfaceTool.SetUV(uvs[i]);
             if (UseUvCoordinates && uvs2 != null)

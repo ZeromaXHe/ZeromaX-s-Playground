@@ -14,6 +14,8 @@ public class TileService(
     IChunkService chunkService,
     IFaceService faceService,
     IPointService pointService,
+    IPlanetSettingService planetSettingService,
+    INoiseService noiseService,
     ITileRepo tileRepo) : ITileService
 {
     public event ITileService.UnitValidateLocationEvent UnitValidateLocation;
@@ -144,16 +146,17 @@ public class TileService(
 
     public SphereAxial GetSphereAxial(Tile tile) => pointService.GetById(tile.CenterId).Coords;
 
-    public float GetHeight(Tile tile) => (tile.Data.Elevation + GetPerturbHeight(tile)) * HexMetrics.UnitHeight;
+    public float GetHeight(Tile tile) =>
+        (tile.Data.Elevation + GetPerturbHeight(tile)) * planetSettingService.UnitHeight;
 
     public float GetOverrideHeight(Tile tile, HexTileDataOverrider tileDataOverrider) =>
-        (tileDataOverrider.Elevation(tile) + GetPerturbHeight(tile) + 0.05f) * HexMetrics.UnitHeight;
+        (tileDataOverrider.Elevation(tile) + GetPerturbHeight(tile) + 0.05f) * planetSettingService.UnitHeight;
 
     public float GetHeightById(int id) => GetHeight(GetById(id));
 
-    private static float GetPerturbHeight(Tile tile) =>
-        (HexMetrics.SampleNoise(tile.GetCentroid(HexMetrics.StandardRadius)).Y * 2f - 1f)
-        * HexMetrics.ElevationPerturbStrength * HexMetrics.UnitHeight;
+    private float GetPerturbHeight(Tile tile) =>
+        (noiseService.SampleNoise(tile.GetCentroid(HexMetrics.StandardRadius)).Y * 2f - 1f)
+        * noiseService.ElevationPerturbStrength * planetSettingService.UnitHeight;
 
     public int GetElevationDifference(Tile tile, int idx)
     {
@@ -164,7 +167,7 @@ public class TileService(
     public void InitTiles()
     {
         var time = Time.GetTicksMsec();
-        pointService.InitPointsAndFaces(false, HexMetrics.Divisions);
+        pointService.InitPointsAndFaces(false, planetSettingService.Divisions);
         foreach (var point in pointService.GetAllByChunky(false)) // 虽然没有排序，但好像默认也有顺序？不过不能依赖这一点
         {
             var hexFaces = pointService.GetOrderedFaces(point);

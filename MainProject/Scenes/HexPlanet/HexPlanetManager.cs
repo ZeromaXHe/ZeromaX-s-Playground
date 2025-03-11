@@ -38,14 +38,14 @@ public partial class HexPlanetManager : Node3D
         set
         {
             _radius = value;
-            HexMetrics.Radius = _radius;
             RenderingServer.GlobalShaderParameterSet("radius", _radius);
-            RenderingServer.GlobalShaderParameterSet("max_height", HexMetrics.MaxHeight);
             if (_ready)
             {
+                _planetSettingService.Radius = _radius;
+                RenderingServer.GlobalShaderParameterSet("max_height", _planetSettingService.MaxHeight);
                 _orbitCamera.Reset();
                 _atmosphereFog.Size = Vector3.One * _radius * 2.7f;
-                _longitudeLatitude.Draw(_radius + HexMetrics.MaxHeight * 1.25f);
+                _longitudeLatitude.Draw(_radius + _planetSettingService.MaxHeight * 1.25f);
             }
         }
     }
@@ -59,12 +59,14 @@ public partial class HexPlanetManager : Node3D
         set
         {
             _divisions = value;
-            HexMetrics.Divisions = _divisions;
             RenderingServer.GlobalShaderParameterSet("divisions", _divisions);
             _chunkDivisions = Mathf.Min(Mathf.Max(1, _divisions / 4), _chunkDivisions);
-            HexMetrics.ChunkDivisions = _chunkDivisions;
             if (_ready)
+            {
+                _planetSettingService.Divisions = _divisions;
+                _planetSettingService.ChunkDivisions = _chunkDivisions;
                 _orbitCamera.Reset();
+            }
         }
     }
 
@@ -77,12 +79,14 @@ public partial class HexPlanetManager : Node3D
         set
         {
             _chunkDivisions = value;
-            HexMetrics.ChunkDivisions = _chunkDivisions;
             _divisions = Mathf.Max(Mathf.Min(100, _chunkDivisions * 4), _divisions);
             RenderingServer.GlobalShaderParameterSet("divisions", _divisions);
-            HexMetrics.Divisions = _divisions;
             if (_ready)
+            {
+                _planetSettingService.ChunkDivisions = _chunkDivisions;
+                _planetSettingService.Divisions = _divisions;
                 _orbitCamera.Reset();
+            }
         }
     }
 
@@ -126,6 +130,8 @@ public partial class HexPlanetManager : Node3D
     private IFaceService _faceService;
     private IPointService _pointService;
     private ISelectViewService _selectViewService;
+    private IPlanetSettingService _planetSettingService;
+    private INoiseService _noiseService;
 
     private void InitServices()
     {
@@ -137,6 +143,8 @@ public partial class HexPlanetManager : Node3D
         _faceService = Context.GetBean<IFaceService>();
         _pointService = Context.GetBean<IPointService>();
         _selectViewService = Context.GetBean<ISelectViewService>();
+        _planetSettingService = Context.GetBean<IPlanetSettingService>();
+        _noiseService = Context.GetBean<INoiseService>();
         _tileService.UnitValidateLocation += OnTileServiceUnitValidateLocation;
     }
 
@@ -192,8 +200,8 @@ public partial class HexPlanetManager : Node3D
         Radius = _radius;
         Divisions = _divisions;
 
-        HexMetrics.NoiseSource = _noiseSource.GetImage();
-        HexMetrics.InitializeHashGrid(Seed);
+        _noiseService.NoiseSource = _noiseSource.GetImage();
+        _noiseService.InitializeHashGrid(Seed);
         DrawHexSphereMesh();
         GD.Print("HexPlanetManager _Ready end");
     }

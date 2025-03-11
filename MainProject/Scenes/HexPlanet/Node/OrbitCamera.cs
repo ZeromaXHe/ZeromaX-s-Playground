@@ -1,12 +1,14 @@
 using Godot;
+using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 
 [Tool]
 public partial class OrbitCamera : Node3D
 {
+    public OrbitCamera() => InitService();
     private float _radius = 10f;
 
     [Export(PropertyHint.Range, "0.01, 1000, or_greater")]
@@ -17,9 +19,9 @@ public partial class OrbitCamera : Node3D
         {
             _radius = value;
             if (!_ready) return;
-            _focusBase.Position = Vector3.Forward * value * (1 + HexMetrics.MaxHeightRatio);
-            _focusBox.Size = Vector3.One * value * _boxSizeMultiplier * HexMetrics.StandardScale;
-            _backBox.Size = Vector3.One * value * _boxSizeMultiplier * HexMetrics.StandardScale;
+            _focusBase.Position = Vector3.Forward * value * (1 + _planetSettingService.MaxHeightRatio);
+            _focusBox.Size = Vector3.One * value * _boxSizeMultiplier * _planetSettingService.StandardScale;
+            _backBox.Size = Vector3.One * value * _boxSizeMultiplier * _planetSettingService.StandardScale;
             _light.SpotRange = value * _lightRangeMultiplier;
             _light.Position = Vector3.Up * value * _lightRangeMultiplier * 0.5f;
         }
@@ -29,20 +31,46 @@ public partial class OrbitCamera : Node3D
     private float _focusBackZoom = 0.2f;
     private float _lightRangeMultiplier = 1f;
 
-    [Export(PropertyHint.Range, "0.01, 10")] private float _stickMinZoom = 1f;
-    [Export(PropertyHint.Range, "0.01, 10")] private float _stickMaxZoom = 0.2f;
-    [Export(PropertyHint.Range, "-180, 180")] private float _swivelMinZoom = -90f;
-    [Export(PropertyHint.Range, "-180, 180")] private float _swivelMaxZoom = -45f;
-    [Export(PropertyHint.Range, "0.01, 10")] private float _moveSpeedMinZoom = 0.8f;
-    [Export(PropertyHint.Range, "0.01, 10")] private float _moveSpeedMaxZoom = 0.2f;
+    [Export(PropertyHint.Range, "0.01, 10")]
+    private float _stickMinZoom = 1f;
+
+    [Export(PropertyHint.Range, "0.01, 10")]
+    private float _stickMaxZoom = 0.2f;
+
+    [Export(PropertyHint.Range, "-180, 180")]
+    private float _swivelMinZoom = -90f;
+
+    [Export(PropertyHint.Range, "-180, 180")]
+    private float _swivelMaxZoom = -45f;
+
+    [Export(PropertyHint.Range, "0.01, 10")]
+    private float _moveSpeedMinZoom = 0.8f;
+
+    [Export(PropertyHint.Range, "0.01, 10")]
+    private float _moveSpeedMaxZoom = 0.2f;
+
     private float _antiStuckSpeedMultiplier = 1f; // 用于防止速度过低的时候相机卡死
-    [Export(PropertyHint.Range, "0.01, 3600")] private float _rotationSpeed = 180f;
+
+    [Export(PropertyHint.Range, "0.01, 3600")]
+    private float _rotationSpeed = 180f;
+
     [Export] private Node3D _sun;
 
     [ExportGroup("自动导航设置")]
     // 自动导航速度。该值的倒数，对应自动移动时间：比如 2f 对应 0.5s 抵达
     [Export(PropertyHint.Range, "0.01, 10")]
     public float AutoPilotSpeed { get; set; } = 1f;
+
+    #region 服务
+
+    private IPlanetSettingService _planetSettingService;
+
+    private void InitService()
+    {
+        _planetSettingService = Context.GetBean<IPlanetSettingService>();
+    }
+
+    #endregion
 
     #region on-ready 节点
 
@@ -237,7 +265,7 @@ public partial class OrbitCamera : Node3D
 
     public void Reset()
     {
-        Radius = HexMetrics.Radius;
+        Radius = _planetSettingService.Radius;
         Zoom = 1f;
     }
 }

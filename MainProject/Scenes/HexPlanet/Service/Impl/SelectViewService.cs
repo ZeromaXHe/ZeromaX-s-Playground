@@ -5,7 +5,10 @@ using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 
-public class SelectViewService(ITileService tileService, ITileSearchService tileSearchService) : ISelectViewService
+public class SelectViewService(
+    ITileService tileService,
+    ITileSearchService tileSearchService,
+    IPlanetSettingService planetSettingService) : ISelectViewService
 {
     private int? _hoverTileId;
     private int _selectedTileId;
@@ -35,7 +38,7 @@ public class SelectViewService(ITileService tileService, ITileSearchService tile
             {
                 var selectedTile = tileService.GetById(_selectedTileId);
                 vi += AddHexFrame(selectedTile, Colors.Aquamarine,
-                    1.01f * (HexMetrics.Radius + tileService.GetHeight(selectedTile)),
+                    1.01f * (planetSettingService.Radius + tileService.GetHeight(selectedTile)),
                     surfaceTool, vi); // 选择地块为蓝色框
             }
 
@@ -45,7 +48,7 @@ public class SelectViewService(ITileService tileService, ITileSearchService tile
 
                 var color = Colors.DarkGreen with { A = 0.8f };
                 var tiles = tileService.GetTilesInDistance(hoverTile, SelectViewSize);
-                var viewRadius = HexMetrics.Radius + HexMetrics.MaxHeight;
+                var viewRadius = planetSettingService.Radius + planetSettingService.MaxHeight;
                 foreach (var t in tiles)
                     vi += AddHexFrame(t, color, viewRadius, surfaceTool, vi);
             }
@@ -78,10 +81,10 @@ public class SelectViewService(ITileService tileService, ITileSearchService tile
                 surfaceTool.SetSmoothGroup(uint.MaxValue);
                 var vi = 0;
                 vi += AddHexFrame(fromTile, Colors.Blue,
-                    1.01f * (HexMetrics.Radius + tileService.GetHeight(fromTile)),
+                    1.01f * (planetSettingService.Radius + tileService.GetHeight(fromTile)),
                     surfaceTool, vi); // 出发点为蓝色框
                 vi += AddHexFrame(toTile, Colors.Red,
-                    1.01f * (HexMetrics.Radius + tileService.GetHeight(toTile)),
+                    1.01f * (planetSettingService.Radius + tileService.GetHeight(toTile)),
                     surfaceTool, vi); // 目标点为红色框
                 var tiles = tileSearchService.FindPath(fromTile, toTile);
                 if (tiles.Count > 0)
@@ -93,7 +96,7 @@ public class SelectViewService(ITileService tileService, ITileSearchService tile
                         var nextTile = tiles[i];
                         if (i != tiles.Count - 1)
                             vi += AddHexFrame(nextTile, Colors.White,
-                                1.01f * (HexMetrics.Radius + tileService.GetHeight(nextTile)),
+                                1.01f * (planetSettingService.Radius + tileService.GetHeight(nextTile)),
                                 surfaceTool, vi); // 路径点为白色框
                         cost += tileSearchService.GetMoveCost(preTile, nextTile);
                         tileService.UpdateTileLabel(nextTile, cost.ToString());
@@ -116,7 +119,7 @@ public class SelectViewService(ITileService tileService, ITileSearchService tile
         var surfaceTool2 = new SurfaceTool();
         surfaceTool2.Begin(Mesh.PrimitiveType.Triangles);
         surfaceTool2.SetSmoothGroup(uint.MaxValue);
-        var viewRadius2 = HexMetrics.MaxHeight;
+        var viewRadius2 = planetSettingService.MaxHeight;
         AddHexFrame(tile, Colors.Blue, viewRadius2, surfaceTool2, 0);
         return surfaceTool2.Commit();
     }

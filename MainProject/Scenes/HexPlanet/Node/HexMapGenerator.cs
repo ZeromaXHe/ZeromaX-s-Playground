@@ -6,7 +6,6 @@ using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Struct;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
@@ -117,11 +116,15 @@ public partial class HexMapGenerator : Node3D
 
     private ITileService _tileService;
     private ITileSearchService _tileSearchService;
+    private INoiseService _noiseService;
+    private IPlanetSettingService _planetSettingService;
 
     private void InitServices()
     {
         _tileService = Context.GetBean<ITileService>();
         _tileSearchService = Context.GetBean<ITileSearchService>();
+        _noiseService = Context.GetBean<INoiseService>();
+        _planetSettingService = Context.GetBean<IPlanetSettingService>();
     }
 
     #endregion
@@ -504,14 +507,15 @@ public partial class HexMapGenerator : Node3D
     private float DetermineTemperature(Tile tile)
     {
         var sphereAxial = _tileService.GetSphereAxial(tile);
-        var latitude = (sphereAxial.Coords.R + HexMetrics.Divisions) / (3f * HexMetrics.Divisions);
+        var latitude = (sphereAxial.Coords.R + _planetSettingService.Divisions) /
+                       (3f * _planetSettingService.Divisions);
         // 具有南北半球
         latitude *= 2f;
         if (latitude > 1f)
             latitude = 2f - latitude;
         var temperature = Mathf.Lerp(_lowTemperature, _highTemperature, latitude);
         temperature *= 1f - (tile.Data.ViewElevation - _waterLevel) / (_elevationMaximum - _waterLevel + 1f);
-        var jitter = HexMetrics.SampleNoise(tile.GetCentroid(HexMetrics.StandardRadius))[_temperatureJitterChannel];
+        var jitter = _noiseService.SampleNoise(tile.GetCentroid(HexMetrics.StandardRadius))[_temperatureJitterChannel];
         temperature += (jitter * 2f - 1f) * _temperatureJitter;
         return temperature;
     }

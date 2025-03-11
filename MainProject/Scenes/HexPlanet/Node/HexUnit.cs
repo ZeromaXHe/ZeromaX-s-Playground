@@ -20,12 +20,14 @@ public partial class HexUnit : CsgBox3D
     private static ITileService _tileService;
     private static ITileShaderService _tileShaderService;
     private static IUnitService _unitService;
+    private static IPlanetSettingService _planetSettingService;
 
     private static void InitServices()
     {
         _tileService ??= Context.GetBean<ITileService>();
         _tileShaderService ??= Context.GetBean<ITileShaderService>();
         _unitService ??= Context.GetBean<IUnitService>();
+        _planetSettingService ??= Context.GetBean<IPlanetSettingService>();
     }
 
     #endregion
@@ -78,7 +80,7 @@ public partial class HexUnit : CsgBox3D
     public override void _Process(double delta)
     {
         if (_path == null) return;
-        var deltaProgress = (float)delta * HexMetrics.StandardScale * PathMoveSpeed;
+        var deltaProgress = (float)delta * _planetSettingService.StandardScale * PathMoveSpeed;
         if (_pathOriented)
         {
             var prePathTileIdx = _pathTileIdx;
@@ -90,6 +92,7 @@ public partial class HexUnit : CsgBox3D
                 _tileShaderService.DecreaseVisibility(_path.Tiles[prePathTileIdx], Unit.VisionRange);
                 _tileShaderService.IncreaseVisibility(_path.Tiles[_pathTileIdx], Unit.VisionRange);
             }
+
             var before = _path.Curve.SampleBaked(progress - deltaProgress, true);
             Node3dUtil.AlignYAxisToDirection(this, Position, alignForward: before.DirectionTo(Position));
         }
@@ -131,8 +134,9 @@ public partial class HexUnit : CsgBox3D
     public void ValidateLocation()
     {
         var tile = _tileService.GetById(_tileId);
-        var position = tile.GetCentroid(HexMetrics.Radius + _tileService.GetHeight(tile));
-        Node3dUtil.PlaceOnSphere(this, position, alignForward: Vector3.Up); // 单位不需要抬高，场景里已经设置好了
+        var position = tile.GetCentroid(_planetSettingService.Radius + _tileService.GetHeight(tile));
+        Node3dUtil.PlaceOnSphere(this, position, _planetSettingService.StandardScale,
+            alignForward: Vector3.Up); // 单位不需要抬高，场景里已经设置好了
         _beginRotation = Rotation;
     }
 

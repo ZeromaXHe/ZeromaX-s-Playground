@@ -74,11 +74,10 @@ public static class Math3dUtil
     }
 
     // 未经检验的实现
-    public static Transform3D PlaceOnSphere(Basis basis, Vector3 position, float addHeight = 0,
-        Vector3 alignForward = default)
+    public static Transform3D PlaceOnSphere(Basis basis, Vector3 position, float scale,
+        float addHeight = 0, Vector3 alignForward = default)
     {
         var transform = Transform3D.Identity;
-        var scale = HexMetrics.StandardScale;
         transform.Scaled(Vector3.One * scale);
         transform.Origin = position.Normalized() * (position.Length() + addHeight * scale);
         return AlignYAxisToDirection(basis, position, alignForward) * transform;
