@@ -10,28 +10,29 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 public class FaceService(IFaceRepo faceRepo, IPointRepo pointRepo) : IFaceService
 {
     public void Truncate() => faceRepo.Truncate();
-    public Face Add(Vector3[] triVertices) => faceRepo.Add(triVertices);
-    public IEnumerable<Face> GetAll() => faceRepo.GetAll();
+    public Face Add(bool chunky, Vector3[] triVertices) => faceRepo.Add(chunky, triVertices);
+    public IEnumerable<Face> GetAll(bool chunky) => faceRepo.GetAllByChunky(chunky);
 
     public IEnumerable<Point> GetOtherPoints(Face face, Point point)
     {
+        // 注意：并没有对 face 和 point 的 Chunky 进行校验
         var idx = GetPointIdx(face, point);
-        yield return pointRepo.GetByPosition(face.TriVertices[(idx + 1) % 3]);
-        yield return pointRepo.GetByPosition(face.TriVertices[(idx + 2) % 3]);
+        yield return pointRepo.GetByPosition(face.Chunky, face.TriVertices[(idx + 1) % 3]);
+        yield return pointRepo.GetByPosition(face.Chunky, face.TriVertices[(idx + 2) % 3]);
     }
 
     // 顺时针第一个顶点
     public Point GetLeftOtherPoints(Face face, Point point)
     {
         var idx = GetPointIdx(face, point);
-        return pointRepo.GetByPosition(face.TriVertices[(idx + 1) % 3]);
+        return pointRepo.GetByPosition(face.Chunky, face.TriVertices[(idx + 1) % 3]);
     }
 
     // 顺时针第二个顶点
     public Point GetRightOtherPoints(Face face, Point point)
     {
         var idx = GetPointIdx(face, point);
-        return pointRepo.GetByPosition(face.TriVertices[(idx + 2) % 3]);
+        return pointRepo.GetByPosition(face.Chunky, face.TriVertices[(idx + 2) % 3]);
     }
 
     private static int GetPointIdx(Face face, Point point)

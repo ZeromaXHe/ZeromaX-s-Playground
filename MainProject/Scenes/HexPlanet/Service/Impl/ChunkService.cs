@@ -36,7 +36,9 @@ public class ChunkService(IPointService pointService, IChunkRepo chunkRepo) : IC
     public void InitChunks(int chunkDivisions)
     {
         var time = Time.GetTicksMsec();
-        pointService.SubdivideIcosahedron(chunkDivisions, (v, _) => chunkRepo.Add(v));
+        pointService.InitPointsAndFaces(true, chunkDivisions);
+        foreach (var point in pointService.GetAll(true))
+            chunkRepo.Add(point.Position);
         _chunkPointVpTree.Create(chunkRepo.GetAll().Select(c => c.Pos).ToArray(),
             (p0, p1) => p0.DistanceTo(p1));
         GD.Print($"InitChunks chunkDivisions {chunkDivisions}, cost: {Time.GetTicksMsec() - time}");

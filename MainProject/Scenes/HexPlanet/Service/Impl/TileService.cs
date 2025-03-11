@@ -138,7 +138,9 @@ public class TileService(
     {
         // 存储的 Point 是单位球上，所以 pos 单位化减小误差
         _tilePointVpTree.Search(pos.Normalized(), 1, out var results, out _);
-        return pointRepo.GetIdByPosition(results[0]); // Tile id 就是对应 Point id
+        var pointId = pointRepo.GetIdByPosition(false, results[0]);
+        if (pointId == null) return null;
+        return tileRepo.GetByCenterId((int)pointId).Id;
     }
 
     public SphereAxial GetSphereAxial(Tile tile) => pointRepo.GetById(tile.CenterId).Coords;
@@ -163,7 +165,7 @@ public class TileService(
     public void InitTiles()
     {
         var time = Time.GetTicksMsec();
-        foreach (var point in pointRepo.GetAll()) // 虽然没有排序，但好像默认也有顺序？不过不能依赖这一点
+        foreach (var point in pointRepo.GetAllByChunky(false)) // 虽然没有排序，但好像默认也有顺序？不过不能依赖这一点
         {
             var hexFaces = GetOrderedFaces(point);
             var neighborCenters = GetNeighbourCenterIds(hexFaces, point)
@@ -178,7 +180,9 @@ public class TileService(
         GD.Print($"InitTiles cost: {time2 - time} ms");
         time = time2;
 
-        _tilePointVpTree.Create(tileRepo.GetAll().Select(p => pointRepo.GetById(p.CenterId).Position).ToArray(),
+        _tilePointVpTree.Create(tileRepo.GetAll()
+                .Select(tile => pointRepo.GetById(tile.CenterId).Position)
+                .ToArray(),
             (p0, p1) => p0.DistanceTo(p1));
         time2 = Time.GetTicksMsec();
         GD.Print($"_tilePointVpTree Create cost: {time2 - time} ms");

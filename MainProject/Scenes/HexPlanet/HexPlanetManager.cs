@@ -354,7 +354,7 @@ public partial class HexPlanetManager : Node3D
     private void InitHexSphere()
     {
         GD.Print($"InitHexSphere with radius {Radius}, divisions {Divisions}, start at: {Time.GetTicksMsec()}");
-        _pointService.SubdivideIcosahedronForTiles(Divisions);
+        _pointService.InitPointsAndFaces(false, Divisions);
         _tileService.InitTiles();
         _tileShaderService.Initialize();
         _tileSearchService.InitSearchData();

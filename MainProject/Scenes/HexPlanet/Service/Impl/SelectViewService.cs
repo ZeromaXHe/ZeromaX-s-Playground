@@ -7,7 +7,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 
 public class SelectViewService(ITileService tileService, ITileSearchService tileSearchService) : ISelectViewService
 {
-    private int? _hoverTileCenterId;
+    private int? _hoverTileId;
     private int _selectedTileId;
 
     public void ClearPath() => tileSearchService.ClearPath();
@@ -16,14 +16,14 @@ public class SelectViewService(ITileService tileService, ITileSearchService tile
 
     public Mesh GenerateMeshForEditMode(int editingTileId, Vector3 position)
     {
-        var centerId = position == Vector3.Zero ? null : tileService.SearchNearestTileId(position);
-        if (centerId != null || editingTileId > 0)
+        var hoverTileId = position == Vector3.Zero ? null : tileService.SearchNearestTileId(position);
+        if (hoverTileId != null || editingTileId > 0)
         {
             // 编辑选取点和鼠标悬浮点都没变
-            if (editingTileId == _selectedTileId && centerId == _hoverTileCenterId)
+            if (editingTileId == _selectedTileId && hoverTileId == _hoverTileId)
                 return null;
             // GD.Print($"Generating New _selectTileViewer Mesh! {centerId}, position: {position}");
-            _hoverTileCenterId = centerId;
+            _hoverTileId = hoverTileId;
             _selectedTileId = editingTileId;
 
             var surfaceTool = new SurfaceTool();
@@ -33,15 +33,15 @@ public class SelectViewService(ITileService tileService, ITileSearchService tile
 
             if (_selectedTileId > 0)
             {
-                var selectedTile = tileService.GetByCenterId(_selectedTileId);
+                var selectedTile = tileService.GetById(_selectedTileId);
                 vi += AddHexFrame(selectedTile, Colors.Aquamarine,
                     1.01f * (HexMetrics.Radius + tileService.GetHeight(selectedTile)),
                     surfaceTool, vi); // 选择地块为蓝色框
             }
 
-            if (centerId != null)
+            if (hoverTileId != null)
             {
-                var hoverTile = tileService.GetByCenterId((int)_hoverTileCenterId);
+                var hoverTile = tileService.GetById((int)_hoverTileId);
 
                 var color = Colors.DarkGreen with { A = 0.8f };
                 var tiles = tileService.GetTilesInDistance(hoverTile, SelectViewSize);
@@ -62,16 +62,16 @@ public class SelectViewService(ITileService tileService, ITileSearchService tile
         if (position != Vector3.Zero)
         {
             // 有寻路目标时的情况
-            var centerId = tileService.SearchNearestTileId(position);
-            if (centerId != null)
+            var hoverTileId = tileService.SearchNearestTileId(position);
+            if (hoverTileId != null)
             {
-                if (pathFindingFromTileId == _selectedTileId && centerId == _hoverTileCenterId)
+                if (pathFindingFromTileId == _selectedTileId && hoverTileId == _hoverTileId)
                     return null; // 寻路出发点和目标点都没变
                 _selectedTileId = pathFindingFromTileId;
-                _hoverTileCenterId = centerId;
+                _hoverTileId = hoverTileId;
                 ClearPath();
                 var fromTile = tileService.GetById(pathFindingFromTileId);
-                var toTileId = (int)_hoverTileCenterId;
+                var toTileId = (int)_hoverTileId;
                 var toTile = tileService.GetById(toTileId);
                 var surfaceTool = new SurfaceTool();
                 surfaceTool.Begin(Mesh.PrimitiveType.Triangles);

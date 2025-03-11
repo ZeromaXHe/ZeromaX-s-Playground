@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Base;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
@@ -7,9 +8,10 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repo;
 
 public interface IPointRepo : IRepository<Point>
 {
-    Point Add(Vector3 position, SphereAxial coords);
-    Point GetByCoords(SphereAxial coords);
-    int? GetIdByCoords(SphereAxial coords);
-    Point GetByPosition(Vector3 position);
-    int? GetIdByPosition(Vector3 position);
+    Point Add(bool chunky, Vector3 position, SphereAxial coords);
+    Point GetByCoords(bool chunky, SphereAxial coords);
+    int? GetIdByCoords(bool chunky, SphereAxial coords);
+    Point GetByPosition(bool chunky, Vector3 position);
+    int? GetIdByPosition(bool chunky, Vector3 position);
+    IEnumerable<Point> GetAllByChunky(bool chunky);
 }

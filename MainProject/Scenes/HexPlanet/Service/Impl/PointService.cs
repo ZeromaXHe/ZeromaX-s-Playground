@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Constant;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repo;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util.HexSphereGrid;
@@ -12,21 +14,20 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPointService
 {
     public void Truncate() => pointRepo.Truncate();
+    public IEnumerable<Point> GetAll(bool chunky) => pointRepo.GetAllByChunky(chunky);
 
-    public void SubdivideIcosahedronForTiles(int divisions)
+    public void InitPointsAndFaces(bool chunky, int divisions)
     {
         var time = Time.GetTicksMsec();
-        SubdivideIcosahedron(divisions,
-            (v, coords) => pointRepo.Add(v, coords),
-            v => faceService.Add(v));
-        InitPointFaceIds();
-        GD.Print($"SubdivideIcosahedron cost: {Time.GetTicksMsec() - time} ms");
+        SubdivideIcosahedron(chunky, divisions);
+        InitPointFaceIds(chunky);
+        GD.Print($"InitPointsAndFaces for {(chunky ? "Chunk" : "Tile")} cost: {Time.GetTicksMsec() - time} ms");
     }
 
-    private void InitPointFaceIds()
+    private void InitPointFaceIds(bool chunky)
     {
-        foreach (var face in faceService.GetAll())
-        foreach (var p in face.TriVertices.Select(pointRepo.GetByPosition))
+        foreach (var face in faceService.GetAll(chunky))
+        foreach (var p in face.TriVertices.Select(v => pointRepo.GetByPosition(chunky, v)))
         {
             if (p.FaceIds == null)
                 p.FaceIds = [face.Id];
@@ -35,20 +36,19 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
     }
 
     // 初始化 Point 和 Face
-    public void SubdivideIcosahedron(int divisions, Action<Vector3, SphereAxial> addPoint,
-        Action<Vector3[]> addFace = null)
+    private void SubdivideIcosahedron(bool chunky, int divisions)
     {
         var pn = IcosahedronConstants.Vertices[0]; // 北极点
         var ps = IcosahedronConstants.Vertices[6]; // 南极点
         // 轴坐标系（0,0）放在第一组竖列四面的北回归线最东端
-        addPoint(pn, new SphereAxial(0, -divisions));
-        addPoint(ps, new SphereAxial(-divisions, 2 * divisions));
+        pointRepo.Add(chunky, pn, new SphereAxial(0, -divisions));
+        pointRepo.Add(chunky, ps, new SphereAxial(-divisions, 2 * divisions));
         var edges = GenEdgeVectors(divisions, pn, ps);
         for (var col = 0; col < 5; col++)
         {
-            InitNorthTriangle(edges, col, divisions, addPoint, addFace);
-            InitEquatorTwoTriangles(edges, col, divisions, addPoint, addFace);
-            InitSouthTriangle(edges, col, divisions, addPoint, addFace);
+            InitNorthTriangle(chunky, edges, col, divisions);
+            InitEquatorTwoTriangles(chunky, edges, col, divisions);
+            InitSouthTriangle(chunky, edges, col, divisions);
         }
     }
 
@@ -78,8 +78,7 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
     }
 
     // 构造北部的第一个面
-    private static void InitNorthTriangle(Vector3[][] edges, int col, int divisions,
-        Action<Vector3, SphereAxial> addPoint, Action<Vector3[]> addFace)
+    private void InitNorthTriangle(bool chunky, Vector3[][] edges, int col, int divisions)
     {
         var nextCol = (col + 1) % 5;
         var northEast = edges[col * 6]; // 北极出来的靠东的边界
@@ -92,21 +91,21 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
                 ? tropicOfCancer
                 : Math3dUtil.Subdivide(northEast[i], northWest[i], i);
             if (i == divisions)
-                addPoint(nowLine[0], new SphereAxial(-divisions * col, 0));
+                pointRepo.Add(chunky, nowLine[0], new SphereAxial(-divisions * col, 0));
             else
-                addPoint(nowLine[0], new SphereAxial(-divisions * col, i - divisions));
+                pointRepo.Add(chunky, nowLine[0], new SphereAxial(-divisions * col, i - divisions));
             for (var j = 0; j < i; j++)
             {
                 if (j > 0)
                 {
-                    addFace?.Invoke([nowLine[j], preLine[j], preLine[j - 1]]);
+                    faceService.Add(chunky, [nowLine[j], preLine[j], preLine[j - 1]]);
                     if (i == divisions)
-                        addPoint(nowLine[j], new SphereAxial(-divisions * col - j, 0));
+                        pointRepo.Add(chunky, nowLine[j], new SphereAxial(-divisions * col - j, 0));
                     else
-                        addPoint(nowLine[j], new SphereAxial(-divisions * col - j, i - divisions));
+                        pointRepo.Add(chunky, nowLine[j], new SphereAxial(-divisions * col - j, i - divisions));
                 }
 
-                addFace?.Invoke([preLine[j], nowLine[j], nowLine[j + 1]]);
+                faceService.Add(chunky, [preLine[j], nowLine[j], nowLine[j + 1]]);
             }
 
             preLine = nowLine;
@@ -114,8 +113,7 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
     }
 
     // 赤道两个面（第二、三面）的构造
-    private static void InitEquatorTwoTriangles(Vector3[][] edges, int col, int divisions,
-        Action<Vector3, SphereAxial> addPoint, Action<Vector3[]> addFace)
+    private void InitEquatorTwoTriangles(bool chunky, Vector3[][] edges, int col, int divisions)
     {
         var nextCol = (col + 1) % 5;
         var equatorWest = edges[nextCol * 6 + 3]; // 向东南方斜跨赤道的靠西的边界
@@ -131,34 +129,34 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
                 : Math3dUtil.Subdivide(equatorEast[i], equatorMid[i], i);
             var nowLineWest = Math3dUtil.Subdivide(equatorMid[i], equatorWest[i], divisions - i);
             // 构造东边面（第三面）
-            addPoint(nowLineEast[0], new SphereAxial(-divisions * col, i));
+            pointRepo.Add(chunky, nowLineEast[0], new SphereAxial(-divisions * col, i));
             for (var j = 0; j < i; j++)
             {
                 if (j > 0)
                 {
-                    addFace?.Invoke([nowLineEast[j], preLineEast[j], preLineEast[j - 1]]);
+                    faceService.Add(chunky, [nowLineEast[j], preLineEast[j], preLineEast[j - 1]]);
                     if (i == divisions)
-                        addPoint(nowLineEast[j], new SphereAxial(-divisions * col - j, i));
+                        pointRepo.Add(chunky, nowLineEast[j], new SphereAxial(-divisions * col - j, i));
                     else
-                        addPoint(nowLineEast[j], new SphereAxial(-divisions * col - j, i));
+                        pointRepo.Add(chunky, nowLineEast[j], new SphereAxial(-divisions * col - j, i));
                 }
 
-                addFace?.Invoke([preLineEast[j], nowLineEast[j], nowLineEast[j + 1]]);
+                faceService.Add(chunky, [preLineEast[j], nowLineEast[j], nowLineEast[j + 1]]);
             }
 
             // 构造西边面（第二面）
             if (i < divisions)
-                addPoint(nowLineWest[0], new SphereAxial(-divisions * col - i, i));
+                pointRepo.Add(chunky, nowLineWest[0], new SphereAxial(-divisions * col - i, i));
             for (var j = 0; j <= divisions - i; j++)
             {
                 if (j > 0)
                 {
-                    addFace?.Invoke([preLineWest[j], nowLineWest[j - 1], nowLineWest[j]]);
+                    faceService.Add(chunky, [preLineWest[j], nowLineWest[j - 1], nowLineWest[j]]);
                     if (j < divisions - i)
-                        addPoint(nowLineWest[j], new SphereAxial(-divisions * col - i - j, i));
+                        pointRepo.Add(chunky, nowLineWest[j], new SphereAxial(-divisions * col - i - j, i));
                 }
 
-                addFace?.Invoke([nowLineWest[j], preLineWest[j + 1], preLineWest[j]]);
+                faceService.Add(chunky, [nowLineWest[j], preLineWest[j + 1], preLineWest[j]]);
             }
 
             preLineEast = nowLineEast;
@@ -167,8 +165,7 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
     }
 
     // 构造南部的最后一面（列的第四面）
-    private static void InitSouthTriangle(Vector3[][] edges, int col, int divisions,
-        Action<Vector3, SphereAxial> addPoint, Action<Vector3[]> addFace)
+    private void InitSouthTriangle(bool chunky, Vector3[][] edges, int col, int divisions)
     {
         var nextCol = (col + 1) % 5;
         var southWest = edges[nextCol * 6 + 5]; // 向南方连接南极的靠西的边界
@@ -178,17 +175,17 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
         {
             var nowLine = Math3dUtil.Subdivide(southEast[i], southWest[i], divisions - i);
             if (i < divisions)
-                addPoint(nowLine[0], new SphereAxial(-divisions * col - i, divisions + i));
+                pointRepo.Add(chunky, nowLine[0], new SphereAxial(-divisions * col - i, divisions + i));
             for (var j = 0; j <= divisions - i; j++)
             {
                 if (j > 0)
                 {
-                    addFace?.Invoke([preLine[j], nowLine[j - 1], nowLine[j]]);
+                    faceService.Add(chunky, [preLine[j], nowLine[j - 1], nowLine[j]]);
                     if (j < divisions - i)
-                        addPoint(nowLine[j], new SphereAxial(-divisions * col - i - j, divisions + i));
+                        pointRepo.Add(chunky, nowLine[j], new SphereAxial(-divisions * col - i - j, divisions + i));
                 }
 
-                addFace?.Invoke([nowLine[j], preLine[j + 1], preLine[j]]);
+                faceService.Add(chunky, [nowLine[j], preLine[j + 1], preLine[j]]);
             }
 
             preLine = nowLine;
