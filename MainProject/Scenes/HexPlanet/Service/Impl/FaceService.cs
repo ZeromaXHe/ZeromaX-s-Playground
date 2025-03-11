@@ -9,9 +9,15 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 
 public class FaceService(IFaceRepo faceRepo, IPointRepo pointRepo) : IFaceService
 {
+    #region 透传存储库方法
+
     public void Truncate() => faceRepo.Truncate();
+    public Face GetById(int id) => faceRepo.GetById(id);
+    public IEnumerable<Face> GetAllByChunky(bool chunky) => faceRepo.GetAllByChunky(chunky);
+
+    #endregion
+
     public Face Add(bool chunky, Vector3[] triVertices) => faceRepo.Add(chunky, triVertices);
-    public IEnumerable<Face> GetAll(bool chunky) => faceRepo.GetAllByChunky(chunky);
 
     public IEnumerable<Point> GetOtherPoints(Face face, Point point)
     {

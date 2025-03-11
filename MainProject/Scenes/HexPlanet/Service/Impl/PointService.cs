@@ -13,8 +13,59 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 // 目前 PointService 的定位是正二十面体的细分工作
 public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPointService
 {
+    #region 透传存储库方法
+
     public void Truncate() => pointRepo.Truncate();
-    public IEnumerable<Point> GetAll(bool chunky) => pointRepo.GetAllByChunky(chunky);
+    public Point GetById(int id) => pointRepo.GetById(id);
+    public int? GetIdByPosition(bool chunky, Vector3 pos) => pointRepo.GetIdByPosition(chunky, pos);
+    public IEnumerable<Point> GetAllByChunky(bool chunky) => pointRepo.GetAllByChunky(chunky);
+
+    #endregion
+
+    public List<Face> GetOrderedFaces(Point center)
+    {
+        var faces = center.FaceIds.Select(faceService.GetById).ToList();
+        if (faces.Count == 0) return faces;
+        // 将第一个面设置为最接近北方顺时针方向第一个的面
+        var first = faces[0];
+        var minAngle = Mathf.Tau;
+        foreach (var face in faces)
+        {
+            var angle = center.Position.DirectionTo(face.Center).AngleTo(Vector3.Up);
+            if (angle < minAngle)
+            {
+                minAngle = angle;
+                first = face;
+            }
+        }
+
+        // 第二个面必须保证和第一个面形成顺时针方向，从而保证所有都是顺时针
+        var second =
+            faces.First(face =>
+                face.Id != first.Id
+                && face.IsAdjacentTo(first)
+                && Math3dUtil.IsRightVSeq(Vector3.Zero, center.Position, first.Center, face.Center));
+        var orderedList = new List<Face> { first, second };
+        var currentFace = orderedList[1];
+        while (orderedList.Count < faces.Count)
+        {
+            var existingIds = orderedList.Select(face => face.Id).ToList();
+            var neighbour = faces.First(face =>
+                !existingIds.Contains(face.Id) && face.IsAdjacentTo(currentFace));
+            currentFace = neighbour;
+            orderedList.Add(currentFace);
+        }
+
+        return orderedList;
+    }
+
+    public List<Point> GetNeighborCenterIds(List<Face> hexFaces, Point center)
+    {
+        return (
+            from face in hexFaces
+            select faceService.GetRightOtherPoints(face, center)
+        ).ToList();
+    }
 
     public void InitPointsAndFaces(bool chunky, int divisions)
     {
@@ -26,7 +77,7 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
 
     private void InitPointFaceIds(bool chunky)
     {
-        foreach (var face in faceService.GetAll(chunky))
+        foreach (var face in faceService.GetAllByChunky(chunky))
         foreach (var p in face.TriVertices.Select(v => pointRepo.GetByPosition(chunky, v)))
         {
             if (p.FaceIds == null)

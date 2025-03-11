@@ -7,9 +7,14 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repo.Impl;
 
 public class ChunkRepo : Repository<Chunk>, IChunkRepo
 {
-    private readonly Dictionary<Vector3, int> _posIndex = new();
-    public Chunk Add(Vector3 pos) => Add(id => new Chunk(pos, id));
-    protected override void AddHook(Chunk entity) => _posIndex.Add(entity.Pos, entity.Id);
-    protected override void TruncateHook() => _posIndex.Clear();
-    public Chunk GetByPos(Vector3 position) => _posIndex.TryGetValue(position, out var id) ? GetById(id) : null;
+    private readonly Dictionary<int, int> _centerIdIndex = new();
+
+    public Chunk Add(int centerId, Vector3 pos, List<int> hexFaceIds, List<int> neighborCenterIds) =>
+        Add(id => new Chunk(centerId, pos, hexFaceIds, neighborCenterIds, id));
+
+    protected override void AddHook(Chunk entity) => _centerIdIndex.Add(entity.CenterId, entity.Id);
+    protected override void TruncateHook() => _centerIdIndex.Clear();
+
+    public Chunk GetByCenterId(int centerId) =>
+        _centerIdIndex.TryGetValue(centerId, out var tileId) ? GetById(tileId) : null;
 }

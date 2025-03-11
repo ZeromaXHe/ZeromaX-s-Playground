@@ -30,17 +30,34 @@ public class ChunkService(IPointService pointService, IChunkRepo chunkRepo) : IC
     public Chunk SearchNearest(Vector3 pos)
     {
         _chunkPointVpTree.Search(pos, 1, out var results, out _);
-        return chunkRepo.GetByPos(results[0]);
+        var centerId = pointService.GetIdByPosition(true, results[0]);
+        return centerId == null ? null : chunkRepo.GetByCenterId((int)centerId);
     }
 
-    public void InitChunks(int chunkDivisions)
+    public IEnumerable<Chunk> GetNeighbors(Chunk chunk) =>
+        chunk.NeighborCenterIds.Select(chunkRepo.GetByCenterId);
+
+    public Chunk GetNeighborByIdx(Chunk chunk, int idx) =>
+        idx >= 0 && idx < chunk.NeighborCenterIds.Count
+            ? chunkRepo.GetByCenterId(chunk.NeighborCenterIds[idx])
+            : null;
+
+    public void InitChunks()
     {
         var time = Time.GetTicksMsec();
-        pointService.InitPointsAndFaces(true, chunkDivisions);
-        foreach (var point in pointService.GetAll(true))
-            chunkRepo.Add(point.Position);
-        _chunkPointVpTree.Create(chunkRepo.GetAll().Select(c => c.Pos).ToArray(),
+        pointService.InitPointsAndFaces(true, HexMetrics.ChunkDivisions);
+        foreach (var point in pointService.GetAllByChunky(true))
+        {
+            var hexFaces = pointService.GetOrderedFaces(point);
+            var neighborCenters = pointService.GetNeighborCenterIds(hexFaces, point)
+                .Select(c => c.Id)
+                .ToList();
+            chunkRepo.Add(point.Id, point.Position * HexMetrics.Radius,
+                hexFaces.Select(f => f.Id).ToList(), neighborCenters);
+        }
+
+        _chunkPointVpTree.Create(pointService.GetAllByChunky(true).Select(c => c.Position).ToArray(),
             (p0, p1) => p0.DistanceTo(p1));
-        GD.Print($"InitChunks chunkDivisions {chunkDivisions}, cost: {Time.GetTicksMsec() - time}");
+        GD.Print($"InitChunks chunkDivisions {HexMetrics.ChunkDivisions}, cost: {Time.GetTicksMsec() - time}");
     }
 }

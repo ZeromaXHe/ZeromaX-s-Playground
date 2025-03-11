@@ -6,9 +6,15 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 
 public interface IFaceService
 {
+    #region 透传存储库方法
+
     void Truncate();
+    Face GetById(int id);
+    IEnumerable<Face> GetAllByChunky(bool chunky);
+
+    #endregion
+
     Face Add(bool chunky, Vector3[] triVertices);
-    IEnumerable<Face> GetAll(bool chunky);
 
     // 按照顺时针方向返回三角形上的在指定顶点后的另外两个顶点
     IEnumerable<Point> GetOtherPoints(Face face, Point point);

@@ -13,9 +13,8 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 public class TileService(
     IChunkService chunkService,
     IFaceService faceService,
-    ITileRepo tileRepo,
-    IFaceRepo faceRepo,
-    IPointRepo pointRepo) : ITileService
+    IPointService pointService,
+    ITileRepo tileRepo) : ITileService
 {
     public event ITileService.UnitValidateLocationEvent UnitValidateLocation;
     public event ITileService.RefreshTerrainShaderEvent RefreshTerrainShader;
@@ -138,12 +137,12 @@ public class TileService(
     {
         // 存储的 Point 是单位球上，所以 pos 单位化减小误差
         _tilePointVpTree.Search(pos.Normalized(), 1, out var results, out _);
-        var pointId = pointRepo.GetIdByPosition(false, results[0]);
+        var pointId = pointService.GetIdByPosition(false, results[0]);
         if (pointId == null) return null;
         return tileRepo.GetByCenterId((int)pointId).Id;
     }
 
-    public SphereAxial GetSphereAxial(Tile tile) => pointRepo.GetById(tile.CenterId).Coords;
+    public SphereAxial GetSphereAxial(Tile tile) => pointService.GetById(tile.CenterId).Coords;
 
     public float GetHeight(Tile tile) => (tile.Data.Elevation + GetPerturbHeight(tile)) * HexMetrics.UnitHeight;
 
@@ -165,10 +164,11 @@ public class TileService(
     public void InitTiles()
     {
         var time = Time.GetTicksMsec();
-        foreach (var point in pointRepo.GetAllByChunky(false)) // 虽然没有排序，但好像默认也有顺序？不过不能依赖这一点
+        pointService.InitPointsAndFaces(false, HexMetrics.Divisions);
+        foreach (var point in pointService.GetAllByChunky(false)) // 虽然没有排序，但好像默认也有顺序？不过不能依赖这一点
         {
-            var hexFaces = GetOrderedFaces(point);
-            var neighborCenters = GetNeighbourCenterIds(hexFaces, point)
+            var hexFaces = pointService.GetOrderedFaces(point);
+            var neighborCenters = pointService.GetNeighborCenterIds(hexFaces, point)
                 .Select(c => c.Id)
                 .ToList();
             var chunk = chunkService.SearchNearest(point.Position);
@@ -180,59 +180,12 @@ public class TileService(
         GD.Print($"InitTiles cost: {time2 - time} ms");
         time = time2;
 
-        _tilePointVpTree.Create(tileRepo.GetAll()
-                .Select(tile => pointRepo.GetById(tile.CenterId).Position)
+        _tilePointVpTree.Create(pointService.GetAllByChunky(false)
+                .Select(p => p.Position)
                 .ToArray(),
             (p0, p1) => p0.DistanceTo(p1));
         time2 = Time.GetTicksMsec();
         GD.Print($"_tilePointVpTree Create cost: {time2 - time} ms");
-
-        return;
-
-        List<Face> GetOrderedFaces(Point center)
-        {
-            var faces = center.FaceIds.Select(faceRepo.GetById).ToList();
-            if (faces.Count == 0) return faces;
-            // 将第一个面设置为最接近北方顺时针方向第一个的面
-            var first = faces[0];
-            var minAngle = Mathf.Tau;
-            foreach (var face in faces)
-            {
-                var angle = center.Position.DirectionTo(face.Center).AngleTo(Vector3.Up);
-                if (angle < minAngle)
-                {
-                    minAngle = angle;
-                    first = face;
-                }
-            }
-
-            // 第二个面必须保证和第一个面形成顺时针方向，从而保证所有都是顺时针
-            var second =
-                faces.First(face =>
-                    face.Id != first.Id
-                    && face.IsAdjacentTo(first)
-                    && Math3dUtil.IsRightVSeq(Vector3.Zero, center.Position, first.Center, face.Center));
-            var orderedList = new List<Face> { first, second };
-            var currentFace = orderedList[1];
-            while (orderedList.Count < faces.Count)
-            {
-                var existingIds = orderedList.Select(face => face.Id).ToList();
-                var neighbour = faces.First(face =>
-                    !existingIds.Contains(face.Id) && face.IsAdjacentTo(currentFace));
-                currentFace = neighbour;
-                orderedList.Add(currentFace);
-            }
-
-            return orderedList;
-        }
-
-        List<Point> GetNeighbourCenterIds(List<Face> hexFaces, Point center)
-        {
-            return (
-                from face in hexFaces
-                select faceService.GetRightOtherPoints(face, center)
-            ).ToList();
-        }
     }
 
     private Tile Add(int centerId, int chunkId, List<int> hexFaceIds, List<int> neighborCenterIds) =>
@@ -241,19 +194,19 @@ public class TileService(
     // 初始计算单位重心（顶点坐标的算术平均）
     private Vector3 InitUnitCentroid(List<int> hexFaceIds) =>
         hexFaceIds
-            .Select(id => faceRepo.GetById(id).Center.Normalized())
+            .Select(id => faceService.GetById(id).Center.Normalized())
             .Aggregate((v1, v2) => v1 + v2) / hexFaceIds.Count;
 
     public IEnumerable<Vector3> GetCorners(Tile tile, float radius, float size = 1f) =>
         from faceId in tile.HexFaceIds
-        select faceRepo.GetById(faceId)
+        select faceService.GetById(faceId)
         into face
         select tile.UnitCentroid.Lerp(face.Center, size)
         into pos
         select Math3dUtil.ProjectToSphere(pos, radius);
 
     public Vector3 GetCornerByFaceId(Tile tile, int id, float radius = 1f, float size = 1f) =>
-        Math3dUtil.ProjectToSphere(tile.UnitCentroid.Lerp(faceRepo.GetById(id).Center, size), radius);
+        Math3dUtil.ProjectToSphere(tile.UnitCentroid.Lerp(faceService.GetById(id).Center, size), radius);
 
     public Vector3 GetFirstCorner(Tile tile, int idx, float radius = 1f, float size = 1f) =>
         GetCornerByFaceId(tile, tile.HexFaceIds[idx], radius, size);

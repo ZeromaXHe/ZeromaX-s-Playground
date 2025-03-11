@@ -35,6 +35,8 @@ public static class HexMetrics
         }
     }
 
+    public static int ChunkDivisions { get; set; } = 2;
+
     // 单位高度
     public static float UnitHeight { get; private set; } = 1.5f;
     public static float MaxHeight { get; private set; } = 15f;

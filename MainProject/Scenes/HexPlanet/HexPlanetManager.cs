@@ -62,6 +62,7 @@ public partial class HexPlanetManager : Node3D
             HexMetrics.Divisions = _divisions;
             RenderingServer.GlobalShaderParameterSet("divisions", _divisions);
             _chunkDivisions = Mathf.Min(Mathf.Max(1, _divisions / 4), _chunkDivisions);
+            HexMetrics.ChunkDivisions = _chunkDivisions;
             if (_ready)
                 _orbitCamera.Reset();
         }
@@ -76,6 +77,7 @@ public partial class HexPlanetManager : Node3D
         set
         {
             _chunkDivisions = value;
+            HexMetrics.ChunkDivisions = _chunkDivisions;
             _divisions = Mathf.Max(Mathf.Min(100, _chunkDivisions * 4), _divisions);
             RenderingServer.GlobalShaderParameterSet("divisions", _divisions);
             HexMetrics.Divisions = _divisions;
@@ -335,7 +337,6 @@ public partial class HexPlanetManager : Node3D
         _oldChunkDivisions = ChunkDivisions;
         _lastUpdated = 0f;
         ClearOldData();
-        _chunkService.InitChunks(ChunkDivisions);
         InitHexSphere();
         RefreshAllTiles();
         EmitSignalNewPlanetGenerated(); // 发送信号，这种向直接上级发送信号的情况，不提取到 SignalBus
@@ -354,7 +355,7 @@ public partial class HexPlanetManager : Node3D
     private void InitHexSphere()
     {
         GD.Print($"InitHexSphere with radius {Radius}, divisions {Divisions}, start at: {Time.GetTicksMsec()}");
-        _pointService.InitPointsAndFaces(false, Divisions);
+        _chunkService.InitChunks();
         _tileService.InitTiles();
         _tileShaderService.Initialize();
         _tileSearchService.InitSearchData();

@@ -9,6 +9,7 @@ public interface IChunkService
     delegate void RefreshChunkEvent(int id);
 
     event RefreshChunkEvent RefreshChunk;
+
     delegate void RefreshTileLabelEvent(int chunkId, int tileId, string text);
 
     event RefreshTileLabelEvent RefreshChunkTileLabel;
@@ -26,5 +27,7 @@ public interface IChunkService
 
     // 最近邻搜索
     Chunk SearchNearest(Vector3 pos);
-    void InitChunks(int chunkDivisions);
+    IEnumerable<Chunk> GetNeighbors(Chunk chunk);
+    Chunk GetNeighborByIdx(Chunk chunk, int idx);
+    void InitChunks();
 }

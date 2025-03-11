@@ -44,7 +44,7 @@ public static class Context
         var faceService = new FaceService(faceRepo, pointRepo);
         var pointService = new PointService(faceService, pointRepo);
         var chunkService = new ChunkService(pointService, chunkRepo);
-        var tileService = new TileService(chunkService, faceService, tileRepo, faceRepo, pointRepo);
+        var tileService = new TileService(chunkService, faceService, pointService, tileRepo);
         var tileSearchService = new TileSearchService(tileService);
         var tileShaderService = new TileShaderService(tileService, tileSearchService, unitService);
         var selectViewService = new SelectViewService(tileService, tileSearchService);
