@@ -208,6 +208,9 @@ public partial class ChunkManager : Node3D
         _gridChunks.Clear();
         foreach (var child in GetChildren())
             child.QueueFree();
+        _chunkQueryQueue.Clear();
+        _visitedChunkIds.Clear();
+        _rimChunkIds.Clear();
         _insightChunkIds[_insightSetIdx].Clear();
         _insightSetIdx = 0;
         _camNearestChunkId = 0;

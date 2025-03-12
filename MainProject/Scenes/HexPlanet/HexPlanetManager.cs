@@ -324,13 +324,14 @@ public partial class HexPlanetManager : Node3D
 
     private void ClearOldData()
     {
+        // 必须先清理单位，否则相关可见度事件会查询地块，放最后会空引用异常
+        ClearAllUnits();
         _chunkService.Truncate();
         _tileService.Truncate();
         _pointService.Truncate();
         _faceService.Truncate();
         _selectViewService.ClearPath();
         _chunkManager.ClearOldData();
-        ClearAllUnits();
     }
 
     private void DrawHexSphereMesh()
