@@ -33,12 +33,25 @@ public partial class HexFeatureManager : Node3D
 
     private static INoiseService _noiseService;
     private static IPlanetSettingService _planetSettingService;
+    private static IEditorService _editorService;
 
-    private static void InitServices()
+    private void InitServices()
     {
         _noiseService ??= Context.GetBean<INoiseService>();
         _planetSettingService ??= Context.GetBean<IPlanetSettingService>();
+        _editorService ??= Context.GetBean<IEditorService>();
+        _editorService.EditModeChanged += ShowUnexploredFeatures;
     }
+
+    private void ShowUnexploredFeatures(bool show)
+    {
+        if (_unexploredContainer.Count <= 0) return;
+        foreach (var feature in _unexploredContainer.Values.SelectMany(list => list))
+            feature.Visible = show;
+    }
+
+    private void CancelEventListeners() =>
+        _editorService.EditModeChanged -= ShowUnexploredFeatures;
 
     #endregion
 
@@ -46,6 +59,8 @@ public partial class HexFeatureManager : Node3D
 
     private readonly System.Collections.Generic.Dictionary<int, List<Node3D>>
         _unexploredContainer = new();
+
+    public override void _ExitTree() => CancelEventListeners();
 
     public void ExploreFeatures(int tileId)
     {
@@ -55,19 +70,13 @@ public partial class HexFeatureManager : Node3D
         _unexploredContainer.Remove(tileId);
     }
 
-    public void ShowUnexploredFeatures(bool show)
-    {
-        if (_unexploredContainer.Count <= 0) return;
-        foreach (var feature in _unexploredContainer.Values.SelectMany(list => list))
-            feature.Visible = show;
-    }
-
     public void Clear()
     {
         _container?.QueueFree();
         _container = new Node3D();
         AddChild(_container);
         _walls.Clear();
+        _unexploredContainer.Clear();
     }
 
     public void Apply() => _walls.Apply();

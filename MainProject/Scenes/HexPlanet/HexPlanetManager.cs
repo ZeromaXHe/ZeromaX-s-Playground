@@ -96,8 +96,9 @@ public partial class HexPlanetManager : Node3D
 
     private bool _ready;
 
-    private bool _editMode;
-    private int _labelMode;
+    private bool EditMode => _editorService.TileOverrider.EditMode;
+    private int LabelMode => _editorService.LabelMode;
+
     private int EditingTileId { get; set; }
 
     private int _pathFromTileId;
@@ -132,6 +133,7 @@ public partial class HexPlanetManager : Node3D
     private ISelectViewService _selectViewService;
     private IPlanetSettingService _planetSettingService;
     private INoiseService _noiseService;
+    private IEditorService _editorService;
 
     private void InitServices()
     {
@@ -145,7 +147,22 @@ public partial class HexPlanetManager : Node3D
         _selectViewService = Context.GetBean<ISelectViewService>();
         _planetSettingService = Context.GetBean<IPlanetSettingService>();
         _noiseService = Context.GetBean<INoiseService>();
+        _editorService = Context.GetBean<IEditorService>();
         _tileService.UnitValidateLocation += OnTileServiceUnitValidateLocation;
+        _editorService.EditModeChanged += OnEditorEditModeChanged;
+    }
+
+    private void OnEditorEditModeChanged(bool editMode)
+    {
+        UpdateSelectTileViewer();
+        if (editMode)
+            PathFromTileId = 0;
+        else
+        {
+            // 游戏模式下永远不显示编辑预览网格
+            _editPreviewChunk.Visible = false;
+            EditingTileId = 0;
+        }
     }
 
     private void OnTileServiceUnitValidateLocation(int unitId) => _units[unitId].ValidateLocation();
@@ -156,6 +173,7 @@ public partial class HexPlanetManager : Node3D
         // 【切记】所以这里需要在退出场景树时清理事件监听！！！
         _ready = false;
         _tileService.UnitValidateLocation -= OnTileServiceUnitValidateLocation;
+        _editorService.EditModeChanged -= OnEditorEditModeChanged;
     }
 
     #endregion
@@ -227,7 +245,7 @@ public partial class HexPlanetManager : Node3D
     private void UpdateSelectTileViewer()
     {
         var position = GetTileCollisionPositionUnderCursor();
-        if (_editMode)
+        if (EditMode)
             UpdateSelectTileInEditMode(position);
         else
             UpdateSelectTileInPlayMode(position);
@@ -345,37 +363,7 @@ public partial class HexPlanetManager : Node3D
         _tileShaderService.Initialize();
         _tileSearchService.InitSearchData();
         _hexMapGenerator.GenerateMap();
-        _chunkManager.InitChunkNodes(_editMode, _labelMode);
-    }
-
-    public void SetEditMode(bool mode)
-    {
-        if (mode && !_editMode && _labelMode != 0)
-        {
-            // 开启编辑模式
-            _chunkManager.RefreshAllChunksTileLabelMode(_labelMode);
-            PathFromTileId = 0;
-        }
-        else if (!mode && _editMode)
-        {
-            // 关闭编辑模式
-            // 游戏模式下永远不显示编辑预览网格
-            _editPreviewChunk.Visible = false;
-            _chunkManager.RefreshAllChunksTileLabelMode(0);
-            EditingTileId = 0;
-        }
-
-        _editMode = mode;
-        RenderingServer.GlobalShaderParameterSet("hex_map_edit_mode", mode);
-        UpdateSelectTileViewer();
-        _chunkManager.SetAllChunksShowUnexploredFeatures(mode);
-    }
-
-    public void SetShowLabelMode(int mode)
-    {
-        _labelMode = mode;
-        if (!_editMode) return;
-        _chunkManager.RefreshAllChunksTileLabelMode(mode);
+        _chunkManager.InitChunkNodes();
     }
 
     public void SelectEditingTile(Tile tile)

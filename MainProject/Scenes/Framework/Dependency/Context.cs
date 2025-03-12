@@ -42,6 +42,7 @@ public static class Context
         Register(nameof(IUnitRepo), unitRepo);
         var planetSettingService = new PlanetSettingService();
         var noiseService = new NoiseService(planetSettingService);
+        var editorService = new EditorService();
         var unitService = new UnitService(unitRepo);
         var faceService = new FaceService(faceRepo, pointRepo);
         var pointService = new PointService(faceService, pointRepo);
@@ -55,6 +56,7 @@ public static class Context
             planetSettingService);
         Register(nameof(IPlanetSettingService), planetSettingService);
         Register(nameof(INoiseService), noiseService);
+        Register(nameof(IEditorService), editorService);
         Register(nameof(IUnitService), unitService);
         Register(nameof(IFaceService), faceService);
         Register(nameof(IPointService), pointService);

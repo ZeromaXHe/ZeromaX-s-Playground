@@ -40,6 +40,7 @@ public partial class HexGridChunk : Node3D, IChunk
     private static ITileService _tileService;
     private static ITileShaderService _tileShaderService;
     private static IPlanetSettingService _planetSettingService;
+    private static IEditorService _editorService;
 
     private void InitServices()
     {
@@ -47,31 +48,53 @@ public partial class HexGridChunk : Node3D, IChunk
         _tileService ??= Context.GetBean<ITileService>();
         _tileShaderService ??= Context.GetBean<ITileShaderService>();
         _planetSettingService ??= Context.GetBean<IPlanetSettingService>();
-        _tileShaderService.TileExplored += ExploreFeatures;
+        _editorService ??= Context.GetBean<IEditorService>();
+        _editorService.LabelModeChanged += RefreshTilesLabelMode;
+        _editorService.EditModeChanged += OnEditorEditModeChanged;
     }
 
-    private void CleanEventListeners() =>
-        _tileShaderService.TileExplored -= ExploreFeatures;
+    private void OnEditorEditModeChanged(bool mode)
+    {
+        switch (mode)
+        {
+            // 开启编辑模式
+            case true when _editorService.LabelMode != 0:
+                RefreshTilesLabelMode(_editorService.LabelMode);
+                break;
+            // 关闭编辑模式
+            case false:
+                RefreshTilesLabelMode(0);
+                break;
+        }
+    }
+
+    private void CleanEventListeners()
+    {
+        _editorService.LabelModeChanged -= RefreshTilesLabelMode;
+        _editorService.EditModeChanged -= OnEditorEditModeChanged;
+    }
 
     #endregion
+
+    private bool EditMode => _editorService.TileOverrider.EditMode;
+    private int LabelMode => _editorService.LabelMode;
 
     private int _id;
     private readonly Dictionary<int, HexTileLabel> _tileUis = new();
     private ChunkTriangulation _chunkTriangulation;
 
-    public void Init(int id, int mode)
+    public void Init(int id)
     {
         _id = id;
-        InitLabels(mode);
+        InitLabels();
         Refresh();
     }
 
-    private void ExploreFeatures(int tileId) => Features.ExploreFeatures(tileId);
+    public void ExploreFeatures(int tileId) => Features.ExploreFeatures(tileId);
 
-    private void InitLabels(int mode)
+    private void InitLabels()
     {
         // 清楚之前的标签
-
         var tileIds = _chunkService.GetById(_id).TileIds;
         var tiles = tileIds.Select(_tileService.GetById);
         foreach (var tile in tiles)
@@ -87,7 +110,7 @@ public partial class HexGridChunk : Node3D, IChunk
         }
 
         // 在场景树中 _Ready 后 Label 才非 null
-        RefreshTilesLabelMode(mode);
+        RefreshTilesLabelMode(EditMode ? LabelMode : 0);
     }
 
     public void RefreshTileLabel(int tileId, string text) =>
@@ -172,5 +195,4 @@ public partial class HexGridChunk : Node3D, IChunk
 
     public void Refresh() => SetProcess(true);
     public void ShowUi(bool show) => _labels.Visible = show;
-    public void ShowUnexploredFeatures(bool show) => Features.ShowUnexploredFeatures(show);
 }

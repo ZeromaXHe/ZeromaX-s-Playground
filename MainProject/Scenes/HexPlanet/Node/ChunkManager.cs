@@ -18,14 +18,26 @@ public partial class ChunkManager : Node3D
     #region services
 
     private IChunkService _chunkService;
+    private ITileService _tileService;
+    private ITileShaderService _tileShaderService;
     private IPlanetSettingService _planetSettingService;
 
     private void InitServices()
     {
         _chunkService = Context.GetBean<IChunkService>();
+        _tileService = Context.GetBean<ITileService>();
+        _tileShaderService = Context.GetBean<ITileShaderService>();
         _planetSettingService = Context.GetBean<IPlanetSettingService>();
+        _tileShaderService.TileExplored += ExploreFeatures;
         _chunkService.RefreshChunk += OnChunkServiceRefreshChunk;
         _chunkService.RefreshChunkTileLabel += OnChunkServiceRefreshChunkTileLabel;
+    }
+
+    private void ExploreFeatures(int tileId)
+    {
+        var chunkId = _tileService.GetById(tileId).ChunkId;
+        // BUG: 动态加载的分块会显示未探索的特征
+        _gridChunks[chunkId]?.ExploreFeatures(tileId);
     }
 
     private void OnChunkServiceRefreshChunk(int id)
@@ -48,6 +60,7 @@ public partial class ChunkManager : Node3D
         // ERROR: Object name: 'ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node.HexGridChunk'.
         // 【切记】所以这里需要在退出场景树时清理事件监听！！！
         _ready = false;
+        _tileShaderService.TileExplored -= ExploreFeatures;
         _chunkService.RefreshChunk -= OnChunkServiceRefreshChunk;
         _chunkService.RefreshChunkTileLabel -= OnChunkServiceRefreshChunkTileLabel;
     }
@@ -64,9 +77,6 @@ public partial class ChunkManager : Node3D
     private readonly HashSet<int> _visitedChunkIds = [];
     private int _camNearestChunkId;
 
-    // BUG: 现在编辑模式和标签模式不更新，待重构把它们提取到更深的层级——Service、Repository
-    private bool _editMode;
-    private int _labelMode;
     private bool _ready;
 
     public override void _Ready()
@@ -138,7 +148,7 @@ public partial class ChunkManager : Node3D
             // 第一次可见时，初始化
             if (_gridChunks[chunkId] == null)
             {
-                var hexGridChunk = InitHexGridChunk(chunkId, _editMode, _labelMode);
+                var hexGridChunk = InitHexGridChunk(chunkId);
                 _gridChunks[chunkId] = hexGridChunk;
             }
             else
@@ -175,10 +185,8 @@ public partial class ChunkManager : Node3D
         _camNearestChunkId = 0;
     }
 
-    public void InitChunkNodes(bool editMode, int labelMode)
+    public void InitChunkNodes()
     {
-        _editMode = editMode;
-        _labelMode = labelMode;
         var time = Time.GetTicksMsec();
         var camera = GetViewport().GetCamera3D();
         foreach (var chunk in _chunkService.GetAll())
@@ -191,7 +199,7 @@ public partial class ChunkManager : Node3D
                 continue;
             }
 
-            var hexGridChunk = InitHexGridChunk(id, editMode, labelMode);
+            var hexGridChunk = InitHexGridChunk(id);
             _gridChunks.Add(id, hexGridChunk);
             _insightChunkIds[_insightSetIdx].Add(id);
         }
@@ -200,12 +208,12 @@ public partial class ChunkManager : Node3D
         GD.Print($"BuildMesh cost: {Time.GetTicksMsec() - time} ms");
     }
 
-    private HexGridChunk InitHexGridChunk(int id, bool editMode, int labelMode)
+    private HexGridChunk InitHexGridChunk(int id)
     {
         var hexGridChunk = _gridChunkScene.Instantiate<HexGridChunk>();
         hexGridChunk.Name = $"HexGridChunk{id}";
         AddChild(hexGridChunk); // 必须先加入场景树，让 _Ready() 先于 Init() 执行
-        hexGridChunk.Init(id, editMode ? labelMode : 0);
+        hexGridChunk.Init(id);
         return hexGridChunk;
     }
 
@@ -215,16 +223,4 @@ public partial class ChunkManager : Node3D
         Mathf.Cos(chunk.Pos.Normalized().AngleTo(camera.GlobalPosition.Normalized()))
         > _planetSettingService.Radius / camera.GlobalPosition.Length()
         && camera.IsPositionInFrustum(chunk.Pos);
-
-    public void RefreshAllChunksTileLabelMode(int labelMode)
-    {
-        foreach (var gridChunk in _gridChunks.Values)
-            gridChunk?.RefreshTilesLabelMode(labelMode);
-    }
-
-    public void SetAllChunksShowUnexploredFeatures(bool mode)
-    {
-        foreach (var gridChunk in _gridChunks.Values)
-            gridChunk?.ShowUnexploredFeatures(mode);
-    }
 }
