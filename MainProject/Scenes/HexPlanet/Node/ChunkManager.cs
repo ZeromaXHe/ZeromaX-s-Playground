@@ -75,6 +75,7 @@ public partial class ChunkManager : Node3D
     private readonly HashSet<int>[] _insightChunkIds = [[], []];
     private readonly Queue<int> _chunkQueryQueue = [];
     private readonly HashSet<int> _visitedChunkIds = [];
+    private readonly HashSet<int> _rimChunkIds = [];
     private int _camNearestChunkId;
 
     private bool _ready;
@@ -95,8 +96,13 @@ public partial class ChunkManager : Node3D
         if (nearestChunkId == _camNearestChunkId)
             return;
         _camNearestChunkId = nearestChunkId;
-        GD.Print($"UpdateInsightChunk 当前相机位置：{pos}, Z 方向: {camera.GlobalBasis.Z}");
+        // GD.Print($"UpdateInsightChunk 当前相机位置：{pos}, Z 方向: {camera.GlobalBasis.Z}");
         var nextIdx = _insightSetIdx == 0 ? 1 : 0;
+        // 隐藏边缘分块
+        foreach (var chunkId in _rimChunkIds)
+            _gridChunks[chunkId].Hide();
+        _rimChunkIds.Clear();
+
         foreach (var preInsightChunkId in _insightChunkIds[_insightSetIdx])
         {
             var preInsightChunk = _chunkService.GetById(preInsightChunkId);
@@ -145,15 +151,7 @@ public partial class ChunkManager : Node3D
             var chunk = _chunkService.GetById(chunkId);
             if (!IsChunkInsight(chunk, camera)) continue;
             _insightChunkIds[nextIdx].Add(chunkId);
-            // 第一次可见时，初始化
-            if (_gridChunks[chunkId] == null)
-            {
-                var hexGridChunk = InitHexGridChunk(chunkId);
-                _gridChunks[chunkId] = hexGridChunk;
-            }
-            else
-                _gridChunks[chunkId].Show();
-
+            ShowChunk(chunkId);
             SearchNeighbor(chunk, _visitedChunkIds);
         }
 
@@ -162,6 +160,9 @@ public partial class ChunkManager : Node3D
         _visitedChunkIds.Clear();
         _insightChunkIds[_insightSetIdx].Clear();
         _insightSetIdx = nextIdx;
+
+        ShowOutRimChunks();
+
         return;
 
         void SearchNeighbor(Chunk chunk, HashSet<int> filterSet)
@@ -173,6 +174,33 @@ public partial class ChunkManager : Node3D
                 _visitedChunkIds.Add(neighbor.Id);
             }
         }
+    }
+
+    // 显示的分块向外多生成一圈，防止缺失进入视野的边缘瓦片
+    private void ShowOutRimChunks()
+    {
+        foreach (var neighbor in from chunkId in _insightChunkIds[_insightSetIdx]
+                 select _chunkService.GetById(chunkId)
+                 into chunk
+                 from neighbor in _chunkService.GetNeighbors(chunk)
+                 where !_insightChunkIds[_insightSetIdx].Contains(neighbor.Id)
+                 select neighbor)
+        {
+            _rimChunkIds.Add(neighbor.Id);
+            ShowChunk(neighbor.Id);
+        }
+    }
+
+    private void ShowChunk(int chunkId)
+    {
+        // 第一次可见时，初始化
+        if (_gridChunks[chunkId] == null)
+        {
+            var hexGridChunk = InitHexGridChunk(chunkId);
+            _gridChunks[chunkId] = hexGridChunk;
+        }
+        else
+            _gridChunks[chunkId].Show();
     }
 
     public void ClearOldData()
@@ -204,6 +232,7 @@ public partial class ChunkManager : Node3D
             _insightChunkIds[_insightSetIdx].Add(id);
         }
 
+        ShowOutRimChunks();
         _camNearestChunkId = _chunkService.SearchNearest(camera.GlobalPosition).Id;
         GD.Print($"BuildMesh cost: {Time.GetTicksMsec() - time} ms");
     }
