@@ -106,8 +106,11 @@ public partial class OrbitCamera : Node3D
             _zoom = value;
             if (!_ready) return;
             _focusBackStick.Position =
-                _focusBackStick.Basis * Vector3.Back * Mathf.Lerp(0f, _focusBackZoom * Radius, value);
-            var distance = Mathf.Lerp(_stickMinZoom, _stickMaxZoom, value) * Radius;
+                _focusBackStick.Basis * Vector3.Back * Mathf.Lerp(0f,
+                    _focusBackZoom * Radius * _planetSettingService.StandardScale, value);
+            var distance = Mathf.Lerp(_stickMinZoom,
+                _stickMaxZoom * _planetSettingService.StandardScale * 2f,
+                value) * Radius;
             _stick.Position = Vector3.Back * distance;
             var angle = Mathf.Lerp(_swivelMinZoom, _swivelMaxZoom, value);
             _swivel.RotationDegrees = Vector3.Right * angle;

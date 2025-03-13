@@ -239,8 +239,7 @@ public partial class HexPlanetHud : Control
                 var sa = _tileService.GetSphereAxial(_chosenTile);
                 _coordsLineEdit.Text = sa.ToString();
                 _coordsLineEdit.TooltipText = _coordsLineEdit.Text;
-                _heightLineEdit.Text = $"{_tileService.GetHeight(_chosenTile):F2}";
-                _heightLineEdit.Editable = true;
+                _heightLineEdit.Text = $"{_tileService.GetHeight(_chosenTile):F4}";
                 _elevationLineEdit.Text = _chosenTile.Data.Elevation.ToString();
                 var lonLat = sa.ToLongitudeAndLatitude();
                 _lonLineEdit.Text = lonLat.GetLongitudeString();
@@ -255,7 +254,6 @@ public partial class HexPlanetHud : Control
                 _coordsLineEdit.Text = "-";
                 _coordsLineEdit.TooltipText = null;
                 _heightLineEdit.Text = "-";
-                _heightLineEdit.Editable = false;
                 _elevationLineEdit.Text = "-";
                 _lonLineEdit.Text = "-";
                 _lonLineEdit.TooltipText = ""; // 试了一下，null 和 "" 效果一样

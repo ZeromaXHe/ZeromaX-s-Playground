@@ -541,8 +541,8 @@ public partial class HexMapGenerator : Node3D
     {
         _landTileCount = Mathf.RoundToInt(_tileService.GetCount() * _landPercentage * 0.01f);
         var landBudget = _landTileCount;
-        // 防止无限循环的守卫值
-        for (var guard = 0; guard < 10000; guard++)
+        // 根据地图尺寸来设置对应循环次数上限，保证大地图也能尽量用完 landBudget
+        for (var guard = 0; guard < _landTileCount; guard++) // 防止无限循环的守卫值
         {
             var sink = _random.Randf() < _sinkProbability;
             foreach (var region in _regions)
