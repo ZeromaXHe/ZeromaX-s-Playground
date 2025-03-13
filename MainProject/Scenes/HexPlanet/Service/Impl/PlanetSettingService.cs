@@ -14,6 +14,7 @@ public class PlanetSettingService: IPlanetSettingService
         set
         {
             _radius = value;
+            RenderingServer.GlobalShaderParameterSet("radius", _radius);
             CalcUnitHeight();
         }
     }
@@ -26,6 +27,7 @@ public class PlanetSettingService: IPlanetSettingService
         set
         {
             _divisions = value;
+            RenderingServer.GlobalShaderParameterSet("divisions", _divisions);
             SphereAxial.Div = _divisions; // TODO：后续修改这个逻辑，临时在这里处理以方便测试 SphereAxial
             CalcUnitHeight();
         }
@@ -44,6 +46,7 @@ public class PlanetSettingService: IPlanetSettingService
     {
         MaxHeightRatio = StandardScale * MaxHeightRadiusRatio;
         MaxHeight = Radius * MaxHeightRatio;
+        RenderingServer.GlobalShaderParameterSet("max_height", MaxHeight);
         UnitHeight = MaxHeight / ElevationStep;
     }
 

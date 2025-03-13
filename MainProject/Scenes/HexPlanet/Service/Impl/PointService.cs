@@ -72,7 +72,7 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
         var time = Time.GetTicksMsec();
         SubdivideIcosahedron(chunky, divisions);
         InitPointFaceIds(chunky);
-        GD.Print($"InitPointsAndFaces for {(chunky ? "Chunk" : "Tile")} cost: {Time.GetTicksMsec() - time} ms");
+        GD.Print($"--- InitPointsAndFaces for {(chunky ? "Chunk" : "Tile")} cost: {Time.GetTicksMsec() - time} ms");
     }
 
     private void InitPointFaceIds(bool chunky)

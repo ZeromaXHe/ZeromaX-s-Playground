@@ -1,12 +1,10 @@
-using System.Collections.Generic;
-using System.Linq;
 using Godot;
+using Godot.Collections;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Struct;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 
@@ -38,11 +36,9 @@ public partial class HexPlanetManager : Node3D
         set
         {
             _radius = value;
-            RenderingServer.GlobalShaderParameterSet("radius", _radius);
             if (_ready)
             {
                 _planetSettingService.Radius = _radius;
-                RenderingServer.GlobalShaderParameterSet("max_height", _planetSettingService.MaxHeight);
                 _orbitCamera.Reset();
                 _atmosphereFog.Size = Vector3.One * _radius * 2.7f;
                 _longitudeLatitude.Draw(_radius + _planetSettingService.MaxHeight * 1.25f);
@@ -59,7 +55,6 @@ public partial class HexPlanetManager : Node3D
         set
         {
             _divisions = value;
-            RenderingServer.GlobalShaderParameterSet("divisions", _divisions);
             _chunkDivisions = Mathf.Min(Mathf.Max(1, _divisions / 4), _chunkDivisions);
             if (_ready)
             {
@@ -80,7 +75,6 @@ public partial class HexPlanetManager : Node3D
         {
             _chunkDivisions = value;
             _divisions = Mathf.Max(Mathf.Min(100, _chunkDivisions * 4), _divisions);
-            RenderingServer.GlobalShaderParameterSet("divisions", _divisions);
             if (_ready)
             {
                 _planetSettingService.ChunkDivisions = _chunkDivisions;
@@ -119,7 +113,7 @@ public partial class HexPlanetManager : Node3D
     private int _oldChunkDivisions;
     private float _lastUpdated;
 
-    private readonly Dictionary<int, HexUnit> _units = new();
+    private readonly System.Collections.Generic.Dictionary<int, HexUnit> _units = new();
 
     #region services
 
@@ -295,7 +289,7 @@ public partial class HexPlanetManager : Node3D
             _editPreviewChunk.Visible = false;
     }
 
-    private Godot.Collections.Dictionary GetTileCollisionResult()
+    private Dictionary GetTileCollisionResult()
     {
         var spaceState = GetWorld3D().DirectSpaceState;
         var camera = GetViewport().GetCamera3D();
@@ -336,6 +330,8 @@ public partial class HexPlanetManager : Node3D
 
     private void DrawHexSphereMesh()
     {
+        var time = Time.GetTicksMsec();
+        GD.Print($"[===DrawHexSphereMesh===] radius {Radius}, divisions {Divisions}, start at: {time}");
         _oldRadius = Radius;
         _oldDivisions = Divisions;
         _oldChunkDivisions = ChunkDivisions;
@@ -344,6 +340,7 @@ public partial class HexPlanetManager : Node3D
         InitHexSphere();
         RefreshAllTiles();
         EmitSignalNewPlanetGenerated(); // 发送信号，这种向直接上级发送信号的情况，不提取到 SignalBus
+        GD.Print($"[===DrawHexSphereMesh===] total cost: {Time.GetTicksMsec() - time} ms");
     }
 
     private void RefreshAllTiles()
@@ -358,7 +355,6 @@ public partial class HexPlanetManager : Node3D
 
     private void InitHexSphere()
     {
-        GD.Print($"InitHexSphere with radius {Radius}, divisions {Divisions}, start at: {Time.GetTicksMsec()}");
         _chunkService.InitChunks();
         _tileService.InitTiles();
         _tileShaderService.Initialize();

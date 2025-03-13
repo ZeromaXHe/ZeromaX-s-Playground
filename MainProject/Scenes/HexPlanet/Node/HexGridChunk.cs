@@ -163,7 +163,7 @@ public partial class HexGridChunk : Node3D, IChunk
     {
         if (_id > 0)
         {
-            var time = Time.GetTicksMsec();
+            // var time = Time.GetTicksMsec();
             Terrain.Clear();
             Rivers.Clear();
             Roads.Clear();
@@ -187,7 +187,7 @@ public partial class HexGridChunk : Node3D, IChunk
             WaterShore.Apply();
             Estuary.Apply();
             Features.Apply();
-            GD.Print($"Chunk {_id} BuildMesh cost: {Time.GetTicksMsec() - time} ms");
+            // GD.Print($"Chunk {_id} BuildMesh cost: {Time.GetTicksMsec() - time} ms");
         }
 
         SetProcess(false);

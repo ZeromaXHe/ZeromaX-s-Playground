@@ -75,8 +75,6 @@ shader_parameter/uv2_offset = Vector3(0, 0, 0)
 
 [node name="HexPlanetManager" type="Node3D"]
 script = ExtResource("1_414p1")
-Divisions = 10
-ChunkDivisions = 2
 _noiseSource = ExtResource("2_w1eb8")
 _unitScene = ExtResource("4_558l3")
 

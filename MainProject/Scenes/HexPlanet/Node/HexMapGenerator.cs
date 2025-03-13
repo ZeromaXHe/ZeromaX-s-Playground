@@ -131,6 +131,7 @@ public partial class HexMapGenerator : Node3D
 
     public void GenerateMap()
     {
+        var time = Time.GetTicksMsec();
         var stopwatch = new Stopwatch();
         stopwatch.Start();
         var initState = _random.State;
@@ -148,14 +149,30 @@ public partial class HexMapGenerator : Node3D
         foreach (var tile in _tileService.GetAll())
             tile.Data = tile.Data with { Values = tile.Data.Values.WithWaterLevel(_waterLevel) };
         CreateRegions();
+        GD.Print($"--- CreatedRegions in {stopwatch.ElapsedMilliseconds} ms");
+        stopwatch.Restart();
+
         CreateLand();
+        GD.Print($"--- CreatedLand in {stopwatch.ElapsedMilliseconds} ms");
+        stopwatch.Restart();
+
         ErodeLand();
+        GD.Print($"--- ErodeLand in {stopwatch.ElapsedMilliseconds} ms");
+        stopwatch.Restart();
+
         CreateClimate();
+        GD.Print($"--- CreateClimate in {stopwatch.ElapsedMilliseconds} ms");
+        stopwatch.Restart();
+
         CreateRivers();
+        GD.Print($"--- CreateRivers in {stopwatch.ElapsedMilliseconds} ms");
+        stopwatch.Restart();
+
         SetTerrainType();
         _random.State = initState;
+        GD.Print($"--- SetTerrainType in {stopwatch.ElapsedMilliseconds} ms");
         stopwatch.Stop();
-        GD.Print($"Generated map in {stopwatch.ElapsedMilliseconds} ms");
+        GD.Print($"Generated map in {Time.GetTicksMsec() - time} ms");
     }
 
     private void CreateRegions()

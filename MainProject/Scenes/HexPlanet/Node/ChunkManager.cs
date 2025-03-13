@@ -237,7 +237,7 @@ public partial class ChunkManager : Node3D
 
         ShowOutRimChunks();
         _camNearestChunkId = _chunkService.SearchNearest(camera.GlobalPosition).Id;
-        GD.Print($"BuildMesh cost: {Time.GetTicksMsec() - time} ms");
+        GD.Print($"InitChunkNodes cost: {Time.GetTicksMsec() - time} ms");
     }
 
     private HexGridChunk InitHexGridChunk(int id)

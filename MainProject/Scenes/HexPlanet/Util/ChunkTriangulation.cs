@@ -573,7 +573,7 @@ public class ChunkTriangulation
         var neighborHeight = GetOverrideHeight(neighbor);
         // 连接将由更低的地块或相同高度时 Id 更大的地块生成
         if (tileHeight > neighborHeight ||
-            (Mathf.Abs(tileHeight - neighborHeight) < 0.001f && tile.Id < neighbor.Id)) return;
+            (Mathf.Abs(tileHeight - neighborHeight) < 0.0001f && tile.Id < neighbor.Id)) return;
         var vn1 = _tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[idx],
             _planetSettingService.Radius + neighborHeight, HexMetrics.SolidFactor);
         var vn2 = _tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[tile.NextIdx(idx)],
@@ -615,7 +615,7 @@ public class ChunkTriangulation
         var preNeighbor = _tileService.GetNeighborByIdx(tile, tile.PreviousIdx(idx));
         var preNeighborHeight = GetOverrideHeight(preNeighbor);
         if (tileHeight < preNeighborHeight
-            || (Mathf.Abs(tileHeight - preNeighborHeight) < 0.001f && tile.Id > preNeighbor.Id))
+            || (Mathf.Abs(tileHeight - preNeighborHeight) < 0.0001f && tile.Id > preNeighbor.Id))
         {
             // 连接角落的三角形由周围 3 个地块中最低或者一样高时 Id 最大的生成
             var vpn = _tileService.GetCornerByFaceId(preNeighbor, tile.HexFaceIds[idx],

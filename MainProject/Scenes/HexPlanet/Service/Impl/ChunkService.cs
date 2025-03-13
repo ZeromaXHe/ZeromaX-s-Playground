@@ -61,6 +61,6 @@ public class ChunkService(IPointService pointService, IPlanetSettingService plan
         _chunkPointVpTree.Create(pointService.GetAllByChunky(true).Select(c => c.Position).ToArray(),
             (p0, p1) => p0.DistanceTo(p1));
         GD.Print($"InitChunks chunkDivisions {
-                planetSettingService.ChunkDivisions}, cost: {Time.GetTicksMsec() - time}");
+                planetSettingService.ChunkDivisions}, cost: {Time.GetTicksMsec() - time} ms");
     }
 }

@@ -41,8 +41,8 @@ public class NoiseService(IPlanetSettingService planetSettingService) : INoiseSe
     // X 映射向右，Y 映射为左向上 60 度，Z 映射为左向下 60 度
     public Vector4 SampleNoise(Vector3 position) =>
         GetPixelBilinear(NoiseSource,
-            (position.X - position.Y * 0.5f - position.Z * 0.5f) * NoiseScale,
-            (position.Y - position.Z) * HexMetrics.OuterToInner * NoiseScale);
+            (position.X - position.Y * 0.5f - position.Z * 0.5f) * NoiseScale / planetSettingService.StandardScale,
+            (position.Y - position.Z) * HexMetrics.OuterToInner * NoiseScale / planetSettingService.StandardScale);
 
     private const float CellPerturbStrength = 4f;
     public float ElevationPerturbStrength => 0.5f;
@@ -55,8 +55,10 @@ public class NoiseService(IPlanetSettingService planetSettingService) : INoiseSe
             ? position.Cross(Vector3.Back).Normalized()
             : Vector3.Up.Cross(position).Normalized();
         var vecZ = vecX.Cross(position).Normalized();
-        var x = vecX * (sample.X * 2f - 1f) * CellPerturbStrength * position.Length() / HexMetrics.StandardRadius;
-        var z = vecZ * (sample.Z * 2f - 1f) * CellPerturbStrength * position.Length() / HexMetrics.StandardRadius;
+        var x = vecX * (sample.X * 2f - 1f) * CellPerturbStrength
+            * planetSettingService.StandardScale * position.Length() / HexMetrics.StandardRadius;
+        var z = vecZ * (sample.Z * 2f - 1f) * CellPerturbStrength
+            * planetSettingService.StandardScale * position.Length() / HexMetrics.StandardRadius;
         return position + x + z;
     }
 
