@@ -13,3 +13,4 @@ shader_parameter/distortion_percentage = 0.01
 shader_parameter/_emission_min = 1.0
 shader_parameter/_emission_max = 2.0
 shader_parameter/_fresnel = 0.3
+shader_parameter/viewmodel_fov = 75.0

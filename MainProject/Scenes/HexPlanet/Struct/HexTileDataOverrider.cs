@@ -50,15 +50,16 @@ public struct HexTileDataOverrider
     public int ActiveSpecialIndex;
     public HashSet<Tile> OverrideTiles = [];
 
+    public bool IsOverridingTileConnection(Tile tile, Tile neighbor) =>
+        EditMode && (OverrideTiles?.Count ?? 0) > 0
+                 && OverrideTiles.Contains(tile) && !OverrideTiles.Contains(neighbor);
+
     public bool IsOverrideTile(Tile tile) => EditMode && OverrideTiles.Contains(tile);
     public bool IsOverrideNoRiver(Tile tile) => IsOverrideTile(tile) && RiverMode == OptionalToggle.No;
     public bool IsOverrideNoRoad(Tile tile) => IsOverrideTile(tile) && RoadMode == OptionalToggle.No;
 
     public int Elevation(Tile tile) =>
-        // 现在低于陆地高度的不再绘制低于高度的部分
-        IsOverrideTile(tile) && ApplyElevation && ActiveElevation > tile.Data.Elevation
-            ? ActiveElevation
-            : tile.Data.Elevation;
+        IsOverrideTile(tile) && ApplyElevation ? ActiveElevation : tile.Data.Elevation;
 
     public int WaterLevel(Tile tile) =>
         IsOverrideTile(tile) && ApplyWaterLevel ? ActiveWaterLevel : tile.Data.WaterLevel;
