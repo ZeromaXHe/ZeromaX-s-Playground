@@ -24,8 +24,8 @@ public partial class HexPlanetManager : Node3D
         InitServices(); // 现在 4.4 甚至构造函数会执行两次！奇了怪了，不知道之前 4.3 是不是也是这样
     }
 
-    [Signal]
-    public delegate void NewPlanetGeneratedEventHandler();
+    public delegate void NewPlanetGeneratedEvent();
+    public event NewPlanetGeneratedEvent NewPlanetGenerated;
 
     private float _radius = 100f;
 
@@ -339,7 +339,7 @@ public partial class HexPlanetManager : Node3D
         ClearOldData();
         InitHexSphere();
         RefreshAllTiles();
-        EmitSignalNewPlanetGenerated(); // 发送信号，这种向直接上级发送信号的情况，不提取到 SignalBus
+        NewPlanetGenerated?.Invoke(); // 触发事件，这种向直接上级事件回调的情况，不提取到 EventBus
         GD.Print($"[===DrawHexSphereMesh===] total cost: {Time.GetTicksMsec() - time} ms");
     }
 

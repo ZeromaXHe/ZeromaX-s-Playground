@@ -47,14 +47,18 @@ public partial class MiniMapManager : Node2D
     {
         InitOnReadyNodes();
         InitServices();
-        SignalBus.Instance.CameraMoved += (pos, _) => SyncCameraIconPos(pos);
+        EventBus.Instance.CameraMoved += SyncCameraIconPos;
         GD.Print("MiniMapManager _Ready");
     }
 
-    public override void _ExitTree() => CleanEventListeners();
+    public override void _ExitTree()
+    {
+        CleanEventListeners();
+        EventBus.Instance.CameraMoved -= SyncCameraIconPos;
+    }
 
     // 同步相机标志的位置
-    private void SyncCameraIconPos(Vector3 pos)
+    private void SyncCameraIconPos(Vector3 pos, float delta)
     {
         var tileId = _tileService.SearchNearestTileId(pos);
         if (tileId == null)
@@ -75,7 +79,7 @@ public partial class MiniMapManager : Node2D
         var mapVec = _terrainLayer.LocalToMap(mousePos);
         var sa = new SphereAxial(mapVec.X, mapVec.Y);
         if (!sa.IsValid()) return;
-        SignalBus.EmitNewCameraDestination(sa.ToLongitudeAndLatitude().ToDirectionVector3());
+        EventBus.EmitNewCameraDestination(sa.ToLongitudeAndLatitude().ToDirectionVector3());
     }
 
     // 标准摄像机对应 Divisions = 10
@@ -90,7 +94,7 @@ public partial class MiniMapManager : Node2D
 
     public void Init(Vector3 orbitCamPos)
     {
-        SyncCameraIconPos(orbitCamPos);
+        SyncCameraIconPos(orbitCamPos, 0f);
         UpdateCamera();
         _terrainLayer.Clear();
         _colorLayer.Clear();

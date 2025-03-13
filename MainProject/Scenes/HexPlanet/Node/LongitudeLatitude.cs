@@ -48,12 +48,12 @@ public partial class LongitudeLatitude : Node3D
                 _fadeVisibility = false;
                 Show();
                 if (_ready)
-                    SignalBus.Instance.CameraMoved -= OnCameraMoved;
+                    EventBus.Instance.CameraMoved -= OnCameraMoved;
             }
             else
             {
                 if (_ready)
-                    SignalBus.Instance.CameraMoved += OnCameraMoved;
+                    EventBus.Instance.CameraMoved += OnCameraMoved;
                 SetProcess(true);
             }
         }
@@ -85,10 +85,16 @@ public partial class LongitudeLatitude : Node3D
         _meshIns = new MeshInstance3D();
         AddChild(_meshIns);
         if (!Engine.IsEditorHint())
-            SignalBus.Instance.CameraMoved += OnCameraMoved;
+            EventBus.Instance.CameraMoved += OnCameraMoved;
         _ready = true;
         // 在 _ready = true 后面，触发 setter 的着色器参数初始化
         Visibility = FullVisibility;
+    }
+
+    public override void _ExitTree()
+    {
+        if (!Engine.IsEditorHint())
+            EventBus.Instance.CameraMoved -= OnCameraMoved;
     }
 
     public override void _Process(double delta)

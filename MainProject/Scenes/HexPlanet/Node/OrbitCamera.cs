@@ -128,12 +128,18 @@ public partial class OrbitCamera : Node3D
         InitOnReadyNodes();
         if (!Engine.IsEditorHint())
         {
-            SignalBus.Instance.NewCameraDestination += SetAutoPilot;
+            EventBus.Instance.NewCameraDestination += SetAutoPilot;
             // 必须在 _ready = true 后面，触发各数据 setter 的初始化
             Reset();
         }
 
         GD.Print("OrbitCamera _Ready");
+    }
+
+    public override void _ExitTree()
+    {
+        if (!Engine.IsEditorHint())
+            EventBus.Instance.NewCameraDestination -= SetAutoPilot;
     }
 
     public Vector3 GetFocusBasePos() => _focusBase.GlobalPosition;
@@ -192,7 +198,7 @@ public partial class OrbitCamera : Node3D
             if (!lookDir.IsEqualApprox(GetFocusBasePos().Normalized()))
             {
                 LookAt(lookDir, _focusBase.GlobalBasis.Z);
-                SignalBus.EmitCameraMoved(GetFocusBasePos(), floatDelta);
+                EventBus.EmitCameraMoved(GetFocusBasePos(), floatDelta);
             }
 
             // 抵达目的地，取消自动跳转
@@ -249,7 +255,7 @@ public partial class OrbitCamera : Node3D
         _antiStuckSpeedMultiplier = prePos.IsEqualApprox(GetFocusBasePos())
             ? _antiStuckSpeedMultiplier * 1.5f
             : 1f;
-        SignalBus.EmitCameraMoved(GetFocusBasePos(), delta);
+        EventBus.EmitCameraMoved(GetFocusBasePos(), delta);
         // 打断自动跳转
         CancelAutoPilot();
         return true;

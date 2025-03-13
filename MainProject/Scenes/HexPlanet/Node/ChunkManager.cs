@@ -31,6 +31,8 @@ public partial class ChunkManager : Node3D
         _tileShaderService.TileExplored += ExploreFeatures;
         _chunkService.RefreshChunk += OnChunkServiceRefreshChunk;
         _chunkService.RefreshChunkTileLabel += OnChunkServiceRefreshChunkTileLabel;
+        if (!Engine.IsEditorHint())
+            EventBus.Instance.CameraMoved += UpdateInsightChunk;
     }
 
     private void ExploreFeatures(int tileId)
@@ -63,6 +65,8 @@ public partial class ChunkManager : Node3D
         _tileShaderService.TileExplored -= ExploreFeatures;
         _chunkService.RefreshChunk -= OnChunkServiceRefreshChunk;
         _chunkService.RefreshChunkTileLabel -= OnChunkServiceRefreshChunkTileLabel;
+        if (!Engine.IsEditorHint())
+            EventBus.Instance.CameraMoved -= UpdateInsightChunk;
     }
 
     #endregion
@@ -82,14 +86,12 @@ public partial class ChunkManager : Node3D
 
     public override void _Ready()
     {
-        if (!Engine.IsEditorHint())
-            SignalBus.Instance.CameraMoved += (pos, _) => UpdateInsightChunk(pos);
         _ready = true;
     }
 
     public override void _ExitTree() => CleanEventListeners();
 
-    private void UpdateInsightChunk(Vector3 pos)
+    private void UpdateInsightChunk(Vector3 pos, float delta)
     {
         var camera = GetViewport().GetCamera3D();
         var nearestChunkId = _chunkService.SearchNearest(pos).Id;

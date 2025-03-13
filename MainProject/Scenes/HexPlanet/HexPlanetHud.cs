@@ -133,6 +133,28 @@ public partial class HexPlanetHud : Control
         _elevationVSlider.TickCount = _planetSettingService.ElevationStep + 1;
         _waterVSlider.MaxValue = _planetSettingService.ElevationStep;
         _waterVSlider.TickCount = _planetSettingService.ElevationStep + 1;
+
+        _hexPlanetManager.NewPlanetGenerated += UpdateNewPlanetInfo;
+        _hexPlanetManager.NewPlanetGenerated += InitMiniMap;
+        EventBus.Instance.CameraMoved += OnCameraMoved;
+    }
+
+    private void InitMiniMap() => _miniMapManager.Init(_hexPlanetManager.GetOrbitCameraFocusPos());
+
+    private void UpdateNewPlanetInfo()
+    {
+        UpdatePlanetUi();
+        ChosenTile = null;
+    }
+
+    private void OnCameraMoved(Vector3 pos, float delta) =>
+        _camLatLonLabel.Text = $"相机位置：{LongitudeLatitudeCoords.From(pos)}";
+
+    private void CleanNodeEventListeners()
+    {
+        _hexPlanetManager.NewPlanetGenerated -= UpdateNewPlanetInfo;
+        _hexPlanetManager.NewPlanetGenerated -= InitMiniMap;
+        EventBus.Instance.CameraMoved -= OnCameraMoved;
     }
 
     #endregion
@@ -280,17 +302,15 @@ public partial class HexPlanetHud : Control
         _miniMapManager.Init(_hexPlanetManager.GetOrbitCameraFocusPos());
     }
 
+    public override void _ExitTree() => CleanNodeEventListeners();
+
     private void InitSignals()
     {
-        _hexPlanetManager.NewPlanetGenerated += UpdateNewPlanetInfo;
-        _hexPlanetManager.NewPlanetGenerated += () => _miniMapManager.Init(_hexPlanetManager.GetOrbitCameraFocusPos());
-
         _wireframeCheckButton.Toggled += toggle =>
             _hexPlanetManager.GetViewport()
                 .SetDebugDraw(toggle ? Viewport.DebugDrawEnum.Wireframe : Viewport.DebugDrawEnum.Disabled);
 
         _latLonFixCheckButton.Toggled += _hexPlanetManager.FixLatLon;
-        SignalBus.Instance.CameraMoved += OnCameraMoved;
         _planetTabBar.TabClicked += _ => _planetGrid.Visible = !_planetGrid.Visible;
 
         _radiusLineEdit.TextSubmitted += text =>
@@ -361,14 +381,6 @@ public partial class HexPlanetHud : Control
         _specialFeatureOptionButton.ItemSelected += SetSpecialIndex;
     }
 
-    private void OnCameraMoved(Vector3 pos, float delta) =>
-        _camLatLonLabel.Text = $"相机位置：{LongitudeLatitudeCoords.From(pos)}";
-
-    private void UpdateNewPlanetInfo()
-    {
-        UpdatePlanetUi();
-        ChosenTile = null;
-    }
 
     private void UpdatePlanetUi()
     {

@@ -15,10 +15,6 @@ run/main_scene="res://Scenes/HexPlanet/HexPlanetHud.tscn"
 config/features=PackedStringArray("4.4", "C#", "Forward Plus")
 config/icon="res://icon.svg"
 
-[autoload]
-
-SignalBus="*res://Scenes/Framework/GlobalNode/SignalBus.cs"
-
 [dotnet]
 
 project/assembly_name="ZeromaX-s Playground Project"
