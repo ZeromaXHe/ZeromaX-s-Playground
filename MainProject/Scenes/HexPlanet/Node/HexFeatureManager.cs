@@ -259,13 +259,18 @@ public partial class HexFeatureManager : Node3D
     }
 
     public void AddWall(EdgeVertices near, Tile nearTile, EdgeVertices far, Tile farTile,
-        bool hasRiver, bool hasRoad, HexTileDataOverrider overrider)
+        bool hasRiver, bool hasRoad, HexTileDataOverrider overrider, ChunkLod lod)
     {
         if (overrider.Walled(nearTile) == overrider.Walled(farTile)
             || overrider.IsUnderwater(nearTile) || overrider.IsUnderwater(farTile)
             || overrider.GetEdgeType(nearTile, farTile) == HexEdgeType.Cliff)
             return;
-        AddWallSegment(nearTile, farTile, near.V1, far.V1, near.V2, far.V2);
+        if (lod < ChunkLod.Full && !hasRiver && !hasRoad)
+        {
+            AddWallSegment(nearTile, farTile, near.V1, far.V1, near.V5, far.V5, lod);
+            return;
+        }
+        AddWallSegment(nearTile, farTile, near.V1, far.V1, near.V2, far.V2, lod);
         if (hasRiver || hasRoad)
         {
             AddWallCap(nearTile, near.V2, farTile, far.V2);
@@ -273,39 +278,39 @@ public partial class HexFeatureManager : Node3D
         }
         else
         {
-            AddWallSegment(nearTile, farTile, near.V2, far.V2, near.V3, far.V3);
-            AddWallSegment(nearTile, farTile, near.V3, far.V3, near.V4, far.V4);
+            AddWallSegment(nearTile, farTile, near.V2, far.V2, near.V3, far.V3, lod);
+            AddWallSegment(nearTile, farTile, near.V3, far.V3, near.V4, far.V4, lod);
         }
 
-        AddWallSegment(nearTile, farTile, near.V4, far.V4, near.V5, far.V5);
+        AddWallSegment(nearTile, farTile, near.V4, far.V4, near.V5, far.V5, lod);
     }
 
     public void AddWall(Vector3 c1, Tile tile1, Vector3 c2, Tile tile2, Vector3 c3,
-        Tile tile3, HexTileDataOverrider overrider)
+        Tile tile3, HexTileDataOverrider overrider, ChunkLod lod)
     {
         if (overrider.Walled(tile1))
         {
             if (overrider.Walled(tile2))
             {
                 if (!overrider.Walled(tile3))
-                    AddWallSegment(c3, tile3, c1, tile1, c2, tile2, overrider);
+                    AddWallSegment(c3, tile3, c1, tile1, c2, tile2, overrider, lod);
             }
             else if (overrider.Walled(tile3))
-                AddWallSegment(c2, tile2, c3, tile3, c1, tile1, overrider);
+                AddWallSegment(c2, tile2, c3, tile3, c1, tile1, overrider, lod);
             else
-                AddWallSegment(c1, tile1, c2, tile2, c3, tile3, overrider);
+                AddWallSegment(c1, tile1, c2, tile2, c3, tile3, overrider, lod);
         }
         else if (overrider.Walled(tile2))
             if (overrider.Walled(tile3))
-                AddWallSegment(c1, tile1, c2, tile2, c3, tile3, overrider);
+                AddWallSegment(c1, tile1, c2, tile2, c3, tile3, overrider, lod);
             else
-                AddWallSegment(c2, tile2, c3, tile3, c1, tile1, overrider);
+                AddWallSegment(c2, tile2, c3, tile3, c1, tile1, overrider, lod);
         else if (overrider.Walled(tile3))
-            AddWallSegment(c3, tile3, c1, tile1, c2, tile2, overrider);
+            AddWallSegment(c3, tile3, c1, tile1, c2, tile2, overrider, lod);
     }
 
     private void AddWallSegment(Tile nearTile, Tile farTile, Vector3 nearLeft, Vector3 farLeft,
-        Vector3 nearRight, Vector3 farRight, bool addTower = false)
+        Vector3 nearRight, Vector3 farRight, ChunkLod lod, bool addTower = false)
     {
         nearLeft = _noiseService.Perturb(nearLeft);
         farLeft = _noiseService.Perturb(farLeft);
@@ -317,20 +322,25 @@ public partial class HexFeatureManager : Node3D
         var right = _planetSettingService.WallLerp(nearRight, farRight);
         var leftTop = left.Length() + height;
         var rightTop = right.Length() + height;
+        var ids = new Vector3(nearTile.Id, farTile.Id, nearTile.Id);
         Vector3 v1, v2, v3, v4;
         v1 = v3 = _planetSettingService.WallThicknessOffset(nearLeft, farLeft, true, thickness);
         v2 = v4 = _planetSettingService.WallThicknessOffset(nearRight, farRight, true, thickness);
         v3 = Math3dUtil.ProjectToSphere(v3, leftTop);
         v4 = Math3dUtil.ProjectToSphere(v4, rightTop);
-        var ids = new Vector3(nearTile.Id, farTile.Id, nearTile.Id);
         _walls.AddQuadUnperturbed([v1, v2, v3, v4], HexMesh.QuadArr(HexMesh.Weights1), tis: ids);
         Vector3 t1 = v3, t2 = v4;
         v1 = v3 = _planetSettingService.WallThicknessOffset(nearLeft, farLeft, false, thickness);
         v2 = v4 = _planetSettingService.WallThicknessOffset(nearRight, farRight, false, thickness);
-        v3 = Math3dUtil.ProjectToSphere(v3, leftTop);
-        v4 = Math3dUtil.ProjectToSphere(v4, rightTop);
-        _walls.AddQuadUnperturbed([v2, v1, v4, v3], HexMesh.QuadArr(HexMesh.Weights2), tis: ids);
-        _walls.AddQuadUnperturbed([t1, t2, v3, v4], HexMesh.QuadArr(HexMesh.Weights1, HexMesh.Weights2), tis: ids);
+        if (lod == ChunkLod.Full)
+        {
+            v3 = Math3dUtil.ProjectToSphere(v3, leftTop);
+            v4 = Math3dUtil.ProjectToSphere(v4, rightTop);
+            _walls.AddQuadUnperturbed([v2, v1, v4, v3], HexMesh.QuadArr(HexMesh.Weights2), tis: ids);
+            _walls.AddQuadUnperturbed([t1, t2, v3, v4], HexMesh.QuadArr(HexMesh.Weights1, HexMesh.Weights2), tis: ids);
+        }
+        else
+            _walls.AddQuadUnperturbed([v2, v1, t2, t1], HexMesh.QuadArr(HexMesh.Weights2), tis: ids);
 
         if (addTower)
             AddTower(nearTile, left, right);
@@ -338,7 +348,7 @@ public partial class HexFeatureManager : Node3D
 
     // pivot 有墙，left\right 没有墙的情况
     private void AddWallSegment(Vector3 pivot, Tile pivotTile, Vector3 left, Tile leftTile,
-        Vector3 right, Tile rightTile, HexTileDataOverrider overrider)
+        Vector3 right, Tile rightTile, HexTileDataOverrider overrider, ChunkLod lod)
     {
         if (overrider.IsUnderwater(pivotTile)) return;
         var hasLeftWall = !overrider.IsUnderwater(leftTile)
@@ -357,7 +367,7 @@ public partial class HexFeatureManager : Node3D
                 }
 
                 // 这里入参还得观察一下会不会 bug
-                AddWallSegment(pivotTile, leftTile, pivot, left, pivot, right, hasTower);
+                AddWallSegment(pivotTile, leftTile, pivot, left, pivot, right, lod, hasTower);
             }
             else if (overrider.Elevation(leftTile) < overrider.Elevation(rightTile))
                 AddWallWedge(pivotTile, pivot, leftTile, left, rightTile, right);

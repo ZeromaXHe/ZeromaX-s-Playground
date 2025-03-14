@@ -73,7 +73,6 @@ public partial class HexGridChunk : Node3D, IChunk
     {
         _id = id;
         InitLabels();
-        Refresh();
     }
 
     public void ExploreFeatures(int tileId) => Features.ExploreFeatures(tileId);
@@ -150,13 +149,7 @@ public partial class HexGridChunk : Node3D, IChunk
         if (_id > 0)
         {
             // var time = Time.GetTicksMsec();
-            Terrain.Clear();
-            Rivers.Clear();
-            Roads.Clear();
-            Water.Clear();
-            WaterShore.Clear();
-            Estuary.Clear();
-            Features.Clear();
+            ClearOldData();
             var tileIds = _chunkService.GetById(_id).TileIds;
             var tiles = tileIds.Select(_tileService.GetById);
             foreach (var tile in tiles)
@@ -166,27 +159,51 @@ public partial class HexGridChunk : Node3D, IChunk
                     1.01f * tile.GetCentroid(_planetSettingService.Radius + _tileService.GetHeight(tile));
             }
 
-            Terrain.Apply();
-            Rivers.Apply();
-            Roads.Apply();
-            Water.Apply();
-            WaterShore.Apply();
-            Estuary.Apply();
-            Features.Apply();
-            if (Visible)
-                Features.ShowFeatures(!EditMode);
+            ApplyNewData();
+            Features.ShowFeatures(!EditMode);
             // GD.Print($"Chunk {_id} BuildMesh cost: {Time.GetTicksMsec() - time} ms");
         }
 
         SetProcess(false);
     }
 
+    private void ApplyNewData()
+    {
+        Terrain.Apply();
+        Rivers.Apply();
+        Roads.Apply();
+        Water.Apply();
+        WaterShore.Apply();
+        Estuary.Apply();
+        Features.Apply();
+    }
+
+    private void ClearOldData()
+    {
+        Terrain.Clear();
+        Rivers.Clear();
+        Roads.Clear();
+        Water.Clear();
+        WaterShore.Clear();
+        Estuary.Clear();
+        Features.Clear();
+    }
+
+    public void Refresh(ChunkLod lod)
+    {
+        if (lod == _chunkTriangulation.Lod) return;
+        _chunkTriangulation.Lod = lod;
+        SetProcess(true);
+    }
+
     public void Refresh() => SetProcess(true);
     public void ShowUi(bool show) => _labels.Visible = show;
 
-    public void ShowInSight()
+    public void ShowInSight(ChunkLod lod)
     {
         Show();
+        _chunkTriangulation.Lod = lod;
+        Refresh();
         Features.ShowFeatures(!EditMode); // 编辑模式下全部显示，游戏模式下仅显示探索过的
         OnEditorEditModeChanged(EditMode);
         _editorService.LabelModeChanged += RefreshTilesLabelMode;
@@ -196,7 +213,7 @@ public partial class HexGridChunk : Node3D, IChunk
     public void HideOutOfSight()
     {
         Hide();
-        Features.HideFeatures(false);
+        ClearOldData();
         _editorService.LabelModeChanged -= RefreshTilesLabelMode;
         _editorService.EditModeChanged -= OnEditorEditModeChanged;
     }

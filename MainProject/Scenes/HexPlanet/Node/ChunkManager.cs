@@ -6,6 +6,7 @@ using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 
@@ -389,6 +390,8 @@ public partial class ChunkManager : Node3D
             }
 
             InsightChunkIdsNext.Add(preInHorizonChunkId);
+            // 刷新 Lod
+            _gridChunks[preInHorizonChunkId].Refresh(CalcLod(preInsightChunk.Pos.DistanceTo(camera.GlobalPosition)));
             // 分块在地平线内，他的邻居才比较可能是在地平线内
             // 将之前不在但现在可能在地平线范围内的 id 加入带查询队列
             SearchNeighbor(preInsightChunk, InsightChunkIdsNow);
@@ -424,7 +427,7 @@ public partial class ChunkManager : Node3D
             var chunk = _chunkService.GetById(chunkId);
             if (!IsChunkInsight(chunk, camera)) continue;
             InsightChunkIdsNext.Add(chunkId);
-            ShowChunk(chunkId);
+            ShowChunk(chunk);
             SearchNeighbor(chunk, _visitedChunkIds);
         }
 
@@ -472,20 +475,21 @@ public partial class ChunkManager : Node3D
                  select neighbor)
         {
             _rimChunkIds.Add(neighbor.Id);
-            ShowChunk(neighbor.Id);
+            ShowChunk(_chunkService.GetById(neighbor.Id));
         }
     }
 
-    private void ShowChunk(int chunkId)
+    private void ShowChunk(Chunk chunk)
     {
         // 第一次可见时，初始化
-        if (_gridChunks[chunkId] == null)
+        if (_gridChunks[chunk.Id] == null)
         {
-            var hexGridChunk = AddChildHexGridChunk(chunkId);
-            _gridChunks[chunkId] = hexGridChunk;
+            var hexGridChunk = AddChildHexGridChunk(chunk.Id);
+            _gridChunks[chunk.Id] = hexGridChunk;
         }
 
-        _gridChunks[chunkId].ShowInSight();
+        _gridChunks[chunk.Id].ShowInSight(CalcLod(
+            chunk.Pos.DistanceTo(GetViewport().GetCamera3D().GlobalPosition)));
     }
 
     public void ClearOldData()
@@ -517,13 +521,20 @@ public partial class ChunkManager : Node3D
             }
 
             var hexGridChunk = AddChildHexGridChunk(id);
-            hexGridChunk.ShowInSight();
+            hexGridChunk.ShowInSight(CalcLod(chunk.Pos.DistanceTo(camera.GlobalPosition)));
             _gridChunks.Add(id, hexGridChunk);
             InsightChunkIdsNow.Add(id);
         }
 
         InitOutRimChunks();
         GD.Print($"InitChunkNodes cost: {Time.GetTicksMsec() - time} ms");
+    }
+
+    private ChunkLod CalcLod(float distance)
+    {
+        var chunkLen = _planetSettingService.Radius / _planetSettingService.ChunkDivisions;
+        return distance > chunkLen * 5 ? ChunkLod.SimpleHex :
+            distance > chunkLen * 3 ? ChunkLod.TerracesHex : ChunkLod.Full;
     }
 
     private HexGridChunk AddChildHexGridChunk(int id)

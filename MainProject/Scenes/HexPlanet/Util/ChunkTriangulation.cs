@@ -20,6 +20,13 @@ public interface IChunk
     HexTileDataOverrider TileDataOverrider { get; }
 }
 
+public enum ChunkLod
+{
+    SimpleHex, // 最简单的六边形 
+    TerracesHex, // 增加台阶
+    Full, // 增加边细分
+}
+
 public class ChunkTriangulation
 {
     public ChunkTriangulation(IChunk chunk)
@@ -44,6 +51,7 @@ public class ChunkTriangulation
     #endregion
 
     private readonly IChunk _chunk;
+    public ChunkLod Lod { get; set; } = ChunkLod.Full;
 
     private HexTileDataOverrider Overrider => _chunk.TileDataOverrider;
 
@@ -84,41 +92,48 @@ public class ChunkTriangulation
                     TriangulateWithRiverBeginOrEnd(tile, centroid, e);
                 else TriangulateWithRiver(tile, idx, centroid, e);
             }
-            else TriangulateAdjacentToRiver(tile, idx, centroid, e);
+            else TriangulateAdjacentToRiver(tile, idx, centroid, e, Lod < ChunkLod.Full);
         }
         else
         {
-            TriangulateWithoutRiver(tile, idx, centroid, e);
+            TriangulateWithoutRiver(tile, idx, centroid, e, Lod < ChunkLod.Full);
             if (!Overrider.IsUnderwater(tile) && !Overrider.HasRoadThroughEdge(tile, idx))
                 _chunk.Features.AddFeature(tile, (centroid + e.V1 + e.V5) / 3f, Overrider);
         }
 
         TriangulateConnection(tile, idx, e);
         if (Overrider.IsUnderwater(tile))
-            TriangulateWater(tile, idx, centroid);
+            TriangulateWater(tile, idx, centroid, Lod < ChunkLod.Full);
     }
 
-    private void TriangulateWater(Tile tile, int idx, Vector3 centroid)
+    private void TriangulateWater(Tile tile, int idx, Vector3 centroid, bool simple)
     {
         var waterSurfaceHeight = Overrider.WaterSurfaceY(tile);
         centroid = Math3dUtil.ProjectToSphere(centroid, _planetSettingService.Radius + waterSurfaceHeight);
         var neighbor = _tileService.GetNeighborByIdx(tile, idx);
         if (!Overrider.IsUnderwater(neighbor))
-            TriangulateWaterShore(tile, idx, waterSurfaceHeight, neighbor, centroid);
+            TriangulateWaterShore(tile, idx, waterSurfaceHeight, neighbor, centroid, simple);
         else
             TriangulateOpenWater(tile, idx, waterSurfaceHeight, neighbor, centroid);
     }
 
-    private void TriangulateWaterShore(Tile tile, int idx, float waterSurfaceHeight, Tile neighbor, Vector3 centroid)
+    private void TriangulateWaterShore(Tile tile, int idx, float waterSurfaceHeight,
+        Tile neighbor, Vector3 centroid, bool simple)
     {
         var e1 = new EdgeVertices(
             _tileService.GetFirstWaterCorner(tile, idx, _planetSettingService.Radius + waterSurfaceHeight),
             _tileService.GetSecondWaterCorner(tile, idx, _planetSettingService.Radius + waterSurfaceHeight));
         var ids = new Vector3(tile.Id, neighbor.Id, tile.Id);
-        _chunk.Water.AddTriangle([centroid, e1.V1, e1.V2], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
-        _chunk.Water.AddTriangle([centroid, e1.V2, e1.V3], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
-        _chunk.Water.AddTriangle([centroid, e1.V3, e1.V4], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
-        _chunk.Water.AddTriangle([centroid, e1.V4, e1.V5], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
+        if (simple)
+            _chunk.Water.AddTriangle([centroid, e1.V1, e1.V5], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
+        else
+        {
+            _chunk.Water.AddTriangle([centroid, e1.V1, e1.V2], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
+            _chunk.Water.AddTriangle([centroid, e1.V2, e1.V3], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
+            _chunk.Water.AddTriangle([centroid, e1.V3, e1.V4], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
+            _chunk.Water.AddTriangle([centroid, e1.V4, e1.V5], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
+        }
+
         // 使用邻居的水表面高度的话，就是希望考虑岸边地块的实际水位。(不然强行拉平岸边的话，角落两个水面不一样高时太多复杂逻辑，bug 太多)
         var neighborWaterSurfaceHeight = Overrider.WaterSurfaceY(neighbor);
         var cn1 = _tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[idx],
@@ -127,7 +142,11 @@ public class ChunkTriangulation
             _planetSettingService.Radius + neighborWaterSurfaceHeight, HexMetrics.SolidFactor);
         var e2 = new EdgeVertices(cn1, cn2);
         var neighborIdx = tile.GetNeighborIdx(neighbor);
-        if (Overrider.HasRiverThroughEdge(tile, neighborIdx))
+        if (simple)
+            _chunk.WaterShore.AddQuad([e1.V1, e1.V5, e2.V1, e2.V5],
+                HexMesh.QuadArr(HexMesh.Weights1, HexMesh.Weights2),
+                QuadUv(0f, 0f, 0f, 1f), tis: ids);
+        else if (Overrider.HasRiverThroughEdge(tile, neighborIdx))
             TriangulateEstuary(e1, e2, Overrider.HasIncomingRiverThroughEdge(tile, neighborIdx), ids);
         else
         {
@@ -215,7 +234,7 @@ public class ChunkTriangulation
         _chunk.Water.AddTriangle([c2, cn2, cnn], [HexMesh.Weights1, HexMesh.Weights2, HexMesh.Weights3], tis: ids);
     }
 
-    private void TriangulateAdjacentToRiver(Tile tile, int idx, Vector3 centroid, EdgeVertices e)
+    private void TriangulateAdjacentToRiver(Tile tile, int idx, Vector3 centroid, EdgeVertices e, bool simple)
     {
         if (Overrider.HasRoads(tile))
             TriangulateRoadAdjacentToRiver(tile, idx, centroid, e);
@@ -240,8 +259,8 @@ public class ChunkTriangulation
                 0.25f);
 
         var m = new EdgeVertices(centroid.Lerp(e.V1, 0.5f), centroid.Lerp(e.V5, 0.5f));
-        TriangulateEdgeStrip(m, HexMesh.Weights1, tile.Id, e, HexMesh.Weights1, tile.Id);
-        TriangulateEdgeFan(centroid, m, tile.Id);
+        TriangulateEdgeStrip(m, HexMesh.Weights1, tile.Id, e, HexMesh.Weights1, tile.Id, simple: simple);
+        TriangulateEdgeFan(centroid, m, tile.Id, simple);
 
         if (!Overrider.IsUnderwater(tile) && !Overrider.HasRoadThroughEdge(tile, idx))
             _chunk.Features.AddFeature(tile, (centroid + e.V1 + e.V5) / 3f, Overrider);
@@ -466,25 +485,36 @@ public class ChunkTriangulation
             tis: ids);
     }
 
-    private void TriangulateEdgeFan(Vector3 center, EdgeVertices edge, float id)
+    private void TriangulateEdgeFan(Vector3 center, EdgeVertices edge, float id, bool simple = false)
     {
         var ids = Vector3.One * id;
-        _chunk.Terrain.AddTriangle([center, edge.V1, edge.V2], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
-        _chunk.Terrain.AddTriangle([center, edge.V2, edge.V3], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
-        _chunk.Terrain.AddTriangle([center, edge.V3, edge.V4], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
-        _chunk.Terrain.AddTriangle([center, edge.V4, edge.V5], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
+        if (simple)
+            _chunk.Terrain.AddTriangle([center, edge.V1, edge.V5], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
+        else
+        {
+            _chunk.Terrain.AddTriangle([center, edge.V1, edge.V2], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
+            _chunk.Terrain.AddTriangle([center, edge.V2, edge.V3], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
+            _chunk.Terrain.AddTriangle([center, edge.V3, edge.V4], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
+            _chunk.Terrain.AddTriangle([center, edge.V4, edge.V5], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
+        }
     }
 
     private void TriangulateEdgeStrip(EdgeVertices e1, Color w1, float id1,
-        EdgeVertices e2, Color w2, float id2, bool hasRoad = false)
+        EdgeVertices e2, Color w2, float id2, bool hasRoad = false, bool simple = false)
     {
         Vector3 ids;
         ids.X = ids.Z = id1;
         ids.Y = id2;
-        _chunk.Terrain.AddQuad([e1.V1, e1.V2, e2.V1, e2.V2], HexMesh.QuadArr(w1, w2), tis: ids);
-        _chunk.Terrain.AddQuad([e1.V2, e1.V3, e2.V2, e2.V3], HexMesh.QuadArr(w1, w2), tis: ids);
-        _chunk.Terrain.AddQuad([e1.V3, e1.V4, e2.V3, e2.V4], HexMesh.QuadArr(w1, w2), tis: ids);
-        _chunk.Terrain.AddQuad([e1.V4, e1.V5, e2.V4, e2.V5], HexMesh.QuadArr(w1, w2), tis: ids);
+        if (simple)
+            _chunk.Terrain.AddQuad([e1.V1, e1.V5, e2.V1, e2.V5], HexMesh.QuadArr(w1, w2), tis: ids);
+        else
+        {
+            _chunk.Terrain.AddQuad([e1.V1, e1.V2, e2.V1, e2.V2], HexMesh.QuadArr(w1, w2), tis: ids);
+            _chunk.Terrain.AddQuad([e1.V2, e1.V3, e2.V2, e2.V3], HexMesh.QuadArr(w1, w2), tis: ids);
+            _chunk.Terrain.AddQuad([e1.V3, e1.V4, e2.V3, e2.V4], HexMesh.QuadArr(w1, w2), tis: ids);
+            _chunk.Terrain.AddQuad([e1.V4, e1.V5, e2.V4, e2.V5], HexMesh.QuadArr(w1, w2), tis: ids);
+        }
+
         if (hasRoad)
             TriangulateRoadSegment(e1.V2, e1.V3, e1.V4, e2.V2, e2.V3, e2.V4, w1, w2, ids);
     }
@@ -503,9 +533,9 @@ public class ChunkTriangulation
         return interpolator;
     }
 
-    private void TriangulateWithoutRiver(Tile tile, int idx, Vector3 centroid, EdgeVertices e)
+    private void TriangulateWithoutRiver(Tile tile, int idx, Vector3 centroid, EdgeVertices e, bool simple)
     {
-        TriangulateEdgeFan(centroid, e, tile.Id);
+        TriangulateEdgeFan(centroid, e, tile.Id, simple);
         if (Overrider.HasRoads(tile))
         {
             var interpolator = GetRoadInterpolator(tile, idx);
@@ -606,12 +636,13 @@ public class ChunkTriangulation
                     _planetSettingService.Radius + Overrider.WaterSurfaceY(tile), ids);
         }
 
-        if (Overrider.GetEdgeType(tile, neighbor) == HexEdgeType.Slope)
+        if (Lod > ChunkLod.SimpleHex && Overrider.GetEdgeType(tile, neighbor) == HexEdgeType.Slope)
             TriangulateEdgeTerraces(e, tile, en, neighbor, hasRoad);
         else
-            TriangulateEdgeStrip(e, HexMesh.Weights1, tile.Id, en, HexMesh.Weights2, neighbor.Id, hasRoad);
+            TriangulateEdgeStrip(e, HexMesh.Weights1, tile.Id,
+                en, HexMesh.Weights2, neighbor.Id, hasRoad, !hasRiver && Lod < ChunkLod.Full);
 
-        _chunk.Features.AddWall(e, tile, en, neighbor, hasRiver, hasRoad, Overrider);
+        _chunk.Features.AddWall(e, tile, en, neighbor, hasRiver, hasRoad, Overrider, Lod);
 
         var preNeighbor = _tileService.GetNeighborByIdx(tile, tile.PreviousIdx(idx));
         var preNeighborHeight = GetOverrideHeight(preNeighbor);
@@ -632,35 +663,42 @@ public class ChunkTriangulation
     {
         var edgeType1 = Overrider.GetEdgeType(bottomTile, leftTile);
         var edgeType2 = Overrider.GetEdgeType(bottomTile, rightTile);
-        if (edgeType1 == HexEdgeType.Slope)
+        if (Lod == ChunkLod.Full)
         {
-            if (edgeType2 == HexEdgeType.Slope)
-                TriangulateCornerTerraces(bottom, bottomTile, left, leftTile, right, rightTile);
-            else if (edgeType2 == HexEdgeType.Flat)
-                TriangulateCornerTerraces(left, leftTile, right, rightTile, bottom, bottomTile);
+            if (edgeType1 == HexEdgeType.Slope)
+            {
+                if (edgeType2 == HexEdgeType.Slope)
+                    TriangulateCornerTerraces(bottom, bottomTile, left, leftTile, right, rightTile);
+                else if (edgeType2 == HexEdgeType.Flat)
+                    TriangulateCornerTerraces(left, leftTile, right, rightTile, bottom, bottomTile);
+                else
+                    TriangulateCornerTerracesCliff(bottom, bottomTile, left, leftTile, right, rightTile);
+            }
+            else if (edgeType2 == HexEdgeType.Slope)
+            {
+                if (edgeType1 == HexEdgeType.Flat)
+                    TriangulateCornerTerraces(right, rightTile, bottom, bottomTile, left, leftTile);
+                else
+                    TriangulateCornerCliffTerraces(bottom, bottomTile, left, leftTile, right, rightTile);
+            }
+            else if (Overrider.GetEdgeType(leftTile, rightTile) == HexEdgeType.Slope)
+            {
+                if (Overrider.Elevation(leftTile) < Overrider.Elevation(rightTile))
+                    TriangulateCornerCliffTerraces(right, rightTile, bottom, bottomTile, left, leftTile);
+                else
+                    TriangulateCornerTerracesCliff(left, leftTile, right, rightTile, bottom, bottomTile);
+            }
             else
-                TriangulateCornerTerracesCliff(bottom, bottomTile, left, leftTile, right, rightTile);
-        }
-        else if (edgeType2 == HexEdgeType.Slope)
-        {
-            if (edgeType1 == HexEdgeType.Flat)
-                TriangulateCornerTerraces(right, rightTile, bottom, bottomTile, left, leftTile);
-            else
-                TriangulateCornerCliffTerraces(bottom, bottomTile, left, leftTile, right, rightTile);
-        }
-        else if (Overrider.GetEdgeType(leftTile, rightTile) == HexEdgeType.Slope)
-        {
-            if (Overrider.Elevation(leftTile) < Overrider.Elevation(rightTile))
-                TriangulateCornerCliffTerraces(right, rightTile, bottom, bottomTile, left, leftTile);
-            else
-                TriangulateCornerTerracesCliff(left, leftTile, right, rightTile, bottom, bottomTile);
+                _chunk.Terrain.AddTriangle([bottom, left, right],
+                    [HexMesh.Weights1, HexMesh.Weights2, HexMesh.Weights3],
+                    tis: new Vector3(bottomTile.Id, leftTile.Id, rightTile.Id));
         }
         else
             _chunk.Terrain.AddTriangle([bottom, left, right],
                 [HexMesh.Weights1, HexMesh.Weights2, HexMesh.Weights3],
                 tis: new Vector3(bottomTile.Id, leftTile.Id, rightTile.Id));
 
-        _chunk.Features.AddWall(bottom, bottomTile, left, leftTile, right, rightTile, Overrider);
+        _chunk.Features.AddWall(bottom, bottomTile, left, leftTile, right, rightTile, Overrider, Lod);
     }
 
     // 三角形靠近 tile 的左边是阶地，右边是悬崖，另一边任意的情况
@@ -747,21 +785,22 @@ public class ChunkTriangulation
     private void TriangulateEdgeTerraces(EdgeVertices begin, Tile beginTile, EdgeVertices end, Tile endTile,
         bool hasRoad)
     {
+        var simpleStrip = Lod < ChunkLod.Full;
         var e2 = EdgeVertices.TerraceLerp(begin, end, 1);
         var w2 = HexMetrics.TerraceLerp(HexMesh.Weights1, HexMesh.Weights2, 1);
         var i1 = beginTile.Id;
         var i2 = endTile.Id;
-        TriangulateEdgeStrip(begin, HexMesh.Weights1, i1, e2, w2, i2, hasRoad);
+        TriangulateEdgeStrip(begin, HexMesh.Weights1, i1, e2, w2, i2, hasRoad, simpleStrip);
         for (var i = 2; i < HexMetrics.TerraceSteps; i++)
         {
             var e1 = e2;
             var w1 = w2;
             e2 = EdgeVertices.TerraceLerp(begin, end, i);
             w2 = HexMetrics.TerraceLerp(HexMesh.Weights1, HexMesh.Weights2, i);
-            TriangulateEdgeStrip(e1, w1, i1, e2, w2, i2, hasRoad);
+            TriangulateEdgeStrip(e1, w1, i1, e2, w2, i2, hasRoad, simpleStrip);
         }
 
-        TriangulateEdgeStrip(e2, w2, i1, end, HexMesh.Weights2, i2, hasRoad);
+        TriangulateEdgeStrip(e2, w2, i1, end, HexMesh.Weights2, i2, hasRoad, simpleStrip);
     }
 
     private static Vector2[] QuadUv(float uMin, float uMax, float vMin, float vMax) =>
