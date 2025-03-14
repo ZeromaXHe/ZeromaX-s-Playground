@@ -42,7 +42,11 @@ public partial class ChunkManager : Node3D
         _chunkService.RefreshChunk += OnChunkServiceRefreshChunk;
         _chunkService.RefreshChunkTileLabel += OnChunkServiceRefreshChunkTileLabel;
         if (!Engine.IsEditorHint())
+        {
             EventBus.Instance.CameraMoved += UpdateInHorizonChunk;
+            EventBus.Instance.CameraRotated += UpdateInsightChunks;
+            EventBus.Instance.CameraZoomed += UpdateInsightChunks;
+        }
     }
 
     private void ExploreFeatures(int tileId)
@@ -78,7 +82,11 @@ public partial class ChunkManager : Node3D
         EventBus.Instance.ShowFeature -= OnShowFeature;
         EventBus.Instance.HideFeature -= OnHideFeature;
         if (!Engine.IsEditorHint())
+        {
             EventBus.Instance.CameraMoved -= UpdateInHorizonChunk;
+            EventBus.Instance.CameraRotated -= UpdateInsightChunks;
+            EventBus.Instance.CameraZoomed -= UpdateInsightChunks;
+        }
     }
 
     #endregion
@@ -337,11 +345,16 @@ public partial class ChunkManager : Node3D
 
     // 表示当前可视分块 Set 的 _inHorizonChunkIds 索引
     private int _inHorizonSetIdx;
-    private readonly HashSet<int>[] _inHorizonChunkIds = [[], []];
+    private readonly Dictionary<int, bool>[] _inHorizonChunkIds = [[], []];
+    private Dictionary<int, bool> InHorizonChunkIdsNow => _inHorizonChunkIds[_inHorizonSetIdx];
+    private Dictionary<int, bool> InHorizonChunkIdsNext => _inHorizonChunkIds[_inHorizonSetIdx ^ 1];
     private readonly Queue<int> _chunkQueryQueue = [];
     private readonly HashSet<int> _visitedChunkIds = [];
-    private readonly HashSet<int> _rimChunkIds = [];
+    private readonly Dictionary<int, bool> _rimChunkIds = [];
+    private readonly Dictionary<int, bool> _insightChunkIds = [];
     private int _camNearestChunkId;
+
+    private void UpdateInHorizonSetNextIdx() => _inHorizonSetIdx ^= 1;
 
     private void ClearOldDataForDynamicChunks()
     {
@@ -349,9 +362,97 @@ public partial class ChunkManager : Node3D
         _chunkQueryQueue.Clear();
         _visitedChunkIds.Clear();
         _rimChunkIds.Clear();
-        _inHorizonChunkIds[_inHorizonSetIdx].Clear();
+        InHorizonChunkIdsNow.Clear();
         _inHorizonSetIdx = 0;
         _camNearestChunkId = 0;
+    }
+
+    private void UpdateInsightChunks(float delta)
+    {
+        var camera = GetViewport().GetCamera3D();
+        foreach (var (chunkId, _) in _rimChunkIds)
+        {
+            var chunk = _chunkService.GetById(chunkId);
+            _insightChunkIds.Add(chunkId, IsChunkInsight(chunk, camera));
+        }
+
+        foreach (var (chunkId, _) in InHorizonChunkIdsNow)
+        {
+            var chunk = _chunkService.GetById(chunkId);
+            _insightChunkIds.Add(chunkId, IsChunkInsight(chunk, camera));
+        }
+
+        HashSet<int> newRimIds = [];
+        HashSet<int> removeRimIds = [];
+        UpdateInsightChunksInDict(false);
+        UpdateInsightChunksInDict(true);
+        while (newRimIds.Count > 0)
+        {
+            foreach (var chunkId in removeRimIds)
+            {
+                InHorizonChunkIdsNow.Add(chunkId, true);
+                _rimChunkIds.Remove(chunkId);
+            }
+
+            HashSet<int> newRimIds2 = [];
+            foreach (var chunkId in newRimIds)
+            {
+                var chunk = UpdateInsightChunk(chunkId, false, out var nowInsight, false);
+                if (nowInsight)
+                {
+                    removeRimIds.Add(chunkId);
+                    foreach (var neighbor in _chunkService.GetNeighbors(chunk))
+                        if (!_rimChunkIds.ContainsKey(neighbor.Id) && !InHorizonChunkIdsNow.ContainsKey(neighbor.Id))
+                            newRimIds2.Add(neighbor.Id);
+                }
+                else
+                    _rimChunkIds[chunkId] = false;
+            }
+
+            newRimIds = newRimIds2;
+        }
+
+        _insightChunkIds.Clear();
+        return;
+
+        void UpdateInsightChunksInDict(bool rim)
+        {
+            var dict = rim ? _rimChunkIds : InHorizonChunkIdsNow;
+            foreach (var (chunkId, preInsight) in dict)
+            {
+                var chunk = UpdateInsightChunk(chunkId, preInsight, out var nowInsight);
+                if (rim && nowInsight)
+                {
+                    removeRimIds.Add(chunkId);
+                    foreach (var neighbor in _chunkService.GetNeighbors(chunk))
+                        if (!_rimChunkIds.ContainsKey(neighbor.Id) && !InHorizonChunkIdsNow.ContainsKey(neighbor.Id))
+                            newRimIds.Add(neighbor.Id);
+                }
+                else
+                    dict[chunkId] = nowInsight;
+            }
+        }
+
+        Chunk UpdateInsightChunk(int chunkId, bool preInsight, out bool nowInsight, bool cached = true)
+        {
+            var chunk = _chunkService.GetById(chunkId);
+            nowInsight = (cached ? _insightChunkIds[chunkId] : IsChunkInsight(chunk, camera))
+                         || _chunkService.GetNeighbors(chunk).Any(c =>
+                             cached && _insightChunkIds.TryGetValue(c.Id, out var insight)
+                                 ? insight
+                                 : IsChunkInsight(c, camera));
+            switch (preInsight)
+            {
+                case false when nowInsight:
+                    ShowChunk(chunkId);
+                    break;
+                case true when !nowInsight:
+                    _gridChunks[chunkId].HideOutOfSight();
+                    break;
+            }
+
+            return chunk;
+        }
     }
 
     private void UpdateInHorizonChunk(Vector3 pos, float delta)
@@ -362,36 +463,36 @@ public partial class ChunkManager : Node3D
             return;
         _camNearestChunkId = nearestChunkId;
         // GD.Print($"UpdateInsightChunk 当前相机位置：{pos}, Z 方向: {camera.GlobalBasis.Z}");
-        var nextIdx = _inHorizonSetIdx == 0 ? 1 : 0;
         // 隐藏边缘分块
-        foreach (var chunkId in _rimChunkIds)
-            _gridChunks[chunkId].HideOutOfSight();
+        foreach (var (chunkId, preSight) in _rimChunkIds)
+            if (preSight)
+                _gridChunks[chunkId].HideOutOfSight();
         _rimChunkIds.Clear();
 
-        foreach (var preInsightChunkId in _inHorizonChunkIds[_inHorizonSetIdx])
+        foreach (var (preInHorizonChunkId, preSight) in InHorizonChunkIdsNow)
         {
-            var preInsightChunk = _chunkService.GetById(preInsightChunkId);
-            _visitedChunkIds.Add(preInsightChunkId);
+            var preInsightChunk = _chunkService.GetById(preInHorizonChunkId);
+            _visitedChunkIds.Add(preInHorizonChunkId);
             if (!IsChunkInHorizon(preInsightChunk, camera))
             {
                 // 分块不在地平线范围内，隐藏它
-                _gridChunks[preInsightChunkId].HideOutOfSight();
+                _gridChunks[preInHorizonChunkId].HideOutOfSight();
                 continue;
             }
 
-            _inHorizonChunkIds[nextIdx].Add(preInsightChunkId);
+            InHorizonChunkIdsNext.Add(preInHorizonChunkId, preSight);
             // 分块在地平线内，他的邻居才比较可能是在地平线内
             // 将之前不在但现在可能在地平线范围内的 id 加入带查询队列
-            SearchNeighbor(preInsightChunk, _inHorizonChunkIds[_inHorizonSetIdx]);
+            SearchNeighbor2(preInsightChunk, InHorizonChunkIdsNow);
         }
 
         // 有种极端情况，就是新的地平线范围内一个旧地平线范围分块都没有！
         // 这时放开限制进行 BFS，直到找到第一个可见的分块
         // （因为我们认为新位置还是会具有空间上的相近性，BFS 应该会比随便找可见分块更好）
-        if (_inHorizonChunkIds[nextIdx].Count == 0)
+        if (InHorizonChunkIdsNext.Count == 0)
         {
-            foreach (var chunk in _inHorizonChunkIds[_inHorizonSetIdx]
-                         .Select(id => _chunkService.GetById(id)))
+            foreach (var chunk in InHorizonChunkIdsNow
+                         .Select(kv => _chunkService.GetById(kv.Key)))
                 SearchNeighbor(chunk, _visitedChunkIds); // 搜索所有外缘邻居
 
             while (_chunkQueryQueue.Count > 0)
@@ -415,19 +516,19 @@ public partial class ChunkManager : Node3D
             var chunkId = _chunkQueryQueue.Dequeue();
             var chunk = _chunkService.GetById(chunkId);
             if (!IsChunkInHorizon(chunk, camera)) continue;
-            _inHorizonChunkIds[nextIdx].Add(chunkId);
-            ShowChunk(chunkId, true/*IsChunkInsight(chunk, camera)*/);
+            InHorizonChunkIdsNext[chunkId] = false;
             SearchNeighbor(chunk, _visitedChunkIds);
         }
 
         // 清理好各个数据结构，等下一次调用直接使用
         _chunkQueryQueue.Clear();
         _visitedChunkIds.Clear();
-        _inHorizonChunkIds[_inHorizonSetIdx].Clear();
-        _inHorizonSetIdx = nextIdx;
-
-        ShowOutRimChunks();
-
+        InHorizonChunkIdsNow.Clear();
+        UpdateInHorizonSetNextIdx();
+        // 显示外缘分块
+        InitOutRimChunks();
+        // 更新显示视野内的分块
+        UpdateInsightChunks(delta);
 
         return;
 
@@ -436,6 +537,16 @@ public partial class ChunkManager : Node3D
             foreach (var neighbor in _chunkService.GetNeighbors(chunk))
             {
                 if (filterSet.Contains(neighbor.Id)) continue;
+                _chunkQueryQueue.Enqueue(neighbor.Id);
+                _visitedChunkIds.Add(neighbor.Id);
+            }
+        }
+
+        void SearchNeighbor2(Chunk chunk, Dictionary<int, bool> filterDict)
+        {
+            foreach (var neighbor in _chunkService.GetNeighbors(chunk))
+            {
+                if (filterDict.ContainsKey(neighbor.Id)) continue;
                 _chunkQueryQueue.Enqueue(neighbor.Id);
                 _visitedChunkIds.Add(neighbor.Id);
             }
@@ -457,21 +568,18 @@ public partial class ChunkManager : Node3D
     public override void _ExitTree() => CleanEventListeners();
 
     // 显示的分块向外多生成一圈，防止缺失进入视野的边缘瓦片
-    private void ShowOutRimChunks()
+    private void InitOutRimChunks()
     {
-        foreach (var neighbor in from chunkId in _inHorizonChunkIds[_inHorizonSetIdx]
-                 select _chunkService.GetById(chunkId)
-                 into chunk
-                 from neighbor in _chunkService.GetNeighbors(chunk)
-                 where !_inHorizonChunkIds[_inHorizonSetIdx].Contains(neighbor.Id)
-                 select neighbor)
+        foreach (var (chunkId, _) in InHorizonChunkIdsNow)
         {
-            _rimChunkIds.Add(neighbor.Id);
-            ShowChunk(neighbor.Id, true);
+            var chunk = _chunkService.GetById(chunkId);
+            foreach (var neighbor in _chunkService.GetNeighbors(chunk))
+                if (!InHorizonChunkIdsNow.ContainsKey(neighbor.Id))
+                    _rimChunkIds[neighbor.Id] = false;
         }
     }
 
-    private void ShowChunk(int chunkId, bool inSight)
+    private void ShowChunk(int chunkId)
     {
         // 第一次可见时，初始化
         if (_gridChunks[chunkId] == null)
@@ -480,8 +588,7 @@ public partial class ChunkManager : Node3D
             _gridChunks[chunkId] = hexGridChunk;
         }
 
-        if (inSight)
-            _gridChunks[chunkId].ShowInSight();
+        _gridChunks[chunkId].ShowInSight();
     }
 
     public void ClearOldData()
@@ -515,10 +622,11 @@ public partial class ChunkManager : Node3D
             var hexGridChunk = AddChildHexGridChunk(id);
             hexGridChunk.ShowInSight();
             _gridChunks.Add(id, hexGridChunk);
-            _inHorizonChunkIds[_inHorizonSetIdx].Add(id);
+            InHorizonChunkIdsNow.Add(id, false);
         }
 
-        ShowOutRimChunks();
+        InitOutRimChunks();
+        UpdateInsightChunks(0f);
         _camNearestChunkId = _chunkService.SearchNearest(camera.GlobalPosition).Id;
         GD.Print($"InitChunkNodes cost: {Time.GetTicksMsec() - time} ms");
     }

@@ -235,6 +235,7 @@ public partial class OrbitCamera : Node3D
             return false;
         _focusBackStick.RotateY(-Mathf.DegToRad(rotationDelta * _rotationSpeed));
         Zoom = _zoom; // 更新 FocusBackStick 方向
+        EventBus.EmitCameraRotated(rotationDelta);
         return true;
     }
 
@@ -269,6 +270,7 @@ public partial class OrbitCamera : Node3D
         {
             var zoomDelta = 0.025f * e.Factor * (e.ButtonIndex == MouseButton.WheelUp ? 1f : -1f);
             Zoom = Mathf.Clamp(Zoom + zoomDelta, 0f, 1f);
+            EventBus.EmitCameraZoomed(zoomDelta);
         }
     }
 

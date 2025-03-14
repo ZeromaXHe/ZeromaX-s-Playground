@@ -51,20 +51,8 @@ public partial class HexGridChunk : Node3D, IChunk
         _editorService ??= Context.GetBean<IEditorService>();
     }
 
-    private void OnEditorEditModeChanged(bool mode)
-    {
-        switch (mode)
-        {
-            // 开启编辑模式
-            case true when _editorService.LabelMode != 0:
-                RefreshTilesLabelMode(_editorService.LabelMode);
-                break;
-            // 关闭编辑模式
-            case false:
-                RefreshTilesLabelMode(0);
-                break;
-        }
-    }
+    private void OnEditorEditModeChanged(bool mode) =>
+        RefreshTilesLabelMode(mode ? _editorService.LabelMode : 0);
 
     private void CleanEventListeners()
     {

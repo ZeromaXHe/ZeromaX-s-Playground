@@ -1,4 +1,4 @@
-[gd_scene load_steps=30 format=3 uid="uid://duhqmsj87h613"]
+[gd_scene load_steps=29 format=3 uid="uid://duhqmsj87h613"]
 
 [ext_resource type="Script" uid="uid://dgyn1hq02gyv7" path="res://Scenes/HexPlanet/Node/ChunkManager.cs" id="1_8slb6"]
 [ext_resource type="PackedScene" uid="uid://b31wafba56bca" path="res://Scenes/HexPlanet/Node/HexGridChunk.tscn" id="2_vveuy"]
@@ -29,9 +29,6 @@
 [ext_resource type="Material" uid="uid://b1bjot3ucbj8i" path="res://Resources/HexPlanet/HologramShaderMaterial/ShaderMaterial_GrassTerrainHologram.tres" id="27_v8tdp"]
 [ext_resource type="Material" uid="uid://n22gd0xmahwb" path="res://Resources/HexPlanet/HologramShaderMaterial/ShaderMaterial_DesertTerrainHologram.tres" id="28_a7t72"]
 
-[sub_resource type="MultiMesh" id="MultiMesh_jhrhv"]
-transform_format = 1
-
 [node name="ChunkManager" type="Node3D"]
 script = ExtResource("1_8slb6")
 _gridChunkScene = ExtResource("2_vveuy")
@@ -49,9 +46,6 @@ _farmPreviewOverrideMaterial = ExtResource("28_a7t72")
 
 [node name="Urbans" type="Node3D" parent="MultiFeatures"]
 unique_name_in_owner = true
-
-[node name="MultiUrbanLow1" type="MultiMeshInstance3D" parent="MultiFeatures/Urbans"]
-multimesh = SubResource("MultiMesh_jhrhv")
 
 [node name="Farms" type="Node3D" parent="MultiFeatures"]
 unique_name_in_owner = true

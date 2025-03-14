@@ -11,6 +11,14 @@ public class EventBus
 
     public event CameraMovedEvent CameraMoved;
 
+    public delegate void CameraRotatedEvent(float delta);
+
+    public event CameraRotatedEvent CameraRotated;
+
+    public delegate void CameraZoomedEvent(float delta);
+
+    public event CameraZoomedEvent CameraZoomed;
+
     public delegate void NewCameraDestinationEvent(Vector3 posDirection);
 
     public event NewCameraDestinationEvent NewCameraDestination;
@@ -25,6 +33,8 @@ public class EventBus
     public event HideFeatureEvent HideFeature;
 
     public static void EmitCameraMoved(Vector3 pos, float delta) => Instance.CameraMoved?.Invoke(pos, delta);
+    public static void EmitCameraRotated(float delta) => Instance.CameraRotated?.Invoke(delta);
+    public static void EmitCameraZoomed(float delta) => Instance.CameraZoomed?.Invoke(delta);
     public static void EmitNewCameraDestination(Vector3 posDir) => Instance.NewCameraDestination?.Invoke(posDir);
 
     public static int EmitShowFeature(Transform3D transform, FeatureType type, bool preview) =>
