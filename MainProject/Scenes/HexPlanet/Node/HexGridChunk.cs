@@ -49,8 +49,6 @@ public partial class HexGridChunk : Node3D, IChunk
         _tileShaderService ??= Context.GetBean<ITileShaderService>();
         _planetSettingService ??= Context.GetBean<IPlanetSettingService>();
         _editorService ??= Context.GetBean<IEditorService>();
-        _editorService.LabelModeChanged += RefreshTilesLabelMode;
-        _editorService.EditModeChanged += OnEditorEditModeChanged;
     }
 
     private void OnEditorEditModeChanged(bool mode)
@@ -187,6 +185,8 @@ public partial class HexGridChunk : Node3D, IChunk
             WaterShore.Apply();
             Estuary.Apply();
             Features.Apply();
+            if (Visible)
+                Features.ShowFeatures(!EditMode);
             // GD.Print($"Chunk {_id} BuildMesh cost: {Time.GetTicksMsec() - time} ms");
         }
 
@@ -195,4 +195,21 @@ public partial class HexGridChunk : Node3D, IChunk
 
     public void Refresh() => SetProcess(true);
     public void ShowUi(bool show) => _labels.Visible = show;
+
+    public void ShowInSight()
+    {
+        Show();
+        Features.ShowFeatures(!EditMode); // 编辑模式下全部显示，游戏模式下仅显示探索过的
+        OnEditorEditModeChanged(EditMode);
+        _editorService.LabelModeChanged += RefreshTilesLabelMode;
+        _editorService.EditModeChanged += OnEditorEditModeChanged;
+    }
+
+    public void HideOutOfSight()
+    {
+        Hide();
+        Features.HideFeatures(false);
+        _editorService.LabelModeChanged -= RefreshTilesLabelMode;
+        _editorService.EditModeChanged -= OnEditorEditModeChanged;
+    }
 }

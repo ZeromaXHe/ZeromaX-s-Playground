@@ -73,51 +73,61 @@ public static class Math3dUtil
         return sign * angle;
     }
 
-    // 未经检验的实现
-    public static Transform3D PlaceOnSphere(Basis basis, Vector3 position, float scale,
+    public static Transform3D PlaceOnSphere(Basis basis, Vector3 position, Vector3 scale,
         float addHeight = 0, Vector3 alignForward = default)
     {
-        var transform = Transform3D.Identity;
-        transform.Scaled(Vector3.One * scale);
-        transform.Origin = position.Normalized() * (position.Length() + addHeight * scale);
-        return AlignYAxisToDirection(basis, position, alignForward) * transform;
+        var transform = AlignYAxisToDirection(basis, position, alignForward);
+        transform = transform.Scaled(scale);
+        transform.Origin = position.Normalized() * (position.Length() + addHeight * scale.Y);
+        return transform;
     }
 
     /// <summary>
-    /// 对齐基变换的正方向到指定的方向向量。（未经检验的实现）
+    /// 对齐基变换的正方向到指定的方向向量。
     /// </summary>
     /// <param name="basis">基</param>
     /// <param name="direction">目标方向向量</param>
     /// <param name="alignForward">希望对齐向前的方向（不传则默认不调整）</param>
-    public static Transform3D AlignYAxisToDirection(Basis basis, Vector3 direction, Vector3 alignForward = default)
+    /// <param name="global">Y 轴是否使用全局基（注意：全局基模式未经测试）</param>
+    public static Transform3D AlignYAxisToDirection(Basis basis, Vector3 direction, Vector3 alignForward = default,
+        bool global = false)
     {
         var transform = Transform3D.Identity;
         transform.Basis = basis;
         // 确保方向是单位向量
         direction = direction.Normalized();
         // 当前 Y 轴
-        var yAxis = basis.Y;
+        var yAxis = global ? Vector3.Up : basis.Y;
         // 计算旋转轴
         var rotationAxis = yAxis.Cross(direction);
         // 如果旋转轴长度为 0，说明方向相同或相反
         if (rotationAxis.Length() == 0)
         {
+            if (yAxis.Dot(direction) > 0) return transform; // 方向相同
             // 方向相反，绕 X 轴转 180 度
-            if (yAxis.Dot(direction) < 0)
+            if (global)
+                transform.Rotated(Vector3.Right, Mathf.Pi);
+            else
                 transform.RotatedLocal(Vector3.Right, Mathf.Pi);
             return transform;
         }
 
         // 计算旋转角度
         var angle = yAxis.AngleTo(direction);
-        transform.RotatedLocal(rotationAxis.Normalized(), angle);
+        if (global)
+            transform = transform.Rotated(rotationAxis.Normalized(), angle);
+        else
+            transform = transform.RotatedLocal(rotationAxis.Normalized(), angle);
         alignForward = alignForward.Normalized();
         if (alignForward != default && alignForward != direction)
         {
             // 如果有指定向前对齐方向，则对齐向前（-Z）到最近的方向
-            var forward = -transform.Basis.Z;
+            var forward = global ? Vector3.Forward : -transform.Basis.Z;
             var zAngle = GetPlanarAngle(forward, alignForward, direction, true);
-            transform.RotatedLocal(direction, zAngle);
+            if (global)
+                transform = transform.Rotated(direction, zAngle);
+            else
+                transform = transform.RotatedLocal(direction, zAngle);
         }
 
         return transform;

@@ -46,6 +46,10 @@ public partial class EditPreviewChunk : Node3D, IChunk
             WaterShore.Apply();
             Estuary.Apply();
             Features.Apply();
+            if (Visible)
+                Features.ShowFeatures(false);
+            else
+                Features.HideFeatures(false);
             // GD.Print($"EditPreviewChunk BuildMesh cost: {Time.GetTicksMsec() - time} ms");
         }
 

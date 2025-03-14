@@ -6,6 +6,8 @@ public static class Node3dUtil
 {
     public static void PlaceOnSphere(Node3D node, Vector3 position, float scale, float addHeight = 0, Vector3 alignForward = default)
     {
+        // 暂时不知道如何整合 Node3dUtil 和 Math3dUtil 的类似方法
+        // node.Transform = Math3dUtil.PlaceOnSphere(node.Basis, position, Vector3.One * scale, addHeight, alignForward);
         node.Scale = Vector3.One * scale;
         node.Position = position.Normalized() * (position.Length() + addHeight * scale);
         AlignYAxisToDirection(node, position, alignForward);
@@ -21,6 +23,10 @@ public static class Node3dUtil
     public static void AlignYAxisToDirection(Node3D node, Vector3 direction, Vector3 alignForward = default,
         bool global = false)
     {
+        // 暂时不知道如何整合 Node3dUtil 和 Math3dUtil 的类似方法
+        // node.Transform = Math3dUtil.AlignYAxisToDirection(global ? node.GlobalBasis : node.Basis,
+        //     direction, alignForward, global);
+
         // 确保方向是单位向量
         direction = direction.Normalized();
         // 当前 Y 轴
@@ -38,7 +44,7 @@ public static class Node3dUtil
                 node.RotateX(Mathf.Pi);
             return;
         }
-
+        
         // 计算旋转角度
         var angle = yAxis.AngleTo(direction);
         if (global)

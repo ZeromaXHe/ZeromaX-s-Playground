@@ -37,6 +37,18 @@ void vertex() {
 	VERTEX *= 1. + distortion * rand_dist * distortion_strength * max_height / radius;
 	
 	// 使用裁剪视图空间的方式，使得低于地面的全息图也能显示（就是对应 FPS 处理武器穿模的 Shader 代码）
+	// E12 教程视频里的 Godot Shader 流程图：
+	//
+	// Vertex Shader:
+	// 模型/本地空间 Model/Local Space
+	// -(乘以 MODEL_MATRIX)-> 世界/全局空间 World/Global Space ->
+	// -(乘以 VIEW_MATRIX)-> 视图/相机空间 View/Camera Space ->
+	// -(乘以 PROJECTION_MATRIX)-> 剪切空间 Clip Space ->
+	// |-----------------------
+	// -> 透视除法 Perspective Division: vec3 ndc = clip.xyz / clip.w ->
+	// |-----------------------
+	// | Fragment Shader
+	// -> 归一化设备坐标 Normalized Device Coordinates -> 屏幕空间 Screen Space
 	/* VIEW MODEL Z CLIP FIX CODE */
 	if (viewmodel_fov > 0.0) {
 		float onetanfov = 1.0f / tan(0.5f * (viewmodel_fov * PI / 180.0f));
@@ -45,7 +57,8 @@ void vertex() {
 		PROJECTION_MATRIX[1][1] = -onetanfov;
 		PROJECTION_MATRIX[0][0] = onetanfov / aspect;
 	}
-	POSITION = PROJECTION_MATRIX * MODELVIEW_MATRIX * vec4(VERTEX.xyz, 1.0);
+	// 注意我们开启了 world_vertex_coords，所以这里乘 VIEW_MATRIX 而不是 MODELVIEW_MATRIX
+	POSITION = PROJECTION_MATRIX * VIEW_MATRIX * vec4(VERTEX.xyz, 1.0);
 	// Mix 顶点 Z 到超级接近 clip 平面, 仍然留了一点距离
 	//POSITION.z = mix(POSITION.z, 0.0, 0.999); // 老版本。 向 0.0 进行 Mix (接近 z 平面)
 	// 上面代码对于 Godot 4.3 无效，因为 Z 被反转了: https://godotengine.org/article/introducing-reverse-z/

@@ -1,8 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
-using Godot.Collections;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
+using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Enum;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
@@ -11,23 +12,47 @@ using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 
+public enum FeatureType
+{
+    // 城市
+    UrbanHigh1,
+    UrbanHigh2,
+    UrbanMid1,
+    UrbanMid2,
+    UrbanLow1,
+    UrbanLow2,
+
+    // 农田
+    FarmHigh1,
+    FarmHigh2,
+    FarmMid1,
+    FarmMid2,
+    FarmLow1,
+    FarmLow2,
+
+    // 植被
+    PlantHigh1,
+    PlantHigh2,
+    PlantMid1,
+    PlantMid2,
+    PlantLow1,
+    PlantLow2,
+
+    // 特殊
+    Tower,
+    Bridge,
+    Castle,
+    Ziggurat,
+    MegaFlora
+}
+
 [Tool]
 public partial class HexFeatureManager : Node3D
 {
     public HexFeatureManager() => InitServices();
 
-    /// 特征场景
-    /// 这种嵌套的数组不能用 .NET 的 array，必须用 Godot.Collections.Array。否则编辑器编译不通过
-    /// 而且这样写以后，其实编辑器里是判断不了 PackedScene 类型的，必须自己手动选成 Object（Godot.GodotObject 或其他派生类型）再用。
-    [Export] private Array<Array<PackedScene>> _urbanScenes;
-
-    [Export] private Array<Array<PackedScene>> _farmScenes;
-    [Export] private Array<Array<PackedScene>> _plantScenes;
     [Export] private HexMesh _walls;
-    [Export] private PackedScene _wallTowerScene;
-    [Export] private PackedScene _bridgeScene;
-    [Export] private PackedScene[] _specialScenes;
-    [Export] private Material _overrideMaterial;
+    [Export] private bool _preview;
 
     #region 服务
 
@@ -40,64 +65,103 @@ public partial class HexFeatureManager : Node3D
         _noiseService ??= Context.GetBean<INoiseService>();
         _planetSettingService ??= Context.GetBean<IPlanetSettingService>();
         _editorService ??= Context.GetBean<IEditorService>();
-        _editorService.EditModeChanged += ShowUnexploredFeatures;
     }
-
-    private void ShowUnexploredFeatures(bool show)
-    {
-        if (_unexploredContainer.Count <= 0) return;
-        foreach (var feature in _unexploredContainer.Values.SelectMany(list => list))
-            feature.Visible = show;
-    }
-
-    private void CancelEventListeners() =>
-        _editorService.EditModeChanged -= ShowUnexploredFeatures;
 
     #endregion
 
-    private Node3D _container;
+    private static float GetHeight(FeatureType type) =>
+        type switch
+        {
+            // 城市
+            FeatureType.UrbanHigh1 => 2.5f,
+            FeatureType.UrbanHigh2 => 1.5f,
+            FeatureType.UrbanMid1 => 1f,
+            FeatureType.UrbanMid2 => 0.75f,
+            FeatureType.UrbanLow1 => 0.5f,
+            FeatureType.UrbanLow2 => 0.5f,
 
-    private readonly System.Collections.Generic.Dictionary<int, List<Node3D>>
-        _unexploredContainer = new();
+            // 农田
+            FeatureType.FarmHigh1 or FeatureType.FarmHigh2 or FeatureType.FarmMid1
+                or FeatureType.FarmMid2 or FeatureType.FarmLow1 or FeatureType.FarmLow2 => 0.05f,
 
-    public override void _ExitTree() => CancelEventListeners();
+            // 植被
+            FeatureType.PlantHigh1 => 2.25f,
+            FeatureType.PlantHigh2 => 1.5f,
+            FeatureType.PlantMid1 => 1.5f,
+            FeatureType.PlantMid2 => 0.75f,
+            FeatureType.PlantLow1 => 1f,
+            FeatureType.PlantLow2 => 0.5f,
+
+            // 特殊
+            FeatureType.Tower => 2f, // 塔高 4f
+            FeatureType.Bridge => 0.7f, // 0.7f 是桥梁需要略微抬高一点
+            FeatureType.Castle => 2f,
+            FeatureType.Ziggurat => 1.25f,
+            FeatureType.MegaFlora => 5f,
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, "new type no deal")
+        };
+
+    private class Feature(FeatureType type, Transform3D transform)
+    {
+        public readonly FeatureType Type = type;
+        public readonly Transform3D Transform = transform;
+        public bool Explored;
+        public int Id = -1;
+    }
+
+    // 保存分块上所有的特征信息（未来可能下沉到存储库）
+    private readonly Dictionary<int, List<Feature>> _container = new();
+
+    public void HideFeatures(bool onlyUnexplored)
+    {
+        foreach (var (_, list) in _container)
+        foreach (var feature in list.Where(f => f.Id > -1 && (!onlyUnexplored || !f.Explored)))
+        {
+            EventBus.EmitHideFeature(feature.Id, feature.Type, _preview);
+            feature.Id = -1;
+        }
+    }
+
+    public void ShowFeatures(bool onlyExplored)
+    {
+        foreach (var (_, list) in _container)
+        foreach (var feature in list.Where(f => f.Id == -1 && (!onlyExplored || f.Explored)))
+            feature.Id = EventBus.EmitShowFeature(feature.Transform, feature.Type, _preview);
+    }
 
     public void ExploreFeatures(int tileId)
     {
-        if (!_unexploredContainer.TryGetValue(tileId, out var list) || list is not { Count: > 0 }) return;
-        foreach (var unexplored in list)
-            unexplored.Visible = true;
-        _unexploredContainer.Remove(tileId);
+        if (!_container.TryGetValue(tileId, out var list) || list is not { Count: > 0 }) return;
+        foreach (var feature in list.Where(f => !f.Explored))
+        {
+            feature.Explored = true;
+            // 正常情况按道理不应该出现还没探索就有 Id 的情况
+            if (feature.Id == -1)
+                feature.Id = EventBus.EmitShowFeature(feature.Transform, feature.Type, _preview);
+        }
     }
 
     public void Clear()
     {
-        _container?.QueueFree();
-        _container = new Node3D();
-        AddChild(_container);
+        HideFeatures(false);
+        _container.Clear();
         _walls.Clear();
-        _unexploredContainer.Clear();
     }
 
     public void Apply() => _walls.Apply();
 
     public void AddTower(Tile tile, Vector3 left, Vector3 right)
     {
-        var tower = _wallTowerScene.Instantiate<CsgBox3D>();
         var position = (left + right) * 0.5f;
-        Node3dUtil.PlaceOnSphere(tower, position, _planetSettingService.StandardScale, 0.5f * 1.25f * tower.Size.Y);
+        var transform = Math3dUtil.PlaceOnSphere(Basis.Identity, position,
+            Vector3.One * _planetSettingService.StandardScale, GetHeight(FeatureType.Tower));
         var rightDirection = right - left;
-        tower.Rotate(position.Normalized(),
-            tower.Basis.X.SignedAngleTo(rightDirection, position.Normalized()));
-
-        if (_overrideMaterial != null)
-            tower.SetMaterial(_overrideMaterial);
-        _container.AddChild(tower);
-        if (tile.Data.IsExplored) return;
-        if (_unexploredContainer.TryGetValue(tile.Id, out var list))
-            list.Add(tower);
+        transform = transform.Rotated(position.Normalized(),
+            transform.Basis.X.SignedAngleTo(rightDirection, position.Normalized()));
+        if (_container.TryGetValue(tile.Id, out var tileFeatures))
+            tileFeatures.Add(new Feature(FeatureType.Tower, transform));
         else
-            _unexploredContainer.Add(tile.Id, [tower]);
+            _container.Add(tile.Id, [new Feature(FeatureType.Tower, transform)]);
         // 不能采用 instance shader uniform 的解决方案，编辑器里会大量报错：
         // ERROR: servers/rendering/renderer_rd/storage_rd/material_storage.cpp:1791 - Condition "global_shader_uniforms.instance_buffer_pos.has(p_instance)" is true. Returning: -1
         // ERROR: Too many instances using shader instance variables. Increase buffer size in Project Settings.
@@ -108,98 +172,89 @@ public partial class HexFeatureManager : Node3D
     {
         roadCenter1 = _noiseService.Perturb(roadCenter1);
         roadCenter2 = _noiseService.Perturb(roadCenter2);
-        var bridge = _bridgeScene.Instantiate<CsgBox3D>();
         var position = (roadCenter1 + roadCenter2) * 0.5f;
         var length = roadCenter1.DistanceTo(roadCenter2);
         var scale = _planetSettingService.StandardScale;
-        bridge.Scale = new Vector3(length / HexMetrics.BridgeDesignLength, scale, scale); // 沿着桥梁方向拉伸长度（X 轴）
-        bridge.Position =
-            position.Normalized() * (position.Length() + 0.7f * scale * bridge.Size.Y); // 0.7f 是桥梁需要略微抬高一点
-        Node3dUtil.AlignYAxisToDirection(bridge, position);
-        bridge.Rotate(position.Normalized(),
-            bridge.Basis.X.SignedAngleTo(roadCenter2 - roadCenter1, position.Normalized()));
-
-        if (_overrideMaterial != null)
-            bridge.SetMaterial(_overrideMaterial);
-        _container.AddChild(bridge);
-        if (tile.Data.IsExplored) return;
-        if (_unexploredContainer.TryGetValue(tile.Id, out var list))
-            list.Add(bridge);
+        // 缩放需要沿着桥梁方向拉伸长度（X 轴）
+        var transform = Math3dUtil.PlaceOnSphere(Basis.Identity, position,
+            new Vector3(length / HexMetrics.BridgeDesignLength, scale, scale), GetHeight(FeatureType.Bridge));
+        transform = transform.Rotated(position.Normalized(),
+            transform.Basis.X.SignedAngleTo(roadCenter2 - roadCenter1, position.Normalized()));
+        if (_container.TryGetValue(tile.Id, out var tileFeatures))
+            tileFeatures.Add(new Feature(FeatureType.Bridge, transform));
         else
-            _unexploredContainer.Add(tile.Id, [bridge]);
+            _container.Add(tile.Id, [new Feature(FeatureType.Bridge, transform)]);
     }
 
     public void AddSpecialFeature(Tile tile, Vector3 position, HexTileDataOverrider overrider)
     {
-        var instance = _specialScenes[overrider.SpecialIndex(tile) - 1].Instantiate<CsgBox3D>();
+        var specialType = overrider.SpecialIndex(tile) switch
+        {
+            1 => FeatureType.Castle,
+            2 => FeatureType.Ziggurat,
+            3 => FeatureType.MegaFlora,
+            _ => throw new System.Exception($"Special feature index {overrider.SpecialIndex(tile)} is invalid")
+        };
         position = _noiseService.Perturb(position);
-        Node3dUtil.PlaceOnSphere(instance, position, _planetSettingService.StandardScale, 0.5f * instance.Size.Y);
+        var transform = Math3dUtil.PlaceOnSphere(Basis.Identity, position,
+            Vector3.One * _planetSettingService.StandardScale, GetHeight(specialType));
         var hash = _noiseService.SampleHashGrid(position);
-        instance.Rotate(position.Normalized(), hash.E * Mathf.Tau); // 入参 axis 还是得用全局坐标
-
-        if (_overrideMaterial != null)
-            instance.SetMaterial(_overrideMaterial);
-        _container.AddChild(instance);
-        if (tile.Data.IsExplored) return;
-        if (_unexploredContainer.TryGetValue(tile.Id, out var list))
-            list.Add(instance);
+        transform = transform.Rotated(position.Normalized(), hash.E * Mathf.Tau); // 入参 axis 还是得用全局坐标
+        if (_container.TryGetValue(tile.Id, out var tileFeatures))
+            tileFeatures.Add(new Feature(specialType, transform));
         else
-            _unexploredContainer.Add(tile.Id, [instance]);
+            _container.Add(tile.Id, [new Feature(specialType, transform)]);
     }
 
     public void AddFeature(Tile tile, Vector3 position, HexTileDataOverrider overrider)
     {
         if (overrider.IsSpecial(tile)) return;
         var hash = _noiseService.SampleHashGrid(position);
-        var scene = PickScene(_urbanScenes, overrider.UrbanLevel(tile), hash.A, hash.D);
-        var otherScene = PickScene(_farmScenes, overrider.FarmLevel(tile), hash.B, hash.D);
+        var type = PickFeatureSizeType(FeatureType.UrbanHigh1, overrider.UrbanLevel(tile), hash.A, hash.D);
+        var othertype = PickFeatureSizeType(FeatureType.FarmHigh1, overrider.FarmLevel(tile), hash.B, hash.D);
         var usedHash = hash.A;
-        if (scene != null)
+        if (type != null)
         {
-            if (otherScene != null && hash.B < hash.A)
+            if (othertype != null && hash.B < hash.A)
             {
-                scene = otherScene;
+                type = othertype;
                 usedHash = hash.B;
             }
         }
-        else if (otherScene != null)
+        else if (othertype != null)
         {
-            scene = otherScene;
+            type = othertype;
             usedHash = hash.B;
         }
 
-        otherScene = PickScene(_plantScenes, overrider.PlantLevel(tile), hash.C, hash.D);
-        if (scene != null)
+        othertype = PickFeatureSizeType(FeatureType.PlantHigh1, overrider.PlantLevel(tile), hash.C, hash.D);
+        if (type != null)
         {
-            if (otherScene != null && hash.C < usedHash)
-                scene = otherScene;
+            if (othertype != null && hash.C < usedHash)
+                type = othertype;
         }
-        else if (otherScene != null)
-            scene = otherScene;
+        else if (othertype != null)
+            type = othertype;
         else return;
 
-        var instance = scene.Instantiate<CsgBox3D>();
+        var featureType = (FeatureType)type;
         position = _noiseService.Perturb(position);
-        Node3dUtil.PlaceOnSphere(instance, position, _planetSettingService.StandardScale, 0.5f * instance.Size.Y);
-        instance.Rotate(position.Normalized(), hash.E * Mathf.Tau); // 入参 axis 还是得用全局坐标
-
-        if (_overrideMaterial != null)
-            instance.SetMaterial(_overrideMaterial);
-        _container.AddChild(instance);
-        if (tile.Data.IsExplored) return;
-        if (_unexploredContainer.TryGetValue(tile.Id, out var list))
-            list.Add(instance);
+        var transform = Math3dUtil.PlaceOnSphere(Basis.Identity, position,
+            Vector3.One * _planetSettingService.StandardScale, GetHeight(featureType));
+        transform = transform.Rotated(position.Normalized(), hash.E * Mathf.Tau); // 入参 axis 还是得用全局坐标
+        if (_container.TryGetValue(tile.Id, out var tileFeatures))
+            tileFeatures.Add(new Feature(featureType, transform));
         else
-            _unexploredContainer.Add(tile.Id, [instance]);
+            _container.Add(tile.Id, [new Feature(featureType, transform)]);
     }
 
-    private PackedScene PickScene(Array<Array<PackedScene>> scenes, int level, float hash, float choice)
+    private static FeatureType? PickFeatureSizeType(FeatureType baseType, int level, float hash, float choice)
     {
         if (level <= 0) return null;
         var thresholds = _planetSettingService.GetFeatureThreshold(level - 1);
         for (var i = 0; i < thresholds.Length; i++)
             if (hash < thresholds[i])
-                return scenes[i][(int)(choice * scenes[i].Count)];
+                return (FeatureType)(int)baseType + i * 2 + (int)(choice * 2);
         return null;
     }
 

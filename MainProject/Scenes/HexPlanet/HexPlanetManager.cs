@@ -25,6 +25,7 @@ public partial class HexPlanetManager : Node3D
     }
 
     public delegate void NewPlanetGeneratedEvent();
+
     public event NewPlanetGeneratedEvent NewPlanetGenerated;
 
     private float _radius = 100f;

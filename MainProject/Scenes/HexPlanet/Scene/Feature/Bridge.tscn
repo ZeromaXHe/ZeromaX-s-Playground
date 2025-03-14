@@ -4,7 +4,6 @@
 albedo_color = Color(1, 0, 0, 1)
 
 [node name="Bridge" type="CSGBox3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.647119, 0)
 size = Vector3(2, 1, 3)
 material = SubResource("StandardMaterial3D_l1f6h")
 
