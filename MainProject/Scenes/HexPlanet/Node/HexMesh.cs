@@ -2,7 +2,7 @@ using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 

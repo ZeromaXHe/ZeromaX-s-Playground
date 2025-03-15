@@ -4,6 +4,7 @@ using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Enum;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Struct;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
@@ -18,13 +19,6 @@ public interface IChunk
     HexMesh Estuary { get; }
     HexFeatureManager Features { get; }
     HexTileDataOverrider TileDataOverrider { get; }
-}
-
-public enum ChunkLod
-{
-    SimpleHex, // 最简单的六边形 
-    TerracesHex, // 增加台阶
-    Full, // 增加边细分
 }
 
 public class ChunkTriangulation
@@ -51,7 +45,7 @@ public class ChunkTriangulation
     #endregion
 
     private readonly IChunk _chunk;
-    public ChunkLod Lod { get; set; } = ChunkLod.Full;
+    public ChunkLod Lod { get; set; } = ChunkLod.Full; // 默认值是给预览用的
 
     private HexTileDataOverrider Overrider => _chunk.TileDataOverrider;
 
@@ -62,6 +56,17 @@ public class ChunkTriangulation
 
     public void Triangulate(Tile tile)
     {
+        if (Lod == ChunkLod.JustHex)
+        {
+            TriangulateJustHex(tile);
+            return;
+        }
+        if (Lod == ChunkLod.PlaneHex)
+        {
+            TriangulatePlaneHex(tile);
+            return;
+        }
+
         for (var i = 0; i < tile.HexFaceIds.Count; i++)
             Triangulate(tile, i);
         if (!Overrider.IsUnderwater(tile))
@@ -72,6 +77,125 @@ public class ChunkTriangulation
             if (Overrider.IsSpecial(tile))
                 _chunk.Features.AddSpecialFeature(tile,
                     tile.GetCentroid(_planetSettingService.Radius + GetOverrideHeight(tile)), Overrider);
+        }
+    }
+
+    // 仅绘制六边形（无扰动，点平均周围地块高度）
+    private void TriangulateJustHex(Tile tile)
+    {
+        var ids = Vector3.One * tile.Id;
+        var height = GetOverrideHeight(tile);
+        var waterHeight = Overrider.WaterSurfaceY(tile);
+        var preNeighbor = _tileService.GetNeighborByIdx(tile, tile.PreviousIdx(0));
+        var neighbor = _tileService.GetNeighborByIdx(tile, 0);
+        var nextNeighbor = _tileService.GetNeighborByIdx(tile, tile.NextIdx(0));
+        var v0 = Vector3.Zero;
+        var vw0 = Vector3.Zero;
+        for (var i = 0; i < tile.HexFaceIds.Count; i++)
+        {
+            var neighborHeight = GetOverrideHeight(neighbor);
+            var neighborWaterHeight = Overrider.WaterSurfaceY(neighbor);
+            var preHeight = GetOverrideHeight(preNeighbor);
+            var preWaterHeight = Overrider.WaterSurfaceY(preNeighbor);
+            var nextHeight = GetOverrideHeight(nextNeighbor);
+            var nextWaterHeight = Overrider.WaterSurfaceY(nextNeighbor);
+            var avgHeight1 = (preHeight + neighborHeight + height) / 3f;
+            var avgHeight2 = (neighborHeight + nextHeight + height) / 3f;
+            var avgWaterHeight1 = (preWaterHeight + neighborWaterHeight + waterHeight) / 3f;
+            var avgWaterHeight2 = (neighborWaterHeight + nextWaterHeight + waterHeight) / 3f;
+
+            var v1 = _tileService.GetFirstCorner(tile, i, _planetSettingService.Radius + avgHeight1);
+            if (i == 0) v0 = v1;
+            var v2 = _tileService.GetSecondCorner(tile, i, _planetSettingService.Radius + avgHeight2);
+            var vw1 = _tileService.GetFirstCorner(tile, i, _planetSettingService.Radius + avgWaterHeight1);
+            if (i == 0) vw0 = vw1;
+            var vw2 = _tileService.GetSecondCorner(tile, i, _planetSettingService.Radius + avgWaterHeight2);
+
+            if (i > 0 && i < tile.HexFaceIds.Count - 1)
+            {
+                // 绘制地面
+                _chunk.Terrain.AddTriangleUnperturbed([v0, v1, v2],
+                    HexMesh.QuadArr(HexMesh.Weights1, HexMesh.Weights2), tis: ids);
+                // 绘制水面
+                if (Overrider.IsUnderwater(tile))
+                    _chunk.Water.AddTriangleUnperturbed([vw0, vw1, vw2], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
+            }
+            preNeighbor = neighbor;
+            neighbor = nextNeighbor;
+            nextNeighbor = _tileService.GetNeighborByIdx(tile, tile.Next2Idx(i));
+        }
+    }
+
+    // 绘制平面六边形（有高度立面、处理接缝、但无特征、无河流）
+    private void TriangulatePlaneHex(Tile tile)
+    {
+        var ids = Vector3.One * tile.Id;
+        var height = GetOverrideHeight(tile);
+        var waterSurfaceHeight = Overrider.WaterSurfaceY(tile);
+        var v0 = _tileService.GetFirstCorner(tile, 0, _planetSettingService.Radius + height);
+        var v1 = v0;
+        var vw0 = _tileService.GetFirstCorner(tile, 0, _planetSettingService.Radius + waterSurfaceHeight);
+        var vw1 = vw0;
+        for (var i = 0; i < tile.HexFaceIds.Count; i++)
+        {
+            var v2 = _tileService.GetSecondCorner(tile, i, _planetSettingService.Radius + height);
+            var vw2 = _tileService.GetSecondCorner(tile, i, _planetSettingService.Radius + waterSurfaceHeight);
+            var neighbor = _tileService.GetNeighborByIdx(tile, i);
+            var nIds = new Vector3(tile.Id, neighbor.Id, tile.Id);
+            var neighborHeight = GetOverrideHeight(neighbor);
+            var neighborWaterSurfaceHeight = Overrider.WaterSurfaceY(neighbor);
+            // 绘制陆地立面（由高的地块绘制）
+            if (neighborHeight < height)
+            {
+                var vn1 = Math3dUtil.ProjectToSphere(v1, _planetSettingService.Radius + neighborHeight);
+                var vn2 = Math3dUtil.ProjectToSphere(v2, _planetSettingService.Radius + neighborHeight);
+                _chunk.Terrain.AddQuad([v1, v2, vn1, vn2],
+                    HexMesh.QuadArr(HexMesh.Weights1, HexMesh.Weights2), tis: nIds);
+            }
+
+            // 绘制水面立面（由高的水面绘制）
+            if (Overrider.IsUnderwater(tile) && neighborWaterSurfaceHeight < waterSurfaceHeight)
+            {
+                var vnw1 = Math3dUtil.ProjectToSphere(vw1,
+                    _planetSettingService.Radius + neighborWaterSurfaceHeight);
+                var vnw2 = Math3dUtil.ProjectToSphere(vw2,
+                    _planetSettingService.Radius + neighborWaterSurfaceHeight);
+                _chunk.Water.AddQuad([vw1, vw2, vnw1, vnw2],
+                    HexMesh.QuadArr(HexMesh.Weights1, HexMesh.Weights2), tis: nIds);
+            }
+
+            // 处理接缝（目前很粗暴的对所有分块向外绘制到 Solid 边界）
+            if (neighbor.ChunkId != tile.ChunkId)
+            {
+                var vn1 = _tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[i],
+                    _planetSettingService.Radius + neighborHeight, HexMetrics.SolidFactor);
+                var vn2 = _tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[tile.NextIdx(i)],
+                    _planetSettingService.Radius + neighborHeight, HexMetrics.SolidFactor);
+                _chunk.Terrain.AddQuad([v1, v2, vn1, vn2],
+                    HexMesh.QuadArr(HexMesh.Weights1, HexMesh.Weights2), tis: nIds);
+                if (Overrider.IsUnderwater(tile))
+                {
+                    var vnw1 = _tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[i],
+                        _planetSettingService.Radius + neighborWaterSurfaceHeight, HexMetrics.WaterFactor);
+                    var vnw2 = _tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[tile.NextIdx(i)],
+                        _planetSettingService.Radius + neighborWaterSurfaceHeight, HexMetrics.WaterFactor);
+                    _chunk.Water.AddQuad([vw1, vw2, vnw1, vnw2],
+                        HexMesh.QuadArr(HexMesh.Weights1, HexMesh.Weights2), tis: nIds);
+                }
+            }
+
+            if (i > 0 && i < tile.HexFaceIds.Count - 1)
+            {
+                // 绘制地面
+                _chunk.Terrain.AddTriangle([v0, v1, v2],
+                    HexMesh.QuadArr(HexMesh.Weights1, HexMesh.Weights2), tis: ids);
+                // 绘制水面
+                if (Overrider.IsUnderwater(tile))
+                    _chunk.Water.AddTriangle([vw0, vw1, vw2], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
+            }
+
+            v1 = v2;
+            vw1 = vw2;
         }
     }
 

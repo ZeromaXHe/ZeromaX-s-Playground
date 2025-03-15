@@ -3,6 +3,7 @@ using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Struct;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
@@ -62,13 +63,13 @@ public partial class HexGridChunk : Node3D, IChunk
 
     #endregion
 
-    private bool EditMode => _editorService.TileOverrider.EditMode;
-    private int LabelMode => _editorService.LabelMode;
+    private static bool EditMode => _editorService.TileOverrider.EditMode;
+    private static int LabelMode => _editorService.LabelMode;
 
     private int _id;
     private readonly Dictionary<int, HexTileLabel> _tileUis = new();
     private ChunkTriangulation _chunkTriangulation;
-    private bool[] _lodInitialized = new bool[System.Enum.GetValues<ChunkLod>().Length];
+    private readonly bool[] _lodInitialized = new bool[System.Enum.GetValues<ChunkLod>().Length];
 
     public void Init(int id)
     {

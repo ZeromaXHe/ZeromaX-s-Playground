@@ -6,7 +6,7 @@ using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 
@@ -533,7 +533,9 @@ public partial class ChunkManager : Node3D
     private ChunkLod CalcLod(float distance)
     {
         var tileLen = _planetSettingService.Radius / _planetSettingService.Divisions;
-        return distance > tileLen * 20 ? ChunkLod.SimpleHex :
+        return distance > tileLen * 100 ? ChunkLod.JustHex :
+            distance > tileLen * 50 ? ChunkLod.PlaneHex :
+            distance > tileLen * 20 ? ChunkLod.SimpleHex :
             distance > tileLen * 10 ? ChunkLod.TerracesHex : ChunkLod.Full;
     }
 
