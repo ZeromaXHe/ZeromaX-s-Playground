@@ -179,6 +179,7 @@ public partial class OrbitCamera : Node3D
         }
 
         var floatDelta = (float)delta;
+        var transformed = false; // 变换是否发生过改变
         // 相机自动跳转
         if (IsAutoPiloting())
         {
@@ -199,6 +200,7 @@ public partial class OrbitCamera : Node3D
             {
                 LookAt(lookDir, _focusBase.GlobalBasis.Z);
                 EventBus.EmitCameraMoved(GetFocusBasePos(), floatDelta);
+                transformed = true;
             }
 
             // 抵达目的地，取消自动跳转
@@ -208,7 +210,7 @@ public partial class OrbitCamera : Node3D
 
         // 旋转
         var rotationDelta = floatDelta * Input.GetAxis("cam_rotate_left", "cam_rotate_right");
-        var transformed = RotateCamera(rotationDelta);
+        transformed |= RotateCamera(rotationDelta);
         // 移动
         var xDelta = Input.GetAxis("cam_move_left", "cam_move_right");
         var zDelta = Input.GetAxis("cam_move_forward", "cam_move_back");
