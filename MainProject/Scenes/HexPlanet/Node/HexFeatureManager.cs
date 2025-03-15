@@ -193,7 +193,7 @@ public partial class HexFeatureManager : Node3D
             1 => FeatureType.Castle,
             2 => FeatureType.Ziggurat,
             3 => FeatureType.MegaFlora,
-            _ => throw new System.Exception($"Special feature index {overrider.SpecialIndex(tile)} is invalid")
+            _ => throw new Exception($"Special feature index {overrider.SpecialIndex(tile)} is invalid")
         };
         position = _noiseService.Perturb(position);
         var transform = Math3dUtil.PlaceOnSphere(Basis.Identity, position,

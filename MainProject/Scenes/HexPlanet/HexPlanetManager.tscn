@@ -75,6 +75,8 @@ shader_parameter/uv2_offset = Vector3(0, 0, 0)
 
 [node name="HexPlanetManager" type="Node3D"]
 script = ExtResource("1_414p1")
+Divisions = 40
+ChunkDivisions = 10
 _noiseSource = ExtResource("2_w1eb8")
 _unitScene = ExtResource("4_558l3")
 
@@ -107,6 +109,7 @@ material = SubResource("FogMaterial_gfubo")
 
 [node name="OrbitCamera" parent="." node_paths=PackedStringArray("_sun") instance=ExtResource("4_btp1q")]
 unique_name_in_owner = true
+Radius = 150.0
 _sun = NodePath("../SunPivot/SunDist/MeshInstance3D")
 
 [node name="SelectTileViewer" type="MeshInstance3D" parent="."]
@@ -123,7 +126,7 @@ unique_name_in_owner = true
 [node name="HexMapGenerator" parent="." instance=ExtResource("9_nxupj")]
 unique_name_in_owner = true
 _windStrength = 0.0
-_seed = 1270050300
+_seed = -2141987988
 
 [node name="LongitudeLatitude" parent="." instance=ExtResource("11_smp2p")]
 unique_name_in_owner = true

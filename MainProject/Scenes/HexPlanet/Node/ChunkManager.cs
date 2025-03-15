@@ -391,7 +391,7 @@ public partial class ChunkManager : Node3D
 
             InsightChunkIdsNext.Add(preInHorizonChunkId);
             // 刷新 Lod
-            _gridChunks[preInHorizonChunkId].Refresh(CalcLod(preInsightChunk.Pos.DistanceTo(camera.GlobalPosition)));
+            _gridChunks[preInHorizonChunkId].UpdateLod(CalcLod(preInsightChunk.Pos.DistanceTo(camera.GlobalPosition)));
             // 分块在地平线内，他的邻居才比较可能是在地平线内
             // 将之前不在但现在可能在地平线范围内的 id 加入带查询队列
             SearchNeighbor(preInsightChunk, InsightChunkIdsNow);
@@ -532,9 +532,9 @@ public partial class ChunkManager : Node3D
 
     private ChunkLod CalcLod(float distance)
     {
-        var chunkLen = _planetSettingService.Radius / _planetSettingService.ChunkDivisions;
-        return distance > chunkLen * 5 ? ChunkLod.SimpleHex :
-            distance > chunkLen * 3 ? ChunkLod.TerracesHex : ChunkLod.Full;
+        var tileLen = _planetSettingService.Radius / _planetSettingService.Divisions;
+        return distance > tileLen * 20 ? ChunkLod.SimpleHex :
+            distance > tileLen * 10 ? ChunkLod.TerracesHex : ChunkLod.Full;
     }
 
     private HexGridChunk AddChildHexGridChunk(int id)

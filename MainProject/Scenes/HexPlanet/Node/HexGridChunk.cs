@@ -68,6 +68,7 @@ public partial class HexGridChunk : Node3D, IChunk
     private int _id;
     private readonly Dictionary<int, HexTileLabel> _tileUis = new();
     private ChunkTriangulation _chunkTriangulation;
+    private bool[] _lodInitialized = new bool[System.Enum.GetValues<ChunkLod>().Length];
 
     public void Init(int id)
     {
@@ -169,13 +170,15 @@ public partial class HexGridChunk : Node3D, IChunk
 
     private void ApplyNewData()
     {
-        Terrain.Apply();
-        Rivers.Apply();
-        Roads.Apply();
-        Water.Apply();
-        WaterShore.Apply();
-        Estuary.Apply();
-        Features.Apply();
+        var lod = _chunkTriangulation.Lod;
+        _lodInitialized[(int)lod] = true;
+        Terrain.Apply(lod);
+        Rivers.Apply(); // 河流暂时不支持 Lod
+        Roads.Apply(); // 道路暂时不支持 Lod
+        Water.Apply(lod);
+        WaterShore.Apply(lod);
+        Estuary.Apply(lod);
+        Features.Apply(); // 特征暂时无 Lod
     }
 
     private void ClearOldData()
@@ -187,13 +190,23 @@ public partial class HexGridChunk : Node3D, IChunk
         WaterShore.Clear();
         Estuary.Clear();
         Features.Clear();
+        for (var i = 0; i < _lodInitialized.Length; i++)
+            _lodInitialized[i] = false;
     }
 
-    public void Refresh(ChunkLod lod)
+    public void UpdateLod(ChunkLod lod)
     {
         if (lod == _chunkTriangulation.Lod) return;
         _chunkTriangulation.Lod = lod;
-        SetProcess(true);
+        // 如果之前生成过 Lod 网格，直接应用；否则重新生成
+        if (_lodInitialized[(int)lod])
+        {
+            Terrain.ShowLod(lod);
+            Water.ShowLod(lod);
+            WaterShore.ShowLod(lod);
+            Estuary.ShowLod(lod);
+        }
+        else SetProcess(true);
     }
 
     public void Refresh() => SetProcess(true);
@@ -202,8 +215,7 @@ public partial class HexGridChunk : Node3D, IChunk
     public void ShowInSight(ChunkLod lod)
     {
         Show();
-        _chunkTriangulation.Lod = lod;
-        Refresh();
+        UpdateLod(lod);
         Features.ShowFeatures(!EditMode); // 编辑模式下全部显示，游戏模式下仅显示探索过的
         OnEditorEditModeChanged(EditMode);
         _editorService.LabelModeChanged += RefreshTilesLabelMode;
@@ -213,7 +225,6 @@ public partial class HexGridChunk : Node3D, IChunk
     public void HideOutOfSight()
     {
         Hide();
-        ClearOldData();
         _editorService.LabelModeChanged -= RefreshTilesLabelMode;
         _editorService.EditModeChanged -= OnEditorEditModeChanged;
     }

@@ -2,6 +2,7 @@ using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 
@@ -14,8 +15,6 @@ public partial class HexMesh : MeshInstance3D
     [Export] public bool UseUvCoordinates { get; set; }
     [Export] public bool UseUv2Coordinates { get; set; }
     [Export] public bool Smooth { get; set; }
-    private SurfaceTool _surfaceTool = new();
-    private int _vIdx;
 
     #region 服务
 
@@ -27,6 +26,11 @@ public partial class HexMesh : MeshInstance3D
     }
 
     #endregion
+
+    private SurfaceTool _surfaceTool = new();
+    private int _vIdx;
+
+    private Mesh[] _lodMeshes = new Mesh[System.Enum.GetValues<ChunkLod>().Length];
 
     public static readonly Color Weights1 = Colors.Red;
     public static readonly Color Weights2 = Colors.Green;
@@ -40,8 +44,9 @@ public partial class HexMesh : MeshInstance3D
         // 清理之前的碰撞体
         foreach (var child in GetChildren())
             child.QueueFree();
-        _vIdx = 0;
-        _surfaceTool.Clear();
+        // 清理所有的 Lod 网格
+        for (var i = 0; i < _lodMeshes.Length; i++)
+            _lodMeshes[i] = null;
         _surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
         if (!Smooth)
             _surfaceTool.SetSmoothGroup(uint.MaxValue);
@@ -49,14 +54,19 @@ public partial class HexMesh : MeshInstance3D
             _surfaceTool.SetCustomFormat(0, SurfaceTool.CustomFormat.RgbFloat);
     }
 
-    public void Apply()
+    public void Apply(ChunkLod lod = ChunkLod.Full)
     {
         _surfaceTool.GenerateNormals();
         Mesh = _surfaceTool.Commit();
+        _lodMeshes[(int)lod] = Mesh;
         // 仅在游戏中生成碰撞体
         if (!Engine.IsEditorHint() && UseCollider)
             CreateTrimeshCollision();
+        _surfaceTool.Clear(); // 释放 SurfaceTool 中的内存
+        _vIdx = 0;
     }
+
+    public void ShowLod(ChunkLod lod) => Mesh = _lodMeshes[(int)lod];
 
     /// <summary>
     /// 绘制三角形

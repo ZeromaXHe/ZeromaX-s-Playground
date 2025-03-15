@@ -637,7 +637,7 @@ public class ChunkTriangulation
         }
 
         if (Lod > ChunkLod.SimpleHex && Overrider.GetEdgeType(tile, neighbor) == HexEdgeType.Slope)
-            TriangulateEdgeTerraces(e, tile, en, neighbor, hasRoad);
+            TriangulateEdgeTerraces(e, tile, en, neighbor, hasRoad, !hasRiver && Lod < ChunkLod.Full);
         else
             TriangulateEdgeStrip(e, HexMesh.Weights1, tile.Id,
                 en, HexMesh.Weights2, neighbor.Id, hasRoad, !hasRiver && Lod < ChunkLod.Full);
@@ -663,7 +663,7 @@ public class ChunkTriangulation
     {
         var edgeType1 = Overrider.GetEdgeType(bottomTile, leftTile);
         var edgeType2 = Overrider.GetEdgeType(bottomTile, rightTile);
-        if (Lod == ChunkLod.Full)
+        if (Lod > ChunkLod.SimpleHex)
         {
             if (edgeType1 == HexEdgeType.Slope)
             {
@@ -783,24 +783,23 @@ public class ChunkTriangulation
     }
 
     private void TriangulateEdgeTerraces(EdgeVertices begin, Tile beginTile, EdgeVertices end, Tile endTile,
-        bool hasRoad)
+        bool hasRoad, bool simple)
     {
-        var simpleStrip = Lod < ChunkLod.Full;
         var e2 = EdgeVertices.TerraceLerp(begin, end, 1);
         var w2 = HexMetrics.TerraceLerp(HexMesh.Weights1, HexMesh.Weights2, 1);
         var i1 = beginTile.Id;
         var i2 = endTile.Id;
-        TriangulateEdgeStrip(begin, HexMesh.Weights1, i1, e2, w2, i2, hasRoad, simpleStrip);
+        TriangulateEdgeStrip(begin, HexMesh.Weights1, i1, e2, w2, i2, hasRoad, simple);
         for (var i = 2; i < HexMetrics.TerraceSteps; i++)
         {
             var e1 = e2;
             var w1 = w2;
             e2 = EdgeVertices.TerraceLerp(begin, end, i);
             w2 = HexMetrics.TerraceLerp(HexMesh.Weights1, HexMesh.Weights2, i);
-            TriangulateEdgeStrip(e1, w1, i1, e2, w2, i2, hasRoad, simpleStrip);
+            TriangulateEdgeStrip(e1, w1, i1, e2, w2, i2, hasRoad, simple);
         }
 
-        TriangulateEdgeStrip(e2, w2, i1, end, HexMesh.Weights2, i2, hasRoad, simpleStrip);
+        TriangulateEdgeStrip(e2, w2, i1, end, HexMesh.Weights2, i2, hasRoad, simple);
     }
 
     private static Vector2[] QuadUv(float uMin, float uMax, float vMin, float vMax) =>
