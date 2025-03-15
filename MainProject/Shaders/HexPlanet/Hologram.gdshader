@@ -71,7 +71,7 @@ void vertex() {
 void fragment() {
 	float n = mix(0.4, 1., random2_1(SCREEN_UV));
 	float f = fresnel(_fresnel, NORMAL, VIEW);
-	vec2 deep_uv = VERTEX.xy / float(divisions);
+	vec2 deep_uv = VERTEX.xy * float(divisions) / (radius + max_height) / 2.0;
 	// 增加奇偶线
 	vec2 igrid = floor(deep_uv * lines1);
 	float l1 = mod(igrid.y, 2.0);

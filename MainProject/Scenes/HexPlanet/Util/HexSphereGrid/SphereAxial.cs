@@ -144,7 +144,8 @@ public readonly struct SphereAxial
     };
 
     // 获取列索引，从右到左 0 ~ 4
-    public int Column => Type is not TypeEnum.Invalid ? -Coords.Q / Div : -1;
+    public int Column => Type is TypeEnum.PoleVertices && TypeIdx == 1 ? 0 :
+        Type is not TypeEnum.Invalid ? -Coords.Q / Div : -1;
 
     // 获取行索引，从上到下 0 ~ 3
     public int Row => Type switch
@@ -174,7 +175,7 @@ public readonly struct SphereAxial
     public static int Div { get; set; }
 
     public bool IsValid() => Type != TypeEnum.Invalid;
-    
+
     public static bool ValidateAxial(int q, int r)
     {
         // q 在 (-Width, 0] 之间
@@ -336,74 +337,62 @@ public readonly struct SphereAxial
                 case 6:
                 case 7:
                     // sa 在逆斜列上的情况，直接按平面求距离
-                {
                     return Index < sa.Index
                         ? sa.Coords.DistanceTo(Coords)
                         : sa.Coords.DistanceTo(Coords + new AxialCoords(Width, 0));
-                }
                 case 4:
                 case 5:
                 case 10:
                 case 11:
                     // sa 在左边逆斜列的情况
-                    var rotLeft = Coords.RotateLeftAround(new AxialCoords(-(Column + 1) * Div, 0));
-                {
+                    var rotLeft = Coords.RotateCounterClockwiseAround(new AxialCoords(-(Column + 1) * Div, 0));
                     return Index < sa.Index
                         ? sa.Coords.DistanceTo(rotLeft)
                         : sa.Coords.DistanceTo(rotLeft + new AxialCoords(Width, 0));
-                }
                 case 8:
                 case 9:
                     // sa 在左边隔一列的逆斜列的情况
                     var rotLeft2 = Coords
-                        .RotateLeftAround(new AxialCoords(-(Column + 1) * Div, 0))
-                        .RotateLeftAround(new AxialCoords(-(Column + 2) * Div, 0));
-                {
+                        .RotateCounterClockwiseAround(new AxialCoords(-(Column + 1) * Div, 0))
+                        .RotateCounterClockwiseAround(new AxialCoords(-(Column + 2) * Div, 0));
                     return Index < sa.Index
                         ? sa.Coords.DistanceTo(rotLeft2)
                         : sa.Coords.DistanceTo(rotLeft2 + new AxialCoords(Width, 0));
-                }
                 case 14:
                 case 15:
                     // 14，15 是边界情况，可能看作左边隔一列的逆斜列近，也可能看作右边隔一列的斜列近
                     var rot2Left = Coords
-                        .RotateLeftAround(new AxialCoords(-(Column + 1) * Div, 0))
-                        .RotateLeftAround(new AxialCoords(-(Column + 2) * Div, 0));
+                        .RotateCounterClockwiseAround(new AxialCoords(-(Column + 1) * Div, 0))
+                        .RotateCounterClockwiseAround(new AxialCoords(-(Column + 2) * Div, 0));
                     var rot2Right = Coords
-                        .RotateRightAround(new AxialCoords(-Column * Div, 0))
-                        .RotateRightAround(new AxialCoords(-(Column - 1) * Div, 0));
-                {
+                        .RotateClockwiseAround(new AxialCoords(-Column * Div, 0))
+                        .RotateClockwiseAround(new AxialCoords(-(Column - 1) * Div, 0));
                     return Mathf.Min(
                         Index < sa.Index
                             ? sa.Coords.DistanceTo(rot2Left)
                             : sa.Coords.DistanceTo(rot2Left + new AxialCoords(Width, 0)),
                         Index < sa.Index
-                            ? rot2Right.DistanceTo(sa.Coords)
-                            : rot2Right.DistanceTo(sa.Coords + new AxialCoords(Width, 0)));
-                }
+                            ? rot2Right.DistanceTo(sa.Coords + new AxialCoords(Width, 0))
+                            : rot2Right.DistanceTo(sa.Coords));
                 case 12:
                 case 13:
                     // sa 在右边隔一列的斜列的情况
                     var rotRight2 = Coords
-                        .RotateRightAround(new AxialCoords(-Column * Div, 0))
-                        .RotateRightAround(new AxialCoords(-(Column - 1) * Div, 0));
-                {
+                        .RotateClockwiseAround(new AxialCoords(-Column * Div, 0))
+                        .RotateClockwiseAround(new AxialCoords(-(Column - 1) * Div, 0));
                     return Index < sa.Index
-                        ? rotRight2.DistanceTo(sa.Coords)
-                        : rotRight2.DistanceTo(sa.Coords + new AxialCoords(Width, 0));
-                }
+                        ? rotRight2.DistanceTo(sa.Coords + new AxialCoords(Width, 0))
+                        : rotRight2.DistanceTo(sa.Coords);
                 case 16:
                 case 17:
                 case 18:
                 case 19:
                     // sa 在右边斜列上的情况
                     var rotRight = Coords
-                        .RotateRightAround(new AxialCoords(-Column * Div, 0));
-                {
+                        .RotateClockwiseAround(new AxialCoords(-Column * Div, 0));
                     return Index < sa.Index
-                        ? rotRight.DistanceTo(sa.Coords)
-                        : rotRight.DistanceTo(sa.Coords + new AxialCoords(Width, 0));
-                }
+                        ? rotRight.DistanceTo(sa.Coords + new AxialCoords(Width, 0))
+                        : rotRight.DistanceTo(sa.Coords);
             }
         }
         else if (IsSouth5)
@@ -416,72 +405,60 @@ public readonly struct SphereAxial
                 case 3:
                 case 4:
                     // sa 在左边斜列上的情况
-                    var rotLeft = Coords.RotateLeftAround(new AxialCoords(-(Column + 1) * Div, Div));
-                {
+                    var rotLeft = Coords.RotateClockwiseAround(new AxialCoords(-(Column + 1) * Div, Div));
                     return Index < sa.Index
                         ? sa.Coords.DistanceTo(rotLeft)
                         : sa.Coords.DistanceTo(rotLeft + new AxialCoords(Width, 0));
-                }
                 case 7:
                 case 8:
                     // sa 在左边隔一列的斜列上的情况
                     var rotLeft2 = Coords
-                        .RotateLeftAround(new AxialCoords(-(Column + 1) * Div, Div))
-                        .RotateLeftAround(new AxialCoords(-(Column + 2) * Div, Div));
-                {
+                        .RotateClockwiseAround(new AxialCoords(-(Column + 1) * Div, Div))
+                        .RotateClockwiseAround(new AxialCoords(-(Column + 2) * Div, Div));
                     return Index < sa.Index
                         ? sa.Coords.DistanceTo(rotLeft2)
                         : sa.Coords.DistanceTo(rotLeft2 + new AxialCoords(Width, 0));
-                }
                 case 5:
                 case 6:
                     // 5，6 是边界情况，可能看作左边隔一列的逆斜列近，也可能看作右边隔一列的斜列近
                     var rot2Left = Coords
-                        .RotateLeftAround(new AxialCoords(-(Column + 1) * Div, Div))
-                        .RotateLeftAround(new AxialCoords(-(Column + 2) * Div, Div));
+                        .RotateClockwiseAround(new AxialCoords(-(Column + 1) * Div, Div))
+                        .RotateClockwiseAround(new AxialCoords(-(Column + 2) * Div, Div));
                     var rot2Right = Coords
-                        .RotateRightAround(new AxialCoords(-Column * Div, Div))
-                        .RotateRightAround(new AxialCoords(-(Column - 1) * Div, Div));
-                {
-                    return Mathf.Min(
-                        Index < sa.Index
-                            ? sa.Coords.DistanceTo(rot2Left)
-                            : sa.Coords.DistanceTo(rot2Left + new AxialCoords(Width, 0)),
-                        Index < sa.Index
-                            ? rot2Right.DistanceTo(sa.Coords)
-                            : rot2Right.DistanceTo(sa.Coords + new AxialCoords(Width, 0)));
-                }
+                        .RotateCounterClockwiseAround(new AxialCoords(-Column * Div, Div))
+                        .RotateCounterClockwiseAround(new AxialCoords(-(Column - 1) * Div, Div));
+                    var leftDist = Index < sa.Index
+                        ? sa.Coords.DistanceTo(rot2Left)
+                        : sa.Coords.DistanceTo(rot2Left + new AxialCoords(Width, 0));
+                    var rightDist = Index < sa.Index
+                        ? rot2Right.DistanceTo(sa.Coords + new AxialCoords(Width, 0))
+                        : rot2Right.DistanceTo(sa.Coords);
+                    return Mathf.Min(leftDist, rightDist);
                 case 11:
                 case 12:
                     // sa 在右边隔一列的逆斜列上的情况
                     var rotRight2 = Coords
-                        .RotateRightAround(new AxialCoords(-Column * Div, Div))
-                        .RotateRightAround(new AxialCoords(-(Column - 1) * Div, Div));
-                {
+                        .RotateCounterClockwiseAround(new AxialCoords(-Column * Div, Div))
+                        .RotateCounterClockwiseAround(new AxialCoords(-(Column - 1) * Div, Div));
                     return Index < sa.Index
-                        ? rotRight2.DistanceTo(sa.Coords)
-                        : rotRight2.DistanceTo(sa.Coords + new AxialCoords(Width, 0));
-                }
+                        ? rotRight2.DistanceTo(sa.Coords + new AxialCoords(Width, 0))
+                        : rotRight2.DistanceTo(sa.Coords);
                 case 9:
                 case 10:
                 case 15:
                 case 16:
                     // sa 在右边逆斜列上的情况
                     var rotRight = Coords
-                        .RotateRightAround(new AxialCoords(-Column * Div, Div));
-                {
+                        .RotateCounterClockwiseAround(new AxialCoords(-Column * Div, Div));
                     return Index < sa.Index
-                        ? rotRight.DistanceTo(sa.Coords)
-                        : rotRight.DistanceTo(sa.Coords + new AxialCoords(Width, 0));
-                }
+                        ? rotRight.DistanceTo(sa.Coords + new AxialCoords(Width, 0))
+                        : rotRight.DistanceTo(sa.Coords);
                 case 13:
                 case 14:
                     // sa 在逆斜列上的情况，直接按平面求距离
-                {
                     return Index < sa.Index
-                        ? Coords.DistanceTo(sa.Coords)
-                        : Coords.DistanceTo(sa.Coords + new AxialCoords(Width, 0));
-                }
+                        ? Coords.DistanceTo(sa.Coords + new AxialCoords(Width, 0))
+                        : Coords.DistanceTo(sa.Coords);
             }
         }
         else

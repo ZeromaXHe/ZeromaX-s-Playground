@@ -5,6 +5,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util.HexPlaneGrid;
 
 /// <summary>
 /// 轴坐标系（对应 Godot TileMap 里面的 Stairs Right）
+/// S = -Q - R
 /// </summary>
 /// <param name="q"></param>
 /// <param name="r"></param>
@@ -35,22 +36,22 @@ public readonly struct AxialCoords(int q, int r)
     public static AxialCoords operator *(AxialCoords a, int scale) => new(a.Q * scale, a.R * scale);
     public static AxialCoords operator *(int scale, AxialCoords a) => new(a.Q * scale, a.R * scale);
 
-    // 顺时针旋转 60 度
-    public AxialCoords RotateRight() => new(-R, Q + R);
+    // 顺时针旋转 60 度（别用 Right 命名，容易误导圆弧下半部分的思考）
+    public AxialCoords RotateClockwise() => new(-R, Q + R);
 
-    public AxialCoords RotateRightAround(AxialCoords pivot)
+    public AxialCoords RotateClockwiseAround(AxialCoords pivot)
     {
         var vec = this - pivot;
-        return pivot + vec.RotateRight();
+        return pivot + vec.RotateClockwise();
     }
 
-    // 逆时针旋转 60 度
-    public AxialCoords RotateLeft() => new(Q + R, -Q);
+    // 逆时针旋转 60 度（别用 Left 命名，容易误导圆弧下半部分的思考）
+    public AxialCoords RotateCounterClockwise() => new(Q + R, -Q);
 
-    public AxialCoords RotateLeftAround(AxialCoords pivot)
+    public AxialCoords RotateCounterClockwiseAround(AxialCoords pivot)
     {
         var vec = this - pivot;
-        return pivot + vec.RotateLeft();
+        return pivot + vec.RotateCounterClockwise();
     }
 
     /// <summary>

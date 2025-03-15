@@ -109,7 +109,6 @@ material = SubResource("FogMaterial_gfubo")
 
 [node name="OrbitCamera" parent="." node_paths=PackedStringArray("_sun") instance=ExtResource("4_btp1q")]
 unique_name_in_owner = true
-Radius = 150.0
 _sun = NodePath("../SunPivot/SunDist/MeshInstance3D")
 
 [node name="SelectTileViewer" type="MeshInstance3D" parent="."]
@@ -126,7 +125,7 @@ unique_name_in_owner = true
 [node name="HexMapGenerator" parent="." instance=ExtResource("9_nxupj")]
 unique_name_in_owner = true
 _windStrength = 0.0
-_seed = -2141987988
+_seed = -1930160566
 
 [node name="LongitudeLatitude" parent="." instance=ExtResource("11_smp2p")]
 unique_name_in_owner = true

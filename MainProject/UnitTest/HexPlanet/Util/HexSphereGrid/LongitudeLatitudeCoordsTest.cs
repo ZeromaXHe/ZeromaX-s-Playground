@@ -10,7 +10,7 @@ public class LongitudeLatitudeCoordsTest
         // 安排 Arrange
         // 行动 Act
         // 断言 Assert
-        Assert.Equal("W180°00'00\", N88°00'00\"",
+        Assert.Equal("E179°00'00\", N88°00'00\"",
             new LongitudeLatitudeCoords(181f, 88f).ToString());
         Assert.Equal("   0°00'00\",   0°00'00\"",
             new LongitudeLatitudeCoords().ToString());
