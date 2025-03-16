@@ -40,6 +40,11 @@ public partial class HexPlanetManager : Node3D
             if (_ready)
             {
                 _planetSettingService.Radius = _radius;
+                var camAttr = _worldEnvironment.CameraAttributes as CameraAttributesPractical;
+                camAttr?.SetDofBlurFarDistance(_radius);
+                camAttr?.SetDofBlurFarTransition(_radius / 2);
+                camAttr?.SetDofBlurNearDistance(_radius / 10);
+                camAttr?.SetDofBlurNearTransition(_radius / 20);
                 _orbitCamera.Reset();
                 _atmosphereFog.Size = Vector3.One * _radius * 2.7f;
                 _longitudeLatitude.Draw(_radius + _planetSettingService.MaxHeight * 1.25f);
@@ -175,6 +180,7 @@ public partial class HexPlanetManager : Node3D
 
     #region on-ready nodes
 
+    private WorldEnvironment _worldEnvironment;
     private FogVolume _atmosphereFog;
     private ChunkManager _chunkManager;
     private OrbitCamera _orbitCamera;
@@ -186,6 +192,7 @@ public partial class HexPlanetManager : Node3D
 
     private void InitOnReadyNodes()
     {
+        _worldEnvironment = GetNode<WorldEnvironment>("%WorldEnvironment");
         _atmosphereFog = GetNode<FogVolume>("%AtmosphereFog");
         _chunkManager = GetNode<ChunkManager>("%ChunkManager");
         // 此处要求 OrbitCamera 也是 [Tool]，否则编辑器里会转型失败
