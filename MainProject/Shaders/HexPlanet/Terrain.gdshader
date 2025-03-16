@@ -13,6 +13,7 @@ global uniform float radius;
 global uniform float max_height;
 
 #include "HexCellData.gdshaderinc"
+#include "Sebastian/Triplanar.gdshaderinc"
 
 varying vec4 terrain; // 用 varying 在 vertex 和 fragment 间传递数据
 varying vec4 visibility;
@@ -44,20 +45,20 @@ void vertex() {
 	VERTEX = VERTEX / len * mix(len, radius + max_height, 1. - visibility.w);
 }
 
-vec4 GetTerrainColor(vec3 world_pos, int index, vec4 weights, vec4 inVisibility) {
-	vec2 sphere_uv = WorldPosToSphereUV(world_pos);
-	vec3 uvw = vec3(sphere_uv * (2.0 * TILING_SCALE), terrain[index]);
-	vec4 c = texture(main_tex, uvw);
+vec4 GetTerrainColor(vec3 world_pos, vec3 world_normal, int index, vec4 weights, vec4 inVisibility) {
+	vec4 c = triplanarArray(world_pos, world_normal, 10. * TILING_SCALE, main_tex, terrain[index]);
 	return c * (weights[index] * inVisibility[index]);
 }
 
 void fragment() {
 	// 获取世界坐标
-	vec3 world_pos = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	vec3 world_pos = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz; // 位置需位移，补 1.0
+	// 获取世界法线
+	vec3 world_normal = (INV_VIEW_MATRIX * vec4(NORMAL, 0.)).xyz; // 法线向量无需位移，补 0.
 	vec4 inColor = COLOR;
-	vec4 c = GetTerrainColor(world_pos, 0, inColor, visibility) +
-		GetTerrainColor(world_pos, 1, inColor, visibility) +
-		GetTerrainColor(world_pos, 2, inColor, visibility);
+	vec4 c = GetTerrainColor(world_pos, world_normal, 0, inColor, visibility) +
+		GetTerrainColor(world_pos, world_normal, 1, inColor, visibility) +
+		GetTerrainColor(world_pos, world_normal, 2, inColor, visibility);
 	vec3 baseColor = ColorizeSubmergence(c.rgb, length(world_pos) - radius, terrain.w);
 	float explored = visibility.w;
 	// 设置漫反射颜色

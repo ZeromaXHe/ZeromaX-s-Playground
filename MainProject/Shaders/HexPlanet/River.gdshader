@@ -30,5 +30,5 @@ void fragment() {
 	// 设置光滑度
 	ROUGHNESS = 1.0 - glossiness;
 	// 设置透明度
-	ALPHA = c.a * explored;
+	ALPHA = color.a * explored;
 }

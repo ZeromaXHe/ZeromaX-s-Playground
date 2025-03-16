@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3 uid="uid://b31wafba56bca"]
+[gd_scene load_steps=23 format=3 uid="uid://b31wafba56bca"]
 
 [ext_resource type="Script" uid="uid://blowyxjsrl52c" path="res://Scenes/HexPlanet/Node/HexGridChunk.cs" id="1_tueog"]
 [ext_resource type="PackedScene" uid="uid://dx4v3ulf7tnq" path="res://Scenes/HexPlanet/Node/HexTileLabel.tscn" id="2_puro1"]
@@ -12,6 +12,8 @@
 [ext_resource type="Shader" uid="uid://cxl43pwxofyne" path="res://Shaders/HexPlanet/WaterShore.gdshader" id="7_fod8i"]
 [ext_resource type="Shader" uid="uid://bw8jhtgmmfrep" path="res://Shaders/HexPlanet/Estuary.gdshader" id="8_sg70y"]
 [ext_resource type="PackedScene" uid="uid://b13ifb8lsuuab" path="res://Scenes/HexPlanet/Node/HexFeatureManager.tscn" id="9_11vh8"]
+[ext_resource type="Texture2D" uid="uid://i86v4pf78306" path="res://Assets/HexPlanet/Sebastian/Wave A.png" id="10_l7fbp"]
+[ext_resource type="Texture2D" uid="uid://d3wopmsxsdfxp" path="res://Assets/HexPlanet/Sebastian/Wave B.png" id="11_wr4gp"]
 [ext_resource type="Shader" uid="uid://bv0pfy5qktl25" path="res://Shaders/HexPlanet/Wall.gdshader" id="13_eemjk"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_we61a"]
@@ -42,10 +44,13 @@ shader_parameter/specular = 0.2
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ca3lj"]
 render_priority = 8
 shader = ExtResource("6_lmcr6")
-shader_parameter/color = Color(0.117647, 0.572549, 1, 0.752941)
 shader_parameter/main_tex = ExtResource("4_0ithq")
-shader_parameter/glossiness = 0.5
-shader_parameter/specular = 0.2
+shader_parameter/glossiness = 0.9
+shader_parameter/deep_col = Color(0, 0.4, 0.7, 1)
+shader_parameter/shallow_col = Color(0.118, 0.573, 1, 1)
+shader_parameter/dir_to_sun = Vector3(0, 0.397148, -0.917755)
+shader_parameter/wave_normal_A = ExtResource("10_l7fbp")
+shader_parameter/wave_normal_B = ExtResource("11_wr4gp")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_dbpkw"]
 render_priority = 7
