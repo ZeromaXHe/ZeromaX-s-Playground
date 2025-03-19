@@ -16,6 +16,7 @@
    3. **Terraforming**：Copyright (c) 2021 Sebastian Lague，[MIT 许可](https://github.com/SebLague/Terraforming/blob/main/LICENSE)
 3. athillion 的 [ProceduralPlanetGodot](https://github.com/athillion/ProceduralPlanetGodot) 开源项目（Copyright (c) 2022 Athillion Studios，[MIT 许可](https://github.com/athillion/ProceduralPlanetGodot/blob/main/LICENSE)）
 4. Zylann 的 [godot_atmosphere_shader](https://github.com/Zylann/godot_atmosphere_shader) 开源项目与插件（Copyright (c) 2021 Marc Gilleron，[自定义许可证](https://github.com/Zylann/godot_atmosphere_shader/blob/master/LICENSE.md)），以及 [solar_system_demo](https://github.com/Zylann/solar_system_demo) 开源项目（Copyright (c) Marc Gilleron，[自定义许可证](https://github.com/Zylann/solar_system_demo/blob/master/LICENSE.md)）
+   1. 其中，solar_system_demo 中包含了翻译到 Godot 4 的 [SIsilicon 的 Godot-Lens-Flare-Plugin 插件](https://github.com/SIsilicon/Godot-Lens-Flare-Plugin)，（Copyright (c) 2020 SIsilicon，[MIT 许可](https://github.com/SIsilicon/Godot-Lens-Flare-Plugin/blob/master/LICENSE)）
 
 
 
@@ -148,6 +149,7 @@
 
 - [x] **美术效果**：大气层
 - [x] **美术效果**：体积云
+- [ ] ~~HexPlanetManager 不显示特征？但 HexPlanetHud 显示（因为默认 EditMode 为 false，正常现象）~~
 
 ## 2025-03-16
 

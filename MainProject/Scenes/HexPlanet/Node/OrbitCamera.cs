@@ -5,10 +5,14 @@ using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 
+/// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
+/// Author: Zhu XH
+/// Date: 2025-02-17 22:45
 [Tool]
 public partial class OrbitCamera : Node3D
 {
     public OrbitCamera() => InitService();
+    [Export] private Camera3D _camera; // 设置摄像机节点
     private float _radius = 10f;
 
     [Export(PropertyHint.Range, "0.01, 1000, or_greater")]
@@ -81,6 +85,7 @@ public partial class OrbitCamera : Node3D
     private SpotLight3D _light;
     private Node3D _swivel;
     private Node3D _stick;
+    private RemoteTransform3D _camRig; // 对应相机应该在的位置
 
     private void InitOnReadyNodes()
     {
@@ -91,6 +96,9 @@ public partial class OrbitCamera : Node3D
         _light = GetNode<SpotLight3D>("%Light");
         _swivel = GetNode<Node3D>("%Swivel");
         _stick = GetNode<Node3D>("%Stick");
+        _camRig = GetNode<RemoteTransform3D>("%CamRig");
+        if (_camera != null)
+            _camRig.RemotePath = _camRig.GetPathTo(_camera);
         _ready = true;
     }
 

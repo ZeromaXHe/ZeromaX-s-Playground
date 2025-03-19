@@ -19,11 +19,11 @@
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_qqijy"]
 render_priority = 1
 transparency = 1
+albedo_color = Color(6, 3, 1, 1)
 albedo_texture = ExtResource("3_5cymy")
 emission_enabled = true
-emission = Color(1, 1, 1, 1)
+emission = Color(6, 3, 1, 1)
 emission_energy_multiplier = 16.0
-emission_operator = 1
 emission_texture = ExtResource("3_5cymy")
 
 [sub_resource type="SphereMesh" id="SphereMesh_edaov"]
@@ -46,6 +46,9 @@ ambient_light_source = 2
 ambient_light_color = Color(0.0625, 0.0625, 0.0625, 1)
 tonemap_mode = 2
 glow_enabled = true
+glow_intensity = 1.0
+glow_blend_mode = 0
+glow_hdr_threshold = 0.8
 volumetric_fog_density = 0.0
 volumetric_fog_length = 512.0
 
@@ -200,8 +203,9 @@ camera_attributes = SubResource("CameraAttributesPractical_lloi2")
 [node name="ChunkManager" parent="." instance=ExtResource("7_2bryy")]
 unique_name_in_owner = true
 
-[node name="OrbitCamera" parent="." node_paths=PackedStringArray("_sun") instance=ExtResource("4_btp1q")]
+[node name="OrbitCamera" parent="." node_paths=PackedStringArray("_camera", "_sun") instance=ExtResource("4_btp1q")]
 unique_name_in_owner = true
+_camera = NodePath("../Camera3D")
 _sun = NodePath("../SunPivot/SunDist/MeshInstance3D")
 
 [node name="SelectTileViewer" type="MeshInstance3D" parent="."]
@@ -218,7 +222,7 @@ unique_name_in_owner = true
 [node name="HexMapGenerator" parent="." instance=ExtResource("9_nxupj")]
 unique_name_in_owner = true
 _windStrength = 0.0
-_seed = 851353484
+_seed = -78417887
 
 [node name="LongitudeLatitude" parent="." instance=ExtResource("11_smp2p")]
 unique_name_in_owner = true
@@ -256,3 +260,6 @@ shader_params/u_cloud_density_scale = 2.0
 shader_params/u_cloud_bottom = 0.5
 shader_params/u_cloud_top = 1.0
 shader_params/u_cloud_blend = 0.5
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(-1, 6.18173e-08, -6.18173e-08, 8.74228e-08, 0.707107, -0.707107, -3.82137e-15, -0.707107, -0.707107, -7.03524e-07, -8.04738, -108.047)

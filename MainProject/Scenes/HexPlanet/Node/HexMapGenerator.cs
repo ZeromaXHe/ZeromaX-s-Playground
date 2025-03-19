@@ -31,8 +31,8 @@ public partial class HexMapGenerator : Node3D
     [Export(PropertyHint.Range, "0.0, 0.4")]
     private float _sinkProbability = 0.2f;
 
-    [Export(PropertyHint.Range, "-4, 0")] private int _elevationMinimum = 0;
-    [Export(PropertyHint.Range, "6, 10")] private int _elevationMaximum = 10;
+    [Export(PropertyHint.Range, "0, 4")] private int _elevationMinimum = 0;
+    [Export(PropertyHint.Range, "10, 15")] private int _elevationMaximum = 10;
     [Export(PropertyHint.Range, "0, 10")] private int _mapBoardX = 5;
     [Export(PropertyHint.Range, "0, 10")] private int _mapBoardZ = 5;
     [Export(PropertyHint.Range, "0, 10")] private int _regionBorder = 5;
@@ -147,7 +147,11 @@ public partial class HexMapGenerator : Node3D
         GD.Print($"Generating map with seed {_seed}");
         _random.Seed = (ulong)_seed;
         foreach (var tile in _tileService.GetAll())
-            tile.Data = tile.Data with { Values = tile.Data.Values.WithWaterLevel(_waterLevel) };
+            tile.Data = tile.Data with
+            {
+                Values = tile.Data.Values.WithWaterLevel(_waterLevel)
+                    .WithElevation(_elevationMinimum)
+            };
         CreateRegions();
         GD.Print($"--- CreatedRegions in {stopwatch.ElapsedMilliseconds} ms");
         stopwatch.Restart();

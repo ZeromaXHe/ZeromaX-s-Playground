@@ -21,7 +21,7 @@ project/assembly_name="ZeromaX-s Playground Project"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/zylann.atmosphere/tools/plugin.cfg")
+enabled=PackedStringArray("res://addons/SIsilicon.vfx.lens flare/plugin.cfg", "res://addons/zylann.atmosphere/tools/plugin.cfg")
 
 [file_customization]
 

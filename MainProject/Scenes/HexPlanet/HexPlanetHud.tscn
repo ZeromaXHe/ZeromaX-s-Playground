@@ -1,7 +1,8 @@
-[gd_scene load_steps=4 format=3 uid="uid://cbelq6g353rvc"]
+[gd_scene load_steps=5 format=3 uid="uid://cbelq6g353rvc"]
 
 [ext_resource type="Script" uid="uid://b8bgqilvr6phu" path="res://Scenes/HexPlanet/HexPlanetHud.cs" id="1_r2qro"]
 [ext_resource type="PackedScene" uid="uid://cau1rm86t1or4" path="res://Scenes/HexPlanet/HexPlanetManager.tscn" id="2_6efwr"]
+[ext_resource type="Script" uid="uid://voxnbptif4nk" path="res://addons/SIsilicon.vfx.lens flare/lens-flare.gd" id="3_6e88e"]
 [ext_resource type="PackedScene" uid="uid://cpewnyu5aelo4" path="res://Scenes/HexPlanet/Node/MiniMapManager.tscn" id="3_kbj0e"]
 
 [node name="HexPlanetHud" type="Control" node_paths=PackedStringArray("_hexPlanetManager")]
@@ -30,6 +31,14 @@ size = Vector2i(1152, 648)
 render_target_update_mode = 4
 
 [node name="HexPlanetManager" parent="SubViewportContainer/SubViewport" instance=ExtResource("2_6efwr")]
+
+[node name="LensFlare" type="Node" parent="SubViewportContainer/SubViewport"]
+script = ExtResource("3_6e88e")
+flareStrength = 4.0
+flareBias = 0.01
+ghostSpacing = 0.167
+haloWidth = 0.266
+enabled = false
 
 [node name="LeftPanel" type="PanelContainer" parent="."]
 custom_minimum_size = Vector2(180, 0)

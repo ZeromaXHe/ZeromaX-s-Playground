@@ -124,7 +124,7 @@ void fragment() {
 	float explored = visibility.y;
 	// 设置输出
 	ALBEDO = water_col * visibility.x;
-	SPECULAR = 0.4 * explored;
+	SPECULAR = 0.15 * explored;
 	AO = explored;
 	ROUGHNESS = 1.0 - glossiness;
 	ALPHA = water_alpha * explored;
