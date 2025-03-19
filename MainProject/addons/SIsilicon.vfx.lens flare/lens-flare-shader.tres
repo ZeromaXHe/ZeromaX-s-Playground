@@ -18,7 +18,7 @@ height = 1
 noise = SubResource("FastNoiseLite_8wa0s")
 
 [resource]
-render_priority = 0
+render_priority = 12
 shader = ExtResource("1_sned2")
 shader_parameter/lod = 2.0
 shader_parameter/stretch_to_aspect = 0.5
