@@ -8,6 +8,9 @@ using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Struct;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 
+/// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
+/// Author: Zhu XH
+/// Date: 2025-02-12 21:07
 [Tool]
 public partial class HexPlanetManager : Node3D
 {
@@ -46,7 +49,11 @@ public partial class HexPlanetManager : Node3D
                 camAttr?.SetDofBlurNearDistance(_radius / 10);
                 camAttr?.SetDofBlurNearTransition(_radius / 20);
                 _orbitCamera.Reset();
-                _atmosphereFog.Size = Vector3.One * _radius * 2.7f;
+                var groundSphere = _groundPlaceHolder.Mesh as SphereMesh;
+                groundSphere?.SetRadius(_radius * 0.99f);
+                groundSphere?.SetHeight(_radius * 1.98f);
+                _planetAtmosphere.Set("planet_radius", _radius);
+                _planetAtmosphere.Set("atmosphere_height", _radius * 0.25f);
                 _longitudeLatitude.Draw(_radius + _planetSettingService.MaxHeight * 1.25f);
             }
         }
@@ -181,7 +188,8 @@ public partial class HexPlanetManager : Node3D
     #region on-ready nodes
 
     private WorldEnvironment _worldEnvironment;
-    private FogVolume _atmosphereFog;
+    private Node3D _planetAtmosphere; // 大气层插件的 GDScript 节点
+    private MeshInstance3D _groundPlaceHolder; // 球面占位网格
     private ChunkManager _chunkManager;
     private OrbitCamera _orbitCamera;
     private MeshInstance3D _selectTileViewer;
@@ -193,7 +201,8 @@ public partial class HexPlanetManager : Node3D
     private void InitOnReadyNodes()
     {
         _worldEnvironment = GetNode<WorldEnvironment>("%WorldEnvironment");
-        _atmosphereFog = GetNode<FogVolume>("%AtmosphereFog");
+        _planetAtmosphere = GetNode<Node3D>("%PlanetAtmosphere");
+        _groundPlaceHolder = GetNode<MeshInstance3D>("%GroundPlaceHolder");
         _chunkManager = GetNode<ChunkManager>("%ChunkManager");
         // 此处要求 OrbitCamera 也是 [Tool]，否则编辑器里会转型失败
         _orbitCamera = GetNode<OrbitCamera>("%OrbitCamera");

@@ -1,6 +1,21 @@
 # 灵感
 
 1. 自发光 Shader 可以参考[全息图着色器](https://www.bilibili.com/video/BV18e41197Yz)，用来做地球暗面的城市灯光？
+1. 颜色选择时用 RAW 可以选超过 (1, 1, 1) 的值！
+
+
+
+# 致谢
+
+排名不分先后
+
+1. Jasper Flick 的 [Catlike Coding 教程](https://catlikecoding.com/)（尤其是六边形地图教程，以及其他相关游戏开发教程。Copyright 2022 Jasper Flick，基于 [MIT0 许可](https://catlikecoding.com/unity/tutorials/license/)）
+2. [Sebastian Lague](https://github.com/SebLague) 编程冒险等系列视频和开源项目
+   1. **Solar-System**：Copyright (c) 2020 Sebastian Lague, [MIT 许可](https://github.com/SebLague/Solar-System/blob/Development/LICENSE)
+   2. **Geographical-Adventures**：Copyright (c) 2024 Sebastian Lague，[MIT 许可](https://github.com/SebLague/Geographical-Adventures/blob/main/LICENSE)
+   3. **Terraforming**：Copyright (c) 2021 Sebastian Lague，[MIT 许可](https://github.com/SebLague/Terraforming/blob/main/LICENSE)
+3. athillion 的 [ProceduralPlanetGodot](https://github.com/athillion/ProceduralPlanetGodot) 开源项目（Copyright (c) 2022 Athillion Studios，[MIT 许可](https://github.com/athillion/ProceduralPlanetGodot/blob/main/LICENSE)）
+4. Zylann 的 [godot_atmosphere_shader](https://github.com/Zylann/godot_atmosphere_shader) 开源项目与插件（Copyright (c) 2021 Marc Gilleron，[自定义许可证](https://github.com/Zylann/godot_atmosphere_shader/blob/master/LICENSE.md)），以及 [solar_system_demo](https://github.com/Zylann/solar_system_demo) 开源项目（Copyright (c) Marc Gilleron，[自定义许可证](https://github.com/Zylann/solar_system_demo/blob/master/LICENSE.md)）
 
 
 
@@ -25,6 +40,28 @@
 
 1. **格式字符串**：
    1. 标准数字格式字符串：https://learn.microsoft.com/zh-cn/dotnet/standard/base-types/standard-numeric-format-strings
+
+## 计算着色器
+
+1. 关键 API：
+
+   1. **RenderSceneData**：
+      1. get_cam_projection() 返回用于渲染该帧的相机投影。
+      2. get_cam_transform() 返回用于渲染该帧的相机变换。
+      3. get_view_projection(view) 返回用于渲染该帧的每个视图的视图投影。
+   2. **RenderSceneBuffersRD**:
+      1. RID get_color_texture(msaa: bool = false) 返回渲染 3D 内容的颜色纹理。如果使用多视图，这将是一个包含所有视图的纹理数组。
+      2. RID get_depth_texture(msaa: bool = false) 返回渲染 3D 内容的深度纹理。如果使用多视图，这将是一个包含所有视图的纹理数组。
+
+2. 逆视图空间矩阵
+
+   ```gdscript
+   var proj_correction := Projection().create_depth_correction(true)
+   var inv_projection_matrix := (proj_correction * scn_data.get_cam_projection()).inverse()
+   var inv_view_matrix := Projection(scn_data.get_cam_transform())
+   ```
+
+   
 
 # TODO
 
@@ -99,11 +136,6 @@
 
 
 
-- [ ] **美术效果**：大气层
-- [ ] **美术效果**：体积云
-
-
-
 - [ ] 生成高和低于100半径星球时的最大高度、地表特征异常 bug fix
 - [ ] 低半径时分块显示不出来 bug fix
 - [ ] 事件的内存泄漏问题（相应对象一直在增加），新建星球时卡顿问题（从大星球开始，即使生成很小的星球也会卡）
@@ -111,6 +143,11 @@
 
 
 # 已完成
+
+## 2025-03-19
+
+- [x] **美术效果**：大气层
+- [x] **美术效果**：体积云
 
 ## 2025-03-16
 

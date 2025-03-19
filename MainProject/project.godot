@@ -19,6 +19,10 @@ config/icon="res://icon.svg"
 
 project/assembly_name="ZeromaX-s Playground Project"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/zylann.atmosphere/tools/plugin.cfg")
+
 [file_customization]
 
 folder_colors={
@@ -26,7 +30,8 @@ folder_colors={
 "res://Demo/": "orange",
 "res://Resources/": "pink",
 "res://Scenes/": "green",
-"res://Shaders/": "purple"
+"res://Shaders/": "purple",
+"res://addons/": "gray"
 }
 
 [input]

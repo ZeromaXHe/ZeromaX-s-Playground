@@ -35,7 +35,7 @@ void vertex() {
 	float rand_time = random(TIME);
 	rand_dist = step(rand_time, 1. - distortion_percentage);
 	VERTEX *= 1. + distortion * rand_dist * distortion_strength * max_height / radius;
-	
+
 	// 使用裁剪视图空间的方式，使得低于地面的全息图也能显示（就是对应 FPS 处理武器穿模的 Shader 代码）
 	// E12 教程视频里的 Godot Shader 流程图：
 	//
@@ -83,7 +83,7 @@ void fragment() {
 	float l2 = random(igrid2.y);
 	l2 = step(0.2, l2);
 	l2 = mix(0.2, 1.0, l2);
-	
+
 	float m = f * n * l1 * l2;
 	ALPHA = m;
 	ALBEDO = color * mix(_emission_min, _emission_max, rand_dist); // 变形时高亮

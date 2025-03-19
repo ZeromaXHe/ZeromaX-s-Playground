@@ -21,6 +21,9 @@ public interface IChunk
     HexTileDataOverrider TileDataOverrider { get; }
 }
 
+/// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
+/// Author: Zhu XH
+/// Date: 2025-03-09 14:19
 public class ChunkTriangulation
 {
     public ChunkTriangulation(IChunk chunk)
@@ -61,6 +64,7 @@ public class ChunkTriangulation
             TriangulateJustHex(tile);
             return;
         }
+
         if (Lod == ChunkLod.PlaneHex)
         {
             TriangulatePlaneHex(tile);
@@ -120,6 +124,7 @@ public class ChunkTriangulation
                 if (Overrider.IsUnderwater(tile))
                     _chunk.Water.AddTriangleUnperturbed([vw0, vw1, vw2], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
             }
+
             preNeighbor = neighbor;
             neighbor = nextNeighbor;
             nextNeighbor = _tileService.GetNeighborByIdx(tile, tile.Next2Idx(i));
@@ -727,7 +732,8 @@ public class ChunkTriangulation
         var neighborHeight = GetOverrideHeight(neighbor);
         // 连接将由更低的地块或相同高度时 Id 更大的地块生成，或者是编辑地块与非编辑地块间的连接
         if ((tileHeight > neighborHeight
-             || (Mathf.Abs(tileHeight - neighborHeight) < 0.0001f && tile.Id < neighbor.Id))
+             || (Mathf.Abs(tileHeight - neighborHeight) < 0.0001f * _planetSettingService.StandardScale
+                 && tile.Id < neighbor.Id))
             && !Overrider.IsOverridingTileConnection(tile, neighbor)) return;
         var vn1 = _tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[idx],
             _planetSettingService.Radius + neighborHeight, HexMetrics.SolidFactor);
@@ -772,7 +778,8 @@ public class ChunkTriangulation
         var preNeighborHeight = GetOverrideHeight(preNeighbor);
         // 连接角落的三角形由周围 3 个地块中最低或者一样高时 Id 最大的生成，或者是编辑地块与非编辑地块间的连接三角形
         if (tileHeight < preNeighborHeight
-            || (Mathf.Abs(tileHeight - preNeighborHeight) < 0.0001f && tile.Id > preNeighbor.Id)
+            || (Mathf.Abs(tileHeight - preNeighborHeight) < 0.0001f * _planetSettingService.StandardScale
+                && tile.Id > preNeighbor.Id)
             || Overrider.IsOverridingTileConnection(tile, preNeighbor))
         {
             var vpn = _tileService.GetCornerByFaceId(preNeighbor, tile.HexFaceIds[idx],
