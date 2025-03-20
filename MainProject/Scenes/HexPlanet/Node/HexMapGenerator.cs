@@ -5,41 +5,52 @@ using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node.LandGenerators;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
 
+public enum LandGeneratorType
+{
+    CatlikeCodingErosion, // 随机升降土地，然后应用侵蚀算法
+    SebastianFractalNoise, // 叠加的分形噪声
+}
+
+public class MapRegion
+{
+    public int[] IcosahedronId;
+}
+
+/// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
+/// Author: Zhu XH
+/// Date: 2025-03-04 12:03
 [Tool]
 public partial class HexMapGenerator : Node3D
 {
     public HexMapGenerator() => InitServices();
-    [Export(PropertyHint.Range, "0, 0.5")] private float _jitterProbability = 0.25f;
 
-    [Export(PropertyHint.Range, "20, 200")]
-    private int _chunkSizeMin = 30;
+    [Export(PropertyHint.Range, "1, 5")]
+    public int DefaultWaterLevel
+    {
+        get => _planetSettingService.DefaultWaterLevel;
+        set => _planetSettingService.DefaultWaterLevel = value;
+    }
 
-    [Export(PropertyHint.Range, "20, 200")]
-    private int _chunkSizeMax = 100;
+    [Export(PropertyHint.Range, "10, 15")]
+    public int ElevationStep
+    {
+        get => _planetSettingService.ElevationStep;
+        set => _planetSettingService.ElevationStep = value;
+    }
 
-    [Export(PropertyHint.Range, "5, 95")] private int _landPercentage = 50;
-    [Export(PropertyHint.Range, "1, 5")] private int _waterLevel = 5;
-
-    [Export(PropertyHint.Range, "0.0, 1.0")]
-    private float _highRiseProbability = 0.25f;
-
-    [Export(PropertyHint.Range, "0.0, 0.4")]
-    private float _sinkProbability = 0.2f;
-
-    [Export(PropertyHint.Range, "0, 4")] private int _elevationMinimum = 0;
-    [Export(PropertyHint.Range, "10, 15")] private int _elevationMaximum = 10;
     [Export(PropertyHint.Range, "0, 10")] private int _mapBoardX = 5;
     [Export(PropertyHint.Range, "0, 10")] private int _mapBoardZ = 5;
     [Export(PropertyHint.Range, "0, 10")] private int _regionBorder = 5;
     [Export(PropertyHint.Range, "1, 4")] private int _regionCount = 1;
-    [Export(PropertyHint.Range, "0, 100")] private int _erosionPercentage = 50;
+    [Export] private LandGeneratorType _landGeneratorType = LandGeneratorType.CatlikeCodingErosion;
 
-    [Export(PropertyHint.Range, "0.0, 1.0")]
+    [ExportSubgroup("水循环设置")] [Export(PropertyHint.Range, "0.0, 1.0")]
     private float _evaporationFactor = 0.5f;
 
     [Export(PropertyHint.Range, "0.0, 1.0")]
@@ -51,7 +62,7 @@ public partial class HexMapGenerator : Node3D
     [Export(PropertyHint.Range, "0.0, 1.0")]
     private float _seepageFactor = 0.125f;
 
-    [Export] private int _windDirection; // 需要改成 enum
+    [Export(PropertyHint.Range, "0, 5")] private int _windDirection; // 需要改成 enum
 
     [Export(PropertyHint.Range, "1.0, 10.0")]
     private float _windStrength = 4;
@@ -73,7 +84,7 @@ public partial class HexMapGenerator : Node3D
     [Export(PropertyHint.Range, "0.0, 1.0")]
     private float _temperatureJitter = 0.1f;
 
-    [Export] private bool _useFixedSeed = false;
+    [ExportSubgroup("生成种子")] [Export] private bool _useFixedSeed = false;
 
     [Export(PropertyHint.Range, "0, 2147483647")]
     private int _seed = 0;
@@ -81,10 +92,6 @@ public partial class HexMapGenerator : Node3D
     private int _landTileCount;
     private RandomNumberGenerator _random = new();
 
-    private class MapRegion
-    {
-        public int[] IcosahedronId;
-    }
 
     private readonly List<MapRegion> _regions = [];
 
@@ -112,22 +119,38 @@ public partial class HexMapGenerator : Node3D
         new Biome(0, 0), new Biome(1, 1), new Biome(1, 2), new Biome(1, 3)
     ];
 
+    #region on-ready 节点
+
+    private CatlikeCodingErosionLandGenerator _erosionLandGenerator;
+    private SebastianFractalNoiseLandGenerator _fractalNoiseLandGenerator;
+
+    private void InitOnReadyNodes()
+    {
+        _erosionLandGenerator = GetNode<CatlikeCodingErosionLandGenerator>("%CatlikeCodingErosionLandGenerator");
+        _fractalNoiseLandGenerator = GetNode<SebastianFractalNoiseLandGenerator>("%SebastianFractalNoiseLandGenerator");
+    }
+
+    #endregion
+
     #region 服务
 
     private ITileService _tileService;
-    private ITileSearchService _tileSearchService;
     private INoiseService _noiseService;
     private IPlanetSettingService _planetSettingService;
 
     private void InitServices()
     {
         _tileService = Context.GetBean<ITileService>();
-        _tileSearchService = Context.GetBean<ITileSearchService>();
         _noiseService = Context.GetBean<INoiseService>();
         _planetSettingService = Context.GetBean<IPlanetSettingService>();
     }
 
     #endregion
+
+    public override void _Ready()
+    {
+        InitOnReadyNodes();
+    }
 
     public void GenerateMap()
     {
@@ -149,20 +172,28 @@ public partial class HexMapGenerator : Node3D
         foreach (var tile in _tileService.GetAll())
             tile.Data = tile.Data with
             {
-                Values = tile.Data.Values.WithWaterLevel(_waterLevel)
-                    .WithElevation(_elevationMinimum)
+                Values = tile.Data.Values.WithWaterLevel(DefaultWaterLevel).WithElevation(0)
             };
-        CreateRegions();
-        GD.Print($"--- CreatedRegions in {stopwatch.ElapsedMilliseconds} ms");
-        stopwatch.Restart();
+        if (_landGeneratorType == LandGeneratorType.CatlikeCodingErosion)
+        {
+            CreateRegions();
+            GD.Print($"--- CreatedRegions in {stopwatch.ElapsedMilliseconds} ms");
+            stopwatch.Restart();
 
-        CreateLand();
-        GD.Print($"--- CreatedLand in {stopwatch.ElapsedMilliseconds} ms");
-        stopwatch.Restart();
+            _landTileCount = _erosionLandGenerator.CreateLand(_random, _regions);
+            GD.Print($"--- CreatedLand in {stopwatch.ElapsedMilliseconds} ms");
+            stopwatch.Restart();
 
-        ErodeLand();
-        GD.Print($"--- ErodeLand in {stopwatch.ElapsedMilliseconds} ms");
-        stopwatch.Restart();
+            _erosionLandGenerator.ErodeLand(_random);
+            GD.Print($"--- ErodeLand in {stopwatch.ElapsedMilliseconds} ms");
+            stopwatch.Restart();
+        }
+        else
+        {
+            _landTileCount = _fractalNoiseLandGenerator.CreateLand(_random);
+            GD.Print($"--- CreatedLand in {stopwatch.ElapsedMilliseconds} ms");
+            stopwatch.Restart();
+        }
 
         CreateClimate();
         GD.Print($"--- CreateClimate in {stopwatch.ElapsedMilliseconds} ms");
@@ -185,60 +216,6 @@ public partial class HexMapGenerator : Node3D
         var borderX = _regionBorder;
         var region = new MapRegion();
         _regions.Add(region);
-    }
-
-    private void ErodeLand()
-    {
-        var erodibleTiles = _tileService.GetAll().Where(IsErodible).ToList();
-        var targetErodibleCount = (int)(erodibleTiles.Count * (100 - _erosionPercentage) * 0.01f);
-        while (erodibleTiles.Count > targetErodibleCount)
-        {
-            var index = _random.RandiRange(0, erodibleTiles.Count - 1);
-            var tile = erodibleTiles[index];
-            var targetTile = GetErosionTarget(tile);
-            tile.Data = tile.Data with { Values = tile.Data.Values.WithElevation(tile.Data.Elevation - 1) };
-            targetTile.Data = targetTile.Data with
-            {
-                Values = targetTile.Data.Values.WithElevation(targetTile.Data.Elevation + 1)
-            };
-            if (!IsErodible(tile))
-            {
-                var lastIndex = erodibleTiles.Count - 1;
-                erodibleTiles[index] = erodibleTiles[lastIndex];
-                erodibleTiles.RemoveAt(lastIndex);
-            }
-
-            foreach (var neighbor in _tileService.GetNeighbors(tile))
-            {
-                if (neighbor.Data.Elevation == tile.Data.Elevation + 2 && !erodibleTiles.Contains(neighbor))
-                    erodibleTiles.Add(neighbor);
-            }
-
-            if (IsErodible(targetTile) && !erodibleTiles.Contains(targetTile))
-                erodibleTiles.Add(targetTile);
-            foreach (var neighbor in _tileService.GetNeighbors(targetTile))
-            {
-                // 有一个台阶上去就不是悬崖孤台了
-                if (neighbor.Data.Elevation == targetTile.Data.Elevation + 1 && !IsErodible(neighbor))
-                    erodibleTiles.Remove(neighbor);
-            }
-        }
-    }
-
-    private bool IsErodible(Tile tile)
-    {
-        var erodibleElevation = tile.Data.Elevation - 2;
-        return _tileService.GetNeighbors(tile)
-            .Any(neighbor => neighbor.Data.Elevation <= erodibleElevation);
-    }
-
-    private Tile GetErosionTarget(Tile tile)
-    {
-        var erodibleElevation = tile.Data.Elevation - 2;
-        var candidates = _tileService.GetNeighbors(tile)
-            .Where(neighbor => neighbor.Data.Elevation <= erodibleElevation)
-            .ToList();
-        return candidates[_random.RandiRange(0, candidates.Count - 1)];
     }
 
     private void CreateClimate()
@@ -279,7 +256,7 @@ public partial class HexMapGenerator : Node3D
         var precipitation = tileClimate.Clouds * _precipitationFactor;
         tileClimate.Clouds -= precipitation;
         tileClimate.Moisture += precipitation;
-        var cloudMaximum = 1f - tile.Data.ViewElevation / (_elevationMaximum + 1f);
+        var cloudMaximum = 1f - tile.Data.ViewElevation / (ElevationStep + 1f);
         if (tileClimate.Clouds > cloudMaximum)
         {
             tileClimate.Moisture += tileClimate.Clouds - cloudMaximum;
@@ -328,7 +305,8 @@ public partial class HexMapGenerator : Node3D
         {
             if (tile.Data.IsUnderwater) continue;
             var data = _climate[tile.Id];
-            var weight = data.Moisture * (tile.Data.Elevation - _waterLevel) / (_elevationMaximum - _waterLevel);
+            var weight = data.Moisture * (tile.Data.Elevation - DefaultWaterLevel) /
+                         (ElevationStep - DefaultWaterLevel);
             if (weight > 0.75f)
             {
                 riverOrigins.Add(tile);
@@ -446,7 +424,7 @@ public partial class HexMapGenerator : Node3D
     private void SetTerrainType()
     {
         _temperatureJitterChannel = _random.RandiRange(0, 3);
-        var rockDesertElevation = _elevationMaximum - (_elevationMaximum - _waterLevel) / 2;
+        var rockDesertElevation = ElevationStep - (ElevationStep - DefaultWaterLevel) / 2;
         foreach (var tile in _tileService.GetAll())
         {
             var temperature = DetermineTemperature(tile);
@@ -469,7 +447,7 @@ public partial class HexMapGenerator : Node3D
                         tileBiome.Terrain = 3;
                 }
                 // 强制处于最高海拔的单元格变成雪盖，无论它们有多暖和，只要它们不太干燥
-                else if (tile.Data.Elevation == _elevationMaximum)
+                else if (tile.Data.Elevation == ElevationStep)
                     tileBiome.Terrain = 4;
 
                 // 确保植物不会出现在雪地上
@@ -487,7 +465,7 @@ public partial class HexMapGenerator : Node3D
             else
             {
                 int terrain;
-                if (tile.Data.Elevation == _waterLevel - 1)
+                if (tile.Data.Elevation == DefaultWaterLevel - 1)
                 {
                     int cliffs = 0, slopes = 0;
                     foreach (var neighbor in _tileService.GetNeighbors(tile))
@@ -509,7 +487,7 @@ public partial class HexMapGenerator : Node3D
                         terrain = 1;
                 }
                 // 用草来建造比水位更高的单元格，这些是由河流形成的湖泊
-                else if (tile.Data.Elevation >= _waterLevel)
+                else if (tile.Data.Elevation >= DefaultWaterLevel)
                     terrain = 1;
                 // 负海拔的单元格位于深处，让我们用岩石来做
                 else if (tile.Data.Elevation < 0)
@@ -535,57 +513,9 @@ public partial class HexMapGenerator : Node3D
         if (latitude > 1f)
             latitude = 2f - latitude;
         var temperature = Mathf.Lerp(_lowTemperature, _highTemperature, latitude);
-        temperature *= 1f - (tile.Data.ViewElevation - _waterLevel) / (_elevationMaximum - _waterLevel + 1f);
+        temperature *= 1f - (tile.Data.ViewElevation - DefaultWaterLevel) / (ElevationStep - DefaultWaterLevel + 1f);
         var jitter = _noiseService.SampleNoise(tile.GetCentroid(HexMetrics.StandardRadius))[_temperatureJitterChannel];
         temperature += (jitter * 2f - 1f) * _temperatureJitter;
         return temperature;
-    }
-
-    private void CreateLand()
-    {
-        _landTileCount = Mathf.RoundToInt(_tileService.GetCount() * _landPercentage * 0.01f);
-        var landBudget = _landTileCount;
-        // 根据地图尺寸来设置对应循环次数上限，保证大地图也能尽量用完 landBudget
-        for (var guard = 0; guard < _landTileCount; guard++) // 防止无限循环的守卫值
-        {
-            var sink = _random.Randf() < _sinkProbability;
-            foreach (var region in _regions)
-            {
-                var chunkSize = _random.RandiRange(_chunkSizeMin, _chunkSizeMax);
-                if (sink)
-                    landBudget = SinkTerrain(chunkSize, landBudget, region);
-                else
-                {
-                    landBudget = RaiseTerrain(chunkSize, landBudget, region);
-                    if (landBudget <= 0)
-                        return;
-                }
-            }
-        }
-
-        if (landBudget <= 0) return;
-        _landTileCount -= landBudget;
-        GD.PrintErr($"Failed to use up {landBudget} land budget.");
-    }
-
-    private int RaiseTerrain(int chunkSize, int budget, MapRegion region)
-    {
-        var firstTileId = GetRandomCellIndex(region);
-        var rise = _random.Randf() < _highRiseProbability ? 2 : 1;
-        return _tileSearchService.RaiseTerrain(chunkSize, budget, firstTileId, rise,
-            _random, _elevationMaximum, _waterLevel, _jitterProbability);
-    }
-
-    private int SinkTerrain(int chunkSize, int budget, MapRegion region)
-    {
-        var firstTileId = GetRandomCellIndex(region);
-        var sink = _random.Randf() < _highRiseProbability ? 2 : 1;
-        return _tileSearchService.SinkTerrain(chunkSize, budget, firstTileId, sink,
-            _random, _elevationMinimum, _waterLevel, _jitterProbability);
-    }
-
-    private int GetRandomCellIndex(MapRegion region)
-    {
-        return GD.RandRange(1, _tileService.GetCount());
     }
 }

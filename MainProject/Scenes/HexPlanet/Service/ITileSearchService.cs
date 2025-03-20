@@ -14,8 +14,8 @@ public interface ITileSearchService
     int GetMoveCost(Tile fromTile, Tile toTile);
 
     int RaiseTerrain(int chunkSize, int budget, int firstTileId, int rise,
-        RandomNumberGenerator random, int elevationMaximum, int waterLevel, float jitterProbability);
+        RandomNumberGenerator random, float jitterProbability);
 
     int SinkTerrain(int chunkSize, int budget, int firstTileId, int sink,
-        RandomNumberGenerator random, int elevationMinimum, int waterLevel, float jitterProbability);
+        RandomNumberGenerator random, float jitterProbability);
 }

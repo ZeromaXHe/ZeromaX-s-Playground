@@ -4,7 +4,7 @@ using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util.HexSphereGrid;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 
-public class PlanetSettingService: IPlanetSettingService
+public class PlanetSettingService : IPlanetSettingService
 {
     private float _radius = 150f;
 
@@ -51,10 +51,9 @@ public class PlanetSettingService: IPlanetSettingService
     }
 
     public float StandardScale => Radius / HexMetrics.StandardRadius * HexMetrics.StandardDivisions / Divisions;
+    // 默认水面高度
+    public int DefaultWaterLevel { get; set; } = 5;
 
-    public float GetStreamBedHeight(int elevation) => (elevation + HexMetrics.StreamBedElevationOffset) * UnitHeight;
-    public float GetWaterSurfaceHeight(int level) => (level + HexMetrics.WaterElevationOffset) * UnitHeight;
-    
     #region 特征
 
     private readonly float[][] FeatureThresholds =

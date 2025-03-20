@@ -55,7 +55,7 @@ public partial class OrbitCamera : Node3D
 
     private float _antiStuckSpeedMultiplier = 1f; // 用于防止速度过低的时候相机卡死
 
-    [Export(PropertyHint.Range, "0.01, 3600")]
+    [Export(PropertyHint.Range, "0.01, 3600, degrees")]
     private float _rotationSpeed = 180f;
 
     [Export] private Node3D _sun;

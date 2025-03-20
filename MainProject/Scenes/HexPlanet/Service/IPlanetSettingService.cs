@@ -10,15 +10,9 @@ public interface IPlanetSettingService
     float UnitHeight { get; }
     float MaxHeight { get; }
     float MaxHeightRatio { get; }
-    int ElevationStep { get; set; }
+    int ElevationStep { get; set; } // 对应高程最大值
     float StandardScale { get; }
-
-    #region 河流和水体
-
-    float GetStreamBedHeight(int elevation);
-    float GetWaterSurfaceHeight(int level);
-
-    #endregion
+    int DefaultWaterLevel { get; set; }
 
     #region 特征
 

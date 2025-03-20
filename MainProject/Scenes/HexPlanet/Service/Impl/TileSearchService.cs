@@ -7,7 +7,8 @@ using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service.Impl;
 
-public class TileSearchService(ITileService tileService) : ITileSearchService
+public class TileSearchService(ITileService tileService, IPlanetSettingService planetSettingService)
+    : ITileSearchService
 {
     private TileSearchData[] _searchData;
     private TilePriorityQueue _searchFrontier;
@@ -197,7 +198,7 @@ public class TileSearchService(ITileService tileService) : ITileSearchService
 
     // 抬升土地
     public int RaiseTerrain(int chunkSize, int budget, int firstTileId, int rise,
-        RandomNumberGenerator random, int elevationMaximum, int waterLevel, float jitterProbability)
+        RandomNumberGenerator random, float jitterProbability)
     {
         _searchFrontierPhase++;
         _searchFrontier ??= new TilePriorityQueue(_searchData);
@@ -212,10 +213,11 @@ public class TileSearchService(ITileService tileService) : ITileSearchService
             var current = tileService.GetById(id);
             var originalElevation = current.Data.Elevation;
             var newElevation = originalElevation + rise;
-            if (newElevation > elevationMaximum)
+            if (newElevation > planetSettingService.ElevationStep)
                 continue;
             current.Data = current.Data with { Values = current.Data.Values.WithElevation(newElevation) };
-            if (originalElevation < waterLevel && newElevation >= waterLevel && --budget == 0)
+            if (originalElevation < planetSettingService.DefaultWaterLevel
+                && newElevation >= planetSettingService.DefaultWaterLevel && --budget == 0)
                 break;
             size++;
             foreach (var neighbor in tileService.GetNeighbors(current))
@@ -237,7 +239,7 @@ public class TileSearchService(ITileService tileService) : ITileSearchService
 
     // 下沉土地
     public int SinkTerrain(int chunkSize, int budget, int firstTileId, int sink,
-        RandomNumberGenerator random, int elevationMinimum, int waterLevel, float jitterProbability)
+        RandomNumberGenerator random, float jitterProbability)
     {
         _searchFrontierPhase++;
         _searchFrontier ??= new TilePriorityQueue(_searchData);
@@ -252,10 +254,11 @@ public class TileSearchService(ITileService tileService) : ITileSearchService
             var current = tileService.GetById(id);
             var originalElevation = current.Data.Elevation;
             var newElevation = originalElevation - sink;
-            if (newElevation < elevationMinimum)
+            if (newElevation < planetSettingService.ElevationStep)
                 continue;
             current.Data = current.Data with { Values = current.Data.Values.WithElevation(newElevation) };
-            if (originalElevation >= waterLevel && newElevation < waterLevel)
+            if (originalElevation >= planetSettingService.DefaultWaterLevel
+                && newElevation < planetSettingService.DefaultWaterLevel)
                 budget++;
             size++;
             foreach (var neighbor in tileService.GetNeighbors(current))

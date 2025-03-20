@@ -49,7 +49,7 @@ public static class Context
         var chunkService = new ChunkService(pointService, planetSettingService, chunkRepo);
         var tileService = new TileService(chunkService, faceService, pointService,
             planetSettingService, noiseService, tileRepo);
-        var tileSearchService = new TileSearchService(tileService);
+        var tileSearchService = new TileSearchService(tileService, planetSettingService);
         var tileShaderService = new TileShaderService(tileService, tileSearchService,
             unitService, planetSettingService);
         var selectViewService = new SelectViewService(tileService, tileSearchService,
