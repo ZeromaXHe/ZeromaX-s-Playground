@@ -1,8 +1,11 @@
 using Godot;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
 
 namespace UnitTest.HexPlanet.Util.HexSphereGrid;
 
+/// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
+/// Author: Zhu XH
+/// Date: 2025-03-08 16:01
 public class Math3dUtilTest
 {
     [Fact]

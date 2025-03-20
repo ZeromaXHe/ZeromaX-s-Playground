@@ -1,6 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://0l8htb22kqt1"]
-
-[ext_resource type="Script" uid="uid://dk2vo06yof3dx" path="res://Scenes/HexPlanet/Node/LongitudeLatitude.cs" id="1_y6mwj"]
-
-[node name="LongitudeLatitude" type="Node3D"]
-script = ExtResource("1_y6mwj")

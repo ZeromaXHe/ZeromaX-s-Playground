@@ -1,8 +1,11 @@
 using Godot;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 
 namespace ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
 
+/// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
+/// Author: Zhu XH
+/// Date: 2025-03-13 17:15
 public class EventBus
 {
     public static EventBus Instance { get; } = new();

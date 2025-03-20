@@ -1,0 +1,63 @@
+[gd_scene load_steps=29 format=3 uid="uid://duhqmsj87h613"]
+
+[ext_resource type="Script" uid="uid://dgyn1hq02gyv7" path="res://Scenes/HexPlanet/Nodes/ChunkManager.cs" id="1_8slb6"]
+[ext_resource type="PackedScene" uid="uid://b31wafba56bca" path="res://Scenes/HexPlanet/Nodes/HexGridChunk.tscn" id="2_vveuy"]
+[ext_resource type="PackedScene" uid="uid://bbdfywr3yrf3e" path="res://Scenes/HexPlanet/Scenes/Features/UrbanHigh1.tscn" id="3_20ayw"]
+[ext_resource type="PackedScene" uid="uid://h7u6gcxutpum" path="res://Scenes/HexPlanet/Scenes/Features/UrbanHigh2.tscn" id="4_8vur2"]
+[ext_resource type="PackedScene" uid="uid://bk67vbh7aa8lv" path="res://Scenes/HexPlanet/Scenes/Features/UrbanMid1.tscn" id="5_017qo"]
+[ext_resource type="PackedScene" uid="uid://b76wbvxlpeg67" path="res://Scenes/HexPlanet/Scenes/Features/UrbanMid2.tscn" id="6_dvghv"]
+[ext_resource type="PackedScene" uid="uid://w6q4xmka542c" path="res://Scenes/HexPlanet/Scenes/Features/UrbanLow1.tscn" id="7_v8tdp"]
+[ext_resource type="PackedScene" uid="uid://bs2crdwro10ft" path="res://Scenes/HexPlanet/Scenes/Features/UrbanLow2.tscn" id="8_a7t72"]
+[ext_resource type="PackedScene" uid="uid://cih1fad1f3qex" path="res://Scenes/HexPlanet/Scenes/Features/FarmHigh1.tscn" id="9_6klph"]
+[ext_resource type="PackedScene" uid="uid://sci1i423km7y" path="res://Scenes/HexPlanet/Scenes/Features/FarmHigh2.tscn" id="10_7mloi"]
+[ext_resource type="PackedScene" uid="uid://ba4jldjyktlqe" path="res://Scenes/HexPlanet/Scenes/Features/FarmMid1.tscn" id="11_2iash"]
+[ext_resource type="PackedScene" uid="uid://c2va6uyape2db" path="res://Scenes/HexPlanet/Scenes/Features/FarmMid2.tscn" id="12_v7jj5"]
+[ext_resource type="PackedScene" uid="uid://dftaug5cydhd5" path="res://Scenes/HexPlanet/Scenes/Features/FarmLow1.tscn" id="13_1niqe"]
+[ext_resource type="PackedScene" uid="uid://bkhxoy2yl4ite" path="res://Scenes/HexPlanet/Scenes/Features/FarmLow2.tscn" id="14_sq26b"]
+[ext_resource type="PackedScene" uid="uid://if6ntl58m14p" path="res://Scenes/HexPlanet/Scenes/Features/PlantHigh1.tscn" id="15_camxy"]
+[ext_resource type="PackedScene" uid="uid://bxedfqehl6lck" path="res://Scenes/HexPlanet/Scenes/Features/PlantHigh2.tscn" id="16_gfk00"]
+[ext_resource type="PackedScene" uid="uid://cyvxb5j2npq8" path="res://Scenes/HexPlanet/Scenes/Features/PlantMid1.tscn" id="17_qv27t"]
+[ext_resource type="PackedScene" uid="uid://te3yv0irb0mv" path="res://Scenes/HexPlanet/Scenes/Features/PlantMid2.tscn" id="18_dfao1"]
+[ext_resource type="PackedScene" uid="uid://ddxoclskrrkfu" path="res://Scenes/HexPlanet/Scenes/Features/PlantLow1.tscn" id="19_0vmme"]
+[ext_resource type="PackedScene" uid="uid://cjo5ow0rv2f48" path="res://Scenes/HexPlanet/Scenes/Features/PlantLow2.tscn" id="20_61afp"]
+[ext_resource type="PackedScene" uid="uid://cb3hih1yushe7" path="res://Scenes/HexPlanet/Scenes/Features/WallTower.tscn" id="21_h0p05"]
+[ext_resource type="PackedScene" uid="uid://b02qcji2dsoxj" path="res://Scenes/HexPlanet/Scenes/Features/Bridge.tscn" id="22_qffwe"]
+[ext_resource type="PackedScene" uid="uid://boq0qw6ebj15u" path="res://Scenes/HexPlanet/Scenes/Features/Castle.tscn" id="23_7wv6h"]
+[ext_resource type="PackedScene" uid="uid://cvgqxn1cv5one" path="res://Scenes/HexPlanet/Scenes/Features/Ziggurat.tscn" id="24_sm8rd"]
+[ext_resource type="PackedScene" uid="uid://bv4hm0dcsi308" path="res://Scenes/HexPlanet/Scenes/Features/MegaFlora.tscn" id="25_3fj4h"]
+[ext_resource type="Material" uid="uid://diyq0hsqcass7" path="res://Resources/HexPlanet/HologramShaderMaterial/ShaderMaterial_RoadHologram.tres" id="26_dvghv"]
+[ext_resource type="Material" uid="uid://b1bjot3ucbj8i" path="res://Resources/HexPlanet/HologramShaderMaterial/ShaderMaterial_GrassTerrainHologram.tres" id="27_v8tdp"]
+[ext_resource type="Material" uid="uid://n22gd0xmahwb" path="res://Resources/HexPlanet/HologramShaderMaterial/ShaderMaterial_DesertTerrainHologram.tres" id="28_a7t72"]
+
+[node name="ChunkManager" type="Node3D"]
+script = ExtResource("1_8slb6")
+_gridChunkScene = ExtResource("2_vveuy")
+_urbanScenes = [ExtResource("3_20ayw"), ExtResource("4_8vur2"), ExtResource("5_017qo"), ExtResource("6_dvghv"), ExtResource("7_v8tdp"), ExtResource("8_a7t72")]
+_farmScenes = [ExtResource("9_6klph"), ExtResource("10_7mloi"), ExtResource("11_2iash"), ExtResource("12_v7jj5"), ExtResource("13_1niqe"), ExtResource("14_sq26b")]
+_plantScenes = [ExtResource("15_camxy"), ExtResource("16_gfk00"), ExtResource("17_qv27t"), ExtResource("18_dfao1"), ExtResource("19_0vmme"), ExtResource("20_61afp")]
+_wallTowerScene = ExtResource("21_h0p05")
+_bridgeScene = ExtResource("22_qffwe")
+_specialScenes = [ExtResource("23_7wv6h"), ExtResource("24_sm8rd"), ExtResource("25_3fj4h")]
+_urbanPreviewOverrideMaterial = ExtResource("26_dvghv")
+_plantPreviewOverrideMaterial = ExtResource("27_v8tdp")
+_farmPreviewOverrideMaterial = ExtResource("28_a7t72")
+
+[node name="MultiFeatures" type="Node3D" parent="."]
+
+[node name="Urbans" type="Node3D" parent="MultiFeatures"]
+unique_name_in_owner = true
+
+[node name="Farms" type="Node3D" parent="MultiFeatures"]
+unique_name_in_owner = true
+
+[node name="Plants" type="Node3D" parent="MultiFeatures"]
+unique_name_in_owner = true
+
+[node name="Others" type="Node3D" parent="MultiFeatures"]
+unique_name_in_owner = true
+
+[node name="FeaturePreviews" type="Node3D" parent="."]
+unique_name_in_owner = true
+
+[node name="Chunks" type="Node3D" parent="."]
+unique_name_in_owner = true

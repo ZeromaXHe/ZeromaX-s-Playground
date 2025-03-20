@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3 uid="uid://bxfpnqyy2nj1c"]
+
+[ext_resource type="Script" uid="uid://3t82mled6nn5" path="res://Scenes/HexPlanet/Nodes/HexUnitPathPool.cs" id="1_xsjl0"]
+[ext_resource type="PackedScene" uid="uid://d13a4r7nl4nar" path="res://Scenes/HexPlanet/Nodes/HexUnitPath.tscn" id="2_tfrgv"]
+
+[node name="HexUnitPathPool" type="Node3D"]
+script = ExtResource("1_xsjl0")
+_pathScene = ExtResource("2_tfrgv")

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bl5ftdrvwrgta"]
+
+[ext_resource type="Script" uid="uid://d1pu8bqev4ngh" path="res://Scenes/HexPlanet/Nodes/HexMapGenerator.cs" id="1_e8euf"]
+
+[node name="HexMapGenerator" type="Node3D"]
+script = ExtResource("1_e8euf")

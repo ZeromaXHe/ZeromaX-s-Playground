@@ -1,14 +1,17 @@
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Struct;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util.HexSphereGrid;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Structs;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils.HexSphereGrid;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 
+/// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
+/// Author: Zhu XH
+/// Date: 2025-02-17 15:49
 public partial class HexPlanetHud : Control
 {
     public HexPlanetHud() => InitServices();

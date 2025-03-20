@@ -1,0 +1,65 @@
+[gd_scene load_steps=12 format=3 uid="uid://btsqyvaacn1fr"]
+
+[ext_resource type="Script" uid="uid://bicb8mlct5c6w" path="res://Scenes/HexPlanet/Nodes/EditPreviewChunk.cs" id="1_ahag1"]
+[ext_resource type="Material" uid="uid://ddc1gyiulp6ua" path="res://Resources/HexPlanet/HologramShaderMaterial/ShaderMaterial_DefaultTerrainHologram.tres" id="2_io4j1"]
+[ext_resource type="PackedScene" uid="uid://c3gfjhdjv65f7" path="res://Scenes/HexPlanet/Nodes/HexMesh.tscn" id="3_l1ntm"]
+[ext_resource type="Material" uid="uid://n22gd0xmahwb" path="res://Resources/HexPlanet/HologramShaderMaterial/ShaderMaterial_DesertTerrainHologram.tres" id="3_vg77i"]
+[ext_resource type="Material" uid="uid://b1bjot3ucbj8i" path="res://Resources/HexPlanet/HologramShaderMaterial/ShaderMaterial_GrassTerrainHologram.tres" id="4_ahag1"]
+[ext_resource type="Material" uid="uid://cictdwcsg07yb" path="res://Resources/HexPlanet/HologramShaderMaterial/ShaderMaterial_MudTerrainHologram.tres" id="5_ye4n8"]
+[ext_resource type="Material" uid="uid://ct21bgv0a5ai1" path="res://Resources/HexPlanet/HologramShaderMaterial/ShaderMaterial_RockTerrainHologram.tres" id="6_fy7mg"]
+[ext_resource type="Material" uid="uid://cibn44c6xdv6y" path="res://Resources/HexPlanet/HologramShaderMaterial/ShaderMaterial_SnowTerrainHologram.tres" id="7_l1ntm"]
+[ext_resource type="Material" uid="uid://bv1fqfcmk1gdf" path="res://Resources/HexPlanet/HologramShaderMaterial/ShaderMaterial_WaterHologram.tres" id="9_ahag1"]
+[ext_resource type="Material" uid="uid://diyq0hsqcass7" path="res://Resources/HexPlanet/HologramShaderMaterial/ShaderMaterial_RoadHologram.tres" id="10_ye4n8"]
+[ext_resource type="PackedScene" uid="uid://b13ifb8lsuuab" path="res://Scenes/HexPlanet/Nodes/HexFeatureManager.tscn" id="12_87vio"]
+
+[node name="EditPreviewChunk" type="Node3D" node_paths=PackedStringArray("Terrain", "Rivers", "Roads", "Water", "WaterShore", "Estuary", "Features")]
+script = ExtResource("1_ahag1")
+Terrain = NodePath("Terrain")
+TerrainMaterials = Array[ShaderMaterial]([ExtResource("2_io4j1"), ExtResource("3_vg77i"), ExtResource("4_ahag1"), ExtResource("5_ye4n8"), ExtResource("6_fy7mg"), ExtResource("7_l1ntm")])
+Rivers = NodePath("Rivers")
+Roads = NodePath("Roads")
+Water = NodePath("Water")
+WaterShore = NodePath("WaterShore")
+Estuary = NodePath("Estuaries")
+Features = NodePath("Features")
+
+[node name="Terrain" parent="." instance=ExtResource("3_l1ntm")]
+material_override = ExtResource("2_io4j1")
+UseCellData = true
+
+[node name="Rivers" parent="." instance=ExtResource("3_l1ntm")]
+material_override = ExtResource("9_ahag1")
+UseCellData = true
+UseUvCoordinates = true
+Smooth = true
+
+[node name="Roads" parent="." instance=ExtResource("3_l1ntm")]
+material_override = ExtResource("10_ye4n8")
+UseCellData = true
+UseUvCoordinates = true
+
+[node name="Water" parent="." instance=ExtResource("3_l1ntm")]
+material_override = ExtResource("9_ahag1")
+UseCellData = true
+Smooth = true
+
+[node name="WaterShore" parent="." instance=ExtResource("3_l1ntm")]
+material_override = ExtResource("9_ahag1")
+UseCellData = true
+UseUvCoordinates = true
+Smooth = true
+
+[node name="Estuaries" parent="." instance=ExtResource("3_l1ntm")]
+material_override = ExtResource("9_ahag1")
+UseCellData = true
+UseUvCoordinates = true
+UseUv2Coordinates = true
+Smooth = true
+
+[node name="Features" parent="." node_paths=PackedStringArray("_walls") instance=ExtResource("12_87vio")]
+_walls = NodePath("../Walls")
+_preview = true
+
+[node name="Walls" parent="." instance=ExtResource("3_l1ntm")]
+material_override = ExtResource("10_ye4n8")
+UseCellData = true

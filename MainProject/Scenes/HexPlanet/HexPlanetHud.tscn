@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://b8bgqilvr6phu" path="res://Scenes/HexPlanet/HexPlanetHud.cs" id="1_r2qro"]
 [ext_resource type="PackedScene" uid="uid://cau1rm86t1or4" path="res://Scenes/HexPlanet/HexPlanetManager.tscn" id="2_6efwr"]
-[ext_resource type="PackedScene" uid="uid://cpewnyu5aelo4" path="res://Scenes/HexPlanet/Node/MiniMapManager.tscn" id="3_kbj0e"]
+[ext_resource type="PackedScene" uid="uid://cpewnyu5aelo4" path="res://Scenes/HexPlanet/Nodes/MiniMapManager.tscn" id="3_kbj0e"]
 
 [node name="HexPlanetHud" type="Control" node_paths=PackedStringArray("_hexPlanetManager")]
 layout_mode = 3

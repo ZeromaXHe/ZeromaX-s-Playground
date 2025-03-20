@@ -1,10 +1,10 @@
 using Godot;
 using Godot.Collections;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entity;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Service;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Struct;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Structs;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 
@@ -411,7 +411,7 @@ public partial class HexPlanetManager : Node3D
         {
             // 确实有找到从出发点到 tile 的路径
             var unit = _units[fromTile.UnitId];
-            _hexUnitPathPool.NewTask(unit, path, toTile.Id);
+            _hexUnitPathPool.NewTask(unit, path);
         }
 
         PathFromTileId = 0;

@@ -1,9 +1,12 @@
 using System.Collections.Generic;
 using Godot;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Constant;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Constants;
 
 namespace ZeromaXsPlaygroundProject.Demo.HexPlanet;
 
+/// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
+/// Author: Zhu XH
+/// Date: 2025-02-12 21:07
 [Tool]
 public partial class IcosahedronVisual : Node3D
 {

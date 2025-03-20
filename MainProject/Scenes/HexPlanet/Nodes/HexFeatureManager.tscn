@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://b13ifb8lsuuab"]
+
+[ext_resource type="Script" uid="uid://d2poopvfkoaq6" path="res://Scenes/HexPlanet/Nodes/HexFeatureManager.cs" id="1_k0wat"]
+
+[node name="HexFeatureManager" type="Node3D"]
+script = ExtResource("1_k0wat")

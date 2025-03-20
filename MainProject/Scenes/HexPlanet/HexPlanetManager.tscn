@@ -4,16 +4,16 @@
 [ext_resource type="Texture2D" uid="uid://cl2t2bb55vdp4" path="res://Assets/HexPlanet/milkyway panorama eso0932a.jpg" id="2_2766p"]
 [ext_resource type="Texture2D" uid="uid://c6n6jlweg0ly3" path="res://Assets/HexPlanet/Noise/noise.png" id="2_w1eb8"]
 [ext_resource type="Texture2D" uid="uid://vq27noxhc0y4" path="res://Assets/HexPlanet/euvi_aia304_2012_carrington_searchweb.png" id="3_5cymy"]
-[ext_resource type="PackedScene" uid="uid://dq4tp7ykc437w" path="res://Scenes/HexPlanet/Node/HexUnit.tscn" id="4_558l3"]
-[ext_resource type="PackedScene" uid="uid://dh6xnpfagor8y" path="res://Scenes/HexPlanet/Node/OrbitCamera.tscn" id="4_btp1q"]
-[ext_resource type="PackedScene" uid="uid://duhqmsj87h613" path="res://Scenes/HexPlanet/Node/ChunkManager.tscn" id="7_2bryy"]
-[ext_resource type="PackedScene" uid="uid://btsqyvaacn1fr" path="res://Scenes/HexPlanet/Node/EditPreviewChunk.tscn" id="8_5gtrg"]
-[ext_resource type="PackedScene" uid="uid://bxfpnqyy2nj1c" path="res://Scenes/HexPlanet/Node/HexUnitPathPool.tscn" id="8_o4jdy"]
-[ext_resource type="PackedScene" uid="uid://bl5ftdrvwrgta" path="res://Scenes/HexPlanet/Node/HexMapGenerator.tscn" id="9_nxupj"]
-[ext_resource type="Script" uid="uid://jkqwipjdnvhr" path="res://Scenes/HexPlanet/Node/LandGenerators/CatlikeCodingErosionLandGenerator.cs" id="11_nb6kk"]
-[ext_resource type="PackedScene" uid="uid://0l8htb22kqt1" path="res://Scenes/HexPlanet/Node/LongitudeLatitude.tscn" id="11_smp2p"]
+[ext_resource type="PackedScene" uid="uid://dq4tp7ykc437w" path="res://Scenes/HexPlanet/Nodes/HexUnit.tscn" id="4_558l3"]
+[ext_resource type="PackedScene" uid="uid://dh6xnpfagor8y" path="res://Scenes/HexPlanet/Nodes/OrbitCamera.tscn" id="4_btp1q"]
+[ext_resource type="PackedScene" uid="uid://duhqmsj87h613" path="res://Scenes/HexPlanet/Nodes/ChunkManager.tscn" id="7_2bryy"]
+[ext_resource type="PackedScene" uid="uid://btsqyvaacn1fr" path="res://Scenes/HexPlanet/Nodes/EditPreviewChunk.tscn" id="8_5gtrg"]
+[ext_resource type="PackedScene" uid="uid://bxfpnqyy2nj1c" path="res://Scenes/HexPlanet/Nodes/HexUnitPathPool.tscn" id="8_o4jdy"]
+[ext_resource type="PackedScene" uid="uid://bl5ftdrvwrgta" path="res://Scenes/HexPlanet/Nodes/HexMapGenerator.tscn" id="9_nxupj"]
+[ext_resource type="Script" uid="uid://jkqwipjdnvhr" path="res://Scenes/HexPlanet/Nodes/LandGenerators/CatlikeCodingErosionLandGenerator.cs" id="11_nb6kk"]
+[ext_resource type="PackedScene" uid="uid://0l8htb22kqt1" path="res://Scenes/HexPlanet/Nodes/LongitudeLatitude.tscn" id="11_smp2p"]
 [ext_resource type="Shader" uid="uid://bca81ab518ecb" path="res://Shaders/HexPlanet/LongitudeLatitude/LineAlpha.gdshader" id="12_lloi2"]
-[ext_resource type="Script" uid="uid://dy0uow51ikh5g" path="res://Scenes/HexPlanet/Node/LandGenerators/SebastianFractalNoiseLandGenerator.cs" id="12_vl1on"]
+[ext_resource type="Script" uid="uid://dy0uow51ikh5g" path="res://Scenes/HexPlanet/Nodes/LandGenerators/SebastianFractalNoiseLandGenerator.cs" id="12_vl1on"]
 [ext_resource type="PackedScene" uid="uid://c36velgas3n3k" path="res://addons/zylann.atmosphere/planet_atmosphere.tscn" id="13_4qg5q"]
 [ext_resource type="Script" uid="uid://drswrd3tc6kks" path="res://Scenes/HexPlanet/Resources/LandGenerators/NoiseSettings.cs" id="13_pgchp"]
 [ext_resource type="Script" uid="uid://bkxberytmnmbw" path="res://Scenes/HexPlanet/Resources/LandGenerators/LayeredFastNoise.cs" id="14_6nabi"]
@@ -241,7 +241,7 @@ DefaultWaterLevel = 5
 ElevationStep = 10
 _landGeneratorType = 1
 _windStrength = 1.0
-_seed = 770543176
+_seed = 537262027
 
 [node name="CatlikeCodingErosionLandGenerator" type="Node3D" parent="HexMapGenerator"]
 unique_name_in_owner = true

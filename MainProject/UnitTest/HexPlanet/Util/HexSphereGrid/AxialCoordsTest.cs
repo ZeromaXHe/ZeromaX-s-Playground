@@ -1,7 +1,10 @@
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util.HexPlaneGrid;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils.HexPlaneGrid;
 
 namespace UnitTest.HexPlanet.Util.HexSphereGrid;
 
+/// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
+/// Author: Zhu XH
+/// Date: 2025-03-15 16:57
 public class AxialCoordsTest
 {
     [Fact]

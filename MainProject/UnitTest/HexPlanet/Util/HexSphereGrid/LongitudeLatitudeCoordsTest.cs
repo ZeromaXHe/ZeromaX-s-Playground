@@ -1,7 +1,10 @@
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Util.HexSphereGrid;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils.HexSphereGrid;
 
 namespace UnitTest.HexPlanet.Util.HexSphereGrid;
 
+/// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
+/// Author: Zhu XH
+/// Date: 2025-03-10 20:35
 public class LongitudeLatitudeCoordsTest
 {
     [Fact]
