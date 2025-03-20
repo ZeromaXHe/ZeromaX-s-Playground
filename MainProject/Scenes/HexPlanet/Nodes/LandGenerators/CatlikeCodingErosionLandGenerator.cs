@@ -13,7 +13,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.LandGenerators;
 /// Author: Zhu XH
 /// Date: 2025-03-20 19:01:10
 [Tool]
-public partial class CatlikeCodingErosionLandGenerator : Node3D
+public partial class CatlikeCodingErosionLandGenerator : Node
 {
     public CatlikeCodingErosionLandGenerator() => InitServices();
 

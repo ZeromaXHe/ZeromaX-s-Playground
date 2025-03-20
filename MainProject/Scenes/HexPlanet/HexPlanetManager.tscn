@@ -237,17 +237,15 @@ unique_name_in_owner = true
 
 [node name="HexMapGenerator" parent="." instance=ExtResource("9_nxupj")]
 unique_name_in_owner = true
-DefaultWaterLevel = 5
-ElevationStep = 10
 _landGeneratorType = 1
 _windStrength = 1.0
-_seed = 537262027
+_seed = -486293014
 
-[node name="CatlikeCodingErosionLandGenerator" type="Node3D" parent="HexMapGenerator"]
+[node name="CatlikeCodingErosionLandGenerator" type="Node" parent="HexMapGenerator"]
 unique_name_in_owner = true
 script = ExtResource("11_nb6kk")
 
-[node name="SebastianFractalNoiseLandGenerator" type="Node3D" parent="HexMapGenerator"]
+[node name="SebastianFractalNoiseLandGenerator" type="Node" parent="HexMapGenerator"]
 unique_name_in_owner = true
 script = ExtResource("12_vl1on")
 LayeredNoises = SubResource("Resource_c36kv")

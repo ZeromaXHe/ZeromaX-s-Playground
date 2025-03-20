@@ -2,5 +2,7 @@
 
 [ext_resource type="Script" uid="uid://d1pu8bqev4ngh" path="res://Scenes/HexPlanet/Nodes/HexMapGenerator.cs" id="1_e8euf"]
 
-[node name="HexMapGenerator" type="Node3D"]
+[node name="HexMapGenerator" type="Node"]
 script = ExtResource("1_e8euf")
+DefaultWaterLevel = 5
+ElevationStep = 10

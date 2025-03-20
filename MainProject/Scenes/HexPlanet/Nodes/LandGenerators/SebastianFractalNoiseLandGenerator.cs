@@ -10,7 +10,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.LandGenerators;
 /// Author: Zhu XH
 /// Date: 2025-03-20 19:51:43
 [Tool]
-public partial class SebastianFractalNoiseLandGenerator : Node3D
+public partial class SebastianFractalNoiseLandGenerator : Node
 {
     public SebastianFractalNoiseLandGenerator() => InitServices();
     [Export] public LayeredFastNoise LayeredNoises { get; set; } = new();

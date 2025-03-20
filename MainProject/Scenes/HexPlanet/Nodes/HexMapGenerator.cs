@@ -26,7 +26,7 @@ public class MapRegion
 /// Author: Zhu XH
 /// Date: 2025-03-04 12:03
 [Tool]
-public partial class HexMapGenerator : Node3D
+public partial class HexMapGenerator : Node
 {
     public HexMapGenerator() => InitServices();
 
