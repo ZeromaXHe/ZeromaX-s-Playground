@@ -83,3 +83,4 @@ func _process(delta):
 		_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 		_state = STATE_IDLE
 		set_process(false)
+

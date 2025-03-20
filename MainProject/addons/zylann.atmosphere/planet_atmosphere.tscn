@@ -12,4 +12,5 @@ shader_params/u_density = 10.0
 shader_params/u_scattering_strength = 0.5
 shader_params/u_scattering_wavelengths = Vector3(700, 530, 440)
 shader_params/u_atmosphere_modulate = Color(1, 1, 1, 1)
+shader_params/u_atmosphere_ambient_color = Color(0, 0, 0.002, 1)
 shader_params/u_sphere_depth_factor = 0.0

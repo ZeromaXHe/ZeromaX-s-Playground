@@ -47,7 +47,7 @@ vec3 textureDistorted(sampler2D tex, vec2 texcoord, vec2 direction, float distor
 	color.r += bloomtex(tex, texcoord - direction * distortion).r;
 	color.g += bloomtex(tex, texcoord).g;
 	color.b += bloomtex(tex, texcoord + direction * distortion).b;
-	
+
 	if(distortion_quality == 1) {
 		color.rg += bloomtex(tex, texcoord - direction * distortion * 0.5).rg * vec2(1.0, 0.5);
 		color.gb += bloomtex(tex, texcoord + direction * distortion * 0.5).gb * vec2(0.5, 1.0);
@@ -59,19 +59,19 @@ vec3 textureDistorted(sampler2D tex, vec2 texcoord, vec2 direction, float distor
 		color.gb += bloomtex(tex, texcoord + direction * distortion * 0.667).gb * vec2(0.333, 1.0);
 		divisor = 3.0;
 	}
-	
+
 	return color / divisor;
 }
 
 void fragment() {
 	vec2 texcoord = 1.0 - SCREEN_UV;
 	vec2 ghostVec = (vec2(0.5) - texcoord) * ghost_dispersal;
-	
+
 	float pixelSizeX = 1.0 / float(textureSize(SCREEN_TEXTURE, 0).x);
-	
+
 	float distortion = pixelSizeX * distort;
 	vec2 direction = normalize(ghostVec);
-	
+
 	// Ghosts
 	vec3 result = vec3(0.0);
 	for(int i = 0; i < ghosts; ++i) {
@@ -79,27 +79,27 @@ void fragment() {
 		result += textureDistorted(SCREEN_TEXTURE, offset, direction, distortion * weight(offset)) * weight(offset);
 	}
 	result *= texture(lens_color, vec2(length(vec2(0.5) - texcoord) / length(vec2(0.5)), 0)).rgb;
-	
+
 	// Halo
 	vec2 aspect = vec2(1.0, mix(1.0, VIEWPORT_SIZE.x / VIEWPORT_SIZE.y, stretch_to_aspect));
 	vec2 haloVec = normalize(ghostVec / aspect) * aspect * halo_width;
 	result += textureDistorted(SCREEN_TEXTURE, texcoord + haloVec, direction, distortion) * weight(fract(texcoord + haloVec));
-	
+
 	// Starburst
 	vec2 centerVec = SCREEN_UV - vec2(0.5);
 	float d = length(centerVec);
 	float radial = acos(centerVec.x / d);
-	
+
 	float starOffset = dot(INV_VIEW_MATRIX[2].xyz, vec3(1.0)) * 10.0;
-	float star = 
+	float star =
 			texture(starburst, vec2(radial + starOffset)).r
 		  * texture(starburst, vec2(radial + starOffset * 0.5)).r;
 	star = clamp(star + (1.0 - smoothstep(0.0, 0.3, d)), 0.0, 1.0);
 	result *= mix(0.5, star, streak_strength);
-	
+
 	ALBEDO = result * mix(texture(lens_dirt, texcoord).rgb, vec3(0.5), 0.4);
 	//ALBEDO = texture(SCREEN_TEXTURE, SCREEN_UV).rgb * 2.;
-	
+
 	//uncomment to debug bright point extraction
 	//ALBEDO = bloomtex(SCREEN_TEXTURE, SCREEN_UV).rgb;
 }

@@ -83,6 +83,7 @@ const _shader_params_affecting_optical_depth = {
 
 func _init():
 	var material := ShaderMaterial.new()
+	material.render_priority = 11 # 增加渲染优先级，以使得其显示在地块上
 	material.shader = AtmosphereShader
 	_mesh_instance = MeshInstance3D.new()
 	_mesh_instance.material_override = material

@@ -22,5 +22,3 @@ func _parse_begin(object):
 
 func _on_button_pressed(noise_cubemap: NoiseCubemap):
 	save_as_image_requested.emit(noise_cubemap)
-
-

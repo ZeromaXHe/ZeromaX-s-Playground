@@ -38,4 +38,3 @@ func _physics_process(delta):
 		var motor = dir * (speed * delta)
 		
 		translate(motor)
-

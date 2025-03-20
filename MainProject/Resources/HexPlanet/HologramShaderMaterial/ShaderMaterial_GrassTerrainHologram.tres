@@ -3,7 +3,7 @@
 [ext_resource type="Shader" uid="uid://d0345bd6g2g3x" path="res://Shaders/HexPlanet/Hologram.gdshader" id="1_h22fb"]
 
 [resource]
-render_priority = 11
+render_priority = 12
 shader = ExtResource("1_h22fb")
 shader_parameter/color = Color(0.130737, 0.597656, 0, 1)
 shader_parameter/lines1 = 160.0

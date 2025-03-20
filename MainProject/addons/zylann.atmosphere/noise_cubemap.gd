@@ -81,6 +81,15 @@ func _update():
 	emit_changed()
 
 
+func _validate_property(property: Dictionary) -> void:
+	if property.name == "_images":
+		# `Cubemap` inherits `ImageTextureLayered`, which has this property.
+		# We don't want images to be saved. This is a procedural texture.
+		var usage : int = property.usage
+		usage &= ~PROPERTY_USAGE_STORAGE
+		property.usage = usage
+
+
 func generate_importable_image() -> Image:
 	var images : Array[Image] = []
 	for side in 6:
