@@ -61,6 +61,16 @@ public partial class RealEarthLandGenerator : Node
                 elevation += water;
                 landCount++;
             }
+            else if (color.G > 0.1f)
+            {
+                // 湖区
+                // BUG: 现在的实现可能出现高于相邻地块的水面
+                elevation = (int)(color.G * (elevationStep + 1 - water));
+                if (elevation == elevationStep + 1 - water)
+                    elevation--;
+                elevation += water - 1;
+                tile.Data = tile.Data with { Values = tile.Data.Values.WithWaterLevel(elevation + 1) };
+            }
             else
             {
                 // 海洋
