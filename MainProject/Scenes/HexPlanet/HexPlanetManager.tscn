@@ -77,6 +77,7 @@ noise_type = 3
 frequency = 0.03
 fractal_type = 0
 fractal_octaves = 8
+domain_warp_enabled = true
 
 [sub_resource type="Resource" id="Resource_8kn4b"]
 script = ExtResource("13_pgchp")
@@ -90,13 +91,12 @@ metadata/_custom_type_script = "uid://drswrd3tc6kks"
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_l0apn"]
 noise_type = 3
-frequency = 0.03
-fractal_type = 2
+frequency = 0.1
 
 [sub_resource type="Resource" id="Resource_7t73m"]
 script = ExtResource("13_pgchp")
 Strength = 0.5
-SampleRadius = 2.0
+SampleRadius = 0.5
 Noise = SubResource("FastNoiseLite_l0apn")
 Bias = 0.0
 Enabled = true
@@ -111,11 +111,11 @@ fractal_octaves = 8
 
 [sub_resource type="Resource" id="Resource_ily84"]
 script = ExtResource("13_pgchp")
-Strength = 0.1
+Strength = 0.2
 SampleRadius = 0.5
 Noise = SubResource("FastNoiseLite_8kn4b")
 Bias = 0.0
-Enabled = false
+Enabled = true
 UseFirstLayerAsMask = true
 metadata/_custom_type_script = "uid://drswrd3tc6kks"
 
@@ -126,11 +126,11 @@ fractal_octaves = 8
 
 [sub_resource type="Resource" id="Resource_l0apn"]
 script = ExtResource("13_pgchp")
-Strength = 0.1
+Strength = 0.2
 SampleRadius = 0.1
 Noise = SubResource("FastNoiseLite_ily84")
 Bias = 0.0
-Enabled = false
+Enabled = true
 UseFirstLayerAsMask = true
 metadata/_custom_type_script = "uid://drswrd3tc6kks"
 
@@ -239,7 +239,7 @@ unique_name_in_owner = true
 unique_name_in_owner = true
 _landGeneratorType = 1
 _windStrength = 1.0
-_seed = -486293014
+_seed = -967077559
 
 [node name="CatlikeCodingErosionLandGenerator" type="Node" parent="HexMapGenerator"]
 unique_name_in_owner = true

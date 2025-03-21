@@ -40,21 +40,21 @@ public partial class SebastianFractalNoiseLandGenerator : Node
             if (noise < minNoise) minNoise = noise;
         }
 
-        var minStep = Mathf.Abs(minNoise / _planetSettingService.DefaultWaterLevel);
-        var maxStep = Mathf.Abs(maxNoise / (_planetSettingService.ElevationStep + 1 - _planetSettingService.DefaultWaterLevel));
-        var step = Mathf.Max(minStep, maxStep);
         var landCount = 0;
         foreach (var tile in _tileService.GetAll())
         {
             var noise = LayeredNoises.GetLayeredNoise3Dv(tile.UnitCentroid * _planetSettingService.Radius + origin);
-            var elevation = _planetSettingService.DefaultWaterLevel + (int)(noise / step);
+            var noiseDiff = noise > 0 ? noise : noise - minNoise;
+            var elevation = Mathf.RoundToInt(noise > 0
+                ? _planetSettingService.DefaultWaterLevel +
+                  (_planetSettingService.ElevationStep - _planetSettingService.DefaultWaterLevel) * noiseDiff / maxNoise
+                : _planetSettingService.DefaultWaterLevel * noiseDiff / -minNoise);
             tile.Data = tile.Data with { Values = tile.Data.Values.WithElevation(elevation) };
             if (!tile.Data.IsUnderwater)
                 landCount++;
         }
 
-        GD.Print($"------ land tiles {landCount}, min noise: {minNoise}, max noise: {maxNoise}, maxStep: {
-            maxStep}, minStep: {minStep}, step: {step} ------");
+        GD.Print($"------ land tiles {landCount}, min noise: {minNoise}, max noise: {maxNoise} ------");
         return landCount;
     }
 }
