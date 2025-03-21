@@ -17,6 +17,10 @@
 3. athillion 的 [ProceduralPlanetGodot](https://github.com/athillion/ProceduralPlanetGodot) 开源项目（Copyright (c) 2022 Athillion Studios，[MIT 许可](https://github.com/athillion/ProceduralPlanetGodot/blob/main/LICENSE)）
 4. Zylann 的 [godot_atmosphere_shader](https://github.com/Zylann/godot_atmosphere_shader) 开源项目与插件（Copyright (c) 2021 Marc Gilleron，[自定义许可证](https://github.com/Zylann/godot_atmosphere_shader/blob/master/LICENSE.md)），以及 [solar_system_demo](https://github.com/Zylann/solar_system_demo) 开源项目（Copyright (c) Marc Gilleron，[自定义许可证](https://github.com/Zylann/solar_system_demo/blob/master/LICENSE.md)）
    1. 其中，solar_system_demo 中包含了翻译到 Godot 4 的 [SIsilicon 的 Godot-Lens-Flare-Plugin 插件](https://github.com/SIsilicon/Godot-Lens-Flare-Plugin)，（Copyright (c) 2020 SIsilicon，[MIT 许可](https://github.com/SIsilicon/Godot-Lens-Flare-Plugin/blob/master/LICENSE)）
+5. Visible earth 网站，基于其 [Image Use Policy](https://visibleearth.nasa.gov/image-use-policy) 使用
+   1. [海洋测深高度图 gebco_08_rev_bath_21600x10800.png](https://visibleearth.nasa.gov/images/73963/bathymetry/73965l)（*Imagery by Jesse Allen, NASA's Earth Observatory, using data from the General Bathymetric Chart of the Oceans (GEBCO) produced by the British Oceanographic Data Centre.* Published July 21, 2005）
+   2. [地形高度图 gebco_08_rev_elev_21600x10800.png](https://visibleearth.nasa.gov/images/73934/topography/84331l)（*Imagery by Jesse Allen, NASA's Earth Observatory, using data from the General Bathymetric Chart of the Oceans (GEBCO) produced by the British Oceanographic Data Centre.* Published July 21, 2005）
+
 
 
 
@@ -106,12 +110,6 @@
 
 
 
-- [ ] **动态加载**：大量地块标签的优化，降低 Draw call
-- [ ] **动态加载**：LOD 网格缓存引入数量限制，控制缓存内存占据的大小
-- [ ] **动态加载**：合并低 LOD 的分块，降低 Draw call
-
-
-
 - [ ] **GUI**：设置不可探索地块
 - [ ] **GUI**：悬浮在地块上一定时间后显示的信息框
 - [ ] **GUI**：相机移动时显示南北极指示
@@ -141,6 +139,16 @@
 
 
 # 正在开发
+
+
+
+- [ ] **动态加载**：大量地块标签的优化，降低 Draw call
+- [ ] **动态加载**：LOD 网格缓存引入数量限制，控制缓存内存占据的大小
+- [ ] **动态加载**：合并低 LOD 的分块，降低 Draw call
+
+
+
+- [ ] **美术效果**：地球公转、自转；卫星月球
 
 
 
