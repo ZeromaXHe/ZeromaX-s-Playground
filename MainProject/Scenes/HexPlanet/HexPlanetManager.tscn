@@ -1,4 +1,4 @@
-[gd_scene load_steps=44 format=3 uid="uid://cau1rm86t1or4"]
+[gd_scene load_steps=49 format=3 uid="uid://cau1rm86t1or4"]
 
 [ext_resource type="Script" uid="uid://ds3n8uie6gat7" path="res://Scenes/HexPlanet/HexPlanetManager.cs" id="1_414p1"]
 [ext_resource type="Texture2D" uid="uid://cl2t2bb55vdp4" path="res://Assets/HexPlanet/milkyway panorama eso0932a.jpg" id="2_2766p"]
@@ -10,16 +10,21 @@
 [ext_resource type="PackedScene" uid="uid://btsqyvaacn1fr" path="res://Scenes/HexPlanet/Nodes/EditPreviewChunk.tscn" id="8_5gtrg"]
 [ext_resource type="PackedScene" uid="uid://bxfpnqyy2nj1c" path="res://Scenes/HexPlanet/Nodes/HexUnitPathPool.tscn" id="8_o4jdy"]
 [ext_resource type="PackedScene" uid="uid://bl5ftdrvwrgta" path="res://Scenes/HexPlanet/Nodes/HexMapGenerator.tscn" id="9_nxupj"]
-[ext_resource type="Script" uid="uid://jkqwipjdnvhr" path="res://Scenes/HexPlanet/Nodes/LandGenerators/CatlikeCodingErosionLandGenerator.cs" id="11_nb6kk"]
+[ext_resource type="Script" uid="uid://c2lyi6jmppxt4" path="res://Scenes/HexPlanet/Nodes/LandGenerators/ErosionLandGenerator.cs" id="11_pgchp"]
 [ext_resource type="PackedScene" uid="uid://0l8htb22kqt1" path="res://Scenes/HexPlanet/Nodes/LongitudeLatitude.tscn" id="11_smp2p"]
 [ext_resource type="Shader" uid="uid://bca81ab518ecb" path="res://Shaders/HexPlanet/LongitudeLatitude/LineAlpha.gdshader" id="12_lloi2"]
-[ext_resource type="Script" uid="uid://dy0uow51ikh5g" path="res://Scenes/HexPlanet/Nodes/LandGenerators/SebastianFractalNoiseLandGenerator.cs" id="12_vl1on"]
+[ext_resource type="Script" uid="uid://cxbym50051y28" path="res://Scenes/HexPlanet/Nodes/LandGenerators/FractalNoiseLandGenerator.cs" id="12_pgchp"]
 [ext_resource type="PackedScene" uid="uid://c36velgas3n3k" path="res://addons/zylann.atmosphere/planet_atmosphere.tscn" id="13_4qg5q"]
 [ext_resource type="Script" uid="uid://drswrd3tc6kks" path="res://Scenes/HexPlanet/Resources/LandGenerators/NoiseSettings.cs" id="13_pgchp"]
 [ext_resource type="Script" uid="uid://bkxberytmnmbw" path="res://Scenes/HexPlanet/Resources/LandGenerators/LayeredFastNoise.cs" id="14_6nabi"]
+[ext_resource type="Script" uid="uid://ct5qbbt7dq87k" path="res://Scenes/HexPlanet/Nodes/LandGenerators/RealEarthLandGenerator.cs" id="14_8kn4b"]
 [ext_resource type="Shader" uid="uid://bixaf68e35s0f" path="res://addons/zylann.atmosphere/shaders/planet_atmosphere_clouds.gdshader" id="14_das15"]
 [ext_resource type="Script" uid="uid://bmjowuxck5v32" path="res://addons/zylann.atmosphere/noise_cubemap.gd" id="15_nb6kk"]
+[ext_resource type="Texture2D" uid="uid://cvvw2ng4o4y4x" path="res://Assets/HexPlanet/Sebastian/Mask 16x8 (thin edges).png" id="16_c36kv"]
 [ext_resource type="Script" uid="uid://voxnbptif4nk" path="res://addons/SIsilicon.vfx.lens flare/lens-flare.gd" id="16_das15"]
+[ext_resource type="Texture2D" uid="uid://c1hvnyufmibvi" path="res://Assets/HexPlanet/Sebastian/gebco_08_rev_bath_16384x8192.jpg" id="17_7t73m"]
+[ext_resource type="Texture2D" uid="uid://j6l3j6oekche" path="res://Assets/HexPlanet/Sebastian/gebco_08_rev_elev_16384x8192.jpg" id="18_c36kv"]
+[ext_resource type="Texture2D" uid="uid://y548dtltl3xq" path="res://Assets/HexPlanet/Sebastian/Lakes.jpg" id="19_ofp3w"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_qqijy"]
 render_priority = 1
@@ -237,18 +242,26 @@ unique_name_in_owner = true
 
 [node name="HexMapGenerator" parent="." instance=ExtResource("9_nxupj")]
 unique_name_in_owner = true
-_landGeneratorType = 1
+_landGeneratorType = 2
 _windStrength = 1.0
-_seed = -967077559
+_seed = -1783648900
 
-[node name="CatlikeCodingErosionLandGenerator" type="Node" parent="HexMapGenerator"]
+[node name="ErosionLandGenerator" type="Node" parent="HexMapGenerator"]
 unique_name_in_owner = true
-script = ExtResource("11_nb6kk")
+script = ExtResource("11_pgchp")
 
-[node name="SebastianFractalNoiseLandGenerator" type="Node" parent="HexMapGenerator"]
+[node name="FractalNoiseLandGenerator" type="Node" parent="HexMapGenerator"]
 unique_name_in_owner = true
-script = ExtResource("12_vl1on")
+script = ExtResource("12_pgchp")
 LayeredNoises = SubResource("Resource_c36kv")
+
+[node name="RealEarthLandGenerator" type="Node" parent="HexMapGenerator"]
+unique_name_in_owner = true
+script = ExtResource("14_8kn4b")
+LandMask = ExtResource("16_c36kv")
+Bathymetry = ExtResource("17_7t73m")
+Topography = ExtResource("18_c36kv")
+Lake = ExtResource("19_ofp3w")
 
 [node name="LongitudeLatitude" parent="." instance=ExtResource("11_smp2p")]
 unique_name_in_owner = true

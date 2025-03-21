@@ -96,7 +96,7 @@ public partial class HexPlanetManager : Node3D
             }
         }
     }
-
+    // 其实这里可以直接导入 Image, 在导入界面选择导入类型。但是导入 Image 的场景 tscn 文件会大得吓人……（等于直接按像素写一遍）
     [Export] private Texture2D _noiseSource;
     [Export] private PackedScene _unitScene;
     [Export] public ulong Seed { get; set; } = 1234;

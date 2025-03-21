@@ -13,8 +13,9 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 
 public enum LandGeneratorType
 {
-    CatlikeCodingErosion, // 随机升降土地，然后应用侵蚀算法
-    SebastianFractalNoise, // 叠加的分形噪声
+    Erosion, // Catlike Coding 的随机升降土地，然后应用侵蚀算法
+    FractalNoise, // 叠加的分形噪声
+    RealEarth, // 真实地球
 }
 
 public class MapRegion
@@ -48,7 +49,7 @@ public partial class HexMapGenerator : Node
     [Export(PropertyHint.Range, "0, 10")] private int _mapBoardZ = 5;
     [Export(PropertyHint.Range, "0, 10")] private int _regionBorder = 5;
     [Export(PropertyHint.Range, "1, 4")] private int _regionCount = 1;
-    [Export] private LandGeneratorType _landGeneratorType = LandGeneratorType.CatlikeCodingErosion;
+    [Export] private LandGeneratorType _landGeneratorType = LandGeneratorType.Erosion;
 
     [ExportSubgroup("水循环设置")] [Export(PropertyHint.Range, "0.0, 1.0")]
     private float _evaporationFactor = 0.5f;
@@ -121,13 +122,15 @@ public partial class HexMapGenerator : Node
 
     #region on-ready 节点
 
-    private CatlikeCodingErosionLandGenerator _erosionLandGenerator;
-    private SebastianFractalNoiseLandGenerator _fractalNoiseLandGenerator;
+    private ErosionLandGenerator _erosionLandGenerator;
+    private FractalNoiseLandGenerator _fractalNoiseLandGenerator;
+    private RealEarthLandGenerator _realEarthLandGenerator;
 
     private void InitOnReadyNodes()
     {
-        _erosionLandGenerator = GetNode<CatlikeCodingErosionLandGenerator>("%CatlikeCodingErosionLandGenerator");
-        _fractalNoiseLandGenerator = GetNode<SebastianFractalNoiseLandGenerator>("%SebastianFractalNoiseLandGenerator");
+        _erosionLandGenerator = GetNode<ErosionLandGenerator>("%ErosionLandGenerator");
+        _fractalNoiseLandGenerator = GetNode<FractalNoiseLandGenerator>("%FractalNoiseLandGenerator");
+        _realEarthLandGenerator = GetNode<RealEarthLandGenerator>("%RealEarthLandGenerator");
     }
 
     #endregion
@@ -174,25 +177,32 @@ public partial class HexMapGenerator : Node
             {
                 Values = tile.Data.Values.WithWaterLevel(DefaultWaterLevel).WithElevation(0)
             };
-        if (_landGeneratorType == LandGeneratorType.CatlikeCodingErosion)
+        switch (_landGeneratorType)
         {
-            CreateRegions();
-            GD.Print($"--- CreatedRegions in {stopwatch.ElapsedMilliseconds} ms");
-            stopwatch.Restart();
+            case LandGeneratorType.Erosion:
+                CreateRegions();
+                GD.Print($"--- CreatedRegions in {stopwatch.ElapsedMilliseconds} ms");
+                stopwatch.Restart();
 
-            _landTileCount = _erosionLandGenerator.CreateLand(_random, _regions);
-            GD.Print($"--- CreatedLand in {stopwatch.ElapsedMilliseconds} ms");
-            stopwatch.Restart();
+                _landTileCount = _erosionLandGenerator.CreateLand(_random, _regions);
+                GD.Print($"--- CreatedLand in {stopwatch.ElapsedMilliseconds} ms");
+                stopwatch.Restart();
 
-            _erosionLandGenerator.ErodeLand(_random);
-            GD.Print($"--- ErodeLand in {stopwatch.ElapsedMilliseconds} ms");
-            stopwatch.Restart();
-        }
-        else
-        {
-            _landTileCount = _fractalNoiseLandGenerator.CreateLand(_random);
-            GD.Print($"--- CreatedLand in {stopwatch.ElapsedMilliseconds} ms");
-            stopwatch.Restart();
+                _erosionLandGenerator.ErodeLand(_random);
+                GD.Print($"--- ErodeLand in {stopwatch.ElapsedMilliseconds} ms");
+                stopwatch.Restart();
+                break;
+            case LandGeneratorType.FractalNoise:
+                _landTileCount = _fractalNoiseLandGenerator.CreateLand(_random);
+                GD.Print($"--- CreatedLand in {stopwatch.ElapsedMilliseconds} ms");
+                stopwatch.Restart();
+                break;
+            case LandGeneratorType.RealEarth:
+            default:
+                _landTileCount = _realEarthLandGenerator.CreateLand();
+                GD.Print($"--- CreatedLand in {stopwatch.ElapsedMilliseconds} ms");
+                stopwatch.Restart();
+                break;
         }
 
         CreateClimate();

@@ -16,7 +16,7 @@ public readonly struct LongitudeLatitudeCoords(float longitude, float latitude)
     public readonly float Latitude = Mathf.Wrap(latitude, -90f, 90.001f);
 
     public static LongitudeLatitudeCoords From(Vector2 v) => new(v.X, v.Y);
-    public Vector2 ToVector2() => new(Longitude, Latitude);
+    public Vector2 ToVector2() => new(Longitude, Mathf.Clamp(Latitude, -90f, 90f));
 
     // 映射关系：
     // 经纬度以 X 轴方向为本初子午线方向，顺时针的西经方向作为经度正方向
