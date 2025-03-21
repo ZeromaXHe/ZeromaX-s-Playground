@@ -231,7 +231,7 @@ public partial class OrbitCamera : Node3D
         }
 
         if (transformed)
-            EventBus.EmitCameraTransformed(floatDelta);
+            EventBus.EmitCameraTransformed(_camRig.GlobalTransform, floatDelta);
 
         // 根据相对于全局太阳光的位置，控制灯光亮度
         if (_sun == null)
@@ -282,7 +282,7 @@ public partial class OrbitCamera : Node3D
         {
             var zoomDelta = 0.025f * e.Factor * (e.ButtonIndex == MouseButton.WheelUp ? 1f : -1f);
             Zoom = Mathf.Clamp(Zoom + zoomDelta, 0f, 1f);
-            EventBus.EmitCameraTransformed((float)GetProcessDeltaTime());
+            EventBus.EmitCameraTransformed(_camRig.GlobalTransform, (float)GetProcessDeltaTime());
         }
     }
 

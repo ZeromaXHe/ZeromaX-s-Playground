@@ -135,4 +135,19 @@ public static class Math3dUtil
 
         return transform;
     }
+
+    /// <summary>
+    /// 计算从点 A 在球面上对齐到点 B 的最短路径方向的朝向向量
+    /// </summary>
+    /// <param name="pointA"></param>
+    /// <param name="pointB"></param>
+    /// <returns></returns>
+    public static Vector3 DirectionBetweenPointsOnSphere(Vector3 pointA, Vector3 pointB)
+    {
+        var sphereCenter = Vector3.Zero;
+        var vectorToA = pointA - sphereCenter;
+        var vectorToB = pointB - sphereCenter;
+        var greatCircleNormal = vectorToA.Cross(vectorToB).Normalized();
+        return greatCircleNormal.Cross(vectorToA).Normalized();
+    }
 }

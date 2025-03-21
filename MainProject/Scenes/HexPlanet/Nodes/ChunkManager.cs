@@ -371,7 +371,7 @@ public partial class ChunkManager : Node3D
         _insightUpdateTime = 0;
     }
 
-    private void UpdateInsightChunks(float delta)
+    private void UpdateInsightChunks(Transform3D transform, float delta)
     {
         var camera = GetViewport().GetCamera3D();
         _insightUpdateTime += delta;

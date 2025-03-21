@@ -1,8 +1,35 @@
-[gd_scene load_steps=4 format=3 uid="uid://cbelq6g353rvc"]
+[gd_scene load_steps=9 format=3 uid="uid://cbelq6g353rvc"]
 
 [ext_resource type="Script" uid="uid://b8bgqilvr6phu" path="res://Scenes/HexPlanet/HexPlanetHud.cs" id="1_r2qro"]
 [ext_resource type="PackedScene" uid="uid://cau1rm86t1or4" path="res://Scenes/HexPlanet/HexPlanetManager.tscn" id="2_6efwr"]
 [ext_resource type="PackedScene" uid="uid://cpewnyu5aelo4" path="res://Scenes/HexPlanet/Nodes/MiniMapManager.tscn" id="3_kbj0e"]
+
+[sub_resource type="Gradient" id="Gradient_kbj0e"]
+offsets = PackedFloat32Array(0, 0.98, 1)
+colors = PackedColorArray(0.164063, 0.146679, 0.128174, 0.317647, 0.359375, 0.314453, 0.269531, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_6e88e"]
+gradient = SubResource("Gradient_kbj0e")
+width = 150
+height = 150
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_usno0"]
+texture = SubResource("GradientTexture2D_6e88e")
+
+[sub_resource type="Gradient" id="Gradient_6e88e"]
+offsets = PackedFloat32Array(0.9, 0.92, 0.98, 1)
+colors = PackedColorArray(1, 1, 1, 0, 1, 0.235294, 0, 0.501961, 1, 0.235294, 0, 0.501961, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_usno0"]
+gradient = SubResource("Gradient_6e88e")
+width = 150
+height = 150
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
 
 [node name="HexPlanetHud" type="Control" node_paths=PackedStringArray("_hexPlanetManager")]
 layout_mode = 3
@@ -472,3 +499,40 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 text = "锁定经纬网显示"
+
+[node name="CompassPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+clip_children = 2
+custom_minimum_size = Vector2(150, 150)
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -64.0
+offset_top = -64.0
+grow_horizontal = 0
+grow_vertical = 0
+pivot_offset = Vector2(75, 75)
+theme_override_styles/panel = SubResource("StyleBoxTexture_usno0")
+
+[node name="Frame" type="TextureRect" parent="CompassPanel"]
+clip_children = 1
+layout_mode = 2
+texture = SubResource("GradientTexture2D_usno0")
+
+[node name="Directions" type="RichTextLabel" parent="CompassPanel"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+theme_override_constants/outline_size = 3
+theme_override_constants/shadow_outline_size = 5
+bbcode_enabled = true
+text = "             [b][color=red]N[/color]
+             [color=red]|[/color]
+W                     E
+             |
+             S[/b]"
+fit_content = true
+autowrap_mode = 0

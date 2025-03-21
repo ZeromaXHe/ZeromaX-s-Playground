@@ -5,6 +5,7 @@ using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Structs;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils.HexSphereGrid;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
@@ -29,6 +30,9 @@ public partial class HexPlanetHud : Control
     private MiniMapManager _miniMapManager;
     private Label _camLatLonLabel;
     private CheckButton _latLonFixCheckButton;
+
+    // 指南针
+    private PanelContainer _compassPanel;
 
     // 星球信息
     private TabBar _planetTabBar;
@@ -86,6 +90,8 @@ public partial class HexPlanetHud : Control
         _miniMapManager = GetNode<MiniMapManager>("%MiniMapManager");
         _camLatLonLabel = GetNode<Label>("%CamLatLonLabel");
         _latLonFixCheckButton = GetNode<CheckButton>("%LatLonFixCheckButton");
+        // 指南针
+        _compassPanel = GetNode<PanelContainer>("%CompassPanel");
         // 星球信息
         _planetTabBar = GetNode<TabBar>("%PlanetTabBar");
         _planetGrid = GetNode<GridContainer>("%PlanetGrid");
@@ -140,6 +146,7 @@ public partial class HexPlanetHud : Control
         _hexPlanetManager.NewPlanetGenerated += UpdateNewPlanetInfo;
         _hexPlanetManager.NewPlanetGenerated += InitMiniMap;
         EventBus.Instance.CameraMoved += OnCameraMoved;
+        EventBus.Instance.CameraTransformed += OnCameraTransformed;
     }
 
     private void InitMiniMap() => _miniMapManager.Init(_hexPlanetManager.GetOrbitCameraFocusPos());
@@ -153,11 +160,21 @@ public partial class HexPlanetHud : Control
     private void OnCameraMoved(Vector3 pos, float delta) =>
         _camLatLonLabel.Text = $"相机位置：{LongitudeLatitudeCoords.From(pos)}";
 
+    private void OnCameraTransformed(Transform3D transform, float delta)
+    {
+        var northPolePoint = Vector3.Up;
+        var posNormal = transform.Origin.Normalized();
+        var dirNorth = Math3dUtil.DirectionBetweenPointsOnSphere(posNormal, northPolePoint);
+        var angleToNorth = transform.Basis.Y.Slide(posNormal).SignedAngleTo(dirNorth, -posNormal);
+        _compassPanel.Rotation = angleToNorth;
+    }
+
     private void CleanNodeEventListeners()
     {
         _hexPlanetManager.NewPlanetGenerated -= UpdateNewPlanetInfo;
         _hexPlanetManager.NewPlanetGenerated -= InitMiniMap;
         EventBus.Instance.CameraMoved -= OnCameraMoved;
+        EventBus.Instance.CameraTransformed -= OnCameraTransformed;
     }
 
     #endregion
