@@ -493,7 +493,7 @@ public partial class HexPlanetManager : Node3D
     {
         if (PlanetRevolution || PlanetRotation)
         {
-            RenderingServer.GlobalShaderParameterSet("dir_to_sun", _planetAxis.ToLocal(_sunMesh.GlobalPosition.Normalized()));
+            RenderingServer.GlobalShaderParameterSet("dir_to_sun", ToPlanetLocal(_sunMesh.GlobalPosition.Normalized()));
             // 行星公转
             if (PlanetRevolution)
                 _sunRevolution.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
@@ -582,7 +582,7 @@ public partial class HexPlanetManager : Node3D
     {
         var result = GetTileCollisionResult();
         if (result is { Count: > 0 } && result.TryGetValue("position", out var position))
-            return _planetAxis.ToLocal(position.AsVector3());
+            return ToPlanetLocal(position.AsVector3());
         return Vector3.Zero;
     }
 
@@ -726,4 +726,6 @@ public partial class HexPlanetManager : Node3D
     public void FixLatLon(bool toggle) => _longitudeLatitude.FixFullVisibility = toggle;
 
     public Vector3 GetOrbitCameraFocusPos() => _orbitCamera.GetFocusBasePos();
+
+    public Vector3 ToPlanetLocal(Vector3 global) => _planetAxis.ToLocal(global);
 }

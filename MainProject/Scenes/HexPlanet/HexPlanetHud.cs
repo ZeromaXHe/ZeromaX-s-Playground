@@ -34,6 +34,9 @@ public partial class HexPlanetHud : Control
     // 指南针
     private PanelContainer _compassPanel;
 
+    // 矩形地图测试
+    private TextureRect _rectMap;
+
     // 星球信息
     private TabBar _planetTabBar;
     private GridContainer _planetGrid;
@@ -92,6 +95,8 @@ public partial class HexPlanetHud : Control
         _latLonFixCheckButton = GetNode<CheckButton>("%LatLonFixCheckButton");
         // 指南针
         _compassPanel = GetNode<PanelContainer>("%CompassPanel");
+        // 矩形地图测试
+        _rectMap = GetNode<TextureRect>("%RectMap");
         // 星球信息
         _planetTabBar = GetNode<TabBar>("%PlanetTabBar");
         _planetGrid = GetNode<GridContainer>("%PlanetGrid");
@@ -157,8 +162,11 @@ public partial class HexPlanetHud : Control
         ChosenTile = null;
     }
 
-    private void OnCameraMoved(Vector3 pos, float delta) =>
-        _camLatLonLabel.Text = $"相机位置：{LongitudeLatitudeCoords.From(pos)}";
+    private void OnCameraMoved(Vector3 pos, float delta)
+    {
+        var longLat = LongitudeLatitudeCoords.From(_hexPlanetManager.ToPlanetLocal(pos));
+        _camLatLonLabel.Text = $"相机位置：{longLat}";
+    }
 
     private void OnCameraTransformed(Transform3D transform, float delta)
     {
@@ -167,6 +175,16 @@ public partial class HexPlanetHud : Control
         var dirNorth = Math3dUtil.DirectionBetweenPointsOnSphere(posNormal, northPolePoint);
         var angleToNorth = transform.Basis.Y.Slide(posNormal).SignedAngleTo(dirNorth, -posNormal);
         _compassPanel.Rotation = angleToNorth;
+
+        var posLocal = _hexPlanetManager.ToPlanetLocal(_hexPlanetManager.GetOrbitCameraFocusPos());
+        var longLat = LongitudeLatitudeCoords.From(posLocal);
+        var rectMapMaterial = _rectMap.Material as ShaderMaterial;
+        rectMapMaterial?.SetShaderParameter("lon", longLat.Longitude);
+        rectMapMaterial?.SetShaderParameter("lat", longLat.Latitude);
+        // rectMapMaterial?.SetShaderParameter("pos_normal", posLocal.Normalized()); // 非常奇怪，旋转时会改变……
+        rectMapMaterial?.SetShaderParameter("angle_to_north", angleToNorth);
+        GD.Print($"lonLat: {longLat.Longitude}, {longLat.Latitude}; angleToNorth: {
+            angleToNorth}; posNormal: {posNormal};");
     }
 
     private void CleanNodeEventListeners()
@@ -312,6 +330,9 @@ public partial class HexPlanetHud : Control
     public override void _Ready()
     {
         InitOnReadyNodes();
+        // 初始化相机位置相关功能
+        OnCameraMoved(_hexPlanetManager.GetOrbitCameraFocusPos(), 0f);
+        OnCameraTransformed(_hexPlanetManager.GetViewport().GetCamera3D().GetGlobalTransform(), 0f);
 
         SetEditMode(_editCheckButton.ButtonPressed);
         SetShowLabelMode(_showLableOptionButton.Selected);
