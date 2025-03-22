@@ -119,6 +119,7 @@ public partial class HexPlanetManager : Node3D
         {
             PlanetRevolution = false;
             _sunRevolution.RotationDegrees = Vector3.Up * 180f;
+            RenderingServer.GlobalShaderParameterSet("dir_to_sun", _sunMesh.GlobalPosition.Normalized());
         }
         else
             PlanetRevolution = true;
@@ -375,6 +376,7 @@ public partial class HexPlanetManager : Node3D
     private Node3D _lunarObliquity;
     private Node3D _moonAxis;
     private MeshInstance3D _moonMesh;
+    private MeshInstance3D _sunMesh;
 
     // 行星节点
     private Node3D _planetAtmosphere; // 大气层插件的 GDScript 节点
@@ -406,6 +408,8 @@ public partial class HexPlanetManager : Node3D
         _moonAxis = GetNode<Node3D>("%MoonAxis");
         _moonMesh = GetNode<MeshInstance3D>("%MoonMesh");
         UpdateMoonMeshRadius();
+        _sunMesh = GetNode<MeshInstance3D>("%SunMesh");
+        RenderingServer.GlobalShaderParameterSet("dir_to_sun", _sunMesh.GlobalPosition.Normalized());
 
         // 行星节点
         _planetAtmosphere = GetNode<Node3D>("%PlanetAtmosphere");
@@ -487,8 +491,12 @@ public partial class HexPlanetManager : Node3D
     {
         // 行星公转
         if (PlanetRevolution)
+        {
             _sunRevolution.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
                 _sunRevolution.RotationDegrees.Y + PlanetRevolutionSpeed * delta, 0f, 360f);
+            RenderingServer.GlobalShaderParameterSet("dir_to_sun", _sunMesh.GlobalPosition.Normalized());
+        }
+
         // 行星自转
         if (PlanetRotation)
             _planetAxis.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(

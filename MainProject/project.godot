@@ -113,3 +113,7 @@ divisions={
 "type": "int",
 "value": 10
 }
+dir_to_sun={
+"type": "vec3",
+"value": Vector3(0, 0.397, -0.918)
+}
