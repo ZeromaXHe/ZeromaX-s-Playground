@@ -224,7 +224,7 @@ transform = Transform3D(1, 0, 0, 0, 0.917477, -0.397788, 0, 0.397788, 0.917477, 
 
 [node name="SunRevolution" type="Node3D" parent="EclipticPlane"]
 unique_name_in_owner = true
-transform = Transform3D(-1, 0, -8.74227e-08, 0, 1, 0, 8.74227e-08, 0, -1, 0, 0, 0)
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 0)
 
 [node name="SunDist" type="Node3D" parent="EclipticPlane/SunRevolution"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3000)
@@ -269,6 +269,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 40, 60)
 
 [node name="PlanetAxis" type="Node3D" parent="."]
 unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 
 [node name="ChunkManager" parent="PlanetAxis" instance=ExtResource("7_2bryy")]
 unique_name_in_owner = true
@@ -331,11 +332,14 @@ shader_params/u_cloud_coverage_cubemap = SubResource("Cubemap_6nabi")
 transform = Transform3D(-1, 6.18173e-08, -6.18173e-08, 8.74228e-08, 0.707107, -0.707107, -3.82137e-15, -0.707107, -0.707107, -7.03524e-07, -8.04738, -108.047)
 current = true
 
+[node name="UnitManager" type="Node3D" parent="PlanetAxis"]
+unique_name_in_owner = true
+
 [node name="HexMapGenerator" parent="." instance=ExtResource("9_nxupj")]
 unique_name_in_owner = true
 _landGeneratorType = 2
 _windStrength = 1.0
-_seed = 1943770294
+_seed = 420770169
 
 [node name="ErosionLandGenerator" type="Node" parent="HexMapGenerator"]
 unique_name_in_owner = true

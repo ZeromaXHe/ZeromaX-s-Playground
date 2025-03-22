@@ -51,15 +51,18 @@ vec4 GetTerrainColor(vec3 world_pos, vec3 world_normal, int index, vec4 weights,
 }
 
 void fragment() {
+	mat4 inv_model_matrix = inverse(MODEL_MATRIX);
 	// 获取世界坐标
 	vec3 world_pos = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz; // 位置需位移，补 1.0
+	vec3 local_pos = (inv_model_matrix * vec4(world_pos, 1.)).xyz;
 	// 获取世界法线
 	vec3 world_normal = (INV_VIEW_MATRIX * vec4(NORMAL, 0.)).xyz; // 法线向量无需位移，补 0.
+	vec3 local_normal = (inv_model_matrix * vec4(world_pos, 0.)).xyz;
 	vec4 inColor = COLOR;
-	vec4 c = GetTerrainColor(world_pos, world_normal, 0, inColor, visibility) +
-		GetTerrainColor(world_pos, world_normal, 1, inColor, visibility) +
-		GetTerrainColor(world_pos, world_normal, 2, inColor, visibility);
-	vec3 baseColor = ColorizeSubmergence(c.rgb, length(world_pos) - radius, terrain.w);
+	vec4 c = GetTerrainColor(local_pos, local_normal, 0, inColor, visibility) +
+		GetTerrainColor(local_pos, local_normal, 1, inColor, visibility) +
+		GetTerrainColor(local_pos, local_normal, 2, inColor, visibility);
+	vec3 baseColor = ColorizeSubmergence(c.rgb, length(local_pos) - radius, terrain.w);
 	float explored = visibility.w;
 	// 设置漫反射颜色
 	ALBEDO = baseColor * color.rgb * explored;

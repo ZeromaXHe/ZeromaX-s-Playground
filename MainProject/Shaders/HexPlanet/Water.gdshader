@@ -1,6 +1,6 @@
 shader_type spatial;
 //render_mode unshaded, depth_draw_never, depth_prepass_alpha;
-render_mode world_vertex_coords;
+//render_mode world_vertex_coords;
 
 uniform sampler2D DEPTH_TEXTURE : hint_depth_texture, filter_linear_mipmap;
 uniform sampler2D main_tex: source_color, filter_linear_mipmap, repeat_enable;
@@ -27,7 +27,8 @@ void vertex() {
 	visibility.x = mix(0.25, 1, visibility.x);
 	visibility.y = cell0.y * COLOR.x + cell1.y * COLOR.y + cell2.y * COLOR.z;
 	// 波浪动画
-	float wave_vertex_amplitude = WaveAnim(CAMERA_POSITION_WORLD, VERTEX);
+	vec3 cam_pos_local = (inverse(MODEL_MATRIX) * vec4(CAMERA_POSITION_WORLD, 1.)).xyz;
+	float wave_vertex_amplitude = WaveAnim(cam_pos_local, VERTEX);
 	// 使用归一化 VERTEX 而不是 NORMAL，这样不同三角面间的相同顶点不会产生接缝
 	VERTEX += normalize(VERTEX) * wave_vertex_amplitude;
 }
@@ -41,12 +42,16 @@ float CalculateSpecularHighlight(vec3 normal, vec3 view_dir, float smoothness) {
 }
 
 void fragment() {
-	// 获取世界坐标
+	mat4 inv_model_matrix = inverse(MODEL_MATRIX);
+	// 获取世界/本地坐标
 	vec3 world_pos = (INV_VIEW_MATRIX * vec4(VERTEX, 1.)).xyz; // 点用 1.，因为要应用平移
-	vec3 view_dir = normalize(world_pos - CAMERA_POSITION_WORLD);
-	// 获取世界坐标下的法线
-	vec3 world_normal = normalize(INV_VIEW_MATRIX * vec4(NORMAL, 0.)).xyz; // 向量用 0.，因为无需平移
-	vec3 world_normal_by_pos = normalize(world_pos);
+	vec3 local_pos = (inv_model_matrix * vec4(world_pos, 1.)).xyz;
+	vec3 cam_pos_local = (inv_model_matrix * vec4(CAMERA_POSITION_WORLD, 1.)).xyz;
+	vec3 view_dir = normalize(local_pos - cam_pos_local);
+	// 获取世界/本地坐标下的法线
+	//vec3 world_normal = normalize(INV_VIEW_MATRIX * vec4(NORMAL, 0.)).xyz; // 向量用 0.，因为无需平移
+	//vec3 world_normal_by_pos = normalize(world_pos);
+	vec3 local_normal_by_pos = normalize(local_pos);
 	//// 水面法线贴图
 	float wave_speed = 0.35;
 	float wave_normal_scale = 0.025;
@@ -55,10 +60,10 @@ void fragment() {
 	vec2 wave_offset_A = vec2(TIME / 20. * wave_speed, TIME / 20. * wave_speed * 0.8);
 	vec2 wave_offset_B = vec2(TIME / 20. * wave_speed * -0.8, TIME / 20. * wave_speed * -0.3);
 	// 这里就是不能用 triplanarNormal，没搞懂为啥……
-	vec3 wave_normal1 = triplanarNormalUDN(world_pos, world_normal_by_pos, wave_normal_scale, wave_offset_A, wave_normal_A);
-	vec3 wave_normal2 = triplanarNormalUDN(world_pos, world_normal_by_pos, wave_normal_scale, wave_offset_B, wave_normal_B);
-	vec3 wave_normal = triplanarNormalUDN(world_pos, wave_normal1, wave_normal_scale, wave_offset_B, wave_normal_B);
-	vec3 spec_wave_normal = normalize(mix(world_normal_by_pos, wave_normal, wave_strength));
+	vec3 wave_normal1 = triplanarNormalUDN(local_pos, local_normal_by_pos, wave_normal_scale, wave_offset_A, wave_normal_A);
+	vec3 wave_normal2 = triplanarNormalUDN(local_pos, local_normal_by_pos, wave_normal_scale, wave_offset_B, wave_normal_B);
+	vec3 wave_normal = triplanarNormalUDN(local_pos, wave_normal1, wave_normal_scale, wave_offset_B, wave_normal_B);
+	vec3 spec_wave_normal = normalize(mix(local_normal_by_pos, wave_normal, wave_strength));
 
 	// glitter 不知道有啥用，我这里是均匀的零点几的值
 	//float f2 = dot(world_normal, dir_to_sun);
@@ -102,7 +107,7 @@ void fragment() {
 
 	//// 水的透明度
 	float fresnel_pow = 2.; // 待提成 uniform
-	float fresnel = 1. - saturate(pow(saturate(dot(-view_dir, world_normal_by_pos)), fresnel_pow));
+	float fresnel = 1. - saturate(pow(saturate(dot(-view_dir, local_normal_by_pos)), fresnel_pow));
 	fresnel = max(0.7, fresnel);
 	float edge_fade = 1.; // 待提成 uniform
 	float shore_fade = 1. - exp(-water_view_depth * edge_fade);
@@ -116,7 +121,7 @@ void fragment() {
 	// 不需要 clamp（话说 clamp 的 min\max 传 vec3 时的逻辑好像会比较奇怪）
 	vec3 water_col = mix(shallow_col, deep_col, 1. - exp(-water_view_depth / max_height)).rgb;
 
-	float waves = Waves(world_pos, main_tex);
+	float waves = Waves(local_pos, main_tex);
 	water_col = saturate3(water_col + specular_highlight + waves);
 	//water_col = water_col + glitter + foam;
 	float water_alpha = max(fresnel * shore_fade, 0.7 + 0.3 * smoothstep(0.01, 0.5, waves));
@@ -128,5 +133,5 @@ void fragment() {
 	AO = explored;
 	ROUGHNESS = 1.0 - glossiness;
 	ALPHA = water_alpha * explored;
-	NORMAL = (VIEW_MATRIX * vec4(spec_wave_normal, 0.)).xyz;
+	NORMAL = (VIEW_MATRIX * vec4(MODEL_NORMAL_MATRIX * spec_wave_normal, 0.)).xyz;
 }

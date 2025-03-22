@@ -22,11 +22,14 @@ void vertex() {
 
 void fragment() {
 	vec2 uv = UV;
+	mat4 inv_model_matrix = inverse(MODEL_MATRIX);
 	// INV_VIEW_MATRIX 视图空间向世界空间变换.
 	// VERTEX 来自顶点函数的顶点(默认情况下, 在视图空间中).
 	vec3 world_pos = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz; // 位置需位移，补 1.0
+	vec3 local_pos = (inv_model_matrix * vec4(world_pos, 1.)).xyz;
 	vec3 world_normal = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz; // 法线不位移，补 0.0
-	vec4 noise = triplanar(world_pos, world_normal, 15.0 * TILING_SCALE, main_tex);
+	vec3 local_normal = (inv_model_matrix * vec4(world_normal, 0.)).xyz;
+	vec4 noise = triplanar(local_pos, local_normal, 15.0 * TILING_SCALE, main_tex);
 	vec4 c = color * (noise.y * 0.75 + 0.25) * visibility.x;
 	float blend = uv.x;
 	blend *= noise.x + 0.5;

@@ -48,7 +48,6 @@ shader_parameter/main_tex = ExtResource("4_0ithq")
 shader_parameter/glossiness = 0.9
 shader_parameter/deep_col = Color(0, 0.4, 0.7, 1)
 shader_parameter/shallow_col = Color(0.118, 0.573, 1, 1)
-shader_parameter/dir_to_sun = Vector3(0, 0.397148, -0.917755)
 shader_parameter/wave_normal_A = ExtResource("10_l7fbp")
 shader_parameter/wave_normal_B = ExtResource("11_wr4gp")
 

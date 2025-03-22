@@ -382,6 +382,7 @@ public partial class HexPlanetManager : Node3D
     private Node3D _planetAtmosphere; // 大气层插件的 GDScript 节点
     private MeshInstance3D _groundPlaceHolder; // 球面占位网格
     private ChunkManager _chunkManager;
+    private Node3D _unitManager; // 单位管理节点
     private OrbitCamera _orbitCamera;
     private MeshInstance3D _selectTileViewer;
     private EditPreviewChunk _editPreviewChunk;
@@ -415,6 +416,7 @@ public partial class HexPlanetManager : Node3D
         _planetAtmosphere = GetNode<Node3D>("%PlanetAtmosphere");
         _groundPlaceHolder = GetNode<MeshInstance3D>("%GroundPlaceHolder");
         _chunkManager = GetNode<ChunkManager>("%ChunkManager");
+        _unitManager = GetNode<Node3D>("%UnitManager");
         // 此处要求 OrbitCamera 也是 [Tool]，否则编辑器里会转型失败
         _orbitCamera = GetNode<OrbitCamera>("%OrbitCamera");
         _selectTileViewer = GetNode<MeshInstance3D>("%SelectTileViewer");
@@ -489,18 +491,19 @@ public partial class HexPlanetManager : Node3D
     // 更新天体旋转
     private void UpdateStellarRotation(float delta)
     {
-        // 行星公转
-        if (PlanetRevolution)
+        if (PlanetRevolution || PlanetRotation)
         {
-            _sunRevolution.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
-                _sunRevolution.RotationDegrees.Y + PlanetRevolutionSpeed * delta, 0f, 360f);
-            RenderingServer.GlobalShaderParameterSet("dir_to_sun", _sunMesh.GlobalPosition.Normalized());
+            RenderingServer.GlobalShaderParameterSet("dir_to_sun", _planetAxis.ToLocal(_sunMesh.GlobalPosition.Normalized()));
+            // 行星公转
+            if (PlanetRevolution)
+                _sunRevolution.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
+                    _sunRevolution.RotationDegrees.Y + PlanetRevolutionSpeed * delta, 0f, 360f);
+            // 行星自转
+            if (PlanetRotation)
+                _planetAxis.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
+                    _planetAxis.RotationDegrees.Y + PlanetRotationSpeed * delta, 0f, 360f);
         }
 
-        // 行星自转
-        if (PlanetRotation)
-            _planetAxis.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
-                _planetAxis.RotationDegrees.Y + PlanetRotationSpeed * delta, 0f, 360f);
         // 卫星公转
         if (SatelliteRevolution)
             _lunarRevolution.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
@@ -579,7 +582,7 @@ public partial class HexPlanetManager : Node3D
     {
         var result = GetTileCollisionResult();
         if (result is { Count: > 0 } && result.TryGetValue("position", out var position))
-            return position.AsVector3();
+            return _planetAxis.ToLocal(position.AsVector3());
         return Vector3.Zero;
     }
 
@@ -691,7 +694,7 @@ public partial class HexPlanetManager : Node3D
 
     private void AddUnit(HexUnit unit, int tileId, float orientation)
     {
-        AddChild(unit);
+        _unitManager.AddChild(unit);
         _units[unit.Id] = unit;
         unit.TileId = tileId;
         unit.Orientation = orientation;

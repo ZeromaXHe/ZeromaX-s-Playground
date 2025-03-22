@@ -394,7 +394,7 @@ public partial class ChunkManager : Node3D
 
             InsightChunkIdsNext.Add(preInHorizonChunkId);
             // 刷新 Lod
-            _gridChunks[preInHorizonChunkId].UpdateLod(CalcLod(preInsightChunk.Pos.DistanceTo(camera.GlobalPosition)));
+            _gridChunks[preInHorizonChunkId].UpdateLod(CalcLod(preInsightChunk.Pos.DistanceTo(ToLocal(camera.GlobalPosition))));
             // 分块在地平线内，他的邻居才比较可能是在地平线内
             // 将之前不在但现在可能在地平线范围内的 id 加入带查询队列
             SearchNeighbor(preInsightChunk, InsightChunkIdsNow);
@@ -492,7 +492,7 @@ public partial class ChunkManager : Node3D
         }
 
         _gridChunks[chunk.Id].ShowInSight(CalcLod(
-            chunk.Pos.DistanceTo(GetViewport().GetCamera3D().GlobalPosition)));
+            chunk.Pos.DistanceTo(ToLocal(GetViewport().GetCamera3D().GlobalPosition))));
     }
 
     public void ClearOldData()
@@ -524,7 +524,7 @@ public partial class ChunkManager : Node3D
             }
 
             var hexGridChunk = AddChildHexGridChunk(id);
-            hexGridChunk.ShowInSight(CalcLod(chunk.Pos.DistanceTo(camera.GlobalPosition)));
+            hexGridChunk.ShowInSight(CalcLod(chunk.Pos.DistanceTo(ToLocal(camera.GlobalPosition))));
             _gridChunks.Add(id, hexGridChunk);
             InsightChunkIdsNow.Add(id);
         }
@@ -554,7 +554,7 @@ public partial class ChunkManager : Node3D
     // 注意，判断是否在摄像机内，不是用 GetViewport().GetVisibleRect().HasPoint(camera.UnprojectPosition(chunk.Pos))
     // 因为后面要根据相机位置动态更新可见区域，上面方法这个仅仅是对应初始时的可见区域
     private bool IsChunkInsight(Chunk chunk, Camera3D camera) =>
-        Mathf.Cos(chunk.Pos.Normalized().AngleTo(camera.GlobalPosition.Normalized()))
+        Mathf.Cos(chunk.Pos.Normalized().AngleTo(ToLocal(camera.GlobalPosition).Normalized()))
         > _planetSettingService.Radius / camera.GlobalPosition.Length()
-        && camera.IsPositionInFrustum(chunk.Pos);
+        && camera.IsPositionInFrustum(ToGlobal(chunk.Pos));
 }
