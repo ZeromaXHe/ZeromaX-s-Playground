@@ -65,15 +65,20 @@ public class MiniMapService(ITileService tileService, IPlanetSettingService plan
                 if (uvs[i].X < minX) minX = uvs[i].X;
             }
 
-            if (maxX - minX > 0.8)
+            if (maxX - minX > 0.5f)
             {
                 // 横跨大半个地球，说明是包覆边界上的地块。分左右两块全部绘制
-                // 不知道为啥如果直接映射到 x + 1 / x - 1 的位置，两边都绘制会出现横纹
-                // 所以现在超出 0 ~ 1 的点，都映射到 x = 1 或 x = 0 的边上
-                for (var i = 0; i < uvs.Count; i++)
-                    AppendUvRightPointCoords(i);
-                for (var i = 0; i < uvs.Count; i++)
-                    AppendUvLeftPointCoords(i);
+                foreach (var rightUv in uvs.Select(
+                             uv => uv.X > 0.5f ? uv : uv + Vector2.Right))
+                    AppendUvPointCoords(rightUv);
+                // 分成两个 SVG 多边形标签。否则作为一个多边形绘制是错误的，会有覆盖半张地图的横纹
+                var midFill = GetFillStr(tile);
+                svgBuilder.Append("\" fill=\"").Append(midFill).Append("\" stroke=\"").Append(midFill)
+                    .Append("\" stroke-width=\"1\"/>");
+                svgBuilder.Append("<polygon points=\"");
+                foreach (var leftUv in uvs.Select(
+                             uv => uv.X < 0.5 ? uv : uv - Vector2.Right))
+                    AppendUvPointCoords(leftUv);
             }
             else
                 foreach (var uv in uvs)
@@ -81,55 +86,12 @@ public class MiniMapService(ITileService tileService, IPlanetSettingService plan
         }
 
         var fill = GetFillStr(tile);
-        svgBuilder.Append("\" fill=\"").Append(fill).Append("\" stroke=\"").Append(fill).Append("\" stroke-width=\"1\"/>");
+        svgBuilder.Append("\" fill=\"").Append(fill).Append("\" stroke=\"").Append(fill)
+            .Append("\" stroke-width=\"1\"/>");
         return;
 
         void AppendUvPointCoords(Vector2 uv) =>
             svgBuilder.Append(width * uv.X).Append(',').Append(height * uv.Y).Append(' ');
-
-        void AppendUvLeftPointCoords(int idx)
-        {
-            var uv = uvs[idx];
-            if (uv.X < 0.8f)
-            {
-                AppendUvPointCoords(uv);
-                return;
-            }
-
-            var newUv = uv - Vector2.Right;
-            var preUv = uvs[tile.PreviousIdx(idx)];
-            var nextUv = uvs[tile.NextIdx(idx)];
-            if (preUv.X > 0.8f && nextUv.X > 0.8f)
-                // 如果前后都是待映射到左侧的点
-                return;
-
-            if (preUv.X < 0.8f) // 如果前面是本来就在左侧的点
-                AppendUvPointCoords(newUv.Lerp(preUv, -newUv.X / (preUv.X - newUv.X)));
-            if (nextUv.X < 0.8f) // 如果后面是本来就在左侧的点
-                AppendUvPointCoords(newUv.Lerp(nextUv, -newUv.X / (nextUv.X - newUv.X)));
-        }
-
-        void AppendUvRightPointCoords(int idx)
-        {
-            var uv = uvs[idx];
-            if (uv.X > 0.2f)
-            {
-                AppendUvPointCoords(uv);
-                return;
-            }
-
-            var newUv = uv + Vector2.Right;
-            var preUv = uvs[tile.PreviousIdx(idx)];
-            var nextUv = uvs[tile.NextIdx(idx)];
-            if (preUv.X < 0.2f && nextUv.X < 0.2f)
-                // 如果前后都是待映射到右侧的点
-                return;
-
-            if (preUv.X > 0.2f) // 如果前面是本来就在右侧的点
-                AppendUvPointCoords(newUv.Lerp(preUv, (newUv.X - 1f) / (newUv.X - preUv.X)));
-            if (nextUv.X > 0.2f) // 如果后面是本来就在右侧的点
-                AppendUvPointCoords(newUv.Lerp(nextUv, (newUv.X - 1f) / (newUv.X - nextUv.X)));
-        }
     }
 
     private static string GetFillStr(Tile tile)
