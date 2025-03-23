@@ -4,6 +4,7 @@ using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.MiniMap;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Structs;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils.HexSphereGrid;
@@ -97,6 +98,7 @@ public partial class HexPlanetHud : Control
         _compassPanel = GetNode<PanelContainer>("%CompassPanel");
         // 矩形地图测试
         _rectMap = GetNode<TextureRect>("%RectMap");
+        _rectMap.Texture = _miniMapService.GenerateRectMap();
         // 星球信息
         _planetTabBar = GetNode<TabBar>("%PlanetTabBar");
         _planetGrid = GetNode<GridContainer>("%PlanetGrid");
@@ -154,7 +156,11 @@ public partial class HexPlanetHud : Control
         EventBus.Instance.CameraTransformed += OnCameraTransformed;
     }
 
-    private void InitMiniMap() => _miniMapManager.Init(_hexPlanetManager.GetOrbitCameraFocusPos());
+    private void InitMiniMap()
+    {
+        _miniMapManager.Init(_hexPlanetManager.GetOrbitCameraFocusPos());
+        _rectMap.Texture = _miniMapService.GenerateRectMap();
+    }
 
     private void UpdateNewPlanetInfo()
     {
@@ -183,8 +189,8 @@ public partial class HexPlanetHud : Control
         rectMapMaterial?.SetShaderParameter("lat", longLat.Latitude);
         // rectMapMaterial?.SetShaderParameter("pos_normal", posLocal.Normalized()); // 非常奇怪，旋转时会改变……
         rectMapMaterial?.SetShaderParameter("angle_to_north", angleToNorth);
-        GD.Print($"lonLat: {longLat.Longitude}, {longLat.Latitude}; angleToNorth: {
-            angleToNorth}; posNormal: {posNormal};");
+        // GD.Print($"lonLat: {longLat.Longitude}, {longLat.Latitude}; angleToNorth: {
+        //     angleToNorth}; posNormal: {posNormal};");
     }
 
     private void CleanNodeEventListeners()
@@ -204,6 +210,7 @@ public partial class HexPlanetHud : Control
     private ISelectViewService _selectViewService;
     private IPlanetSettingService _planetSettingService;
     private IEditorService _editorService;
+    private IMiniMapService _miniMapService;
 
     private void InitServices()
     {
@@ -212,6 +219,7 @@ public partial class HexPlanetHud : Control
         _selectViewService = Context.GetBean<ISelectViewService>();
         _planetSettingService = Context.GetBean<IPlanetSettingService>();
         _editorService = Context.GetBean<IEditorService>();
+        _miniMapService = Context.GetBean<IMiniMapService>();
     }
 
     #endregion

@@ -4,7 +4,6 @@
 [ext_resource type="PackedScene" uid="uid://cau1rm86t1or4" path="res://Scenes/HexPlanet/HexPlanetManager.tscn" id="2_6efwr"]
 [ext_resource type="PackedScene" uid="uid://cpewnyu5aelo4" path="res://Scenes/HexPlanet/Nodes/MiniMapManager.tscn" id="3_kbj0e"]
 [ext_resource type="Shader" uid="uid://s5q5fb56glyj" path="res://Shaders/HexPlanet/Sebastian/Geo/SphereToRectMiniMap.gdshader" id="4_usno0"]
-[ext_resource type="Texture2D" uid="uid://cekhabx1udvjw" path="res://Assets/HexPlanet/Sebastian/maskR-elevG-bathB_4096x2048.jpg" id="5_g5474"]
 [ext_resource type="Texture2D" uid="uid://b1kutkqhqcl40" path="res://icon.svg" id="6_g5474"]
 
 [sub_resource type="Gradient" id="Gradient_kbj0e"]
@@ -39,6 +38,8 @@ shader = ExtResource("4_usno0")
 shader_parameter/lon = 0.0
 shader_parameter/lat = 0.0
 shader_parameter/angle_to_north = 0.0
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_usno0"]
 
 [node name="HexPlanetHud" type="Control" node_paths=PackedStringArray("_hexPlanetManager")]
 layout_mode = 3
@@ -552,6 +553,7 @@ autowrap_mode = 0
 
 [node name="RectMap" type="TextureRect" parent="."]
 unique_name_in_owner = true
+visible = false
 material = SubResource("ShaderMaterial_pqwq1")
 layout_mode = 1
 anchors_preset = 7
@@ -559,13 +561,13 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -150.0
-offset_top = -150.0
-offset_right = 150.0
+offset_left = -350.0
+offset_top = -350.0
+offset_right = 350.0
 grow_horizontal = 2
 grow_vertical = 0
-pivot_offset = Vector2(150, 75)
-texture = ExtResource("5_g5474")
+pivot_offset = Vector2(350, 175)
+texture = SubResource("PlaceholderTexture2D_usno0")
 expand_mode = 2
 
 [node name="CameraIcon" type="TextureRect" parent="RectMap"]
@@ -583,3 +585,19 @@ grow_horizontal = 2
 grow_vertical = 2
 texture = ExtResource("6_g5474")
 expand_mode = 1
+
+[node name="RectMapCheckButton" type="CheckButton" parent="."]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -56.0
+offset_top = -31.0
+offset_right = 56.0
+grow_horizontal = 2
+grow_vertical = 0
+text = "矩形地图"
+
+[connection signal="toggled" from="RectMapCheckButton" to="RectMap" method="set_visible"]

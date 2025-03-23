@@ -3,6 +3,8 @@ using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos.Impl;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Impl;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.MiniMap;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.MiniMap.Impl;
 
 namespace ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 
@@ -55,6 +57,7 @@ public static class Context
         var tileSearchService = new TileSearchService(tileService, planetSettingService);
         var tileShaderService = new TileShaderService(tileService, tileSearchService,
             unitService, planetSettingService);
+        var miniMapService = new MiniMapService(tileService, planetSettingService);
         var selectViewService = new SelectViewService(tileService, tileSearchService,
             planetSettingService);
         Register(nameof(IPlanetSettingService), planetSettingService);
@@ -67,6 +70,7 @@ public static class Context
         Register(nameof(ITileService), tileService);
         Register(nameof(ITileSearchService), tileSearchService);
         Register(nameof(ITileShaderService), tileShaderService);
+        Register(nameof(IMiniMapService), miniMapService);
         Register(nameof(ISelectViewService), selectViewService);
     }
 }

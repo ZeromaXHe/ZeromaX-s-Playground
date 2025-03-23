@@ -338,7 +338,7 @@ unique_name_in_owner = true
 unique_name_in_owner = true
 _landGeneratorType = 2
 _windStrength = 1.0
-_seed = 1249860801
+_seed = -513859990
 
 [node name="ErosionLandGenerator" type="Node" parent="HexMapGenerator"]
 unique_name_in_owner = true

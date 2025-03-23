@@ -18,6 +18,10 @@ public readonly struct LongitudeLatitudeCoords(float longitude, float latitude)
     public static LongitudeLatitudeCoords From(Vector2 v) => new(v.X, v.Y);
     public Vector2 ToVector2() => new(Longitude, Mathf.Clamp(Latitude, -90f, 90f));
 
+    // UV 转换
+    public static LongitudeLatitudeCoords FromUv(float u, float v) => new(180f - 360f * u, 90f - 180f * v);
+    public Vector2 ToUv() => new(-Longitude / 360f + 0.5f, 0.5f - Latitude / 180f);
+
     // 映射关系：
     // 经纬度以 X 轴方向为本初子午线方向，顺时针的西经方向作为经度正方向
     // Y 轴方向为北极点方向，赤道向北纬是纬度正方向
