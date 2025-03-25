@@ -12,7 +12,7 @@ varying vec2 visibility;
 // 设置深度偏移
 void vertex() {
 	VERTEX *= 1.005;
-	
+
 	vec4 cell0 = GetCellData(CUSTOM0, 0);
 	vec4 cell1 = GetCellData(CUSTOM0, 1);
 	visibility.x = cell0.x * COLOR.x + cell1.x * COLOR.y;

@@ -1,8 +1,94 @@
-[gd_scene load_steps=2 format=3 uid="uid://bl5ftdrvwrgta"]
+[gd_scene load_steps=17 format=3 uid="uid://bl5ftdrvwrgta"]
 
 [ext_resource type="Script" uid="uid://d1pu8bqev4ngh" path="res://Scenes/HexPlanet/Nodes/HexMapGenerator.cs" id="1_e8euf"]
+[ext_resource type="Script" uid="uid://c2lyi6jmppxt4" path="res://Scenes/HexPlanet/Nodes/LandGenerators/ErosionLandGenerator.cs" id="2_4fsf1"]
+[ext_resource type="Script" uid="uid://cxbym50051y28" path="res://Scenes/HexPlanet/Nodes/LandGenerators/FractalNoiseLandGenerator.cs" id="3_bqkln"]
+[ext_resource type="Script" uid="uid://drswrd3tc6kks" path="res://Scenes/HexPlanet/Resources/LandGenerators/NoiseSettings.cs" id="4_mswmv"]
+[ext_resource type="Script" uid="uid://bkxberytmnmbw" path="res://Scenes/HexPlanet/Resources/LandGenerators/LayeredFastNoise.cs" id="5_efurs"]
+[ext_resource type="Script" uid="uid://ct5qbbt7dq87k" path="res://Scenes/HexPlanet/Nodes/LandGenerators/RealEarthLandGenerator.cs" id="6_ixtyf"]
+[ext_resource type="Texture2D" uid="uid://cekhabx1udvjw" path="res://Assets/HexPlanet/Sebastian/maskR-elevG-bathB_4096x2048.jpg" id="7_pyktb"]
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_bwo12"]
+noise_type = 3
+frequency = 0.03
+fractal_type = 0
+fractal_octaves = 8
+domain_warp_enabled = true
+
+[sub_resource type="Resource" id="Resource_u6ekd"]
+script = ExtResource("4_mswmv")
+Strength = 1.0
+SampleRadius = 1.0
+Noise = SubResource("FastNoiseLite_bwo12")
+Bias = -0.2
+Enabled = true
+UseFirstLayerAsMask = false
+metadata/_custom_type_script = "uid://drswrd3tc6kks"
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_4hyty"]
+noise_type = 3
+frequency = 0.1
+
+[sub_resource type="Resource" id="Resource_6f1s3"]
+script = ExtResource("4_mswmv")
+Strength = 0.5
+SampleRadius = 0.5
+Noise = SubResource("FastNoiseLite_4hyty")
+Bias = 0.0
+Enabled = true
+UseFirstLayerAsMask = true
+metadata/_custom_type_script = "uid://drswrd3tc6kks"
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_unbyr"]
+noise_type = 0
+frequency = 0.0545
+fractal_type = 2
+fractal_octaves = 8
+
+[sub_resource type="Resource" id="Resource_pw4wi"]
+script = ExtResource("4_mswmv")
+Strength = 0.2
+SampleRadius = 0.5
+Noise = SubResource("FastNoiseLite_unbyr")
+Bias = 0.0
+Enabled = true
+UseFirstLayerAsMask = true
+metadata/_custom_type_script = "uid://drswrd3tc6kks"
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_2j16d"]
+frequency = 0.0051
+fractal_type = 2
+fractal_octaves = 8
+
+[sub_resource type="Resource" id="Resource_sk2sk"]
+script = ExtResource("4_mswmv")
+Strength = 0.2
+SampleRadius = 0.1
+Noise = SubResource("FastNoiseLite_2j16d")
+Bias = 0.0
+Enabled = true
+UseFirstLayerAsMask = true
+metadata/_custom_type_script = "uid://drswrd3tc6kks"
+
+[sub_resource type="Resource" id="Resource_kvfth"]
+script = ExtResource("5_efurs")
+NoiseLayers = [SubResource("Resource_u6ekd"), SubResource("Resource_6f1s3"), SubResource("Resource_pw4wi"), SubResource("Resource_sk2sk")]
 
 [node name="HexMapGenerator" type="Node"]
 script = ExtResource("1_e8euf")
 DefaultWaterLevel = 5
 ElevationStep = 10
+
+[node name="ErosionLandGenerator" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("2_4fsf1")
+
+[node name="FractalNoiseLandGenerator" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("3_bqkln")
+LayeredNoises = SubResource("Resource_kvfth")
+
+[node name="RealEarthLandGenerator" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("6_ixtyf")
+WorldMap = ExtResource("7_pyktb")

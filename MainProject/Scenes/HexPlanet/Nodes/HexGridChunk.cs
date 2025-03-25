@@ -76,16 +76,16 @@ public partial class HexGridChunk : Node3D, IChunk
 
     public void Init(int id)
     {
+        InitLabels(id);
         _id = id;
-        InitLabels();
     }
 
     public void ExploreFeatures(int tileId) => Features.ExploreFeatures(tileId);
 
-    private void InitLabels()
+    private void InitLabels(int id)
     {
         // 清楚之前的标签
-        var tileIds = _chunkService.GetById(_id).TileIds;
+        var tileIds = _chunkService.GetById(id).TileIds;
         var tiles = tileIds.Select(_tileService.GetById);
         foreach (var tile in tiles)
         {
@@ -160,8 +160,13 @@ public partial class HexGridChunk : Node3D, IChunk
             foreach (var tile in tiles)
             {
                 _chunkTriangulation.Triangulate(tile);
-                _tileUis[tile.Id].Position =
-                    1.01f * tile.GetCentroid(_planetSettingService.Radius + _tileService.GetHeight(tile));
+                _tileUis.TryGetValue(tile.Id, out var tileUi);
+                if (tileUi != null)
+                {
+                    tileUi.Position =
+                        1.01f * tile.GetCentroid(_planetSettingService.Radius + _tileService.GetHeight(tile));
+                }
+                else GD.PrintErr($"Tile {tile.Id} UI not found");
             }
 
             ApplyNewData();
