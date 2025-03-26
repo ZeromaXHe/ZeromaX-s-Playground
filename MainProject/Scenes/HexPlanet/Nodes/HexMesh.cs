@@ -33,8 +33,6 @@ public partial class HexMesh : MeshInstance3D
     private SurfaceTool _surfaceTool = new();
     private int _vIdx;
 
-    private Mesh[] _lodMeshes = new Mesh[System.Enum.GetValues<ChunkLod>().Length];
-
     public static readonly Color Weights1 = Colors.Red;
     public static readonly Color Weights2 = Colors.Green;
     public static readonly Color Weights3 = Colors.Blue;
@@ -47,9 +45,6 @@ public partial class HexMesh : MeshInstance3D
         // 清理之前的碰撞体
         foreach (var child in GetChildren())
             child.QueueFree();
-        // 清理所有的 Lod 网格
-        for (var i = 0; i < _lodMeshes.Length; i++)
-            _lodMeshes[i] = null;
         _surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
         if (!Smooth)
             _surfaceTool.SetSmoothGroup(uint.MaxValue);
@@ -57,11 +52,10 @@ public partial class HexMesh : MeshInstance3D
             _surfaceTool.SetCustomFormat(0, SurfaceTool.CustomFormat.RgbFloat);
     }
 
-    public void Apply(ChunkLod lod = ChunkLod.Full)
+    public void Apply()
     {
         _surfaceTool.GenerateNormals();
         Mesh = _surfaceTool.Commit();
-        _lodMeshes[(int)lod] = Mesh;
         // 仅在游戏中生成碰撞体
         if (!Engine.IsEditorHint() && UseCollider)
             CreateTrimeshCollision();
@@ -69,7 +63,28 @@ public partial class HexMesh : MeshInstance3D
         _vIdx = 0;
     }
 
-    public void ShowLod(ChunkLod lod) => Mesh = _lodMeshes[(int)lod];
+    public void ShowMesh(Mesh mesh)
+    {
+        Mesh = mesh;
+        if (!UseCollider) return;
+        // 更新碰撞体网格
+        StaticBody3D staticBody;
+        CollisionShape3D collision;
+        if (GetChildCount() == 0)
+        {
+            staticBody = new StaticBody3D();
+            AddChild(staticBody);
+            collision = new CollisionShape3D();
+            staticBody.AddChild(collision);
+        }
+        else
+        {
+            staticBody = GetChild<StaticBody3D>(0);
+            collision = staticBody.GetChild<CollisionShape3D>(0);
+        }
+
+        collision.Shape = mesh.CreateTrimeshShape();
+    }
 
     /// <summary>
     /// 绘制三角形

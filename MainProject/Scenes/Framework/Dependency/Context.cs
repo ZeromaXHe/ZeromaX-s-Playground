@@ -45,6 +45,7 @@ public static class Context
         Register(nameof(IFaceRepo), faceRepo);
         Register(nameof(IPointRepo), pointRepo);
         Register(nameof(IUnitRepo), unitRepo);
+        var lodMeshCacheService = new LodMeshCacheService();
         var planetSettingService = new PlanetSettingService();
         var noiseService = new NoiseService(planetSettingService);
         var editorService = new EditorService();
@@ -60,6 +61,7 @@ public static class Context
         var miniMapService = new MiniMapService(tileService, planetSettingService);
         var selectViewService = new SelectViewService(tileService, tileSearchService,
             planetSettingService);
+        Register(nameof(ILodMeshCacheService), lodMeshCacheService);
         Register(nameof(IPlanetSettingService), planetSettingService);
         Register(nameof(INoiseService), noiseService);
         Register(nameof(IEditorService), editorService);

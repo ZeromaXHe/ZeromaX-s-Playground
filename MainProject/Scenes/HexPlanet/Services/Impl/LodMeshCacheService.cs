@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Godot;
 
@@ -23,6 +24,8 @@ class LruCache<TKey, TValue>(int capacity)
         return node.Value.Value;
     }
 
+    public bool Exist(TKey key) => _cacheMap.ContainsKey(key);
+
     public void Put(TKey key, TValue value)
     {
         if (_cacheMap.TryGetValue(key, out var existingNode))
@@ -40,25 +43,44 @@ class LruCache<TKey, TValue>(int capacity)
         _lruList.AddFirst(newNode);
         _cacheMap[key] = newNode;
     }
-}
 
-public enum ChunkLod
-{
-    JustHex, // 每个地块只有六个平均高度点组成的六边形（非平面）
-    PlaneHex, // 高度立面，无特征，无河流的六边形
-    SimpleHex, // 最简单的 Solid + 斜面六边形 
-    TerracesHex, // 增加台阶
-    Full, // 增加边细分
-}
-
-class LodLruCache
-{
-    private readonly Dictionary<ChunkLod, LruCache<int, Mesh>> _cache = new();
+    public void Remove(TKey key)
+    {
+        if (!_cacheMap.TryGetValue(key, out var node)) return;
+        _lruList.Remove(node);
+        _cacheMap.Remove(key);
+    }
 }
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-03-15 20:53
-public class LodMeshCacheService: ILodMeshCacheService
+public class LodMeshCacheService : ILodMeshCacheService
 {
+    private readonly Dictionary<ChunkLod, LruCache<int, Mesh[]>> _cache = new()
+    {
+        [ChunkLod.JustHex] = new LruCache<int, Mesh[]>(2500),
+        [ChunkLod.PlaneHex] = new LruCache<int, Mesh[]>(5000),
+        [ChunkLod.SimpleHex] = new LruCache<int, Mesh[]>(10000),
+        [ChunkLod.TerracesHex] = new LruCache<int, Mesh[]>(20000),
+        [ChunkLod.Full] = new LruCache<int, Mesh[]>(40000),
+    };
+
+    public Mesh[] GetLodMeshes(ChunkLod lod, int id) =>
+        _cache.TryGetValue(lod, out var cache) ? cache.Get(id) : null;
+
+    public void AddLodMeshes(ChunkLod lod, int id, Mesh[] mesh)
+    {
+        if (!_cache.TryGetValue(lod, out var cache)) return;
+        if (cache.Exist(id))
+            throw new Exception("缓存已存在");
+        cache.Put(id, mesh);
+    }
+
+    public void RemoveAllLodMeshes(int id)
+    {
+        foreach (var lod in Enum.GetValues<ChunkLod>())
+            if (_cache.TryGetValue(lod, out var cache))
+                cache.Remove(id);
+    }
 }

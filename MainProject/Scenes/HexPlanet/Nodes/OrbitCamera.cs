@@ -238,7 +238,7 @@ public partial class OrbitCamera : Node3D
             return;
         var lightSunAngle = _light.GlobalPosition.AngleTo(_sun.GlobalPosition);
         // 从 60 度开始到 120 度之间，灯光亮度逐渐从 0 增加到 1
-        _light.LightEnergy = Mathf.Clamp((lightSunAngle - Mathf.Pi / 3) / (Mathf.Pi / 3), 0f, 1f);
+        _light.LightEnergy = Mathf.Clamp((lightSunAngle - Mathf.Pi / 3) / (Mathf.Pi / 3), 0f, 0.1f);
     }
 
     private bool RotateCamera(float rotationDelta)

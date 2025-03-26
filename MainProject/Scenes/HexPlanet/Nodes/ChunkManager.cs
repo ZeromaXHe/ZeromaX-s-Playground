@@ -55,18 +55,18 @@ public partial class ChunkManager : Node3D
     {
         var chunkId = _tileService.GetById(tileId).ChunkId;
         // BUG: 动态加载的分块会显示未探索的特征
-        _gridChunks[chunkId]?.ExploreFeatures(tileId);
+        _usingChunks[chunkId]?.ExploreFeatures(tileId);
     }
 
     private void OnChunkServiceRefreshChunk(int id)
     {
         // 现在地图生成器也会调用，这时候分块还没创建
-        if (_ready && _gridChunks.TryGetValue(id, out var chunk))
+        if (_ready && _usingChunks.TryGetValue(id, out var chunk))
             chunk?.Refresh();
     }
 
     private void OnChunkServiceRefreshChunkTileLabel(int chunkId, int tileId, string text) =>
-        _gridChunks[chunkId]?.RefreshTileLabel(tileId, text);
+        _usingChunks[chunkId]?.RefreshTileLabel(tileId, text);
 
     private void CleanEventListeners()
     {
@@ -342,7 +342,8 @@ public partial class ChunkManager : Node3D
     #region 动态加载分块
 
     // 值可能为 null，为 null 时说明分块需要初始化
-    private readonly Dictionary<int, HexGridChunk> _gridChunks = new();
+    private readonly Dictionary<int, HexGridChunk> _usingChunks = new();
+    private readonly Queue<HexGridChunk> _unusedChunks = [];
 
     // 表示当前可视分块 Set 的 _insightChunkIds 索引
     private int _insightSetIdx;
@@ -358,7 +359,7 @@ public partial class ChunkManager : Node3D
     private float _insightUpdateTime;
     private const float InsightUpdateInterval = 0.2f;
 
-    private void UpdateInHorizonSetNextIdx() => _insightSetIdx ^= 1;
+    private void UpdateInSightSetNextIdx() => _insightSetIdx ^= 1;
 
     private void ClearOldDataForDynamicChunks()
     {
@@ -371,6 +372,22 @@ public partial class ChunkManager : Node3D
         _insightUpdateTime = 0;
     }
 
+    private void NewInsightChunkTask(Transform3D transform, float delta)
+    {
+        var camera = GetViewport().GetCamera3D();
+        // 1. 查找出当前可见分块（视野剔除内的，和往外一圈的分块）
+        // 2. 先初始化为最简单 LOD 网格
+        // 3. 按照优先级，先加载附近的高模，再往外扩散。限制每帧的加载数量，保证不影响帧率。
+
+        // 清理好各个数据结构，等下一次调用直接使用
+        _chunkQueryQueue.Clear();
+        _visitedChunkIds.Clear();
+        InsightChunkIdsNow.Clear();
+        UpdateInSightSetNextIdx();
+        // 显示外缘分块
+        InitOutRimChunks();
+    }
+
     private void UpdateInsightChunks(Transform3D transform, float delta)
     {
         var camera = GetViewport().GetCamera3D();
@@ -379,28 +396,29 @@ public partial class ChunkManager : Node3D
             return;
         // 隐藏边缘分块
         foreach (var chunkId in _rimChunkIds)
-            _gridChunks[chunkId].HideOutOfSight();
+            HideChunk(chunkId);
         _rimChunkIds.Clear();
-        foreach (var preInHorizonChunkId in InsightChunkIdsNow)
+        foreach (var preInsightChunkId in InsightChunkIdsNow)
         {
-            var preInsightChunk = _chunkService.GetById(preInHorizonChunkId);
-            _visitedChunkIds.Add(preInHorizonChunkId);
+            var preInsightChunk = _chunkService.GetById(preInsightChunkId);
+            _visitedChunkIds.Add(preInsightChunkId);
             if (!IsChunkInsight(preInsightChunk, camera))
             {
-                // 分块不在地平线范围内，隐藏它
-                _gridChunks[preInHorizonChunkId].HideOutOfSight();
+                // 分块不在视野范围内，隐藏它
+                HideChunk(preInsightChunkId);
                 continue;
             }
 
-            InsightChunkIdsNext.Add(preInHorizonChunkId);
+            InsightChunkIdsNext.Add(preInsightChunkId);
             // 刷新 Lod
-            _gridChunks[preInHorizonChunkId].UpdateLod(CalcLod(preInsightChunk.Pos.DistanceTo(ToLocal(camera.GlobalPosition))));
-            // 分块在地平线内，他的邻居才比较可能是在地平线内
-            // 将之前不在但现在可能在地平线范围内的 id 加入带查询队列
+            _usingChunks[preInsightChunkId]
+                .UpdateLod(CalcLod(preInsightChunk.Pos.DistanceTo(ToLocal(camera.GlobalPosition))), false);
+            // 分块在视野内，他的邻居才比较可能是在视野内
+            // 将之前不在但现在可能在视野范围内的 id 加入带查询队列
             SearchNeighbor(preInsightChunk, InsightChunkIdsNow);
         }
 
-        // 有种极端情况，就是新的地平线范围内一个旧地平线范围分块都没有！
+        // 有种极端情况，就是新的视野范围内一个旧视野范围分块都没有！
         // 这时放开限制进行 BFS，直到找到第一个可见的分块
         // （因为我们认为新位置还是会具有空间上的相近性，BFS 应该会比随便找可见分块更好）
         if (InsightChunkIdsNext.Count == 0)
@@ -419,37 +437,37 @@ public partial class ChunkManager : Node3D
                     break;
                 }
 
-                SearchNeighbor(chunk, _visitedChunkIds);
+                SearchNeighbor(chunk);
             }
         }
 
-        // BFS 查询那些原来不在地平线范围内的分块
+        // BFS 查询那些原来不在视野范围内的分块
         while (_chunkQueryQueue.Count > 0)
         {
             var chunkId = _chunkQueryQueue.Dequeue();
             var chunk = _chunkService.GetById(chunkId);
             if (!IsChunkInsight(chunk, camera)) continue;
-            InsightChunkIdsNext.Add(chunkId);
+            if (!InsightChunkIdsNext.Add(chunkId)) continue;
             ShowChunk(chunk);
-            SearchNeighbor(chunk, _visitedChunkIds);
+            SearchNeighbor(chunk);
         }
 
         // 清理好各个数据结构，等下一次调用直接使用
         _chunkQueryQueue.Clear();
         _visitedChunkIds.Clear();
         InsightChunkIdsNow.Clear();
-        UpdateInHorizonSetNextIdx();
+        UpdateInSightSetNextIdx();
         // 显示外缘分块
         InitOutRimChunks();
     }
 
-    private void SearchNeighbor(Chunk chunk, HashSet<int> filterSet)
+    private void SearchNeighbor(Chunk chunk, HashSet<int> filterSet = null)
     {
         foreach (var neighbor in _chunkService.GetNeighbors(chunk))
         {
-            if (filterSet.Contains(neighbor.Id)) continue;
-            _chunkQueryQueue.Enqueue(neighbor.Id);
-            _visitedChunkIds.Add(neighbor.Id);
+            if (filterSet?.Contains(neighbor.Id) ?? false) continue;
+            if (_visitedChunkIds.Add(neighbor.Id))
+                _chunkQueryQueue.Enqueue(neighbor.Id);
         }
     }
 
@@ -470,29 +488,51 @@ public partial class ChunkManager : Node3D
     // 显示的分块向外多生成一圈，防止缺失进入视野的边缘瓦片
     private void InitOutRimChunks()
     {
-        foreach (var neighbor in from chunkId in InsightChunkIdsNow
+        foreach (var rim in from chunkId in InsightChunkIdsNow
                  select _chunkService.GetById(chunkId)
                  into chunk
                  from neighbor in _chunkService.GetNeighbors(chunk)
                  where !InsightChunkIdsNow.Contains(neighbor.Id)
                  select neighbor)
         {
-            _rimChunkIds.Add(neighbor.Id);
-            ShowChunk(_chunkService.GetById(neighbor.Id));
+            if (_rimChunkIds.Add(rim.Id))
+                ShowChunk(_chunkService.GetById(rim.Id));
         }
     }
 
     private void ShowChunk(Chunk chunk)
     {
-        // 第一次可见时，初始化
-        if (_gridChunks[chunk.Id] == null)
+        if (!_usingChunks.ContainsKey(chunk.Id))
         {
-            var hexGridChunk = AddChildHexGridChunk(chunk.Id);
-            _gridChunks[chunk.Id] = hexGridChunk;
-        }
+            HexGridChunk hexGridChunk;
+            if (_unusedChunks.Count == 0)
+            {
+                // 没有空闲分块的话，初始化新的
+                hexGridChunk = _gridChunkScene.Instantiate<HexGridChunk>();
+                hexGridChunk.Name = $"HexGridChunk{_chunks.GetChildCount()}";
+                _chunks.AddChild(hexGridChunk); // 必须先加入场景树，让 _Ready() 先于 Init() 执行
+            }
+            else
+                hexGridChunk = _unusedChunks.Dequeue();
 
-        _gridChunks[chunk.Id].ShowInSight(CalcLod(
-            chunk.Pos.DistanceTo(ToLocal(GetViewport().GetCamera3D().GlobalPosition))));
+            hexGridChunk.UsedBy(chunk.Id, CalcLod(
+                chunk.Pos.DistanceTo(ToLocal(GetViewport().GetCamera3D().GlobalPosition))));
+            _usingChunks.Add(chunk.Id, hexGridChunk);
+        }
+        else
+        {
+            GD.PrintErr($"Chunk {chunk.Id} using!");
+            throw new Exception("why!");
+        }
+    }
+
+    // 将之前显示的分块隐藏掉（归还到分块池中）
+    private void HideChunk(int chunkId)
+    {
+        var usingChunk = _usingChunks[chunkId];
+        usingChunk.HideOutOfSight();
+        _usingChunks.Remove(chunkId);
+        _unusedChunks.Enqueue(usingChunk);
     }
 
     public void ClearOldData()
@@ -500,7 +540,8 @@ public partial class ChunkManager : Node3D
         // 清空分块
         EventBus.Instance.ShowFeature -= OnShowFeature;
         EventBus.Instance.HideFeature -= OnHideFeature;
-        _gridChunks.Clear();
+        _usingChunks.Clear();
+        _unusedChunks.Clear();
         foreach (var child in _chunks.GetChildren())
             child.QueueFree();
         ClearOldDataForDynamicChunks();
@@ -518,14 +559,8 @@ public partial class ChunkManager : Node3D
             var id = chunk.Id;
             // 此时拿不到真正 focusBase 的位置，暂且用相机自己的代替
             if (!IsChunkInsight(chunk, camera))
-            {
-                _gridChunks.Add(id, null);
                 continue;
-            }
-
-            var hexGridChunk = AddChildHexGridChunk(id);
-            hexGridChunk.ShowInSight(CalcLod(chunk.Pos.DistanceTo(ToLocal(camera.GlobalPosition))));
-            _gridChunks.Add(id, hexGridChunk);
+            ShowChunk(chunk);
             InsightChunkIdsNow.Add(id);
         }
 
@@ -540,15 +575,6 @@ public partial class ChunkManager : Node3D
             distance > tileLen * 50 ? ChunkLod.PlaneHex :
             distance > tileLen * 20 ? ChunkLod.SimpleHex :
             distance > tileLen * 10 ? ChunkLod.TerracesHex : ChunkLod.Full;
-    }
-
-    private HexGridChunk AddChildHexGridChunk(int id)
-    {
-        var hexGridChunk = _gridChunkScene.Instantiate<HexGridChunk>();
-        hexGridChunk.Name = $"HexGridChunk{id}";
-        _chunks.AddChild(hexGridChunk); // 必须先加入场景树，让 _Ready() 先于 Init() 执行
-        hexGridChunk.Init(id);
-        return hexGridChunk;
     }
 
     // 注意，判断是否在摄像机内，不是用 GetViewport().GetVisibleRect().HasPoint(camera.UnprojectPosition(chunk.Pos))

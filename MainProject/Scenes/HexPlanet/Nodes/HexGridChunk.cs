@@ -3,7 +3,6 @@ using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Impl;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Structs;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
 
@@ -23,7 +22,7 @@ public partial class HexGridChunk : Node3D, IChunk
     [Export] public HexMesh Water { get; set; }
     [Export] public HexMesh WaterShore { get; set; }
     [Export] public HexMesh Estuary { get; set; }
-    [Export] public Nodes.HexFeatureManager Features { get; set; }
+    [Export] public HexFeatureManager Features { get; set; }
     public HexTileDataOverrider TileDataOverrider => new();
     [Export] private PackedScene _labelScene;
 
@@ -40,6 +39,7 @@ public partial class HexGridChunk : Node3D, IChunk
 
     #region services
 
+    private static ILodMeshCacheService _lodMeshCacheService;
     private static IChunkService _chunkService;
     private static ITileService _tileService;
     private static ITileShaderService _tileShaderService;
@@ -48,6 +48,7 @@ public partial class HexGridChunk : Node3D, IChunk
 
     private void InitServices()
     {
+        _lodMeshCacheService ??= Context.GetBean<ILodMeshCacheService>();
         _chunkService ??= Context.GetBean<IChunkService>();
         _tileService ??= Context.GetBean<ITileService>();
         _tileShaderService ??= Context.GetBean<ITileShaderService>();
@@ -72,19 +73,26 @@ public partial class HexGridChunk : Node3D, IChunk
     private int _id;
     private readonly Dictionary<int, HexTileLabel> _tileUis = new();
     private ChunkTriangulation _chunkTriangulation;
-    private readonly bool[] _lodInitialized = new bool[System.Enum.GetValues<ChunkLod>().Length];
 
-    public void Init(int id)
+    public void UsedBy(int id, ChunkLod lod)
     {
         InitLabels(id);
         _id = id;
+        // 默认不生成网格，而是先查缓存
+        SetProcess(false);
+        ShowInSight(lod);
     }
 
     public void ExploreFeatures(int tileId) => Features.ExploreFeatures(tileId);
 
     private void InitLabels(int id)
     {
-        // 清楚之前的标签
+        // 清除之前的标签
+        _tileUis.Clear();
+        // TODO: 考虑重用标签以提高效率
+        foreach (var label in _labels.GetChildren())
+            label.QueueFree();
+
         var tileIds = _chunkService.GetById(id).TileIds;
         var tiles = tileIds.Select(_tileService.GetById);
         foreach (var tile in tiles)
@@ -179,15 +187,18 @@ public partial class HexGridChunk : Node3D, IChunk
 
     private void ApplyNewData()
     {
-        var lod = _chunkTriangulation.Lod;
-        _lodInitialized[(int)lod] = true;
-        Terrain.Apply(lod);
+        Terrain.Apply();
         Rivers.Apply(); // 河流暂时不支持 Lod
         Roads.Apply(); // 道路暂时不支持 Lod
-        Water.Apply(lod);
-        WaterShore.Apply(lod);
-        Estuary.Apply(lod);
+        Water.Apply();
+        WaterShore.Apply();
+        Estuary.Apply();
         Features.Apply(); // 特征暂时无 Lod
+        var lod = _chunkTriangulation.Lod;
+        if (Terrain.Mesh == null)
+            GD.PrintErr($"Chunk {_id} Terrain Mesh is null");
+        _lodMeshCacheService.AddLodMeshes(lod, _id,
+            [Terrain.Mesh, Water.Mesh, WaterShore.Mesh, Estuary.Mesh]);
     }
 
     private void ClearOldData()
@@ -199,29 +210,34 @@ public partial class HexGridChunk : Node3D, IChunk
         WaterShore.Clear();
         Estuary.Clear();
         Features.Clear();
-        for (var i = 0; i < _lodInitialized.Length; i++)
-            _lodInitialized[i] = false;
     }
 
-    public void UpdateLod(ChunkLod lod)
+    public void UpdateLod(ChunkLod lod, bool idChanged = true)
     {
-        if (lod == _chunkTriangulation.Lod) return;
+        if (lod == _chunkTriangulation.Lod && !idChanged) return;
         _chunkTriangulation.Lod = lod;
+        var meshes = _lodMeshCacheService.GetLodMeshes(lod, _id);
         // 如果之前生成过 Lod 网格，直接应用；否则重新生成
-        if (_lodInitialized[(int)lod])
+        if (meshes != null)
         {
-            Terrain.ShowLod(lod);
-            Water.ShowLod(lod);
-            WaterShore.ShowLod(lod);
-            Estuary.ShowLod(lod);
+            Terrain.ShowMesh(meshes[(int)MeshType.Terrain]);
+            Water.ShowMesh(meshes[(int)MeshType.Water]);
+            WaterShore.ShowMesh(meshes[(int)MeshType.WaterShore]);
+            Estuary.ShowMesh(meshes[(int)MeshType.Estuary]);
         }
         else SetProcess(true);
     }
 
-    public void Refresh() => SetProcess(true);
+    public void Refresh()
+    {
+        // 让所有旧的网格缓存过期
+        _lodMeshCacheService.RemoveAllLodMeshes(_id);
+        SetProcess(true);
+    }
+
     public void ShowUi(bool show) => _labels.Visible = show;
 
-    public void ShowInSight(ChunkLod lod)
+    private void ShowInSight(ChunkLod lod)
     {
         Show();
         UpdateLod(lod);
@@ -234,6 +250,14 @@ public partial class HexGridChunk : Node3D, IChunk
     public void HideOutOfSight()
     {
         Hide();
+        Terrain.Clear();
+        Rivers.Clear();
+        Roads.Clear();
+        Water.Clear();
+        WaterShore.Clear();
+        Estuary.Clear();
+        Features.Clear();
+        _id = 0; // 重置 id，归还给池子
         _editorService.LabelModeChanged -= RefreshTilesLabelMode;
         _editorService.EditModeChanged -= OnEditorEditModeChanged;
     }
