@@ -50,6 +50,12 @@ class LruCache<TKey, TValue>(int capacity)
         _lruList.Remove(node);
         _cacheMap.Remove(key);
     }
+    
+    public void Clear()
+    {
+        _cacheMap.Clear();
+        _lruList.Clear();
+    }
 }
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
@@ -77,7 +83,14 @@ public class LodMeshCacheService : ILodMeshCacheService
         cache.Put(id, mesh);
     }
 
-    public void RemoveAllLodMeshes(int id)
+    public void RemoveAllLodMeshes()
+    {
+        foreach (var lod in Enum.GetValues<ChunkLod>())
+            if (_cache.TryGetValue(lod, out var cache))
+                cache.Clear();
+    }
+
+    public void RemoveLodMeshes(int id)
     {
         foreach (var lod in Enum.GetValues<ChunkLod>())
             if (_cache.TryGetValue(lod, out var cache))

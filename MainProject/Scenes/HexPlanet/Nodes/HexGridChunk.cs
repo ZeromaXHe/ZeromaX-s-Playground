@@ -71,8 +71,37 @@ public partial class HexGridChunk : Node3D, IChunk
     private static int LabelMode => _editorService.LabelMode;
 
     private int _id;
-    private readonly Dictionary<int, HexTileLabel> _tileUis = new();
+    private readonly Dictionary<int, HexTileLabel> _usingTileUis = new();
+    private readonly Queue<HexTileLabel> _unusedTileUis = new();
     private ChunkTriangulation _chunkTriangulation;
+
+    private void HideLabel(int tileId)
+    {
+        var label = _usingTileUis[tileId];
+        label.Hide();
+        _usingTileUis.Remove(tileId);
+        _unusedTileUis.Enqueue(label);
+    }
+
+    private void ShowLabel(int tileId)
+    {
+        HexTileLabel label;
+        if (_unusedTileUis.Count == 0)
+        {
+            label = _labelScene.Instantiate<HexTileLabel>();
+            _labels.AddChild(label);
+        }
+        else
+            label = _unusedTileUis.Dequeue();
+
+        var tile = _tileService.GetById(tileId);
+        var position = 1.01f * tile.GetCentroid(_planetSettingService.Radius + _tileService.GetHeight(tile));
+        var scale = _planetSettingService.StandardScale;
+        label.Scale = Vector3.One * scale;
+        label.Position = position;
+        Node3dUtil.AlignYAxisToDirection(label, position, Vector3.Up);
+        _usingTileUis.Add(tile.Id, label);
+    }
 
     public void UsedBy(int id, ChunkLod lod)
     {
@@ -87,32 +116,19 @@ public partial class HexGridChunk : Node3D, IChunk
 
     private void InitLabels(int id)
     {
-        // 清除之前的标签
-        _tileUis.Clear();
-        // TODO: 考虑重用标签以提高效率
-        foreach (var label in _labels.GetChildren())
-            label.QueueFree();
+        // 隐藏之前的标签
+        foreach (var (tileId, _) in _usingTileUis)
+            HideLabel(tileId);
 
         var tileIds = _chunkService.GetById(id).TileIds;
-        var tiles = tileIds.Select(_tileService.GetById);
-        foreach (var tile in tiles)
-        {
-            var label = _labelScene.Instantiate<HexTileLabel>();
-            var position = 1.01f * tile.GetCentroid(_planetSettingService.Radius + _tileService.GetHeight(tile));
-            var scale = _planetSettingService.StandardScale;
-            label.Scale = Vector3.One * scale;
-            label.Position = position;
-            Node3dUtil.AlignYAxisToDirection(label, position, Vector3.Up);
-            _tileUis.Add(tile.Id, label);
-            _labels.AddChild(label);
-        }
-
+        foreach (var tileId in tileIds)
+            ShowLabel(tileId);
         // 在场景树中 _Ready 后 Label 才非 null
         RefreshTilesLabelMode(EditMode ? LabelMode : 0);
     }
 
     public void RefreshTileLabel(int tileId, string text) =>
-        _tileUis[tileId].Label.Text = text;
+        _usingTileUis[tileId].Label.Text = text;
 
     public void RefreshTilesLabelMode(int mode)
     {
@@ -120,29 +136,32 @@ public partial class HexGridChunk : Node3D, IChunk
         {
             case 0:
                 // 不显示
-                foreach (var (_, label) in _tileUis)
+                foreach (var (_, label) in _usingTileUis)
                 {
                     label.Label.Text = "";
                     label.Label.FontSize = 64;
+                    label.Hide();
                 }
 
                 break;
             case 1:
                 // 坐标
-                foreach (var (tileId, label) in _tileUis)
+                foreach (var (tileId, label) in _usingTileUis)
                 {
                     var coords = _tileService.GetSphereAxial(_tileService.GetById(tileId));
                     label.Label.Text = $"{coords.Coords}\n{coords.Type},{coords.TypeIdx}";
                     label.Label.FontSize = 24;
+                    label.Show();
                 }
 
                 break;
             case 2:
                 // ID
-                foreach (var (tileId, label) in _tileUis)
+                foreach (var (tileId, label) in _usingTileUis)
                 {
                     label.Label.Text = tileId.ToString();
                     label.Label.FontSize = 64;
+                    label.Show();
                 }
 
                 break;
@@ -168,7 +187,7 @@ public partial class HexGridChunk : Node3D, IChunk
             foreach (var tile in tiles)
             {
                 _chunkTriangulation.Triangulate(tile);
-                _tileUis.TryGetValue(tile.Id, out var tileUi);
+                _usingTileUis.TryGetValue(tile.Id, out var tileUi);
                 if (tileUi != null)
                 {
                     tileUi.Position =
@@ -231,7 +250,7 @@ public partial class HexGridChunk : Node3D, IChunk
     public void Refresh()
     {
         // 让所有旧的网格缓存过期
-        _lodMeshCacheService.RemoveAllLodMeshes(_id);
+        _lodMeshCacheService.RemoveLodMeshes(_id);
         SetProcess(true);
     }
 

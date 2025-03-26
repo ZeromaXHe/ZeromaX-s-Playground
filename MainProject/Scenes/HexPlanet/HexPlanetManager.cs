@@ -307,6 +307,7 @@ public partial class HexPlanetManager : Node3D
 
     #region services
 
+    private ILodMeshCacheService _lodMeshCacheService;
     private IUnitService _unitService;
     private IChunkService _chunkService;
     private ITileService _tileService;
@@ -321,6 +322,7 @@ public partial class HexPlanetManager : Node3D
 
     private void InitServices()
     {
+        _lodMeshCacheService = Context.GetBean<ILodMeshCacheService>();
         _unitService = Context.GetBean<IUnitService>();
         _chunkService = Context.GetBean<IChunkService>();
         _tileService = Context.GetBean<ITileService>();
@@ -604,6 +606,7 @@ public partial class HexPlanetManager : Node3D
         _faceService.Truncate();
         _selectViewService.ClearPath();
         _chunkManager.ClearOldData();
+        _lodMeshCacheService.RemoveAllLodMeshes();
     }
 
     private void DrawHexSphereMesh()

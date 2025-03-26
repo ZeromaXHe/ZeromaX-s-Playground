@@ -26,5 +26,6 @@ public interface ILodMeshCacheService
 {
     Mesh[] GetLodMeshes(ChunkLod lod, int id);
     void AddLodMeshes(ChunkLod lod, int id, Mesh[] mesh);
-    void RemoveAllLodMeshes(int id);
+    void RemoveAllLodMeshes();
+    void RemoveLodMeshes(int id);
 }
