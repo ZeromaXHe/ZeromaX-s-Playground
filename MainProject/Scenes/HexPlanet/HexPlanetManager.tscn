@@ -133,7 +133,7 @@ metadata/_custom_type_script = "uid://bmjowuxck5v32"
 [node name="HexPlanetManager" type="Node3D"]
 script = ExtResource("1_414p1")
 Divisions = 40
-ChunkDivisions = 10
+ChunkDivisions = 4
 _noiseSource = ExtResource("2_w1eb8")
 _unitScene = ExtResource("4_558l3")
 PlanetRevolution = false
@@ -266,7 +266,7 @@ unique_name_in_owner = true
 unique_name_in_owner = true
 _landGeneratorType = 2
 _windStrength = 1.0
-_seed = -1702060718
+_seed = 599006731
 
 [node name="LensFlare" type="Node" parent="."]
 script = ExtResource("16_das15")

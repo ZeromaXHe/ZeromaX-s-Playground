@@ -1,4 +1,4 @@
-[gd_scene load_steps=29 format=3 uid="uid://duhqmsj87h613"]
+[gd_scene load_steps=32 format=3 uid="uid://duhqmsj87h613"]
 
 [ext_resource type="Script" uid="uid://dgyn1hq02gyv7" path="res://Scenes/HexPlanet/Nodes/ChunkManager.cs" id="1_8slb6"]
 [ext_resource type="PackedScene" uid="uid://b31wafba56bca" path="res://Scenes/HexPlanet/Nodes/HexGridChunk.tscn" id="2_vveuy"]
@@ -27,37 +27,44 @@
 [ext_resource type="PackedScene" uid="uid://bv4hm0dcsi308" path="res://Scenes/HexPlanet/Scenes/Features/MegaFlora.tscn" id="25_3fj4h"]
 [ext_resource type="Material" uid="uid://diyq0hsqcass7" path="res://Resources/HexPlanet/HologramShaderMaterial/ShaderMaterial_RoadHologram.tres" id="26_dvghv"]
 [ext_resource type="Material" uid="uid://b1bjot3ucbj8i" path="res://Resources/HexPlanet/HologramShaderMaterial/ShaderMaterial_GrassTerrainHologram.tres" id="27_v8tdp"]
+[ext_resource type="Script" uid="uid://lk77nhnss3qh" path="res://Scenes/HexPlanet/Nodes/ChunkManagers/FeatureMeshManager.cs" id="28_82gfc"]
 [ext_resource type="Material" uid="uid://n22gd0xmahwb" path="res://Resources/HexPlanet/HologramShaderMaterial/ShaderMaterial_DesertTerrainHologram.tres" id="28_a7t72"]
+[ext_resource type="Script" uid="uid://bxhdhg7n2w6aq" path="res://Scenes/HexPlanet/Nodes/ChunkManagers/ChunkLoader.cs" id="29_bbtsr"]
+[ext_resource type="Script" uid="uid://b304mcf6ifctu" path="res://Scenes/HexPlanet/Nodes/ChunkManagers/FeaturePreviewManager.cs" id="29_li5fi"]
 
 [node name="ChunkManager" type="Node3D"]
 script = ExtResource("1_8slb6")
-_gridChunkScene = ExtResource("2_vveuy")
+
+[node name="FeatureMeshManager" type="Node3D" parent="."]
+unique_name_in_owner = true
+script = ExtResource("28_82gfc")
 _urbanScenes = [ExtResource("3_20ayw"), ExtResource("4_8vur2"), ExtResource("5_017qo"), ExtResource("6_dvghv"), ExtResource("7_v8tdp"), ExtResource("8_a7t72")]
 _farmScenes = [ExtResource("9_6klph"), ExtResource("10_7mloi"), ExtResource("11_2iash"), ExtResource("12_v7jj5"), ExtResource("13_1niqe"), ExtResource("14_sq26b")]
 _plantScenes = [ExtResource("15_camxy"), ExtResource("16_gfk00"), ExtResource("17_qv27t"), ExtResource("18_dfao1"), ExtResource("19_0vmme"), ExtResource("20_61afp")]
 _wallTowerScene = ExtResource("21_h0p05")
 _bridgeScene = ExtResource("22_qffwe")
 _specialScenes = [ExtResource("23_7wv6h"), ExtResource("24_sm8rd"), ExtResource("25_3fj4h")]
+
+[node name="Urbans" type="Node3D" parent="FeatureMeshManager"]
+unique_name_in_owner = true
+
+[node name="Farms" type="Node3D" parent="FeatureMeshManager"]
+unique_name_in_owner = true
+
+[node name="Plants" type="Node3D" parent="FeatureMeshManager"]
+unique_name_in_owner = true
+
+[node name="Others" type="Node3D" parent="FeatureMeshManager"]
+unique_name_in_owner = true
+
+[node name="FeaturePreviewManager" type="Node3D" parent="."]
+unique_name_in_owner = true
+script = ExtResource("29_li5fi")
 _urbanPreviewOverrideMaterial = ExtResource("26_dvghv")
 _plantPreviewOverrideMaterial = ExtResource("27_v8tdp")
 _farmPreviewOverrideMaterial = ExtResource("28_a7t72")
 
-[node name="MultiFeatures" type="Node3D" parent="."]
-
-[node name="Urbans" type="Node3D" parent="MultiFeatures"]
+[node name="ChunkLoader" type="Node3D" parent="."]
 unique_name_in_owner = true
-
-[node name="Farms" type="Node3D" parent="MultiFeatures"]
-unique_name_in_owner = true
-
-[node name="Plants" type="Node3D" parent="MultiFeatures"]
-unique_name_in_owner = true
-
-[node name="Others" type="Node3D" parent="MultiFeatures"]
-unique_name_in_owner = true
-
-[node name="FeaturePreviews" type="Node3D" parent="."]
-unique_name_in_owner = true
-
-[node name="Chunks" type="Node3D" parent="."]
-unique_name_in_owner = true
+script = ExtResource("29_bbtsr")
+_gridChunkScene = ExtResource("2_vveuy")
