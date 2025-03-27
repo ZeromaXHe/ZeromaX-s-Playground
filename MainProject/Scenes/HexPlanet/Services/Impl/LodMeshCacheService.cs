@@ -79,7 +79,7 @@ public class LodMeshCacheService : ILodMeshCacheService
     {
         if (!_cache.TryGetValue(lod, out var cache)) return;
         if (cache.Exist(id))
-            throw new Exception("缓存已存在");
+            GD.PrintErr($"overwriting Chunk {id} Lod {lod} Mesh!");
         cache.Put(id, mesh);
     }
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
@@ -93,10 +94,6 @@ public partial class ChunkLoader : Node3D
 
     private readonly HashSet<int> _rimChunkIds = [];
 
-    // 暂时简单用时间控制视野更新频率
-    private float _insightUpdateTime;
-    private const float InsightUpdateInterval = 0.2f;
-
     private void UpdateInSightSetNextIdx() => _insightSetIdx ^= 1;
 
     private bool _ready;
@@ -108,31 +105,98 @@ public partial class ChunkLoader : Node3D
 
     public override void _ExitTree() => CleanEventListeners();
 
-    private void NewInsightChunkTask(Transform3D transform, float delta)
-    {
-        var camera = GetViewport().GetCamera3D();
-        // 1. 查找出当前可见分块（视野剔除内的，和往外一圈的分块）
-        // 2. 先初始化为最简单 LOD 网格
-        // 3. 按照优先级，先加载附近的高模，再往外扩散。限制每帧的加载数量，保证不影响帧率。
+    private readonly Stopwatch _stopwatch = new();
 
-        // 清理好各个数据结构，等下一次调用直接使用
-        _chunkQueryQueue.Clear();
-        _visitedChunkIds.Clear();
-        InsightChunkIdsNow.Clear();
-        UpdateInSightSetNextIdx();
-        // 显示外缘分块
-        InitOutRimChunks();
+    public override void _Process(double delta)
+    {
+        _stopwatch.Restart();
+        var allClear = true;
+        var i = Mathf.Min(5, _loadSet.Count); // TODO：根据 LOD 和缓存命中情况调整一帧中加载数量
+        while (i > 0)
+        {
+            var chunkId = _loadSet.First();
+            _loadSet.Remove(chunkId);
+            ShowChunk(_chunkService.GetById(chunkId));
+            i--;
+        }
+
+        if (_loadSet.Count > 0)
+            allClear = false;
+        var loadTime = _stopwatch.ElapsedMilliseconds;
+        _stopwatch.Restart();
+
+        i = Math.Min(100, _unloadSet.Count);
+        while (i > 0)
+        {
+            var chunkId = _unloadSet.First();
+            _unloadSet.Remove(chunkId);
+            HideChunk(chunkId);
+            i--;
+        }
+
+        if (_unloadSet.Count > 0)
+            allClear = false;
+        var unloadTime = _stopwatch.ElapsedMilliseconds;
+        _stopwatch.Restart();
+
+        i = Math.Min(15, _refreshSet.Count); // TODO：根据 LOD 和缓存命中情况调整一帧中刷新数量
+        while (i > 0)
+        {
+            var chunkId = _refreshSet.First();
+            _refreshSet.Remove(chunkId);
+            ShowChunk(_chunkService.GetById(chunkId));
+            i--;
+        }
+
+        if (_refreshSet.Count > 0)
+            allClear = false;
+        var refreshTime = _stopwatch.ElapsedMilliseconds;
+        var totalTime = loadTime + unloadTime + refreshTime;
+        var log = $"ChunkLoader _Process {totalTime} ms | load: {
+            loadTime} ms, unload: {unloadTime} ms, refresh: {refreshTime} ms";
+        if (totalTime <= 16)
+            GD.Print(log);
+        else
+            GD.PrintErr(log);
+        _stopwatch.Stop();
+        if (allClear) SetProcess(false);
     }
 
+    // 待卸载的分块 Id 集合（上轮显示本轮不显示的分块，包括边缘分块中不再显示的）
+    private readonly HashSet<int> _unloadSet = [];
+
+    // 待刷新的分块 Id 集合（包括上轮显示本轮继续显示的分块，包括边缘分块中继续显示的）
+    private readonly HashSet<int> _refreshSet = [];
+
+    // 待加载的分块 Id 集合（新显示分块）
+    private readonly HashSet<int> _loadSet = [];
+
+
+    // 全过程需要异步化，即：下次新任务来时停止上次任务，并保证一次任务能分成多帧执行。
+    // 按照优先级，先加载附近的高模，再往外扩散。限制每帧的加载数量，保证不影响帧率。
+    // 0. 预先计算好后续队列（加载队列、卸载队列、渲染队列、预加载队列）？
+    // 1. 从相机当前位置开始，先保证视野范围内以最低 LOD 初始化
+    //  1.1 先 BFS 最近的高精度 LOD 分块，按最低 LOD 初始化
+    //  1.2 从正前方向视野两侧进行分块加载，同样按最低 LOD 初始化
+    // 2. 提高视野范围内的 LOD 精度，同时对视野范围外的内容预加载（包括往外一圈的分块，和在玩家视角背后的）
+    //
+    // 动态卸载：
+    // 建立一个清理队列，每次终止上次任务时，把所有分块加入到这个清理队列中。
+    // 每帧从清理队列中出队一部分，校验它们当前的 LOD 状态，如果 LOD 状态不对，则卸载。
     private void UpdateInsightChunks(Transform3D transform, float delta)
     {
+        // var time = Time.GetTicksMsec();
+        // 未能卸载的分块，说明本轮依然是在显示的分块
+        foreach (var unloadId in _unloadSet.Where(id => _usingChunks.ContainsKey(id)))
+            InsightChunkIdsNow.Add(unloadId);
+        _unloadSet.Clear();
+        _refreshSet.Clear(); // 刷新分块一定在 _rimChunkIds 或 InsightChunkIdsNow 中，直接丢弃
+        _loadSet.Clear(); // 未加载分块直接丢弃
+
         var camera = GetViewport().GetCamera3D();
-        _insightUpdateTime += delta;
-        if (_insightUpdateTime < InsightUpdateInterval)
-            return;
         // 隐藏边缘分块
-        foreach (var chunkId in _rimChunkIds)
-            HideChunk(chunkId);
+        foreach (var chunkId in _rimChunkIds.Where(id => _usingChunks.ContainsKey(id)))
+            _unloadSet.Add(chunkId);
         _rimChunkIds.Clear();
         foreach (var preInsightChunkId in InsightChunkIdsNow)
         {
@@ -141,14 +205,13 @@ public partial class ChunkLoader : Node3D
             if (!IsChunkInsight(preInsightChunk, camera))
             {
                 // 分块不在视野范围内，隐藏它
-                HideChunk(preInsightChunkId);
+                _unloadSet.Add(preInsightChunkId);
                 continue;
             }
 
             InsightChunkIdsNext.Add(preInsightChunkId);
             // 刷新 Lod
-            _usingChunks[preInsightChunkId]
-                .UpdateLod(CalcLod(preInsightChunk.Pos.DistanceTo(ToLocal(camera.GlobalPosition))), false);
+            _refreshSet.Add(preInsightChunkId);
             // 分块在视野内，他的邻居才比较可能是在视野内
             // 将之前不在但现在可能在视野范围内的 id 加入带查询队列
             SearchNeighbor(preInsightChunk, InsightChunkIdsNow);
@@ -184,7 +247,7 @@ public partial class ChunkLoader : Node3D
             var chunk = _chunkService.GetById(chunkId);
             if (!IsChunkInsight(chunk, camera)) continue;
             if (!InsightChunkIdsNext.Add(chunkId)) continue;
-            ShowChunk(chunk);
+            _loadSet.Add(chunkId);
             SearchNeighbor(chunk);
         }
 
@@ -195,6 +258,8 @@ public partial class ChunkLoader : Node3D
         UpdateInSightSetNextIdx();
         // 显示外缘分块
         InitOutRimChunks();
+        SetProcess(true);
+        // GD.Print($"ChunkLoader UpdateInsightChunks cost {Time.GetTicksMsec() - time} ms");
     }
 
     private void SearchNeighbor(Chunk chunk, HashSet<int> filterSet = null)
@@ -207,6 +272,7 @@ public partial class ChunkLoader : Node3D
         }
     }
 
+    // 处理视野外的一圈边缘分块。如果是之前的边缘地块，需要放入刷新队列，如果是新的，则放入加载队列
     // 显示的分块向外多生成一圈，防止缺失进入视野的边缘瓦片
     private void InitOutRimChunks()
     {
@@ -217,14 +283,23 @@ public partial class ChunkLoader : Node3D
                  where !InsightChunkIdsNow.Contains(neighbor.Id)
                  select neighbor)
         {
-            if (_rimChunkIds.Add(rim.Id))
-                ShowChunk(_chunkService.GetById(rim.Id));
+            if (!_rimChunkIds.Add(rim.Id)) continue;
+            if (_unloadSet.Contains(rim.Id))
+            {
+                _unloadSet.Remove(rim.Id);
+                _refreshSet.Add(rim.Id);
+            }
+            else
+                _loadSet.Add(rim.Id);
         }
     }
 
     private void ShowChunk(Chunk chunk)
     {
-        if (!_usingChunks.ContainsKey(chunk.Id))
+        if (_usingChunks.TryGetValue(chunk.Id, out var usingChunk))
+            usingChunk.UpdateLod(CalcLod(
+                chunk.Pos.DistanceTo(ToLocal(GetViewport().GetCamera3D().GlobalPosition))), false);
+        else
         {
             HexGridChunk hexGridChunk;
             if (_unusedChunks.Count == 0)
@@ -240,11 +315,6 @@ public partial class ChunkLoader : Node3D
             hexGridChunk.UsedBy(chunk.Id, CalcLod(
                 chunk.Pos.DistanceTo(ToLocal(GetViewport().GetCamera3D().GlobalPosition))));
             _usingChunks.Add(chunk.Id, hexGridChunk);
-        }
-        else
-        {
-            GD.PrintErr($"Chunk {chunk.Id} using!");
-            throw new Exception("why!");
         }
     }
 
@@ -270,7 +340,6 @@ public partial class ChunkLoader : Node3D
         _rimChunkIds.Clear();
         InsightChunkIdsNow.Clear();
         _insightSetIdx = 0;
-        _insightUpdateTime = 0;
     }
 
     public void InitChunkNodes()
@@ -282,7 +351,7 @@ public partial class ChunkLoader : Node3D
             // 此时拿不到真正 focusBase 的位置，暂且用相机自己的代替
             if (!IsChunkInsight(chunk, camera))
                 continue;
-            ShowChunk(chunk);
+            _loadSet.Add(id);
             InsightChunkIdsNow.Add(id);
         }
 

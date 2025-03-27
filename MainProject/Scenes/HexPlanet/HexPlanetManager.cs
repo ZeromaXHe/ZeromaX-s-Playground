@@ -4,7 +4,6 @@ using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.Planets;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Structs;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 

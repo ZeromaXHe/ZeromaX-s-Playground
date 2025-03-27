@@ -147,7 +147,7 @@ SatelliteRotation = false
 unique_name_in_owner = true
 _landGeneratorType = 2
 _windStrength = 1.0
-_seed = -713197270
+_seed = 1943900735
 
 [node name="LensFlare" type="Node" parent="."]
 script = ExtResource("16_das15")
