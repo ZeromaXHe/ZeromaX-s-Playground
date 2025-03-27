@@ -63,7 +63,7 @@ public partial class HexPlanetManager : Node3D
 
     private int _divisions = 20;
 
-    [Export(PropertyHint.Range, "1, 100")]
+    [Export(PropertyHint.Range, "1, 200")]
     public int Divisions
     {
         get => _divisions;
@@ -82,14 +82,14 @@ public partial class HexPlanetManager : Node3D
 
     private int _chunkDivisions = 5;
 
-    [Export(PropertyHint.Range, "1, 10")]
+    [Export(PropertyHint.Range, "1, 20")]
     public int ChunkDivisions
     {
         get => _chunkDivisions;
         set
         {
             _chunkDivisions = value;
-            _divisions = Mathf.Max(Mathf.Min(100, _chunkDivisions * 10), _divisions);
+            _divisions = Mathf.Max(Mathf.Min(200, _chunkDivisions * 10), _divisions);
             if (_ready)
             {
                 _planetSettingService.ChunkDivisions = _chunkDivisions;

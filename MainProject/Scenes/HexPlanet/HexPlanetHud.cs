@@ -5,7 +5,6 @@ using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.MiniMap;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Structs;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils.HexSphereGrid;
 
@@ -25,6 +24,7 @@ public partial class HexPlanetHud : Control
     private SubViewportContainer _subViewportContainer;
 
     private CheckButton _wireframeCheckButton;
+    private CheckButton _celestialMotionCheckButton;
 
     // 小地图
     private SubViewportContainer _miniMapContainer;
@@ -89,6 +89,7 @@ public partial class HexPlanetHud : Control
     {
         _subViewportContainer = GetNode<SubViewportContainer>("%SubViewportContainer");
         _wireframeCheckButton = GetNode<CheckButton>("%WireframeCheckButton");
+        _celestialMotionCheckButton = GetNode<CheckButton>("%CelestialMotionCheckButton");
         // 小地图
         _miniMapContainer = GetNode<SubViewportContainer>("%MiniMapContainer");
         _miniMapManager = GetNode<MiniMapManager>("%MiniMapManager");
@@ -317,6 +318,9 @@ public partial class HexPlanetHud : Control
             _hexPlanetManager.GetViewport()
                 .SetDebugDraw(toggle ? Viewport.DebugDrawEnum.Wireframe : Viewport.DebugDrawEnum.Disabled);
 
+        _celestialMotionCheckButton.Toggled += toggle =>
+            _hexPlanetManager.PlanetRevolution = _hexPlanetManager.PlanetRotation =
+                _hexPlanetManager.SatelliteRevolution = _hexPlanetManager.SatelliteRotation = toggle;
         _latLonFixCheckButton.Toggled += _hexPlanetManager.FixLatLon;
         _planetTabBar.TabClicked += _ => _planetGrid.Visible = !_planetGrid.Visible;
 

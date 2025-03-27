@@ -109,6 +109,7 @@ public partial class ChunkLoader : Node3D
 
     public override void _Process(double delta)
     {
+        if (!_ready) return;
         _stopwatch.Restart();
         var allClear = true;
         var limitCount = Mathf.Min(20, _loadSet.Count);
@@ -387,6 +388,7 @@ public partial class ChunkLoader : Node3D
         }
 
         InitOutRimChunks();
+        SetProcess(true);
     }
 
     private ChunkLod CalcLod(float distance)

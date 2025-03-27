@@ -79,7 +79,19 @@
    var inv_view_matrix := Projection(scn_data.get_cam_transform())
    ```
 
-   
+
+## Git
+
+清理 .git 文件夹
+
+```shell
+# 检查 git 仓库是否有孤悬节点（dangling blob），或者其他异常
+git fsck
+# 重整清理 git 文件夹
+git gc --prune=now
+```
+
+
 
 # TODO
 
