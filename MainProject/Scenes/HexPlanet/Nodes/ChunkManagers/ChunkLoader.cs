@@ -111,53 +111,80 @@ public partial class ChunkLoader : Node3D
     {
         _stopwatch.Restart();
         var allClear = true;
-        var i = Mathf.Min(5, _loadSet.Count); // TODO：根据 LOD 和缓存命中情况调整一帧中加载数量
-        while (i > 0)
+        var limitCount = Mathf.Min(20, _loadSet.Count);
+#if MY_DEBUG
+        var loadCount = 0;
+#endif
+        // 限制加载耗时（但加载优先级最高）
+        while (limitCount > 0 && _stopwatch.ElapsedMilliseconds <= 14)
         {
             var chunkId = _loadSet.First();
             _loadSet.Remove(chunkId);
             ShowChunk(_chunkService.GetById(chunkId));
-            i--;
+            limitCount--;
+#if MY_DEBUG
+            loadCount++;
+#endif
         }
 
         if (_loadSet.Count > 0)
             allClear = false;
         var loadTime = _stopwatch.ElapsedMilliseconds;
+        var totalTime = loadTime;
         _stopwatch.Restart();
 
-        i = Math.Min(100, _unloadSet.Count);
-        while (i > 0)
-        {
-            var chunkId = _unloadSet.First();
-            _unloadSet.Remove(chunkId);
-            HideChunk(chunkId);
-            i--;
-        }
-
-        if (_unloadSet.Count > 0)
-            allClear = false;
-        var unloadTime = _stopwatch.ElapsedMilliseconds;
-        _stopwatch.Restart();
-
-        i = Math.Min(15, _refreshSet.Count); // TODO：根据 LOD 和缓存命中情况调整一帧中刷新数量
-        while (i > 0)
+        limitCount = Math.Min(20, _refreshSet.Count);
+#if MY_DEBUG
+        var refreshCount = 0;
+#endif
+        // 限制刷新耗时（刷新优先级其次）
+        while (limitCount > 0 && totalTime + _stopwatch.ElapsedMilliseconds <= 14)
         {
             var chunkId = _refreshSet.First();
             _refreshSet.Remove(chunkId);
             ShowChunk(_chunkService.GetById(chunkId));
-            i--;
+            limitCount--;
+#if MY_DEBUG
+            refreshCount++;
+#endif
         }
 
         if (_refreshSet.Count > 0)
             allClear = false;
         var refreshTime = _stopwatch.ElapsedMilliseconds;
-        var totalTime = loadTime + unloadTime + refreshTime;
-        var log = $"ChunkLoader _Process {totalTime} ms | load: {
-            loadTime} ms, unload: {unloadTime} ms, refresh: {refreshTime} ms";
+        totalTime += refreshTime;
+        _stopwatch.Restart();
+
+        limitCount = Math.Min(100, _unloadSet.Count);
+#if MY_DEBUG
+        var unloadCount = 0;
+#endif
+        // 限制卸载耗时（卸载优先级最低）
+        while (limitCount > 0 && totalTime + _stopwatch.ElapsedMilliseconds <= 14)
+        {
+            var chunkId = _unloadSet.First();
+            _unloadSet.Remove(chunkId);
+            HideChunk(chunkId);
+            limitCount--;
+#if MY_DEBUG
+            unloadCount++;
+#endif
+        }
+
+        if (_unloadSet.Count > 0)
+            allClear = false;
+
+#if MY_DEBUG // 好像 C# 默认 define 了 DEBUG，所以这里写 MY_DEBUG。（可以通过字体是否为灰色，判断）
+        var unloadTime = _stopwatch.ElapsedMilliseconds;
+        totalTime += unloadTime;
+        var log = $"ChunkLoader _Process {totalTime} ms | load {loadCount}: {loadTime} ms, unload {
+            unloadCount}: {unloadTime} ms, refresh {refreshCount}: {refreshTime} ms";
         if (totalTime <= 16)
             GD.Print(log);
         else
             GD.PrintErr(log);
+#endif
+
         _stopwatch.Stop();
         if (allClear) SetProcess(false);
     }
@@ -172,7 +199,8 @@ public partial class ChunkLoader : Node3D
     private readonly HashSet<int> _loadSet = [];
 
 
-    // 全过程需要异步化，即：下次新任务来时停止上次任务，并保证一次任务能分成多帧执行。
+    // 后续优化可以考虑：
+    // 全过程异步化，即：下次新任务来时停止上次任务，并保证一次任务能分成多帧执行。
     // 按照优先级，先加载附近的高模，再往外扩散。限制每帧的加载数量，保证不影响帧率。
     // 0. 预先计算好后续队列（加载队列、卸载队列、渲染队列、预加载队列）？
     // 1. 从相机当前位置开始，先保证视野范围内以最低 LOD 初始化
@@ -211,7 +239,10 @@ public partial class ChunkLoader : Node3D
 
             InsightChunkIdsNext.Add(preInsightChunkId);
             // 刷新 Lod
-            _refreshSet.Add(preInsightChunkId);
+            if (_usingChunks.ContainsKey(preInsightChunkId))
+                _refreshSet.Add(preInsightChunkId);
+            else
+                _loadSet.Add(preInsightChunkId);
             // 分块在视野内，他的邻居才比较可能是在视野内
             // 将之前不在但现在可能在视野范围内的 id 加入带查询队列
             SearchNeighbor(preInsightChunk, InsightChunkIdsNow);
@@ -361,10 +392,10 @@ public partial class ChunkLoader : Node3D
     private ChunkLod CalcLod(float distance)
     {
         var tileLen = _planetSettingService.Radius / _planetSettingService.Divisions;
-        return distance > tileLen * 100 ? ChunkLod.JustHex :
-            distance > tileLen * 50 ? ChunkLod.PlaneHex :
-            distance > tileLen * 20 ? ChunkLod.SimpleHex :
-            distance > tileLen * 10 ? ChunkLod.TerracesHex : ChunkLod.Full;
+        return distance > tileLen * 160 ? ChunkLod.JustHex :
+            distance > tileLen * 80 ? ChunkLod.PlaneHex :
+            distance > tileLen * 40 ? ChunkLod.SimpleHex :
+            distance > tileLen * 20 ? ChunkLod.TerracesHex : ChunkLod.Full;
     }
 
     // 注意，判断是否在摄像机内，不是用 GetViewport().GetVisibleRect().HasPoint(camera.UnprojectPosition(chunk.Pos))
