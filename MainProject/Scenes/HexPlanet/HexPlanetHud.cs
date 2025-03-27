@@ -207,7 +207,6 @@ public partial class HexPlanetHud : Control
 
     private ITileService _tileService;
     private IChunkService _chunkService;
-    private ISelectViewService _selectViewService;
     private IPlanetSettingService _planetSettingService;
     private IEditorService _editorService;
     private IMiniMapService _miniMapService;
@@ -216,7 +215,6 @@ public partial class HexPlanetHud : Control
     {
         _tileService = Context.GetBean<ITileService>();
         _chunkService = Context.GetBean<IChunkService>();
-        _selectViewService = Context.GetBean<ISelectViewService>();
         _planetSettingService = Context.GetBean<IPlanetSettingService>();
         _editorService = Context.GetBean<IEditorService>();
         _miniMapService = Context.GetBean<IMiniMapService>();
@@ -226,69 +224,29 @@ public partial class HexPlanetHud : Control
 
     #region 编辑功能
 
-    private HexTileDataOverrider TileOverrider
-    {
-        get => _editorService.TileOverrider;
-        set => _editorService.TileOverrider = value;
-    }
-
-    private int ShowLabelMode
-    {
-        get => _editorService.LabelMode;
-        set => _editorService.LabelMode = value;
-    }
-
     private void SetEditMode(bool toggle)
     {
-        TileOverrider = TileOverrider with { EditMode = toggle };
+        _editorService.SetEditMode(toggle);
         RenderingServer.GlobalShaderParameterSet("hex_map_edit_mode", toggle);
-    }
-
-    private void SetShowLabelMode(long mode) => ShowLabelMode = (int)mode;
-
-    private void SelectTerrain(long index)
-    {
-        TileOverrider = TileOverrider with { ApplyTerrain = index > 0 };
-        if (TileOverrider.ApplyTerrain)
-        {
-            TileOverrider = TileOverrider with { ActiveTerrain = (int)index - 1 };
-        }
     }
 
     private void SetElevation(double elevation)
     {
-        TileOverrider = TileOverrider with { ActiveElevation = (int)elevation };
-        _elevationValueLabel.Text = TileOverrider.ActiveElevation.ToString();
+        _editorService.SetElevation(elevation);
+        _elevationValueLabel.Text = _editorService.TileOverrider.ActiveElevation.ToString();
     }
-
-    private void SetApplyElevation(bool toggle) => TileOverrider = TileOverrider with { ApplyElevation = toggle };
 
     private void SetBrushSize(double brushSize)
     {
-        TileOverrider = TileOverrider with { BrushSize = (int)brushSize };
-        _selectViewService.SelectViewSize = TileOverrider.BrushSize;
-        _brushLabel.Text = $"笔刷大小：{TileOverrider.BrushSize}";
+        _editorService.SetBrushSize(brushSize);
+        _brushLabel.Text = $"笔刷大小：{_editorService.TileOverrider.BrushSize}";
     }
-
-    private void SetRiverMode(long mode) => TileOverrider = TileOverrider with { RiverMode = (OptionalToggle)mode };
-    private void SetRoadMode(long mode) => TileOverrider = TileOverrider with { RoadMode = (OptionalToggle)mode };
-    private void SetApplyWaterLevel(bool toggle) => TileOverrider = TileOverrider with { ApplyWaterLevel = toggle };
 
     private void SetWaterLevel(double level)
     {
-        TileOverrider = TileOverrider with { ActiveWaterLevel = (int)level };
-        _waterValueLabel.Text = TileOverrider.ActiveWaterLevel.ToString();
+        _editorService.SetWaterLevel(level);
+        _waterValueLabel.Text = _editorService.TileOverrider.ActiveWaterLevel.ToString();
     }
-
-    private void SetApplyUrbanLevel(bool toggle) => TileOverrider = TileOverrider with { ApplyUrbanLevel = toggle };
-    private void SetUrbanLevel(double level) => TileOverrider = TileOverrider with { ActiveUrbanLevel = (int)level };
-    private void SetApplyFarmLevel(bool toggle) => TileOverrider = TileOverrider with { ApplyFarmLevel = toggle };
-    private void SetFarmLevel(double level) => TileOverrider = TileOverrider with { ActiveFarmLevel = (int)level };
-    private void SetApplyPlantLevel(bool toggle) => TileOverrider = TileOverrider with { ApplyPlantLevel = toggle };
-    private void SetPlantLevel(double level) => TileOverrider = TileOverrider with { ActivePlantLevel = (int)level };
-    private void SetWalledMode(long mode) => TileOverrider = TileOverrider with { WalledMode = (OptionalToggle)mode };
-    private void SetApplySpecialIndex(bool toggle) => TileOverrider = TileOverrider with { ApplySpecialIndex = toggle };
-    private void SetSpecialIndex(long index) => TileOverrider = TileOverrider with { ActiveSpecialIndex = (int)index };
 
     #endregion
 
@@ -343,8 +301,8 @@ public partial class HexPlanetHud : Control
         OnCameraTransformed(_hexPlanetManager.GetViewport().GetCamera3D().GetGlobalTransform(), 0f);
 
         SetEditMode(_editCheckButton.ButtonPressed);
-        SetShowLabelMode(_showLableOptionButton.Selected);
-        SelectTerrain(0);
+        _editorService.SetLabelMode(_showLableOptionButton.Selected);
+        _editorService.SelectTerrain(0);
         UpdateNewPlanetInfo();
         InitSignals();
 
@@ -399,35 +357,35 @@ public partial class HexPlanetHud : Control
             _editGrid.Visible = vis;
             if (vis)
             {
-                SelectTerrain(_terrainOptionButton.Selected);
+                _editorService.SelectTerrain(_terrainOptionButton.Selected);
                 SetElevation(_elevationVSlider.Value);
             }
             else
             {
-                TileOverrider = TileOverrider with { ApplyTerrain = false };
-                TileOverrider = TileOverrider with { ApplyElevation = false };
+                _editorService.SetApplyTerrain(false);
+                _editorService.SetApplyElevation(false);
             }
         };
 
         _editCheckButton.Toggled += SetEditMode;
-        _showLableOptionButton.ItemSelected += SetShowLabelMode;
-        _terrainOptionButton.ItemSelected += SelectTerrain;
+        _showLableOptionButton.ItemSelected += _editorService.SetLabelMode;
+        _terrainOptionButton.ItemSelected += _editorService.SelectTerrain;
         _elevationVSlider.ValueChanged += SetElevation;
-        _elevationCheckButton.Toggled += SetApplyElevation;
+        _elevationCheckButton.Toggled += _editorService.SetApplyElevation;
         _waterVSlider.ValueChanged += SetWaterLevel;
-        _waterCheckButton.Toggled += SetApplyWaterLevel;
+        _waterCheckButton.Toggled += _editorService.SetApplyWaterLevel;
         _brushHSlider.ValueChanged += SetBrushSize;
-        _riverOptionButton.ItemSelected += SetRiverMode;
-        _roadOptionButton.ItemSelected += SetRoadMode;
-        _urbanCheckButton.Toggled += SetApplyUrbanLevel;
-        _urbanHSlider.ValueChanged += SetUrbanLevel;
-        _farmCheckButton.Toggled += SetApplyFarmLevel;
-        _farmHSlider.ValueChanged += SetFarmLevel;
-        _plantCheckButton.Toggled += SetApplyPlantLevel;
-        _plantHSlider.ValueChanged += SetPlantLevel;
-        _wallOptionButton.ItemSelected += SetWalledMode;
-        _specialFeatureCheckButton.Toggled += SetApplySpecialIndex;
-        _specialFeatureOptionButton.ItemSelected += SetSpecialIndex;
+        _riverOptionButton.ItemSelected += _editorService.SetRiverMode;
+        _roadOptionButton.ItemSelected += _editorService.SetRoadMode;
+        _urbanCheckButton.Toggled += _editorService.SetApplyUrbanLevel;
+        _urbanHSlider.ValueChanged += _editorService.SetUrbanLevel;
+        _farmCheckButton.Toggled += _editorService.SetApplyFarmLevel;
+        _farmHSlider.ValueChanged += _editorService.SetFarmLevel;
+        _plantCheckButton.Toggled += _editorService.SetApplyPlantLevel;
+        _plantHSlider.ValueChanged += _editorService.SetPlantLevel;
+        _wallOptionButton.ItemSelected += _editorService.SetWalledMode;
+        _specialFeatureCheckButton.Toggled += _editorService.SetApplySpecialIndex;
+        _specialFeatureOptionButton.ItemSelected += _editorService.SetSpecialIndex;
     }
 
 
@@ -450,22 +408,8 @@ public partial class HexPlanetHud : Control
                 return;
             }
 
-            if (TileOverrider.EditMode)
-            {
-                // 编辑模式下更新预览网格
-                _hexPlanetManager.UpdateEditPreviewChunk(TileOverrider);
-                if (Input.IsActionJustPressed("destroy_unit"))
-                {
-                    _hexPlanetManager.DestroyUnit();
-                    return;
-                }
-
-                if (Input.IsActionJustPressed("create_unit"))
-                {
-                    _hexPlanetManager.CreateUnit();
-                    return;
-                }
-            }
+            if (_hexPlanetManager.UpdateUiInEditMode())
+                return;
         }
         else if (GetViewport().GuiGetHoveredControl() == _miniMapContainer
                  && Input.IsMouseButtonPressed(MouseButton.Left))
@@ -486,9 +430,9 @@ public partial class HexPlanetHud : Control
                 ValidateDrag(ChosenTile);
             else
                 _isDrag = false;
-            if (TileOverrider.EditMode)
+            if (_editorService.TileOverrider.EditMode)
             {
-                EditTiles(ChosenTile);
+                _editorService.EditTiles(ChosenTile, _isDrag, _previousTile, _dragTile);
                 ChosenTile = _chosenTile; // 刷新 GUI 地块信息
                 // 编辑模式下绘制选择地块框
                 _hexPlanetManager.SelectEditingTile(ChosenTile);
@@ -500,7 +444,7 @@ public partial class HexPlanetHud : Control
         }
         else
         {
-            if (!TileOverrider.EditMode)
+            if (!_editorService.TileOverrider.EditMode)
                 _hexPlanetManager.FindPath(ChosenTile);
             else
                 // 清理选择地块框
@@ -513,42 +457,5 @@ public partial class HexPlanetHud : Control
     {
         _dragTile = currentTile;
         _isDrag = _tileService.IsNeighbor(currentTile, _previousTile);
-    }
-
-    private void EditTiles(Tile tile)
-    {
-        foreach (var t in _tileService.GetTilesInDistance(tile, TileOverrider.BrushSize))
-            EditTile(t);
-    }
-
-    private void EditTile(Tile tile)
-    {
-        if (TileOverrider.ApplyTerrain)
-            _tileService.SetTerrainTypeIndex(tile, TileOverrider.ActiveTerrain);
-        if (TileOverrider.ApplyElevation)
-            _tileService.SetElevation(tile, TileOverrider.ActiveElevation);
-        if (TileOverrider.ApplyWaterLevel)
-            _tileService.SetWaterLevel(tile, TileOverrider.ActiveWaterLevel);
-        if (TileOverrider.ApplySpecialIndex)
-            _tileService.SetSpecialIndex(tile, TileOverrider.ActiveSpecialIndex);
-        if (TileOverrider.ApplyUrbanLevel)
-            _tileService.SetUrbanLevel(tile, TileOverrider.ActiveUrbanLevel);
-        if (TileOverrider.ApplyFarmLevel)
-            _tileService.SetFarmLevel(tile, TileOverrider.ActiveFarmLevel);
-        if (TileOverrider.ApplyPlantLevel)
-            _tileService.SetPlantLevel(tile, TileOverrider.ActivePlantLevel);
-        if (TileOverrider.RiverMode == OptionalToggle.No)
-            _tileService.RemoveRiver(tile);
-        if (TileOverrider.RoadMode == OptionalToggle.No)
-            _tileService.RemoveRoads(tile);
-        if (TileOverrider.WalledMode != OptionalToggle.Ignore)
-            _tileService.SetWalled(tile, TileOverrider.WalledMode == OptionalToggle.Yes);
-        if (_isDrag)
-        {
-            if (TileOverrider.RiverMode == OptionalToggle.Yes)
-                _tileService.SetOutgoingRiver(_previousTile, _dragTile);
-            if (TileOverrider.RoadMode == OptionalToggle.Yes)
-                _tileService.AddRoad(_previousTile, _dragTile);
-        }
     }
 }

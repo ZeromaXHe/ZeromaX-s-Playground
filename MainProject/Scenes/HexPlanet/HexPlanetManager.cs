@@ -1,8 +1,8 @@
 using Godot;
-using Godot.Collections;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.Planets;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Structs;
 
@@ -43,7 +43,7 @@ public partial class HexPlanetManager : Node3D
             if (_ready)
             {
                 _planetSettingService.Radius = _radius;
-                var camAttr = _worldEnvironment.CameraAttributes as CameraAttributesPractical;
+                var camAttr = _planetCamera.Attributes as CameraAttributesPractical;
                 camAttr?.SetDofBlurFarDistance(_radius);
                 camAttr?.SetDofBlurFarTransition(_radius / 2);
                 camAttr?.SetDofBlurNearDistance(_radius / 10);
@@ -55,8 +55,9 @@ public partial class HexPlanetManager : Node3D
                 _planetAtmosphere.Set("planet_radius", _radius);
                 _planetAtmosphere.Set("atmosphere_height", _radius * 0.25f);
                 _longitudeLatitude.Draw(_radius + _planetSettingService.MaxHeight * 1.25f);
-                UpdateMoonMeshRadius(); // 卫星半径
-                UpdateLunarDist(); // 卫星轨道半径
+
+                _celestialMotionManager.UpdateMoonMeshRadius(); // 卫星半径
+                _celestialMotionManager.UpdateLunarDist(); // 卫星轨道半径
             }
         }
     }
@@ -101,214 +102,79 @@ public partial class HexPlanetManager : Node3D
 
     // 其实这里可以直接导入 Image, 在导入界面选择导入类型。但是导入 Image 的场景 tscn 文件会大得吓人……（等于直接按像素写一遍）
     [Export] private Texture2D _noiseSource;
-    [Export] private PackedScene _unitScene;
     [Export] public ulong Seed { get; set; } = 1234;
 
-    [Export(PropertyHint.Range, "-100.0, 100.0")]
-    public float RotationTimeFactor = 1f;
+    private bool _planetRevolution = true;
 
-    private float _eclipticInclinationToGalactic = 60f;
-
-    [ExportSubgroup("行星恒星设置")]
-    [ExportToolButton("切换恒星运行状态", Icon = "DirectionalLight3D")]
-    public Callable StarMoveStatus => Callable.From(ToggleStarMoveStatus);
-
-    private void ToggleStarMoveStatus()
+    // 行星公转
+    [ExportGroup("天体运动")]
+    [Export]
+    public bool PlanetRevolution
     {
-        if (PlanetRevolution)
-        {
-            PlanetRevolution = false;
-            _sunRevolution.RotationDegrees = Vector3.Up * 180f;
-            RenderingServer.GlobalShaderParameterSet("dir_to_sun", _sunMesh.GlobalPosition.Normalized());
-        }
-        else
-            PlanetRevolution = true;
-    }
-
-    [ExportToolButton("切换行星运行状态", Icon = "WorldEnvironment")]
-    public Callable PlanetMoveStatus => Callable.From(TogglePlanetMoveStatus);
-
-    private void TogglePlanetMoveStatus()
-    {
-        if (PlanetRotation)
-        {
-            PlanetRotation = false;
-            _planetAxis.Rotation = Vector3.Zero;
-        }
-        else
-            PlanetRotation = true;
-    }
-
-    // 黄道面相对银河系的银道面倾角
-    // 相关术语：银道面 Galactic Plane
-    [Export(PropertyHint.Range, "0, 180, degrees")]
-    public float EclipticInclinationToGalactic
-    {
-        get => _eclipticInclinationToGalactic;
+        get => _planetRevolution;
         set
         {
-            _eclipticInclinationToGalactic = value;
+            _planetRevolution = value;
             if (_ready)
-                UpdateGalaxySkyRotation();
+                _celestialMotionManager.PlanetRevolution = value;
         }
     }
 
-    private float _planetObliquity = 23.44f;
+    private bool _planetRotation = true;
 
-    // 行星倾角（= 黄赤交角 obliquity of the ecliptic = 23.44°）
-    // 相关术语：黄道面 Ecliptic Plane，赤道面 Earth Equatorial Plane
-    [Export(PropertyHint.Range, "0, 180, degrees")]
-    public float PlanetObliquity
+    // 行星自转
+    [Export]
+    public bool PlanetRotation
     {
-        get => _planetObliquity;
+        get => _planetRotation;
         set
         {
-            _planetObliquity = value;
+            _planetRotation = value;
             if (_ready)
-            {
-                UpdateGalaxySkyRotation();
-                UpdateEclipticPlaneRotation();
-            }
+                _celestialMotionManager.PlanetRotation = value;
         }
     }
 
-    [Export] public bool PlanetRevolution { get; set; } = true; // 行星公转
+    private bool _satelliteRevolution = true;
 
-    [Export(PropertyHint.Range, "-360, 360, degrees")]
-    public float PlanetRevolutionSpeed { get; set; } = 1f; // 行星公转速度（每秒转的度数）
-
-    [Export] public bool PlanetRotation { get; set; } = true; // 行星自转
-
-    [Export(PropertyHint.Range, "-360, 360, degrees")]
-    public float PlanetRotationSpeed { get; set; } = 10f; // 行星自转速度（每秒转的度数）
-
-    [ExportSubgroup("卫星设置")]
-    [ExportToolButton("切换卫星运行状态", Icon = "CSGSphere3D")]
-    public Callable SatelliteMoveStatus => Callable.From(ToggleSatelliteMoveStatus);
-
-    private void ToggleSatelliteMoveStatus()
+    // 卫星公转
+    [Export]
+    public bool SatelliteRevolution
     {
-        if (SatelliteRevolution || SatelliteRotation)
-        {
-            SatelliteRevolution = false;
-            SatelliteRotation = false;
-            _lunarRevolution.RotationDegrees = Vector3.Up * 180f;
-            _moonAxis.Rotation = Vector3.Zero;
-        }
-        else
-        {
-            SatelliteRevolution = true;
-            SatelliteRotation = true;
-        }
-    }
-
-    private float _satelliteRadiusRatio = 0.273f;
-
-    // 卫星和行星的半径比
-    [Export(PropertyHint.Range, "0, 1")]
-    public float SatelliteRadiusRatio
-    {
-        get => _satelliteRadiusRatio;
+        get => _satelliteRevolution;
         set
         {
-            _satelliteRadiusRatio = value;
+            _satelliteRevolution = value;
             if (_ready)
-                UpdateMoonMeshRadius();
+                _celestialMotionManager.SatelliteRevolution = value;
         }
     }
 
-    private float _satelliteDistRatio = 7.5f;
+    private bool _satelliteRotation = true;
 
-    // 卫星距离（轨道半径）和行星的半径比
-    // 如果大于了地日距离（行星轨道半径）的话，会被截断到小于地日距离的轨道
-    // 同样也会控制大于地球半径加卫星半径
-    [Export(PropertyHint.Range, "0, 100.0")]
-    public float SatelliteDistRatio
+    // 卫星自转
+    [Export]
+    public bool SatelliteRotation
     {
-        get => _satelliteDistRatio;
+        get => _satelliteRotation;
         set
         {
-            _satelliteDistRatio = value;
+            _satelliteRotation = value;
             if (_ready)
-                UpdateLunarDist();
+                _celestialMotionManager.SatelliteRotation = value;
         }
     }
-
-    private float _satelliteObliquity = 6.68f;
-
-    // 卫星倾角
-    // 相关术语：月球轨道面（白道面）Lunar Orbit Plane，月球赤道面 Lunar Equatorial Plane，
-    // 黄白交角 obliquity of the moon path = 月球轨道倾角 Lunar Orbital Inclination = 5.14°
-    // 相对黄道的月球倾角 Lunar Obliquity to Ecliptic = 1.54°
-    [Export(PropertyHint.Range, "0, 180, degrees")]
-    public float SatelliteObliquity
-    {
-        get => _satelliteObliquity;
-        set
-        {
-            _satelliteObliquity = value;
-            if (_ready)
-                UpdateLunarObliquityRotation();
-        }
-    }
-
-    private float _satelliteOrbitInclination = 5.14f;
-
-    // 卫星轨道倾角
-    // 相关术语：黄白交角 obliquity of the moon path = 月球轨道倾角 Lunar Orbital Inclination = 5.14°
-    [Export(PropertyHint.Range, "0, 180, degrees")]
-    public float SatelliteOrbitInclination
-    {
-        get => _satelliteOrbitInclination;
-        set
-        {
-            _satelliteOrbitInclination = value;
-            if (_ready)
-                UpdateLunarOrbitPlaneRotation();
-        }
-    }
-
-    [Export] public bool SatelliteRevolution { get; set; } = true; // 卫星公转
-
-    [Export(PropertyHint.Range, "-360, 360, degrees")]
-    public float SatelliteRevolutionSpeed { get; set; } = 30f; // 卫星公转速度（每秒转的度数）
-
-    [Export] public bool SatelliteRotation { get; set; } = true; // 卫星自转
-
-    [Export(PropertyHint.Range, "-360, 360, degrees")]
-    public float SatelliteRotationSpeed { get; set; } // 卫星自转速度（每秒转的度数）
 
     private bool _ready;
-
-    private bool EditMode => _editorService.TileOverrider.EditMode;
-    private int LabelMode => _editorService.LabelMode;
-
-    private int EditingTileId { get; set; }
-
-    private int _pathFromTileId;
-
-    private int PathFromTileId
-    {
-        get => _pathFromTileId;
-        set
-        {
-            _pathFromTileId = value;
-            if (_pathFromTileId == 0)
-                _selectViewService.ClearPath();
-        }
-    }
 
     private float _oldRadius;
     private int _oldDivisions;
     private int _oldChunkDivisions;
     private float _lastUpdated;
 
-    private readonly System.Collections.Generic.Dictionary<int, HexUnit> _units = new();
-
     #region services
 
     private ILodMeshCacheService _lodMeshCacheService;
-    private IUnitService _unitService;
     private IChunkService _chunkService;
     private ITileService _tileService;
     private ITileShaderService _tileShaderService;
@@ -323,7 +189,6 @@ public partial class HexPlanetManager : Node3D
     private void InitServices()
     {
         _lodMeshCacheService = Context.GetBean<ILodMeshCacheService>();
-        _unitService = Context.GetBean<IUnitService>();
         _chunkService = Context.GetBean<IChunkService>();
         _tileService = Context.GetBean<ITileService>();
         _tileShaderService = Context.GetBean<ITileShaderService>();
@@ -334,7 +199,6 @@ public partial class HexPlanetManager : Node3D
         _planetSettingService = Context.GetBean<IPlanetSettingService>();
         _noiseService = Context.GetBean<INoiseService>();
         _editorService = Context.GetBean<IEditorService>();
-        _tileService.UnitValidateLocation += OnTileServiceUnitValidateLocation;
         _editorService.EditModeChanged += OnEditorEditModeChanged;
     }
 
@@ -342,23 +206,20 @@ public partial class HexPlanetManager : Node3D
     {
         UpdateSelectTileViewer();
         if (editMode)
-            PathFromTileId = 0;
+            _unitManager.PathFromTileId = 0; // 清除单位移动路径 UI
         else
         {
             // 游戏模式下永远不显示编辑预览网格
-            _editPreviewChunk.Visible = false;
-            EditingTileId = 0;
+            _editPreviewChunk.Hide();
+            _selectTileViewer.CleanEditingTile();
         }
     }
-
-    private void OnTileServiceUnitValidateLocation(int unitId) => _units[unitId].ValidateLocation();
 
     private void CleanEventListeners()
     {
         // 不小心忽视了事件的解绑，会在编辑器下"重载已保存场景"时出问题报错！
         // 【切记】所以这里需要在退出场景树时清理事件监听！！！
         _ready = false;
-        _tileService.UnitValidateLocation -= OnTileServiceUnitValidateLocation;
         _editorService.EditModeChanged -= OnEditorEditModeChanged;
     }
 
@@ -366,92 +227,48 @@ public partial class HexPlanetManager : Node3D
 
     #region on-ready nodes
 
-    private WorldEnvironment _worldEnvironment;
-
-    // 天体公转自转
-    private Node3D _eclipticPlane;
-    private Node3D _sunRevolution;
-    private Node3D _planetAxis;
-    private Node3D _lunarOrbitPlane;
-    private Node3D _lunarRevolution;
-    private Node3D _lunarDist;
-    private Node3D _lunarObliquity;
-    private Node3D _moonAxis;
-    private MeshInstance3D _moonMesh;
-    private MeshInstance3D _sunMesh;
+    private CelestialMotionManager _celestialMotionManager; // 天体运动
+    private Node3D _planetContainer; // 所有行星相关节点的父节点，用于整体一起自转
 
     // 行星节点
     private Node3D _planetAtmosphere; // 大气层插件的 GDScript 节点
     private MeshInstance3D _groundPlaceHolder; // 球面占位网格
     private ChunkManager _chunkManager;
-    private Node3D _unitManager; // 单位管理节点
+    private UnitManager _unitManager; // 单位管理节点
     private OrbitCamera _orbitCamera;
-    private MeshInstance3D _selectTileViewer;
+    private Camera3D _planetCamera; // 行星主摄像机
+    private SelectTileViewer _selectTileViewer;
     private EditPreviewChunk _editPreviewChunk;
-    private HexUnitPathPool _hexUnitPathPool;
     private HexMapGenerator _hexMapGenerator;
     private LongitudeLatitude _longitudeLatitude;
 
     private void InitOnReadyNodes()
     {
-        _worldEnvironment = GetNode<WorldEnvironment>("%WorldEnvironment");
-        UpdateGalaxySkyRotation();
-        // 天体公转自转
-        _eclipticPlane = GetNode<Node3D>("%EclipticPlane");
-        UpdateEclipticPlaneRotation();
-        _sunRevolution = GetNode<Node3D>("%SunRevolution");
-        _planetAxis = GetNode<Node3D>("%PlanetAxis");
-        _lunarOrbitPlane = GetNode<Node3D>("%LunarOrbitPlane");
-        UpdateLunarOrbitPlaneRotation();
-        _lunarRevolution = GetNode<Node3D>("%LunarRevolution");
-        _lunarDist = GetNode<Node3D>("%LunarDist");
-        UpdateLunarDist();
-        _lunarObliquity = GetNode<Node3D>("%LunarObliquity");
-        UpdateLunarObliquityRotation();
-        _moonAxis = GetNode<Node3D>("%MoonAxis");
-        _moonMesh = GetNode<MeshInstance3D>("%MoonMesh");
-        UpdateMoonMeshRadius();
-        _sunMesh = GetNode<MeshInstance3D>("%SunMesh");
-        RenderingServer.GlobalShaderParameterSet("dir_to_sun", _sunMesh.GlobalPosition.Normalized());
+        _celestialMotionManager = GetNode<CelestialMotionManager>("%CelestialMotionManager");
+        _celestialMotionManager.PlanetRotation = _planetRotation;
+        _celestialMotionManager.PlanetRevolution = _planetRevolution;
+        _celestialMotionManager.SatelliteRotation = _satelliteRotation;
+        _celestialMotionManager.SatelliteRevolution = _satelliteRevolution;
 
+        _planetContainer = GetNode<Node3D>("%PlanetContainer");
         // 行星节点
         _planetAtmosphere = GetNode<Node3D>("%PlanetAtmosphere");
         _groundPlaceHolder = GetNode<MeshInstance3D>("%GroundPlaceHolder");
         _chunkManager = GetNode<ChunkManager>("%ChunkManager");
-        _unitManager = GetNode<Node3D>("%UnitManager");
         // 此处要求 OrbitCamera 也是 [Tool]，否则编辑器里会转型失败
         _orbitCamera = GetNode<OrbitCamera>("%OrbitCamera");
-        _selectTileViewer = GetNode<MeshInstance3D>("%SelectTileViewer");
+        _planetCamera = GetNode<Camera3D>("%PlanetCamera");
         _hexMapGenerator = GetNode<HexMapGenerator>("%HexMapGenerator");
         _longitudeLatitude = GetNode<LongitudeLatitude>("%LongitudeLatitude");
         if (!Engine.IsEditorHint())
         {
             // 没有 [Tool] 特性也不需要在编辑器下使用的节点。所以这里需要判断一下再赋值，否则会强转失败
+            _unitManager = GetNode<UnitManager>("%UnitManager");
+            _selectTileViewer = GetNode<SelectTileViewer>("%SelectTileViewer");
             _editPreviewChunk = GetNode<EditPreviewChunk>("%EditPreviewChunk");
-            _hexUnitPathPool = GetNode<HexUnitPathPool>("%HexUnitPathPool");
         }
 
         _ready = true;
-    }
-
-    private void UpdateLunarOrbitPlaneRotation() =>
-        _lunarOrbitPlane.RotationDegrees = Vector3.Right * SatelliteOrbitInclination;
-
-    private void UpdateEclipticPlaneRotation() => _eclipticPlane.RotationDegrees = Vector3.Right * PlanetObliquity;
-    private void UpdateLunarObliquityRotation() => _lunarObliquity.RotationDegrees = Vector3.Right * SatelliteObliquity;
-
-    private void UpdateLunarDist() => _lunarDist.Position =
-        Vector3.Back * Mathf.Clamp(Radius * SatelliteDistRatio, Radius * (1 + _satelliteRadiusRatio), 800f);
-
-    private void UpdateGalaxySkyRotation() =>
-        _worldEnvironment.Environment.SkyRotation =
-            Vector3.Right * Mathf.DegToRad(PlanetObliquity - EclipticInclinationToGalactic);
-
-    private void UpdateMoonMeshRadius()
-    {
-        var moonMesh = _moonMesh.Mesh as SphereMesh;
-        moonMesh?.SetRadius(Radius * SatelliteRadiusRatio);
-        moonMesh?.SetHeight(Radius * SatelliteRadiusRatio * 2);
     }
 
     #endregion
@@ -460,7 +277,7 @@ public partial class HexPlanetManager : Node3D
     {
         GD.Print("HexPlanetManager _Ready start");
         InitOnReadyNodes();
-        // 不知道为啥这个时候 setter 又不生效了，没初始化 HexMetrics 里面的数据。手动赋值调用 setter 一下
+        // 在 _ready = true 后初始化相关数据。手动赋值调用 setter 一下
         Radius = _radius;
         Divisions = _divisions;
 
@@ -477,7 +294,6 @@ public partial class HexPlanetManager : Node3D
         if (!_ready) return;
         var floatDelta = (float)delta;
         _tileShaderService.UpdateData(floatDelta);
-        UpdateStellarRotation(floatDelta);
 
         _lastUpdated += floatDelta;
         if (_lastUpdated < 0.1f) return; // 每 0.1s 更新一次
@@ -490,86 +306,40 @@ public partial class HexPlanetManager : Node3D
         _lastUpdated = 0f; // 每一秒检查一次
     }
 
-    // 更新天体旋转
-    private void UpdateStellarRotation(float delta)
-    {
-        if (PlanetRevolution || PlanetRotation)
-        {
-            RenderingServer.GlobalShaderParameterSet("dir_to_sun", ToPlanetLocal(_sunMesh.GlobalPosition.Normalized()));
-            // 行星公转
-            if (PlanetRevolution)
-                _sunRevolution.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
-                    _sunRevolution.RotationDegrees.Y + PlanetRevolutionSpeed * delta, 0f, 360f);
-            // 行星自转
-            if (PlanetRotation)
-                _planetAxis.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
-                    _planetAxis.RotationDegrees.Y + PlanetRotationSpeed * delta, 0f, 360f);
-        }
-
-        // 卫星公转
-        if (SatelliteRevolution)
-            _lunarRevolution.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
-                _lunarRevolution.RotationDegrees.Y + SatelliteRevolutionSpeed * delta, 0f, 360f);
-        // 卫星自转
-        if (SatelliteRotation)
-            _moonAxis.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
-                _moonAxis.RotationDegrees.Y + SatelliteRotationSpeed * delta, 0f, 360f);
-    }
-
     private void UpdateSelectTileViewer()
     {
         var position = GetTileCollisionPositionUnderCursor();
-        if (EditMode)
-            UpdateSelectTileInEditMode(position);
-        else
-            UpdateSelectTileInPlayMode(position);
+        _selectTileViewer.Update(_unitManager.PathFromTileId, position);
     }
 
-    private void UpdateSelectTileInPlayMode(Vector3 position)
+    public bool UpdateUiInEditMode()
     {
-        if (PathFromTileId == 0)
+        if (!_editorService.TileOverrider.EditMode) return false;
+        // 编辑模式下更新预览网格
+        UpdateEditPreviewChunk();
+        if (Input.IsActionJustPressed("destroy_unit"))
         {
-            _selectTileViewer.Visible = false;
-            return;
+            DestroyUnit();
+            return true;
         }
 
-        _selectTileViewer.Visible = true;
-        var mesh = _selectViewService.GenerateMeshForPlayMode(PathFromTileId, position);
-        if (mesh != null)
-            _selectTileViewer.Mesh = mesh;
+        if (Input.IsActionJustPressed("create_unit"))
+        {
+            CreateUnit();
+            return true;
+        }
+
+        return false;
     }
 
-    private void UpdateSelectTileInEditMode(Vector3 position)
-    {
-        if (position != Vector3.Zero || EditingTileId > 0)
-        {
-            // 更新选择地块框
-            _selectTileViewer.Visible = true;
-            var mesh = _selectViewService.GenerateMeshForEditMode(EditingTileId, position);
-            if (mesh != null)
-                _selectTileViewer.Mesh = mesh;
-        }
-        else
-        {
-            // GD.Print("No tile under cursor, _selectTileViewer not visible");
-            _selectTileViewer.Visible = false;
-        }
-    }
-
-    public void UpdateEditPreviewChunk(HexTileDataOverrider tileOverrider)
+    private void UpdateEditPreviewChunk()
     {
         var tile = GetTileUnderCursor();
-        if (tile != null)
-        {
-            // 更新地块预览
-            _editPreviewChunk.Refresh(tileOverrider, _tileService.GetTilesInDistance(tile, tileOverrider.BrushSize));
-            _editPreviewChunk.Visible = true;
-        }
-        else
-            _editPreviewChunk.Visible = false;
+        // 更新地块预览
+        _editPreviewChunk.Update(tile);
     }
 
-    private Dictionary GetTileCollisionResult()
+    private Godot.Collections.Dictionary GetTileCollisionResult()
     {
         var spaceState = GetWorld3D().DirectSpaceState;
         var camera = GetViewport().GetCamera3D();
@@ -599,7 +369,7 @@ public partial class HexPlanetManager : Node3D
     private void ClearOldData()
     {
         // 必须先清理单位，否则相关可见度事件会查询地块，放最后会空引用异常
-        ClearAllUnits();
+        _unitManager?.ClearAllUnits(); // 注意编辑器内 _unitManager == null
         _chunkService.Truncate();
         _tileService.Truncate();
         _pointService.Truncate();
@@ -644,41 +414,14 @@ public partial class HexPlanetManager : Node3D
         _chunkManager.InitChunkNodes();
     }
 
-    public void SelectEditingTile(Tile tile)
-    {
-        EditingTileId = tile?.Id ?? 0;
-    }
+    public void SelectEditingTile(Tile tile) => _selectTileViewer.SelectEditingTile(tile);
+    public void CleanEditingTile() => _selectTileViewer.CleanEditingTile();
 
-    public void CleanEditingTile() => EditingTileId = 0;
+    #region 单位相关
 
     public void FindPath(Tile tile)
     {
-        if (PathFromTileId != 0)
-        {
-            if (tile == null || tile.Id == PathFromTileId)
-            {
-                // 重复点选同一地块，则取消选择
-                PathFromTileId = 0;
-            }
-            else MoveUnit(tile);
-        }
-        else
-            // 当前没有选择地块（即没有选中单位）的话，则在有单位时选择该地块
-            PathFromTileId = tile == null || tile.UnitId == 0 ? 0 : tile.Id;
-    }
-
-    private void MoveUnit(Tile toTile)
-    {
-        var fromTile = _tileService.GetById(PathFromTileId);
-        var path = _tileSearchService.FindPath(fromTile, toTile, true);
-        if (path is { Count: > 1 })
-        {
-            // 确实有找到从出发点到 tile 的路径
-            var unit = _units[fromTile.UnitId];
-            _hexUnitPathPool.NewTask(unit, path);
-        }
-
-        PathFromTileId = 0;
+        _unitManager.FindPath(tile);
     }
 
     public void CreateUnit()
@@ -691,16 +434,7 @@ public partial class HexPlanetManager : Node3D
         }
 
         GD.Print($"CreateUnit at tile {tile.Id}");
-        var unit = _unitScene.Instantiate<HexUnit>();
-        AddUnit(unit, tile.Id, GD.Randf() * Mathf.Tau);
-    }
-
-    private void AddUnit(HexUnit unit, int tileId, float orientation)
-    {
-        _unitManager.AddChild(unit);
-        _units[unit.Id] = unit;
-        unit.TileId = tileId;
-        unit.Orientation = orientation;
+        _unitManager.AddUnit(tile.Id, GD.Randf() * Mathf.Tau);
     }
 
     public void DestroyUnit()
@@ -708,27 +442,15 @@ public partial class HexPlanetManager : Node3D
         var tile = GetTileUnderCursor();
         if (tile is not { UnitId: > 0 })
             return;
-        RemoveUnit(tile.UnitId);
+        _unitManager.RemoveUnit(tile.UnitId);
     }
 
-    private void RemoveUnit(int unitId)
-    {
-        _units[unitId].Die();
-        _units.Remove(unitId);
-    }
-
-    private void ClearAllUnits()
-    {
-        foreach (var unit in _units.Values)
-            unit.Die();
-        _units.Clear();
-        _unitService.Truncate();
-    }
+    #endregion
 
     // 锁定经纬网的显示
     public void FixLatLon(bool toggle) => _longitudeLatitude.FixFullVisibility = toggle;
 
     public Vector3 GetOrbitCameraFocusPos() => _orbitCamera.GetFocusBasePos();
 
-    public Vector3 ToPlanetLocal(Vector3 global) => _planetAxis.ToLocal(global);
+    public Vector3 ToPlanetLocal(Vector3 global) => _planetContainer.ToLocal(global);
 }

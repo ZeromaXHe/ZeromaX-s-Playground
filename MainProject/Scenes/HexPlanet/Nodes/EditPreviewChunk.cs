@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Structs;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
 
@@ -12,8 +14,11 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 /// Date: 2025-03-09 14:19
 public partial class EditPreviewChunk : Node3D, IChunk
 {
-    public EditPreviewChunk() =>
+    public EditPreviewChunk()
+    {
         _chunkTriangulation = new ChunkTriangulation(this);
+        InitServices();
+    }
 
     [Export] public HexMesh Terrain { get; set; }
     [Export] public ShaderMaterial[] TerrainMaterials { get; set; }
@@ -23,6 +28,19 @@ public partial class EditPreviewChunk : Node3D, IChunk
     [Export] public HexMesh WaterShore { get; set; }
     [Export] public HexMesh Estuary { get; set; }
     [Export] public HexFeatureManager Features { get; set; }
+
+    #region 服务
+
+    private ITileService _tileService;
+    private IEditorService _editorService;
+
+    private void InitServices()
+    {
+        _tileService = Context.GetBean<ITileService>();
+        _editorService = Context.GetBean<IEditorService>();
+    }
+
+    #endregion
 
     private readonly ChunkTriangulation _chunkTriangulation;
     public HexTileDataOverrider TileDataOverrider { get; set; } = new();
@@ -59,7 +77,19 @@ public partial class EditPreviewChunk : Node3D, IChunk
         SetProcess(false);
     }
 
-    public void Refresh(HexTileDataOverrider tileDataOverrider, IEnumerable<Tile> tiles)
+    public void Update(Tile tile)
+    {
+        if (tile != null)
+        {
+            // 更新地块预览
+            Refresh(_editorService.TileOverrider,
+                _tileService.GetTilesInDistance(tile, _editorService.TileOverrider.BrushSize));
+            Show();
+        }
+        else Hide();
+    }
+
+    private void Refresh(HexTileDataOverrider tileDataOverrider, IEnumerable<Tile> tiles)
     {
         TileDataOverrider = tileDataOverrider with { OverrideTiles = tiles.ToHashSet() };
         var newMaterialIdx = GetTerrainMaterialIdx();

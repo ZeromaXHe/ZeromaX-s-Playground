@@ -50,8 +50,9 @@ public partial class ChunkLoader : Node3D
 
     private void OnChunkServiceRefreshChunk(int id)
     {
-        // 现在地图生成器也会调用，这时候分块还没创建
-        if (_usingChunks.TryGetValue(id, out var chunk))
+        // 现在地图生成器也会调用，这时候分块还没创建。
+        // _ready 不可或缺，否则启动失败
+        if (_ready && _usingChunks.TryGetValue(id, out var chunk))
             chunk?.Refresh();
     }
 
@@ -97,6 +98,15 @@ public partial class ChunkLoader : Node3D
     private const float InsightUpdateInterval = 0.2f;
 
     private void UpdateInSightSetNextIdx() => _insightSetIdx ^= 1;
+
+    private bool _ready;
+
+    public override void _Ready()
+    {
+        _ready = true;
+    }
+
+    public override void _ExitTree() => CleanEventListeners();
 
     private void NewInsightChunkTask(Transform3D transform, float delta)
     {

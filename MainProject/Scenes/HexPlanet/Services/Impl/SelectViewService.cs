@@ -11,14 +11,13 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Impl;
 public class SelectViewService(
     ITileService tileService,
     ITileSearchService tileSearchService,
-    IPlanetSettingService planetSettingService) : ISelectViewService
+    IPlanetSettingService planetSettingService,
+    IEditorService editorService) : ISelectViewService
 {
     private int? _hoverTileId;
     private int _selectedTileId;
 
     public void ClearPath() => tileSearchService.ClearPath();
-
-    public int SelectViewSize { get; set; }
 
     public Mesh GenerateMeshForEditMode(int editingTileId, Vector3 position)
     {
@@ -50,7 +49,7 @@ public class SelectViewService(
                 var hoverTile = tileService.GetById((int)_hoverTileId);
 
                 var color = Colors.DarkGreen with { A = 0.8f };
-                var tiles = tileService.GetTilesInDistance(hoverTile, SelectViewSize);
+                var tiles = tileService.GetTilesInDistance(hoverTile, editorService.TileOverrider.BrushSize);
                 var viewRadius = planetSettingService.Radius + planetSettingService.MaxHeight;
                 foreach (var t in tiles)
                     vi += AddHexFrame(t, color, viewRadius, surfaceTool, vi);

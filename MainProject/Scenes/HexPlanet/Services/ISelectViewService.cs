@@ -8,7 +8,6 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 public interface ISelectViewService
 {
     void ClearPath();
-    int SelectViewSize { get; set; }
     Mesh GenerateMeshForEditMode(int editingTileId, Vector3 position);
     Mesh GenerateMeshForPlayMode(int pathFindingFromTileId, Vector3 position);
 }

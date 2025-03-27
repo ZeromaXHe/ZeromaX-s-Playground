@@ -48,7 +48,6 @@ public static class Context
         var lodMeshCacheService = new LodMeshCacheService();
         var planetSettingService = new PlanetSettingService();
         var noiseService = new NoiseService(planetSettingService);
-        var editorService = new EditorService();
         var unitService = new UnitService(unitRepo);
         var faceService = new FaceService(faceRepo, pointRepo);
         var pointService = new PointService(faceService, pointRepo);
@@ -58,13 +57,13 @@ public static class Context
         var tileSearchService = new TileSearchService(tileService, planetSettingService);
         var tileShaderService = new TileShaderService(tileService, tileSearchService,
             unitService, planetSettingService);
+        var editorService = new EditorService(tileService);
         var miniMapService = new MiniMapService(tileService, planetSettingService);
         var selectViewService = new SelectViewService(tileService, tileSearchService,
-            planetSettingService);
+            planetSettingService, editorService);
         Register(nameof(ILodMeshCacheService), lodMeshCacheService);
         Register(nameof(IPlanetSettingService), planetSettingService);
         Register(nameof(INoiseService), noiseService);
-        Register(nameof(IEditorService), editorService);
         Register(nameof(IUnitService), unitService);
         Register(nameof(IFaceService), faceService);
         Register(nameof(IPointService), pointService);
@@ -72,6 +71,7 @@ public static class Context
         Register(nameof(ITileService), tileService);
         Register(nameof(ITileSearchService), tileSearchService);
         Register(nameof(ITileShaderService), tileShaderService);
+        Register(nameof(IEditorService), editorService);
         Register(nameof(IMiniMapService), miniMapService);
         Register(nameof(ISelectViewService), selectViewService);
     }

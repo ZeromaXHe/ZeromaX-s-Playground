@@ -1,3 +1,4 @@
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Structs;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
@@ -16,4 +17,30 @@ public interface IEditorService
     event EditModeChangedEvent EditModeChanged;
     int LabelMode { get; set; }
     HexTileDataOverrider TileOverrider { get; set; }
+    void EditTiles(Tile tile, bool isDrag, Tile previousTile, Tile dragTile);
+
+    #region 编辑
+
+    void SetEditMode(bool toggle);
+    void SetLabelMode(long mode);
+    void SelectTerrain(long index);
+    void SetApplyTerrain(bool toggle);
+    void SetElevation(double elevation);
+    void SetApplyElevation(bool toggle);
+    void SetBrushSize(double brushSize);
+    void SetRiverMode(long mode);
+    void SetRoadMode(long mode);
+    void SetApplyWaterLevel(bool toggle);
+    void SetWaterLevel(double level);
+    void SetApplyUrbanLevel(bool toggle);
+    void SetUrbanLevel(double level);
+    void SetApplyFarmLevel(bool toggle);
+    void SetFarmLevel(double level);
+    void SetApplyPlantLevel(bool toggle);
+    void SetPlantLevel(double level);
+    void SetWalledMode(long mode);
+    void SetApplySpecialIndex(bool toggle);
+    void SetSpecialIndex(long index);
+
+    #endregion
 }
