@@ -6,9 +6,15 @@ uniform float glossiness: hint_range(0.0, 1.0) = 0.5;
 uniform float specular = 0.2;
 
 // #include 和 gdshaderinc 在官方文档“着色器预处理器”讲的
-#include "HexCellData.gdshaderinc"
-#include "Water.gdshaderinc"
+#ifndef HEX_CELL_DATA_INCLUDED
+	#include "HexCellData.gdshaderinc"
+#endif
 
+#ifndef WATER_INCLUDED
+	#include "Water.gdshaderinc"
+#endif
+
+varying vec4 civ;
 varying vec2 visibility;
 
 void vertex() {
@@ -18,6 +24,12 @@ void vertex() {
 	visibility.x = cell0.x * COLOR.x + cell1.x * COLOR.y + cell2.x * COLOR.z;
 	visibility.x = mix(0.25, 1, visibility.x);
 	visibility.y = cell0.y * COLOR.x + cell1.y * COLOR.y + cell2.y * COLOR.z;
+
+	vec3 civ1 = GetTileCivDataById(CUSTOM0[0]).rgb;
+	vec3 civ2 = GetTileCivDataById(CUSTOM0[1]).rgb;
+	vec3 civ3 = GetTileCivDataById(CUSTOM0[2]).rgb;
+	civ.rgb = civ1 * COLOR.x + civ2 * COLOR.y + civ3 * COLOR.z;
+
 	// 波浪动画
 	vec3 cam_pos_local = (inverse(MODEL_MATRIX) * vec4(CAMERA_POSITION_WORLD, 1.)).xyz;
 	float wave_vertex_amplitude = WaveAnim(cam_pos_local, VERTEX);
@@ -36,7 +48,7 @@ void fragment() {
 	vec4 c = clamp(color + max(foam, waves), 0.0, 1.0);
 	float explored = visibility.y;
 	// 设置输出
-	ALBEDO = c.rgb * visibility.x;
+	ALBEDO = (0.2 * c.rgb + 0.8 * civ.rgb) * visibility.x;
 	SPECULAR = specular * explored;
 	AO = explored;
 	ROUGHNESS = 1.0 - glossiness;

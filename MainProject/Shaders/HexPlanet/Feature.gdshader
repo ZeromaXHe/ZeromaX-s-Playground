@@ -9,7 +9,10 @@ uniform vec3 background_color: source_color = vec3(0.2, 0.169, 0.133);//vec3(0.0
 // 不能用这个方案，instance 数量太多会报错
 instance uniform int tile_id;
 
-#include "HexCellData.gdshaderinc"
+#ifndef HEX_CELL_DATA_INCLUDED
+	#include "HexCellData.gdshaderinc"
+#endif
+
 varying vec2 visibility;
 
 void vertex() {

@@ -1,3 +1,6 @@
+#ifndef HEX_METRICS_INCLUDED
+#define HEX_METRICS_INCLUDED
+
 #define OUTER_TO_INNER 0.866025404
 #define OUTER_RADIUS 10.0
 #define CHUNK_SIZE_X 5
@@ -12,3 +15,4 @@ vec2 WorldToHexSpace(vec2 p) {
 	//return vec2(world_pos.x - world_pos.y * 0.5 - world_pos.z * 0.5,
 		//(world_pos.y - world_pos.z) * OUTER_TO_INNER);
 //}
+#endif

@@ -2,7 +2,10 @@
 #ifndef GEOMATH_INCLUDED
 #define GEOMATH_INCLUDED
 
-#include "res://Shaders/HexPlanet/Sebastian/Math.gdshaderinc"
+#ifndef MATH_GDSHADERINC
+	#include "res://Shaders/HexPlanet/Sebastian/Math.gdshaderinc"
+#endif
+
 // 通过（弧度制的）经纬度获取球面的点
 vec3 LongitudeLatitudeToPoint(vec2 longLat) {
 	float longitude = longLat.x;

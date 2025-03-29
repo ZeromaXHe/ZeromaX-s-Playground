@@ -1,5 +1,13 @@
-#include "HexMetrics.gdshaderinc"
-#include "Sebastian/Triplanar.gdshaderinc"
+#ifndef WATER_INCLUDED
+#define WATER_INCLUDED
+
+#ifndef HEX_METRICS_INCLUDED
+	#include "HexMetrics.gdshaderinc"
+#endif
+
+#ifndef TRIPLANAR_GDSHADERINC
+	#include "Sebastian/Triplanar.gdshaderinc"
+#endif
 
 float River (vec2 riverUV, sampler2D noiseTex) {
 	vec2 uv = riverUV;
@@ -65,3 +73,4 @@ float WaveAnim(vec3 world_cam_pos, vec3 world_vertex) {
 	float wave_B = sin(TIME * wave_anim_speed + phi * wave_anim_detail);
 	return (wave_A + wave_B) * max_wave_amplitude + 1.3 * max_wave_amplitude; // 保证海水波浪尽量高于原海面（2 * 时一定高于）
 }
+#endif

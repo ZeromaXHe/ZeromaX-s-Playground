@@ -117,3 +117,7 @@ dir_to_sun={
 "type": "vec3",
 "value": Vector3(0, 0.397, -0.918)
 }
+hex_tile_civ_data={
+"type": "sampler2D",
+"value": ""
+}

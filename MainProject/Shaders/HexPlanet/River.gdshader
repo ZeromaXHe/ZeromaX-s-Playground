@@ -5,8 +5,13 @@ uniform sampler2D main_tex: source_color, filter_linear_mipmap, repeat_enable;
 uniform float glossiness: hint_range(0.0, 1.0) = 0.5;
 uniform float specular = 0.2;
 
-#include "HexCellData.gdshaderinc"
-#include "Water.gdshaderinc"
+#ifndef HEX_CELL_DATA_INCLUDED
+	#include "HexCellData.gdshaderinc"
+#endif
+
+#ifndef WATER_INCLUDED
+	#include "Water.gdshaderinc"
+#endif
 
 varying vec2 visibility;
 

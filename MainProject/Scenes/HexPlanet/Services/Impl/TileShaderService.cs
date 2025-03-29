@@ -28,9 +28,12 @@ public class TileShaderService : ITileShaderService
         _planetSettingService = planetSettingService;
     }
 
-    private Image _tileTexture;
+    private Image _tileTexture; // 地块地理信息
+    private Image _tileCivTexture; // 地块占领文明
     private Color[] _tileTextureData;
+    private Color[] _tileCivTextureData;
     private ImageTexture _hexTileData;
+    private ImageTexture _hexTileCivData;
     private bool _enabled;
     private List<int> _transitioningTileIndices = [];
     private const float TransitionSpeed = 255;
@@ -45,19 +48,28 @@ public class TileShaderService : ITileShaderService
         var x = _planetSettingService.Divisions * 5;
         var z = _planetSettingService.Divisions * 2 + 1; // 十二个五边形会导致余数
         _tileTexture = Image.CreateEmpty(x, z, false, Image.Format.Rgba8);
+        _tileCivTexture = Image.CreateEmpty(x, z, false, Image.Format.Rgba8);
         _hexTileData = ImageTexture.CreateFromImage(_tileTexture);
+        _hexTileCivData = ImageTexture.CreateFromImage(_tileCivTexture);
         RenderingServer.GlobalShaderParameterSet("hex_tile_data", Variant.CreateFrom(_hexTileData));
+        RenderingServer.GlobalShaderParameterSet("hex_tile_civ_data", Variant.CreateFrom(_hexTileCivData));
         RenderingServer.GlobalShaderParameterSet("hex_tile_data_texel_size", new Vector4(1f / x, 1f / z, x, z));
         if (_tileTextureData == null || _tileTextureData.Length != x * z)
         {
             _tileTextureData = new Color[x * z];
+            _tileCivTextureData = new Color[x * z];
             _visibilityTransitions = new bool[x * z];
         }
         else
         {
+            var color = Colors.White;
             for (var i = 0; i < _tileTextureData.Length; i++)
             {
                 _tileTextureData[i] = new Color(0f, 0f, 0f, 0f);
+                if (GD.Randf() > 0.95f)
+                    color = new Color(GD.Randf(), GD.Randf(), GD.Randf());
+                _tileCivTextureData[i] = color;
+                ChangeTilePixel(_tileCivTexture, i, _tileCivTextureData[i]);
                 _visibilityTransitions[i] = false;
             }
         }
@@ -75,7 +87,7 @@ public class TileShaderService : ITileShaderService
             : 0;
         data.A8 = tile.Data.TerrainTypeIndex;
         _tileTextureData[tileId] = data;
-        ChangeTilePixel(tileId, data);
+        ChangeTilePixel(_tileTexture, tileId, data);
         _enabled = true;
     }
 
@@ -86,7 +98,7 @@ public class TileShaderService : ITileShaderService
             var tile = _tileService.GetById(tileId);
             _tileTextureData[tileId].R8 = tile.IsVisible ? 255 : 0;
             _tileTextureData[tileId].G8 = tile.Data.IsExplored ? 255 : 0;
-            ChangeTilePixel(tileId, _tileTextureData[tileId]);
+            ChangeTilePixel(_tileTexture, tileId, _tileTextureData[tileId]);
         }
         else if (!_visibilityTransitions[tileId])
         {
@@ -127,6 +139,7 @@ public class TileShaderService : ITileShaderService
             //     .As<ImageTexture>()
             //     .Update(cellTexture)
             _hexTileData.Update(_tileTexture);
+            _hexTileCivData.Update(_tileCivTexture);
             _enabled = _transitioningTileIndices.Count > 0;
         }
     }
@@ -184,7 +197,7 @@ public class TileShaderService : ITileShaderService
         _tileTextureData[tileId].B8 = tile.Data.IsUnderwater
             ? (int)(tile.Data.WaterSurfaceY * (255f / _planetSettingService.MaxHeight))
             : 0;
-        ChangeTilePixel(tileId, _tileTextureData[tileId]);
+        ChangeTilePixel(_tileTexture, tileId, _tileTextureData[tileId]);
         _needsVisiblityReset = true;
         _enabled = true;
     }
@@ -220,10 +233,10 @@ public class TileShaderService : ITileShaderService
         if (!stillUpdating)
             _visibilityTransitions[id] = false;
         _tileTextureData[id] = data;
-        ChangeTilePixel(id, data);
+        ChangeTilePixel(_tileTexture, id, data);
         return stillUpdating;
     }
 
-    private void ChangeTilePixel(int tileId, Color data) =>
-        _tileTexture.SetPixel(tileId % _tileTexture.GetWidth(), tileId / _tileTexture.GetWidth(), data);
+    private static void ChangeTilePixel(Image img, int tileId, Color data) =>
+        img.SetPixel(tileId % img.GetWidth(), tileId / img.GetWidth(), data);
 }

@@ -1,6 +1,8 @@
 shader_type canvas_item;
 
-#include "GeoMath.gdshaderinc"
+#ifndef GEOMATH_INCLUDED
+	#include "GeoMath.gdshaderinc"
+#endif
 
 uniform float lon; // 经度（角度制）。不能叫 longitude，因为和引入的变量重名
 uniform float lat; // 纬度（角度制）。不能叫 lattitude，因为和引入的变量重名

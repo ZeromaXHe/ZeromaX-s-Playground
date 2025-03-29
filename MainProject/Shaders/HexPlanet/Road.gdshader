@@ -5,8 +5,14 @@ uniform sampler2D main_tex: filter_linear_mipmap, repeat_enable;
 uniform float glossiness: hint_range(0.0, 1.0) = 0.5;
 uniform float specular = 0.2;
 
-#include "HexCellData.gdshaderinc"
-#include "Sebastian/Triplanar.gdshaderinc"
+#ifndef HEX_CELL_DATA_INCLUDED
+	#include "HexCellData.gdshaderinc"
+#endif
+
+#ifndef TRIPLANAR_GDSHADERINC
+	#include "Sebastian/Triplanar.gdshaderinc"
+#endif
+
 varying vec2 visibility;
 
 // 设置深度偏移

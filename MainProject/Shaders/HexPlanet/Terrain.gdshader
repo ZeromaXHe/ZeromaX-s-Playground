@@ -12,10 +12,16 @@ uniform vec3 background_color: source_color = vec3(0.2, 0.169, 0.133);
 global uniform float radius;
 global uniform float max_height;
 
-#include "HexCellData.gdshaderinc"
-#include "Sebastian/Triplanar.gdshaderinc"
+#ifndef HEX_CELL_DATA_INCLUDED
+	#include "HexCellData.gdshaderinc"
+#endif
+
+#ifndef TRIPLANAR_GDSHADERINC
+	#include "Sebastian/Triplanar.gdshaderinc"
+#endif
 
 varying vec4 terrain; // 用 varying 在 vertex 和 fragment 间传递数据
+varying vec4 civ;
 varying vec4 visibility;
 
 vec3 ColorizeSubmergence(vec3 baseColor, float surfaceY, float waterY) {
@@ -39,7 +45,12 @@ void vertex() {
 	visibility.z = cell2.x;
 	visibility.xyz = mix(vec3(0.25), vec3(1.0), visibility.xyz);
 	visibility.w = cell0.y * COLOR.x + cell1.y * COLOR.y + cell2.y * COLOR.z; // y: 已探索
-	
+
+	vec3 civ1 = GetTileCivDataById(CUSTOM0[0]).rgb;
+	vec3 civ2 = GetTileCivDataById(CUSTOM0[1]).rgb;
+	vec3 civ3 = GetTileCivDataById(CUSTOM0[2]).rgb;
+	civ.rgb = civ1 * COLOR.x + civ2 * COLOR.y + civ3 * COLOR.z;
+
 	// 将未探索地块高度放大到最大高度，防止特征显现
 	float len = length(VERTEX);
 	VERTEX = VERTEX / len * mix(len, radius + max_height, 1. - visibility.w);
@@ -65,13 +76,13 @@ void fragment() {
 	vec3 baseColor = ColorizeSubmergence(c.rgb, length(local_pos) - radius, terrain.w);
 	float explored = visibility.w;
 	// 设置漫反射颜色
-	ALBEDO = baseColor * color.rgb * explored;
+	ALBEDO = (0.2 * baseColor + 0.8 * civ.rgb) * color.rgb * explored;
 	SPECULAR = specular * explored;
 	AO = explored;
 	EMISSION = background_color * (1.0 - explored);
 	// 设置光滑度
 	ROUGHNESS = 1.0 - glossiness;
-	
+
 	// 设置透明度
 	// 直接设置这个会导致河面、道路、水面等等涉及到透明度的和地形前后渲染关系混乱。
 	// 而且标签的黑边也会消失……
