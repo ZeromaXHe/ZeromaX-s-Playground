@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Base;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
 
@@ -26,4 +27,6 @@ public class Chunk(
     // 已确保顺序和 HexFaceIds 对应，每个邻居共边的顶点是 HexFaceIds[i] 和 HexFaceIds[(i + 1) % HexFaceIds.Count]
     public List<int> NeighborCenterIds { get; } = neighborCenterIds;
     public List<int> TileIds { get; } = [];
+    public bool Insight { get; set; }
+    public ChunkLod Lod { get; set; }
 }

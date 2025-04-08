@@ -62,16 +62,21 @@ public class TileShaderService : ITileShaderService
         }
         else
         {
-            var color = Colors.White;
             for (var i = 0; i < _tileTextureData.Length; i++)
             {
                 _tileTextureData[i] = new Color(0f, 0f, 0f, 0f);
-                if (GD.Randf() > 0.95f)
-                    color = new Color(GD.Randf(), GD.Randf(), GD.Randf());
-                _tileCivTextureData[i] = color;
-                ChangeTilePixel(_tileCivTexture, i, _tileCivTextureData[i]);
                 _visibilityTransitions[i] = false;
             }
+        }
+
+        // 随机生成文明颜色
+        var color = Colors.White;
+        for (var i = 0; i < _tileTextureData.Length; i++)
+        {
+            if (GD.Randf() > 0.95f)
+                color = new Color(GD.Randf(), GD.Randf(), GD.Randf());
+            _tileCivTextureData[i] = color;
+            ChangeTilePixel(_tileCivTexture, i, _tileCivTextureData[i]);
         }
 
         _transitioningTileIndices.Clear();

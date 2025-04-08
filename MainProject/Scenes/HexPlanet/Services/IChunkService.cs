@@ -33,4 +33,7 @@ public interface IChunkService
     IEnumerable<Chunk> GetNeighbors(Chunk chunk);
     Chunk GetNeighborByIdx(Chunk chunk, int idx);
     void InitChunks();
+
+    // 更新分块的显示级别
+    void UpdateChunkInsightAndLod(int id, bool insight, ChunkLod lod);
 }

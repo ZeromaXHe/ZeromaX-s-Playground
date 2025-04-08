@@ -225,7 +225,11 @@ public partial class ChunkLoader : Node3D
         var camera = GetViewport().GetCamera3D();
         // 隐藏边缘分块
         foreach (var chunkId in _rimChunkIds.Where(id => _usingChunks.ContainsKey(id)))
+        {
             _unloadSet.Add(chunkId);
+            UpdateChunkInsightAndLod(_chunkService.GetById(chunkId), camera, false);
+        }
+
         _rimChunkIds.Clear();
         foreach (var preInsightChunkId in InsightChunkIdsNow)
         {
@@ -235,10 +239,12 @@ public partial class ChunkLoader : Node3D
             {
                 // 分块不在视野范围内，隐藏它
                 _unloadSet.Add(preInsightChunkId);
+                UpdateChunkInsightAndLod(preInsightChunk, camera, false);
                 continue;
             }
 
             InsightChunkIdsNext.Add(preInsightChunkId);
+            UpdateChunkInsightAndLod(preInsightChunk, camera, true);
             // 刷新 Lod
             if (_usingChunks.ContainsKey(preInsightChunkId))
                 _refreshSet.Add(preInsightChunkId);
@@ -280,6 +286,7 @@ public partial class ChunkLoader : Node3D
             if (!IsChunkInsight(chunk, camera)) continue;
             if (!InsightChunkIdsNext.Add(chunkId)) continue;
             _loadSet.Add(chunkId);
+            UpdateChunkInsightAndLod(chunk, camera, true);
             SearchNeighbor(chunk);
         }
 
@@ -289,7 +296,7 @@ public partial class ChunkLoader : Node3D
         InsightChunkIdsNow.Clear();
         UpdateInSightSetNextIdx();
         // 显示外缘分块
-        InitOutRimChunks();
+        InitOutRimChunks(camera);
         SetProcess(true);
         // GD.Print($"ChunkLoader UpdateInsightChunks cost {Time.GetTicksMsec() - time} ms");
     }
@@ -304,9 +311,13 @@ public partial class ChunkLoader : Node3D
         }
     }
 
+    private void UpdateChunkInsightAndLod(Chunk chunk, Camera3D camera, bool insight) =>
+        _chunkService.UpdateChunkInsightAndLod(chunk.Id, insight,
+            insight ? CalcLod(chunk.Pos.DistanceTo(ToLocal(camera.GlobalPosition))) : ChunkLod.JustHex);
+
     // 处理视野外的一圈边缘分块。如果是之前的边缘地块，需要放入刷新队列，如果是新的，则放入加载队列
     // 显示的分块向外多生成一圈，防止缺失进入视野的边缘瓦片
-    private void InitOutRimChunks()
+    private void InitOutRimChunks(Camera3D camera)
     {
         foreach (var rim in from chunkId in InsightChunkIdsNow
                  select _chunkService.GetById(chunkId)
@@ -316,6 +327,7 @@ public partial class ChunkLoader : Node3D
                  select neighbor)
         {
             if (!_rimChunkIds.Add(rim.Id)) continue;
+            UpdateChunkInsightAndLod(rim, camera, true);
             if (_unloadSet.Contains(rim.Id))
             {
                 _unloadSet.Remove(rim.Id);
@@ -329,8 +341,7 @@ public partial class ChunkLoader : Node3D
     private void ShowChunk(Chunk chunk)
     {
         if (_usingChunks.TryGetValue(chunk.Id, out var usingChunk))
-            usingChunk.UpdateLod(CalcLod(
-                chunk.Pos.DistanceTo(ToLocal(GetViewport().GetCamera3D().GlobalPosition))), false);
+            usingChunk.UpdateLod(chunk.Lod, false);
         else
         {
             HexGridChunk hexGridChunk;
@@ -344,8 +355,7 @@ public partial class ChunkLoader : Node3D
             else
                 hexGridChunk = _unusedChunks.Dequeue();
 
-            hexGridChunk.UsedBy(chunk.Id, CalcLod(
-                chunk.Pos.DistanceTo(ToLocal(GetViewport().GetCamera3D().GlobalPosition))));
+            hexGridChunk.UsedBy(chunk);
             _usingChunks.Add(chunk.Id, hexGridChunk);
         }
     }
@@ -384,10 +394,11 @@ public partial class ChunkLoader : Node3D
             if (!IsChunkInsight(chunk, camera))
                 continue;
             _loadSet.Add(id);
+            UpdateChunkInsightAndLod(chunk, camera, true);
             InsightChunkIdsNow.Add(id);
         }
 
-        InitOutRimChunks();
+        InitOutRimChunks(camera);
         SetProcess(true);
     }
 

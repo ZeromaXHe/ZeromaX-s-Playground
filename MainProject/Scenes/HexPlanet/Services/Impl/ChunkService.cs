@@ -64,6 +64,14 @@ public class ChunkService(IPointService pointService, IPlanetSettingService plan
         _chunkPointVpTree.Create(pointService.GetAllByChunky(true).Select(c => c.Position).ToArray(),
             (p0, p1) => p0.DistanceTo(p1));
         GD.Print($"InitChunks chunkDivisions {
-                planetSettingService.ChunkDivisions}, cost: {Time.GetTicksMsec() - time} ms");
+            planetSettingService.ChunkDivisions}, cost: {Time.GetTicksMsec() - time} ms");
+    }
+
+    public void UpdateChunkInsightAndLod(int id, bool insight, ChunkLod lod)
+    {
+        var chunk = chunkRepo.GetById(id);
+        if (chunk == null) return;
+        chunk.Insight = insight;
+        chunk.Lod = lod;
     }
 }

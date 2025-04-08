@@ -35,12 +35,14 @@ public class ChunkTriangulation
     #region 服务
 
     private static ITileService _tileService;
+    private static IChunkService _chunkService;
     private static IPlanetSettingService _planetSettingService;
     private static INoiseService _noiseService;
 
     private static void InitServices()
     {
         _tileService ??= Context.GetBean<ITileService>();
+        _chunkService ??= Context.GetBean<IChunkService>();
         _planetSettingService ??= Context.GetBean<IPlanetSettingService>();
         _noiseService ??= Context.GetBean<INoiseService>();
     }
@@ -169,8 +171,9 @@ public class ChunkTriangulation
                     HexMesh.QuadArr(HexMesh.Weights1, HexMesh.Weights2), tis: nIds);
             }
 
-            // 处理接缝（目前很粗暴的对所有分块向外绘制到 Solid 边界）
-            if (neighbor.ChunkId != tile.ChunkId)
+            // 处理接缝（目前很粗暴的对所有相邻地块的分块的 LOD 是 SimpleHex 以上时向外绘制到 Solid 边界）
+            if (neighbor.ChunkId != tile.ChunkId
+                && _chunkService.GetById(neighbor.ChunkId).Lod >= ChunkLod.SimpleHex)
             {
                 var vn1 = _tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[i],
                     _planetSettingService.Radius + neighborHeight, HexMetrics.SolidFactor);
@@ -212,6 +215,7 @@ public class ChunkTriangulation
         var v2 = _tileService.GetSecondSolidCorner(tile, idx, _planetSettingService.Radius + height);
         var e = new EdgeVertices(v1, v2);
         var centroid = tile.GetCentroid(_planetSettingService.Radius + height);
+        var simple = IsSimple();
         if (Overrider.HasRiver(tile))
         {
             if (Overrider.HasRiverThroughEdge(tile, idx))
@@ -221,18 +225,30 @@ public class ChunkTriangulation
                     TriangulateWithRiverBeginOrEnd(tile, centroid, e);
                 else TriangulateWithRiver(tile, idx, centroid, e);
             }
-            else TriangulateAdjacentToRiver(tile, idx, centroid, e, Lod < ChunkLod.Full);
+            else TriangulateAdjacentToRiver(tile, idx, centroid, e, simple);
         }
         else
         {
-            TriangulateWithoutRiver(tile, idx, centroid, e, Lod < ChunkLod.Full);
+            TriangulateWithoutRiver(tile, idx, centroid, e, simple);
             if (!Overrider.IsUnderwater(tile) && !Overrider.HasRoadThroughEdge(tile, idx))
                 _chunk.Features.AddFeature(tile, (centroid + e.V1 + e.V5) / 3f, Overrider);
         }
 
-        TriangulateConnection(tile, idx, e);
+        TriangulateConnection(tile, idx, e, simple);
         if (Overrider.IsUnderwater(tile))
-            TriangulateWater(tile, idx, centroid, Lod < ChunkLod.Full);
+            TriangulateWater(tile, idx, centroid, simple);
+        return;
+
+        bool IsSimple()
+        {
+            if (Lod == ChunkLod.Full)
+                return false;
+            var neighbor = _tileService.GetNeighborByIdx(tile, idx);
+            if (neighbor.ChunkId == tile.ChunkId)
+                return true;
+            var neighborChunk = _chunkService.GetById(neighbor.ChunkId);
+            return neighborChunk.Lod < ChunkLod.Full;
+        }
     }
 
     private void TriangulateWater(Tile tile, int idx, Vector3 centroid, bool simple)
@@ -725,7 +741,7 @@ public class ChunkTriangulation
             QuadUv(0f, 1f, 0.8f, 1f), tis: ids);
     }
 
-    private void TriangulateConnection(Tile tile, int idx, EdgeVertices e)
+    private void TriangulateConnection(Tile tile, int idx, EdgeVertices e, bool simple)
     {
         var tileHeight = GetOverrideHeight(tile);
         var neighbor = _tileService.GetNeighborByIdx(tile, idx);
@@ -767,10 +783,10 @@ public class ChunkTriangulation
         }
 
         if (Lod > ChunkLod.SimpleHex && Overrider.GetEdgeType(tile, neighbor) == HexEdgeType.Slope)
-            TriangulateEdgeTerraces(e, tile, en, neighbor, hasRoad, !hasRiver && Lod < ChunkLod.Full);
+            TriangulateEdgeTerraces(e, tile, en, neighbor, hasRoad, !hasRiver && simple);
         else
             TriangulateEdgeStrip(e, HexMesh.Weights1, tile.Id,
-                en, HexMesh.Weights2, neighbor.Id, hasRoad, !hasRiver && Lod < ChunkLod.Full);
+                en, HexMesh.Weights2, neighbor.Id, hasRoad, !hasRiver && simple);
 
         _chunk.Features.AddWall(e, tile, en, neighbor, hasRiver, hasRoad, Overrider, Lod);
 

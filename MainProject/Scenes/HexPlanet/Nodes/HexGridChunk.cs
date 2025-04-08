@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Structs;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
@@ -103,13 +104,13 @@ public partial class HexGridChunk : Node3D, IChunk
         _usingTileUis.Add(tile.Id, label);
     }
 
-    public void UsedBy(int id, ChunkLod lod)
+    public void UsedBy(Chunk chunk)
     {
-        InitLabels(id);
-        _id = id;
+        InitLabels(chunk.Id);
+        _id = chunk.Id;
         // 默认不生成网格，而是先查缓存
         SetProcess(false);
-        ShowInSight(lod);
+        ShowInSight(chunk.Lod);
     }
 
     public void ExploreFeatures(int tileId) => Features.ExploreFeatures(tileId);
@@ -182,7 +183,8 @@ public partial class HexGridChunk : Node3D, IChunk
         {
             // var time = Time.GetTicksMsec();
             ClearOldData();
-            var tileIds = _chunkService.GetById(_id).TileIds;
+            var chunk = _chunkService.GetById(_id);
+            var tileIds = chunk.TileIds;
             var tiles = tileIds.Select(_tileService.GetById);
             foreach (var tile in tiles)
             {
@@ -196,7 +198,7 @@ public partial class HexGridChunk : Node3D, IChunk
                 else GD.PrintErr($"Tile {tile.Id} UI not found");
             }
 
-            ApplyNewData();
+            ApplyNewData(!IsHandlingLodGaps(chunk));
             Features.ShowFeatures(!EditMode);
             // GD.Print($"Chunk {_id} BuildMesh cost: {Time.GetTicksMsec() - time} ms");
         }
@@ -204,7 +206,7 @@ public partial class HexGridChunk : Node3D, IChunk
         SetProcess(false);
     }
 
-    private void ApplyNewData()
+    private void ApplyNewData(bool cacheMesh)
     {
         Terrain.Apply();
         Rivers.Apply(); // 河流暂时不支持 Lod
@@ -213,6 +215,9 @@ public partial class HexGridChunk : Node3D, IChunk
         WaterShore.Apply();
         Estuary.Apply();
         Features.Apply(); // 特征暂时无 Lod
+
+        if (!cacheMesh)
+            return;
         var lod = _chunkTriangulation.Lod;
         if (Terrain.Mesh == null)
             GD.PrintErr($"Chunk {_id} Terrain Mesh is null");
@@ -231,10 +236,23 @@ public partial class HexGridChunk : Node3D, IChunk
         Features.Clear();
     }
 
+    private static bool IsHandlingLodGaps(Chunk chunk) =>
+        (chunk.Lod == ChunkLod.PlaneHex && _chunkService.GetNeighbors(chunk).Any(n => n.Lod >= ChunkLod.SimpleHex))
+        || (chunk.Lod == ChunkLod.TerracesHex && _chunkService.GetNeighbors(chunk).Any(n => n.Lod == ChunkLod.Full));
+
     public void UpdateLod(ChunkLod lod, bool idChanged = true)
     {
         if (lod == _chunkTriangulation.Lod && !idChanged) return;
         _chunkTriangulation.Lod = lod;
+
+        var chunk = _chunkService.GetById(_id); // 获取当前分块
+        if (IsHandlingLodGaps(chunk))
+        {
+            // 对于需要处理接缝的情况，不使用缓存
+            SetProcess(true);
+            return;
+        }
+
         var meshes = _lodMeshCacheService.GetLodMeshes(lod, _id);
         // 如果之前生成过 Lod 网格，直接应用；否则重新生成
         if (meshes != null)
