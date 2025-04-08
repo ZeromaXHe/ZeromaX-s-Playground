@@ -13,6 +13,7 @@ uniform sampler2D wave_normal_B;
 global uniform float max_height;
 global uniform float radius;
 global uniform vec3 dir_to_sun; // 默认 Y 轴正方向相对 Z 轴高度角 23.4 度 vec3(0., 0.39714789, -0.9177546)
+global uniform mat4 inv_planet_matrix; // 逆本地坐标矩阵
 
 // #include 和 gdshaderinc 在官方文档“着色器预处理器”讲的
 #ifndef HEX_CELL_DATA_INCLUDED
@@ -40,7 +41,7 @@ void vertex() {
 	civ.rgb = civ1 * COLOR.x + civ2 * COLOR.y + civ3 * COLOR.z;
 
 	// 波浪动画
-	vec3 cam_pos_local = (inverse(MODEL_MATRIX) * vec4(CAMERA_POSITION_WORLD, 1.)).xyz;
+	vec3 cam_pos_local = (inv_planet_matrix * vec4(CAMERA_POSITION_WORLD, 1.)).xyz;
 	float wave_vertex_amplitude = WaveAnim(cam_pos_local, VERTEX);
 	// 使用归一化 VERTEX 而不是 NORMAL，这样不同三角面间的相同顶点不会产生接缝
 	VERTEX += normalize(VERTEX) * wave_vertex_amplitude;
@@ -55,11 +56,10 @@ float CalculateSpecularHighlight(vec3 normal, vec3 view_dir, float smoothness) {
 }
 
 void fragment() {
-	mat4 inv_model_matrix = inverse(MODEL_MATRIX);
 	// 获取世界/本地坐标
 	vec3 world_pos = (INV_VIEW_MATRIX * vec4(VERTEX, 1.)).xyz; // 点用 1.，因为要应用平移
-	vec3 local_pos = (inv_model_matrix * vec4(world_pos, 1.)).xyz;
-	vec3 cam_pos_local = (inv_model_matrix * vec4(CAMERA_POSITION_WORLD, 1.)).xyz;
+	vec3 local_pos = (inv_planet_matrix * vec4(world_pos, 1.)).xyz;
+	vec3 cam_pos_local = (inv_planet_matrix * vec4(CAMERA_POSITION_WORLD, 1.)).xyz;
 	vec3 view_dir = normalize(local_pos - cam_pos_local);
 	// 获取世界/本地坐标下的法线
 	//vec3 world_normal = normalize(INV_VIEW_MATRIX * vec4(NORMAL, 0.)).xyz; // 向量用 0.，因为无需平移
@@ -141,7 +141,7 @@ void fragment() {
 
 	float explored = visibility.y;
 	// 设置输出
-	ALBEDO = (0.2 * water_col + 0.8 * civ.rgb) * visibility.x;
+	ALBEDO = (0.25 * water_col + 0.75 * civ.rgb) * visibility.x;
 	SPECULAR = 0.15 * explored;
 	AO = explored;
 	ROUGHNESS = 1.0 - glossiness;

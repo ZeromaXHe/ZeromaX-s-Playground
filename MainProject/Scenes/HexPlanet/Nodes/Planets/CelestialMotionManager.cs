@@ -286,8 +286,12 @@ public partial class CelestialMotionManager : Node3D
                     _sunRevolution.RotationDegrees.Y + PlanetRevolutionSpeed * delta, 0f, 360f);
             // 行星自转
             if (PlanetRotation)
+            {
                 _planetAxis.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
                     _planetAxis.RotationDegrees.Y + PlanetRotationSpeed * delta, 0f, 360f);
+                RenderingServer.GlobalShaderParameterSet("inv_planet_matrix",
+                    _planetAxis.Transform.Inverse());
+            }
         }
 
         // 卫星公转

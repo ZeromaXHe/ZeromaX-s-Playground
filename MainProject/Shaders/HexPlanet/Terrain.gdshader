@@ -9,8 +9,10 @@ uniform sampler2DArray main_tex: source_color, filter_linear_mipmap, repeat_enab
 uniform float glossiness: hint_range(0.0, 1.0) = 0.3;
 uniform float specular = 0.2;
 uniform vec3 background_color: source_color = vec3(0.2, 0.169, 0.133);
+
 global uniform float radius;
 global uniform float max_height;
+global uniform mat4 inv_planet_matrix; // 逆本地坐标矩阵
 
 #ifndef HEX_CELL_DATA_INCLUDED
 	#include "HexCellData.gdshaderinc"
@@ -62,13 +64,12 @@ vec4 GetTerrainColor(vec3 world_pos, vec3 world_normal, int index, vec4 weights,
 }
 
 void fragment() {
-	mat4 inv_model_matrix = inverse(MODEL_MATRIX);
 	// 获取世界坐标
 	vec3 world_pos = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz; // 位置需位移，补 1.0
-	vec3 local_pos = (inv_model_matrix * vec4(world_pos, 1.)).xyz;
+	vec3 local_pos = (inv_planet_matrix * vec4(world_pos, 1.)).xyz;
 	// 获取世界法线
 	vec3 world_normal = (INV_VIEW_MATRIX * vec4(NORMAL, 0.)).xyz; // 法线向量无需位移，补 0.
-	vec3 local_normal = (inv_model_matrix * vec4(world_pos, 0.)).xyz;
+	vec3 local_normal = (inv_planet_matrix * vec4(world_pos, 0.)).xyz;
 	vec4 inColor = COLOR;
 	vec4 c = GetTerrainColor(local_pos, local_normal, 0, inColor, visibility) +
 		GetTerrainColor(local_pos, local_normal, 1, inColor, visibility) +
@@ -76,7 +77,7 @@ void fragment() {
 	vec3 baseColor = ColorizeSubmergence(c.rgb, length(local_pos) - radius, terrain.w);
 	float explored = visibility.w;
 	// 设置漫反射颜色
-	ALBEDO = (0.2 * baseColor + 0.8 * civ.rgb) * color.rgb * explored;
+	ALBEDO = (0.03 * baseColor + 0.97 * civ.rgb) * color.rgb * explored;
 	SPECULAR = specular * explored;
 	AO = explored;
 	EMISSION = background_color * (1.0 - explored);

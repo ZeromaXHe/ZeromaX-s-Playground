@@ -121,3 +121,7 @@ hex_tile_civ_data={
 "type": "sampler2D",
 "value": ""
 }
+inv_planet_matrix={
+"type": "mat4",
+"value": Projection(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
+}
