@@ -37,10 +37,16 @@ public class Tile(
         NeighborCenterIds.FindIndex(cId => cId == neighbor.CenterId);
 
     public HexTileData Data { get; set; } = new();
-    
+
     public int UnitId { get; set; }
     public bool HasUnit => UnitId > 0;
 
     public int Visibility { get; set; }
     public bool IsVisible => Visibility > 0 && Data.IsExplorable;
+
+    #region 文明
+
+    public int CivId { get; set; }
+
+    #endregion
 }

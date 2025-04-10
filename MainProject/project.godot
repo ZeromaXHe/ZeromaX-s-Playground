@@ -30,6 +30,7 @@ folder_colors={
 "res://Demo/": "orange",
 "res://Resources/": "pink",
 "res://Scenes/": "green",
+"res://Scenes/HexPlanet/Nodes/": "teal",
 "res://Shaders/": "purple",
 "res://addons/": "gray"
 }

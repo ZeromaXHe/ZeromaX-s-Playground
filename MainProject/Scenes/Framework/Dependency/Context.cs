@@ -1,7 +1,11 @@
 using System.Collections.Generic;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos.Civs;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos.Civs.Impl;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos.Impl;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Civs;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Civs.Impl;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Impl;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.MiniMap;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.MiniMap.Impl;
@@ -40,15 +44,18 @@ public static class Context
         var faceRepo = new FaceRepo();
         var pointRepo = new PointRepo();
         var unitRepo = new UnitRepo();
+        var civRepo = new CivRepo();
         Register(nameof(IChunkRepo), chunkRepo);
         Register(nameof(ITileRepo), tileRepo);
         Register(nameof(IFaceRepo), faceRepo);
         Register(nameof(IPointRepo), pointRepo);
         Register(nameof(IUnitRepo), unitRepo);
+        Register(nameof(ICivRepo), civRepo);
         var lodMeshCacheService = new LodMeshCacheService();
         var planetSettingService = new PlanetSettingService();
         var noiseService = new NoiseService(planetSettingService);
         var unitService = new UnitService(unitRepo);
+        var civService = new CivService(civRepo);
         var faceService = new FaceService(faceRepo, pointRepo);
         var pointService = new PointService(faceService, pointRepo);
         var chunkService = new ChunkService(pointService, planetSettingService, chunkRepo);
@@ -56,7 +63,7 @@ public static class Context
             planetSettingService, noiseService, tileRepo);
         var tileSearchService = new TileSearchService(tileService, planetSettingService);
         var tileShaderService = new TileShaderService(tileService, tileSearchService,
-            unitService, planetSettingService);
+            unitService, civService, planetSettingService);
         var editorService = new EditorService(tileService);
         var miniMapService = new MiniMapService(tileService, planetSettingService);
         var selectViewService = new SelectViewService(tileService, tileSearchService,
@@ -65,6 +72,7 @@ public static class Context
         Register(nameof(IPlanetSettingService), planetSettingService);
         Register(nameof(INoiseService), noiseService);
         Register(nameof(IUnitService), unitService);
+        Register(nameof(ICivService), civService);
         Register(nameof(IFaceService), faceService);
         Register(nameof(IPointService), pointService);
         Register(nameof(IChunkService), chunkService);

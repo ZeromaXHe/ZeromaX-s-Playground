@@ -11,6 +11,7 @@ public interface ITileShaderService
 
     event TileExploredEvent TileExplored;
     void Initialize();
+    void RefreshCiv(int tileId);
     void RefreshTerrain(int tileId);
     void RefreshVisibility(int tileId);
     void IncreaseVisibility(Tile fromTile, int range);

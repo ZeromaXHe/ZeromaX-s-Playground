@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Enums;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Civs;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Impl;
 
@@ -15,16 +16,18 @@ public class TileShaderService : ITileShaderService
     private readonly ITileService _tileService;
     private readonly ITileSearchService _tileSearchService;
     private readonly IUnitService _unitService;
+    private readonly ICivService _civService;
     private readonly IPlanetSettingService _planetSettingService;
 
     public TileShaderService(ITileService tileService, ITileSearchService tileSearchService,
-        IUnitService unitService, IPlanetSettingService planetSettingService)
+        IUnitService unitService, ICivService civService, IPlanetSettingService planetSettingService)
     {
         _tileService = tileService;
         _tileService.RefreshTerrainShader += RefreshTerrain;
         _tileService.ViewElevationChanged += ViewElevationChanged;
         _tileSearchService = tileSearchService;
         _unitService = unitService;
+        _civService = civService;
         _planetSettingService = planetSettingService;
     }
 
@@ -65,21 +68,26 @@ public class TileShaderService : ITileShaderService
             for (var i = 0; i < _tileTextureData.Length; i++)
             {
                 _tileTextureData[i] = new Color(0f, 0f, 0f, 0f);
+                _tileCivTextureData[i] = Colors.Black;
                 _visibilityTransitions[i] = false;
             }
         }
 
-        // 随机生成文明颜色
-        var color = Colors.White;
-        for (var i = 0; i < _tileTextureData.Length; i++)
-        {
-            if (GD.Randf() > 0.95f)
-                color = new Color(GD.Randf(), GD.Randf(), GD.Randf());
-            _tileCivTextureData[i] = color;
-            ChangeTilePixel(_tileCivTexture, i, _tileCivTextureData[i]);
-        }
-
         _transitioningTileIndices.Clear();
+        _enabled = true;
+    }
+
+    public void RefreshCiv(int tileId)
+    {
+        var tile = _tileService.GetById(tileId);
+        if (tile.CivId <= 0)
+            _tileCivTextureData[tileId] = Colors.Black;
+        else
+        {
+            var civ = _civService.GetById(tile.CivId);
+            _tileCivTextureData[tileId] = civ.Color;
+        }
+        ChangePixel(_tileCivTexture, tileId, _tileCivTextureData[tileId]);
         _enabled = true;
     }
 
@@ -92,7 +100,7 @@ public class TileShaderService : ITileShaderService
             : 0;
         data.A8 = tile.Data.TerrainTypeIndex;
         _tileTextureData[tileId] = data;
-        ChangeTilePixel(_tileTexture, tileId, data);
+        ChangePixel(_tileTexture, tileId, data);
         _enabled = true;
     }
 
@@ -103,7 +111,7 @@ public class TileShaderService : ITileShaderService
             var tile = _tileService.GetById(tileId);
             _tileTextureData[tileId].R8 = tile.IsVisible ? 255 : 0;
             _tileTextureData[tileId].G8 = tile.Data.IsExplored ? 255 : 0;
-            ChangeTilePixel(_tileTexture, tileId, _tileTextureData[tileId]);
+            ChangePixel(_tileTexture, tileId, _tileTextureData[tileId]);
         }
         else if (!_visibilityTransitions[tileId])
         {
@@ -202,7 +210,7 @@ public class TileShaderService : ITileShaderService
         _tileTextureData[tileId].B8 = tile.Data.IsUnderwater
             ? (int)(tile.Data.WaterSurfaceY * (255f / _planetSettingService.MaxHeight))
             : 0;
-        ChangeTilePixel(_tileTexture, tileId, _tileTextureData[tileId]);
+        ChangePixel(_tileTexture, tileId, _tileTextureData[tileId]);
         _needsVisiblityReset = true;
         _enabled = true;
     }
@@ -238,10 +246,10 @@ public class TileShaderService : ITileShaderService
         if (!stillUpdating)
             _visibilityTransitions[id] = false;
         _tileTextureData[id] = data;
-        ChangeTilePixel(_tileTexture, id, data);
+        ChangePixel(_tileTexture, id, data);
         return stillUpdating;
     }
 
-    private static void ChangeTilePixel(Image img, int tileId, Color data) =>
+    private static void ChangePixel(Image img, int tileId, Color data) =>
         img.SetPixel(tileId % img.GetWidth(), tileId / img.GetWidth(), data);
 }

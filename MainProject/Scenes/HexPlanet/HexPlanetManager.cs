@@ -1,9 +1,12 @@
+using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities.Civs;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.Planets;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Civs;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 
@@ -184,6 +187,7 @@ public partial class HexPlanetManager : Node3D
     private IPlanetSettingService _planetSettingService;
     private INoiseService _noiseService;
     private IEditorService _editorService;
+    private ICivService _civService;
 
     private void InitServices()
     {
@@ -199,6 +203,7 @@ public partial class HexPlanetManager : Node3D
         _noiseService = Context.GetBean<INoiseService>();
         _editorService = Context.GetBean<IEditorService>();
         _editorService.EditModeChanged += OnEditorEditModeChanged;
+        _civService = Context.GetBean<ICivService>();
     }
 
     private void OnEditorEditModeChanged(bool editMode)
@@ -301,8 +306,30 @@ public partial class HexPlanetManager : Node3D
             || _oldChunkDivisions != ChunkDivisions)
             DrawHexSphereMesh();
         if (!Engine.IsEditorHint())
+        {
             UpdateSelectTileViewer();
+            UpdateCivTerritory();
+        }
+
         _lastUpdated = 0f; // 每一秒检查一次
+    }
+
+    private void UpdateCivTerritory()
+    {
+        foreach (var civ in _civService.GetAll())
+        {
+            var tile = _tileService.GetById(civ.TileIds[GD.RandRange(0, civ.TileIds.Count - 1)]);
+            var conquerTile = _tileService.GetNeighbors(tile).FirstOrDefault(n => !n.Data.IsUnderwater && n.CivId <= 0);
+            if (conquerTile == null) continue;
+            UpdateTileCivId(conquerTile, civ);
+        }
+    }
+
+    private void UpdateTileCivId(Tile tile, Civ civ)
+    {
+        civ.TileIds.Add(tile.Id);
+        tile.CivId = civ.Id;
+        _tileShaderService.RefreshCiv(tile.Id);
     }
 
     private void UpdateSelectTileViewer()
@@ -373,6 +400,7 @@ public partial class HexPlanetManager : Node3D
         _tileService.Truncate();
         _pointService.Truncate();
         _faceService.Truncate();
+        _civService.Truncate();
         _selectViewService.ClearPath();
         _chunkManager.ClearOldData();
         _lodMeshCacheService.RemoveAllLodMeshes();
@@ -388,6 +416,7 @@ public partial class HexPlanetManager : Node3D
         _lastUpdated = 0f;
         ClearOldData();
         InitHexSphere();
+        InitCivilization();
         RefreshAllTiles();
         NewPlanetGenerated?.Invoke(); // 触发事件，这种向直接上级事件回调的情况，不提取到 EventBus
         GD.Print($"[===DrawHexSphereMesh===] total cost: {Time.GetTicksMsec() - time} ms");
@@ -400,6 +429,29 @@ public partial class HexPlanetManager : Node3D
             _tileSearchService.RefreshTileSearchData(tile.Id);
             _tileShaderService.RefreshTerrain(tile.Id);
             _tileShaderService.RefreshVisibility(tile.Id);
+        }
+    }
+
+    private void InitCivilization()
+    {
+        // 在可见分块的陆地分块中随机
+        var tiles = _chunkService.GetAll()
+            .Where(c => c.Insight)
+            .SelectMany(c => c.TileIds)
+            .Select(id => _tileService.GetById(id))
+            .Where(t => !t.Data.IsUnderwater)
+            .ToList();
+        for (var i = 0; i < 8; i++)
+        {
+            var idx = GD.RandRange(0, tiles.Count - 1);
+            var tile = tiles[idx];
+            var civ = _civService.Add(new Color(
+                Mathf.Lerp(0.3f, 1f, GD.Randf()),
+                Mathf.Lerp(0.3f, 1f, GD.Randf()),
+                Mathf.Lerp(0.3f, 1f, GD.Randf())));
+            UpdateTileCivId(tile, civ);
+            tiles[idx] = tiles[^1];
+            tiles.RemoveAt(tiles.Count - 1);
         }
     }
 
