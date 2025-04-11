@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
+using Apps.Services.Uis;
+using Domains.Models.Entities.PlanetGenerates;
+using Domains.Models.ValueObjects.PlanetGenerates;
+using Domains.Repos.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Structs;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
@@ -37,8 +37,8 @@ public partial class EditPreviewChunk : Node3D, IChunk
 
     private void InitServices()
     {
-        _tileRepo = Context.GetBean<ITileRepo>();
-        _editorService = Context.GetBean<IEditorService>();
+        _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
+        _editorService = Context.GetBeanFromHolder<IEditorService>();
     }
 
     #endregion

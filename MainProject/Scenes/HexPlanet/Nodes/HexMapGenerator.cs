@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Commons.Utils;
+using Domains.Models.Entities.PlanetGenerates;
+using Domains.Repos.PlanetGenerates;
+using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.LandGenerators;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 
@@ -78,7 +78,7 @@ public partial class HexMapGenerator : Node
     private float _extraLakeProbability = 0.25f;
 
     [Export(PropertyHint.Range, "0.0, 1.0")]
-    private float _lowTemperature = 0f;
+    private float _lowTemperature;
 
     [Export(PropertyHint.Range, "0.0, 1.0")]
     private float _highTemperature = 1f;
@@ -86,10 +86,10 @@ public partial class HexMapGenerator : Node
     [Export(PropertyHint.Range, "0.0, 1.0")]
     private float _temperatureJitter = 0.1f;
 
-    [ExportSubgroup("生成种子")] [Export] private bool _useFixedSeed = false;
+    [ExportSubgroup("生成种子")] [Export] private bool _useFixedSeed;
 
     [Export(PropertyHint.Range, "0, 2147483647")]
-    private int _seed = 0;
+    private int _seed;
 
     private int _landTileCount;
     private RandomNumberGenerator _random = new();
@@ -104,7 +104,7 @@ public partial class HexMapGenerator : Node
 
     private List<ClimateData> _climate = [];
     private List<ClimateData> _nextClimate = [];
-    private int _temperatureJitterChannel = 0;
+    private int _temperatureJitterChannel;
     private readonly float[] _temperatureBands = [0.1f, 0.3f, 0.6f];
     private readonly float[] _moistureBands = [0.12f, 0.28f, 0.85f];
 
@@ -145,10 +145,10 @@ public partial class HexMapGenerator : Node
 
     private void InitServices()
     {
-        _pointRepo = Context.GetBean<IPointRepo>();
-        _tileRepo = Context.GetBean<ITileRepo>();
-        _noiseService = Context.GetBean<INoiseService>();
-        _planetSettingService = Context.GetBean<IPlanetSettingService>();
+        _pointRepo = Context.GetBeanFromHolder<IPointRepo>();
+        _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
+        _noiseService = Context.GetBeanFromHolder<INoiseService>();
+        _planetSettingService = Context.GetBeanFromHolder<IPlanetSettingService>();
     }
 
     #endregion
@@ -412,7 +412,7 @@ public partial class HexMapGenerator : Node
             }
 
             direction = _flowDirections[_random.RandiRange(0, _flowDirections.Count - 1)];
-            var riverToTile = _tileRepo.GetNeighborByIdx(tile, direction);
+            var riverToTile = _tileRepo.GetNeighborByIdx(tile, direction)!;
             _tileRepo.SetOutgoingRiver(tile, riverToTile);
             length++;
             if (minNeighborElevation >= tile.Data.Elevation && _random.Randf() < _extraLakeProbability)

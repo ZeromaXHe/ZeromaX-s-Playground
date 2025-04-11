@@ -1,8 +1,10 @@
+using Apps.Services.Navigations;
+using Apps.Services.Uis;
+using Domains.Models.Entities.PlanetGenerates;
+using Domains.Repos.PlanetGenerates;
+using Domains.Services.Civs;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.Planets;
 
@@ -26,11 +28,11 @@ public partial class UnitManager : Node3D
 
     private void InitServices()
     {
-        _unitService = Context.GetBean<IUnitService>();
-        _tileRepo = Context.GetBean<ITileRepo>();
+        _unitService = Context.GetBeanFromHolder<IUnitService>();
+        _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
         _tileRepo.UnitValidateLocation += OnTileServiceUnitValidateLocation;
-        _tileSearchService = Context.GetBean<ITileSearchService>();
-        _selectViewService = Context.GetBean<ISelectViewService>();
+        _tileSearchService = Context.GetBeanFromHolder<ITileSearchService>();
+        _selectViewService = Context.GetBeanFromHolder<ISelectViewService>();
     }
 
     private void OnTileServiceUnitValidateLocation(int unitId) => _units[unitId].ValidateLocation();
@@ -112,7 +114,7 @@ public partial class UnitManager : Node3D
 
     private void MoveUnit(Tile toTile)
     {
-        var fromTile = _tileRepo.GetById(PathFromTileId);
+        var fromTile = _tileRepo.GetById(PathFromTileId)!;
         var path = _tileSearchService.FindPath(fromTile, toTile, true);
         if (path is { Count: > 1 })
         {

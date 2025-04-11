@@ -1,7 +1,7 @@
+using Apps.Services.Uis;
+using Domains.Models.Entities.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.Planets;
 
@@ -19,8 +19,8 @@ public partial class SelectTileViewer : MeshInstance3D
 
     private void InitServices()
     {
-        _selectViewService = Context.GetBean<ISelectViewService>();
-        _editorService = Context.GetBean<IEditorService>();
+        _selectViewService = Context.GetBeanFromHolder<ISelectViewService>();
+        _editorService = Context.GetBeanFromHolder<IEditorService>();
     }
 
     #endregion

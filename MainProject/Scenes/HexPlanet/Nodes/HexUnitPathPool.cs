@@ -1,6 +1,6 @@
 using System.Collections.Generic;
+using Domains.Models.Entities.PlanetGenerates;
 using Godot;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 

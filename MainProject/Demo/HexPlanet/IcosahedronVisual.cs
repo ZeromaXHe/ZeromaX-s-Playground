@@ -1,6 +1,6 @@
 using System.Collections.Generic;
+using Commons.Constants;
 using Godot;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Constants;
 
 namespace ZeromaXsPlaygroundProject.Demo.HexPlanet;
 

@@ -1,8 +1,8 @@
+using Domains.Repos.PlanetGenerates;
+using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Resources.LandGenerators;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.LandGenerators;
 
@@ -18,15 +18,13 @@ public partial class FractalNoiseLandGenerator : Node
 
     #region 服务与存储
 
-    private ITileService _tileService;
     private ITileRepo _tileRepo;
     private IPlanetSettingService _planetSettingService;
 
     private void InitServices()
     {
-        _tileService = Context.GetBean<ITileService>();
-        _tileRepo = Context.GetBean<ITileRepo>();
-        _planetSettingService = Context.GetBean<IPlanetSettingService>();
+        _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
+        _planetSettingService = Context.GetBeanFromHolder<IPlanetSettingService>();
     }
 
     #endregion

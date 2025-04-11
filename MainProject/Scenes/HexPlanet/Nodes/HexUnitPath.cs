@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
+using Domains.Models.Entities.PlanetGenerates;
+using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 
@@ -22,8 +22,8 @@ public partial class HexUnitPath : Path3D
 
     private static void InitServices()
     {
-        _tileService ??= Context.GetBean<ITileService>();
-        _planetSettingService ??= Context.GetBean<IPlanetSettingService>();
+        _tileService ??= Context.GetBeanFromHolder<ITileService>();
+        _planetSettingService ??= Context.GetBeanFromHolder<IPlanetSettingService>();
     }
 
     #endregion
@@ -119,7 +119,7 @@ public partial class HexUnitPath : Path3D
 
     private const float MoveSpeedByTile = 3; // 每 1s 走的地块格数
 
-    public void StartMove(Nodes.HexUnit unit)
+    public void StartMove(HexUnit unit)
     {
         _pathFollow.ProgressRatio = 0;
         _remoteTransform.SetRemoteNode(unit.GetPath());

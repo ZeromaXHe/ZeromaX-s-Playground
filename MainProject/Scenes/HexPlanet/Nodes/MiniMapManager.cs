@@ -1,10 +1,10 @@
+using Commons.Utils.HexSphereGrid;
+using Domains.Models.Entities.PlanetGenerates;
+using Domains.Repos.PlanetGenerates;
+using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils.HexSphereGrid;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 
@@ -39,11 +39,11 @@ public partial class MiniMapManager : Node2D
 
     private void InitServices()
     {
-        _tileService = Context.GetBean<ITileService>();
-        _tileRepo = Context.GetBean<ITileRepo>();
+        _tileService = Context.GetBeanFromHolder<ITileService>();
+        _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
         _tileRepo.RefreshTerrainShader += RefreshTile;
-        _pointRepo = Context.GetBean<IPointRepo>();
-        _planetSettingService = Context.GetBean<IPlanetSettingService>();
+        _pointRepo = Context.GetBeanFromHolder<IPointRepo>();
+        _planetSettingService = Context.GetBeanFromHolder<IPlanetSettingService>();
     }
 
     private void CleanEventListeners() =>
@@ -75,7 +75,7 @@ public partial class MiniMapManager : Node2D
             return;
         }
 
-        var sa = _pointRepo.GetSphereAxial(_tileRepo.GetById((int)tileId));
+        var sa = _pointRepo.GetSphereAxial(_tileRepo.GetById((int)tileId)!);
         // TODO: 缓动，以及更精确的位置转换
         _cameraIcon.GlobalPosition = _terrainLayer.ToGlobal(
             _terrainLayer.MapToLocal(sa.Coords.ToVector2I()));
@@ -125,7 +125,7 @@ public partial class MiniMapManager : Node2D
 
     private void RefreshTile(int tileId)
     {
-        var tile = _tileRepo.GetById(tileId);
+        var tile = _tileRepo.GetById(tileId)!;
         var sphereAxial = _pointRepo.GetSphereAxial(tile);
         _terrainLayer.SetCell(sphereAxial.Coords.ToVector2I(), 0, TerrainAtlas(tile));
     }

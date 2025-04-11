@@ -1,13 +1,25 @@
 <Project Sdk="Godot.NET.Sdk/4.4.1">
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <EnableDynamicLoading>true</EnableDynamicLoading>
-    <RootNamespace>ZeromaXsPlaygroundProject</RootNamespace>
-  </PropertyGroup>
-  <ItemGroup>
-    <Compile Remove="UnitTest\**" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Remove="UnitTest\**" />
-  </ItemGroup>
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <EnableDynamicLoading>true</EnableDynamicLoading>
+        <RootNamespace>ZeromaXsPlaygroundProject</RootNamespace>
+    </PropertyGroup>
+    <ItemGroup>
+        <Compile Remove="UnitTest\**"/>
+        <Compile Remove="Code.Apps\**"/>
+        <Compile Remove="Code.Commons\**"/>
+        <Compile Remove="Code.Domains\**"/>
+        <Compile Remove="Code.Infras\**"/>
+    </ItemGroup>
+    <ItemGroup>
+        <EmbeddedResource Remove="UnitTest\**"/>
+        <EmbeddedResource Remove="Code.Apps\**"/>
+        <EmbeddedResource Remove="Code.Commons\**"/>
+        <EmbeddedResource Remove="Code.Domains\**"/>
+        <EmbeddedResource Remove="Code.Infras\**"/>
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="Code.Apps\Code.Apps.csproj" />
+      <ProjectReference Include="Code.Infras\Code.Infras.csproj" />
+    </ItemGroup>
 </Project>

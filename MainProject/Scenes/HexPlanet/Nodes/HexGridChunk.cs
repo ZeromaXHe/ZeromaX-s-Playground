@@ -1,11 +1,15 @@
 using System.Collections.Generic;
 using System.Linq;
+using Apps.Services.Caches;
+using Apps.Services.Shaders;
+using Apps.Services.Uis;
+using Commons.Utils;
+using Domains.Models.Entities.PlanetGenerates;
+using Domains.Models.ValueObjects.PlanetGenerates;
+using Domains.Repos.PlanetGenerates;
+using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Structs;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
@@ -52,14 +56,14 @@ public partial class HexGridChunk : Node3D, IChunk
 
     private void InitServices()
     {
-        _lodMeshCacheService ??= Context.GetBean<ILodMeshCacheService>();
-        _pointRepo ??= Context.GetBean<IPointRepo>();
-        _chunkRepo ??= Context.GetBean<IChunkRepo>();
-        _tileService ??= Context.GetBean<ITileService>();
-        _tileRepo ??= Context.GetBean<ITileRepo>();
-        _tileShaderService ??= Context.GetBean<ITileShaderService>();
-        _planetSettingService ??= Context.GetBean<IPlanetSettingService>();
-        _editorService ??= Context.GetBean<IEditorService>();
+        _lodMeshCacheService ??= Context.GetBeanFromHolder<ILodMeshCacheService>();
+        _pointRepo ??= Context.GetBeanFromHolder<IPointRepo>();
+        _chunkRepo ??= Context.GetBeanFromHolder<IChunkRepo>();
+        _tileService ??= Context.GetBeanFromHolder<ITileService>();
+        _tileRepo ??= Context.GetBeanFromHolder<ITileRepo>();
+        _tileShaderService ??= Context.GetBeanFromHolder<ITileShaderService>();
+        _planetSettingService ??= Context.GetBeanFromHolder<IPlanetSettingService>();
+        _editorService ??= Context.GetBeanFromHolder<IEditorService>();
     }
 
     private void OnEditorEditModeChanged(bool mode) =>
@@ -100,7 +104,7 @@ public partial class HexGridChunk : Node3D, IChunk
         else
             label = _unusedTileUis.Dequeue();
 
-        var tile = _tileRepo.GetById(tileId);
+        var tile = _tileRepo.GetById(tileId)!;
         var position = 1.01f * tile.GetCentroid(_planetSettingService.Radius + _tileService.GetHeight(tile));
         var scale = _planetSettingService.StandardScale;
         label.Scale = Vector3.One * scale;
@@ -126,7 +130,7 @@ public partial class HexGridChunk : Node3D, IChunk
         foreach (var (tileId, _) in _usingTileUis)
             HideLabel(tileId);
 
-        var tileIds = _chunkRepo.GetById(id).TileIds;
+        var tileIds = _chunkRepo.GetById(id)!.TileIds;
         foreach (var tileId in tileIds)
             ShowLabel(tileId);
         // 在场景树中 _Ready 后 Label 才非 null
@@ -154,7 +158,7 @@ public partial class HexGridChunk : Node3D, IChunk
                 // 坐标
                 foreach (var (tileId, label) in _usingTileUis)
                 {
-                    var coords = _pointRepo.GetSphereAxial(_tileRepo.GetById(tileId));
+                    var coords = _pointRepo.GetSphereAxial(_tileRepo.GetById(tileId)!);
                     label.Label.Text = $"{coords.Coords}\n{coords.Type},{coords.TypeIdx}";
                     label.Label.FontSize = 24;
                     label.Show();
@@ -188,7 +192,7 @@ public partial class HexGridChunk : Node3D, IChunk
         {
             // var time = Time.GetTicksMsec();
             ClearOldData();
-            var chunk = _chunkRepo.GetById(_id);
+            var chunk = _chunkRepo.GetById(_id)!;
             var tileIds = chunk.TileIds;
             var tiles = tileIds.Select(_tileRepo.GetById);
             foreach (var tile in tiles)

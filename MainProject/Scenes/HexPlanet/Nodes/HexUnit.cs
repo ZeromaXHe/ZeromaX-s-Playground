@@ -1,9 +1,11 @@
+using Apps.Services.Shaders;
+using Commons.Utils;
+using Domains.Models.Entities.Civs;
+using Domains.Repos.PlanetGenerates;
+using Domains.Services.Civs;
+using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 
@@ -29,11 +31,11 @@ public partial class HexUnit : CsgBox3D
 
     private static void InitServices()
     {
-        _tileService ??= Context.GetBean<ITileService>();
-        _tileRepo ??= Context.GetBean<ITileRepo>();
-        _tileShaderService ??= Context.GetBean<ITileShaderService>();
-        _unitService ??= Context.GetBean<IUnitService>();
-        _planetSettingService ??= Context.GetBean<IPlanetSettingService>();
+        _tileService ??= Context.GetBeanFromHolder<ITileService>();
+        _tileRepo ??= Context.GetBeanFromHolder<ITileRepo>();
+        _tileShaderService ??= Context.GetBeanFromHolder<ITileShaderService>();
+        _unitService ??= Context.GetBeanFromHolder<IUnitService>();
+        _planetSettingService ??= Context.GetBeanFromHolder<IPlanetSettingService>();
     }
 
     #endregion
@@ -49,15 +51,15 @@ public partial class HexUnit : CsgBox3D
         {
             if (_tileId > 0)
             {
-                var preTile = _tileRepo.GetById(_tileId);
+                var preTile = _tileRepo.GetById(_tileId)!;
                 _tileShaderService.DecreaseVisibility(preTile, Unit.VisionRange);
                 _tileRepo.SetUnitId(preTile, 0);
             }
 
             _tileId = value;
-            _unitService.GetById(Id).TileId = _tileId;
+            _unitService.GetById(Id)!.TileId = _tileId;
             ValidateLocation();
-            var tile = _tileRepo.GetById(_tileId);
+            var tile = _tileRepo.GetById(_tileId)!;
             _tileShaderService.IncreaseVisibility(tile, Unit.VisionRange);
             _tileRepo.SetUnitId(tile, Id);
         }
@@ -124,11 +126,11 @@ public partial class HexUnit : CsgBox3D
         _pathOriented = false;
         _pathTileIdx = 0;
         // 提前把实际单位数据设置到目标 Tile 中
-        var fromTile = _tileRepo.GetById(_tileId);
+        var fromTile = _tileRepo.GetById(_tileId)!;
         _tileRepo.SetUnitId(fromTile, 0);
         var toTile = _path.Tiles[^1];
         _tileRepo.SetUnitId(toTile, Id);
-        _unitService.GetById(Id).TileId = toTile.Id;
+        _unitService.GetById(Id)!.TileId = toTile.Id;
         _tileId = toTile.Id;
     }
 
@@ -139,7 +141,7 @@ public partial class HexUnit : CsgBox3D
 
     public void ValidateLocation()
     {
-        var tile = _tileRepo.GetById(_tileId);
+        var tile = _tileRepo.GetById(_tileId)!;
         var position = tile.GetCentroid(_planetSettingService.Radius + _tileService.GetHeight(tile));
         Node3dUtil.PlaceOnSphere(this, position, _planetSettingService.StandardScale,
             alignForward: Vector3.Up); // 单位不需要抬高，场景里已经设置好了
@@ -149,7 +151,7 @@ public partial class HexUnit : CsgBox3D
     public void Die()
     {
         _unitService.Delete(Id);
-        var tile = _tileRepo.GetById(_tileId);
+        var tile = _tileRepo.GetById(_tileId)!;
         _tileShaderService.DecreaseVisibility(tile, Unit.VisionRange);
         _tileRepo.SetUnitId(tile, 0);
         QueueFree();

@@ -1,6 +1,6 @@
+using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.Planets;
 
@@ -192,7 +192,7 @@ public partial class CelestialMotionManager : Node3D
 
     private void InitServices()
     {
-        _planetSettingService = Context.GetBean<IPlanetSettingService>();
+        _planetSettingService = Context.GetBeanFromHolder<IPlanetSettingService>();
     }
 
     #endregion

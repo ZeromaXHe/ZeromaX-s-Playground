@@ -1,8 +1,7 @@
 using System.Linq;
+using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Impl;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 
@@ -25,7 +24,7 @@ public partial class HexMesh : MeshInstance3D
 
     private static void InitServices()
     {
-        _noiseService ??= Context.GetBean<INoiseService>();
+        _noiseService ??= Context.GetBeanFromHolder<INoiseService>();
     }
 
     #endregion

@@ -93,6 +93,47 @@ git gc --prune=now
 
 
 
+# 代码架构
+
+- Godot 节点层 Nodes（默认项目）
+  - 游戏场景
+  - UI
+- 应用服务层 Application（提供命令和查询）
+  - 命令处理器 Command Handler
+    - 验证 Validation
+  - 查询处理器 Query Handler
+  - 应用服务 Service
+  - DTO
+    - 请求 Request
+      - 命令 Command
+      - 查询 Query
+    - 响应 Response
+      - 结果 Result（可以通过接口来控制外界对返回结果的操作权限，这样也就不需要新建对象了）
+      - 视图模型 View Model
+- 领域层 Domain
+  - 实体 Entity
+  - 值对象 Value Object
+  - 聚合根 Aggregate Root
+  - 领域服务 Service
+  - 工厂 Factory（复杂的初始化逻辑）
+  - 事件总线 Event Bus
+    - 事件处理器 Event Handler（同步）
+    - 信息处理器 Message Handler（异步）
+    - 通知处理器 Notification Handler（回调到前端）
+    - 事件存储 Event Store
+- 基础设施 Infrastructure
+  - 数据存储层 Repository
+    - 持久化对象 PO、数据模型 Data Model
+- 工具类 Common、Utils
+  - Godot 的基础依赖
+
+
+
+需要考虑的一些特殊情况：
+
+1. 全局着色器变量的设置
+2. 事件如何回调到 Godot 节点层
+
 # 玩法策划
 
 1. 星球文明自动发展更迭部分

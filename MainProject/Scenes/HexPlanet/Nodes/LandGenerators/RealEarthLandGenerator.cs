@@ -1,7 +1,7 @@
+using Domains.Repos.PlanetGenerates;
+using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.LandGenerators;
 
@@ -27,9 +27,9 @@ public partial class RealEarthLandGenerator : Node
 
     private void InitServices()
     {
-        _pointRepo = Context.GetBean<IPointRepo>();
-        _tileRepo = Context.GetBean<ITileRepo>();
-        _planetSettingService = Context.GetBean<IPlanetSettingService>();
+        _pointRepo = Context.GetBeanFromHolder<IPointRepo>();
+        _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
+        _planetSettingService = Context.GetBeanFromHolder<IPlanetSettingService>();
     }
 
     #endregion

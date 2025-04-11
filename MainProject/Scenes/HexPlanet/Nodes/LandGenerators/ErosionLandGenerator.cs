@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
+using Apps.Services.Navigations;
+using Domains.Models.Entities.PlanetGenerates;
+using Domains.Repos.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.LandGenerators;
 
@@ -43,8 +43,8 @@ public partial class ErosionLandGenerator : Node
 
     private void InitServices()
     {
-        _tileRepo = Context.GetBean<ITileRepo>();
-        _tileSearchService = Context.GetBean<ITileSearchService>();
+        _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
+        _tileSearchService = Context.GetBeanFromHolder<ITileSearchService>();
     }
 
     #endregion

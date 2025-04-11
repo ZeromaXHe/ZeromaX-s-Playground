@@ -1,41 +1,55 @@
+#nullable enable
 using System.Collections.Generic;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos.Civs;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos.Civs.Impl;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos.Impl;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Civs;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Civs.Impl;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Impl;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.MiniMap;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.MiniMap.Impl;
+using Apps.Services.Caches;
+using Apps.Services.Caches.Impl;
+using Apps.Services.Navigations;
+using Apps.Services.Navigations.Impl;
+using Apps.Services.Shaders;
+using Apps.Services.Shaders.Impl;
+using Apps.Services.Uis;
+using Apps.Services.Uis.Impl;
+using Commons.Frameworks;
+using Domains.Repos.Civs;
+using Domains.Repos.PlanetGenerates;
+using Domains.Services.Civs;
+using Domains.Services.Civs.Impl;
+using Domains.Services.PlanetGenerates;
+using Domains.Services.PlanetGenerates.Impl;
+using Infras.Repos.Impl.Civs;
+using Infras.Repos.Impl.PlanetGenerates;
 
 namespace ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-02-24 13:35
-public static class Context
+public class Context : IContext
 {
+    public static T GetBeanFromHolder<T>() where T : class
+    {
+        ContextHolder.Context ??= new Context();
+        return ContextHolder.Context.GetBean<T>()!;
+    }
+    
     // 目前逻辑不校验类型是否正确，依赖于使用者自己保证正确
-    private static readonly Dictionary<string, object> Singletons = new();
-    private static bool _initialized;
-    public static void Register(string singleton, object bean) => Singletons.Add(singleton, bean);
-    public static bool Destroy(string singleton) => Singletons.Remove(singleton);
-    public static void Reboot() => Singletons.Clear();
-
+    private readonly Dictionary<string, object> _singletons = new();
+    private bool _initialized;
+    private void Register(string singleton, object bean) => _singletons.Add(singleton, bean);
+    private bool Destroy(string singleton) => _singletons.Remove(singleton);
+    private void Reboot() => _singletons.Clear();
+    
     // 仿 setter 注入写法：
     // private readonly Lazy<ITileRepo> _tileRepo = new(() => Context.GetBean<ITileRepo>());
-    public static T GetBean<T>() where T : class
+    public T? GetBean<T>() where T : class
     {
         // 现在 4.4 的生命周期有点看不懂了，运行游戏时居然先调用 HexGridChunk 的构造函数而不是 HexPlanetManager 的？！
         // 所以只能在这里初始化，否则直接 GetBean null 容易把编辑器和游戏运行搞崩。
         if (!_initialized) Init();
         // 不能直接 nameof(T)，因为结果是 "T"
-        return Singletons.GetValueOrDefault(typeof(T).Name) as T;
+        return _singletons.GetValueOrDefault(typeof(T).Name) as T;
     }
 
-    public static void Init()
+    private void Init()
     {
         Reboot();
         _initialized = true;
@@ -58,7 +72,7 @@ public static class Context
         var civService = new CivService(civRepo);
         var pointService = new PointService(faceRepo, pointRepo);
         var chunkService = new ChunkService(pointService, pointRepo, faceRepo, planetSettingService, chunkRepo);
-        var tileService = new TileService(chunkService, chunkRepo, faceRepo, pointService, pointRepo,
+        var tileService = new TileService(chunkService, faceRepo, pointService, pointRepo,
             planetSettingService, noiseService, tileRepo);
         var tileSearchService = new TileSearchService(pointRepo, chunkRepo, tileRepo, planetSettingService);
         var tileShaderService = new TileShaderService(tileRepo, tileSearchService, unitService,

@@ -1,15 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Apps.Services.Uis;
+using Commons.Enums;
+using Commons.Utils;
+using Domains.Models.Entities.PlanetGenerates;
+using Domains.Models.ValueObjects.PlanetGenerates;
+using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Enums;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Impl;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Structs;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 
@@ -66,9 +66,9 @@ public partial class HexFeatureManager : Node3D
 
     private void InitServices()
     {
-        _noiseService ??= Context.GetBean<INoiseService>();
-        _planetSettingService ??= Context.GetBean<IPlanetSettingService>();
-        _editorService ??= Context.GetBean<IEditorService>();
+        _noiseService ??= Context.GetBeanFromHolder<INoiseService>();
+        _planetSettingService ??= Context.GetBeanFromHolder<IPlanetSettingService>();
+        _editorService ??= Context.GetBeanFromHolder<IEditorService>();
     }
 
     #endregion

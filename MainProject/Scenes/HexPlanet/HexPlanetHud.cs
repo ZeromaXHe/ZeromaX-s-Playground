@@ -1,13 +1,13 @@
+using Apps.Services.Uis;
+using Commons.Utils;
+using Commons.Utils.HexSphereGrid;
+using Domains.Models.Entities.PlanetGenerates;
+using Domains.Repos.PlanetGenerates;
+using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.MiniMap;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils.HexSphereGrid;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 
@@ -217,13 +217,13 @@ public partial class HexPlanetHud : Control
 
     private void InitServices()
     {
-        _tileService = Context.GetBean<ITileService>();
-        _tileRepo = Context.GetBean<ITileRepo>();
-        _chunkRepo = Context.GetBean<IChunkRepo>();
-        _pointRepo = Context.GetBean<IPointRepo>();
-        _planetSettingService = Context.GetBean<IPlanetSettingService>();
-        _editorService = Context.GetBean<IEditorService>();
-        _miniMapService = Context.GetBean<IMiniMapService>();
+        _tileService = Context.GetBeanFromHolder<ITileService>();
+        _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
+        _chunkRepo = Context.GetBeanFromHolder<IChunkRepo>();
+        _pointRepo = Context.GetBeanFromHolder<IPointRepo>();
+        _planetSettingService = Context.GetBeanFromHolder<IPlanetSettingService>();
+        _editorService = Context.GetBeanFromHolder<IEditorService>();
+        _miniMapService = Context.GetBeanFromHolder<IMiniMapService>();
     }
 
     #endregion

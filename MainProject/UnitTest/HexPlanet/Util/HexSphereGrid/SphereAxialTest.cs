@@ -1,4 +1,4 @@
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils.HexSphereGrid;
+using Commons.Utils.HexSphereGrid;
 
 namespace UnitTest.HexPlanet.Util.HexSphereGrid;
 

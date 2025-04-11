@@ -2,12 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Apps.Services.Shaders;
+using Domains.Models.Entities.PlanetGenerates;
+using Domains.Models.ValueObjects.PlanetGenerates;
+using Domains.Repos.PlanetGenerates;
+using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.ChunkManagers;
 
@@ -30,12 +32,12 @@ public partial class ChunkLoader : Node3D
 
     private void InitServices()
     {
-        _chunkRepo = Context.GetBean<IChunkRepo>();
+        _chunkRepo = Context.GetBeanFromHolder<IChunkRepo>();
         _chunkRepo.RefreshChunkTileLabel += OnChunkServiceRefreshChunkTileLabel;
-        _tileRepo = Context.GetBean<ITileRepo>();
+        _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
         _tileRepo.RefreshChunk += OnChunkServiceRefreshChunk;
-        _tileShaderService = Context.GetBean<ITileShaderService>();
-        _planetSettingService = Context.GetBean<IPlanetSettingService>();
+        _tileShaderService = Context.GetBeanFromHolder<ITileShaderService>();
+        _planetSettingService = Context.GetBeanFromHolder<IPlanetSettingService>();
         _tileShaderService.TileExplored += ExploreFeatures;
         if (!Engine.IsEditorHint())
         {
@@ -45,7 +47,7 @@ public partial class ChunkLoader : Node3D
 
     private void ExploreFeatures(int tileId)
     {
-        var chunkId = _tileRepo.GetById(tileId).ChunkId;
+        var chunkId = _tileRepo.GetById(tileId)!.ChunkId;
         // BUG: 动态加载的分块会显示未探索的特征
         _usingChunks[chunkId]?.ExploreFeatures(tileId);
     }

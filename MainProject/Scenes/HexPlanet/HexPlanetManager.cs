@@ -1,13 +1,17 @@
 using System.Linq;
+using Apps.Services.Caches;
+using Apps.Services.Navigations;
+using Apps.Services.Shaders;
+using Apps.Services.Uis;
+using Domains.Models.Entities.Civs;
+using Domains.Models.Entities.PlanetGenerates;
+using Domains.Repos.PlanetGenerates;
+using Domains.Services.Civs;
+using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities.Civs;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.Planets;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Civs;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 
@@ -194,21 +198,21 @@ public partial class HexPlanetManager : Node3D
 
     private void InitServices()
     {
-        _lodMeshCacheService = Context.GetBean<ILodMeshCacheService>();
-        _chunkService = Context.GetBean<IChunkService>();
-        _chunkRepo = Context.GetBean<IChunkRepo>();
-        _tileService = Context.GetBean<ITileService>();
-        _tileRepo = Context.GetBean<ITileRepo>();
-        _tileShaderService = Context.GetBean<ITileShaderService>();
-        _tileSearchService = Context.GetBean<ITileSearchService>();
-        _faceRepo = Context.GetBean<IFaceRepo>();
-        _pointRepo = Context.GetBean<IPointRepo>();
-        _selectViewService = Context.GetBean<ISelectViewService>();
-        _planetSettingService = Context.GetBean<IPlanetSettingService>();
-        _noiseService = Context.GetBean<INoiseService>();
-        _editorService = Context.GetBean<IEditorService>();
+        _lodMeshCacheService = Context.GetBeanFromHolder<ILodMeshCacheService>();
+        _chunkService = Context.GetBeanFromHolder<IChunkService>();
+        _chunkRepo = Context.GetBeanFromHolder<IChunkRepo>();
+        _tileService = Context.GetBeanFromHolder<ITileService>();
+        _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
+        _tileShaderService = Context.GetBeanFromHolder<ITileShaderService>();
+        _tileSearchService = Context.GetBeanFromHolder<ITileSearchService>();
+        _faceRepo = Context.GetBeanFromHolder<IFaceRepo>();
+        _pointRepo = Context.GetBeanFromHolder<IPointRepo>();
+        _selectViewService = Context.GetBeanFromHolder<ISelectViewService>();
+        _planetSettingService = Context.GetBeanFromHolder<IPlanetSettingService>();
+        _noiseService = Context.GetBeanFromHolder<INoiseService>();
+        _editorService = Context.GetBeanFromHolder<IEditorService>();
         _editorService.EditModeChanged += OnEditorEditModeChanged;
-        _civService = Context.GetBean<ICivService>();
+        _civService = Context.GetBeanFromHolder<ICivService>();
     }
 
     private void OnEditorEditModeChanged(bool editMode)
@@ -323,7 +327,7 @@ public partial class HexPlanetManager : Node3D
     {
         foreach (var civ in _civService.GetAll())
         {
-            var tile = _tileRepo.GetById(civ.TileIds[GD.RandRange(0, civ.TileIds.Count - 1)]);
+            var tile = _tileRepo.GetById(civ.TileIds[GD.RandRange(0, civ.TileIds.Count - 1)])!;
             var conquerTile = _tileRepo.GetNeighbors(tile).FirstOrDefault(n => !n.Data.IsUnderwater && n.CivId <= 0);
             if (conquerTile == null) continue;
             UpdateTileCivId(conquerTile, civ);
@@ -443,7 +447,7 @@ public partial class HexPlanetManager : Node3D
         var tiles = _chunkRepo.GetAll()
             .Where(c => c.Insight)
             .SelectMany(c => c.TileIds)
-            .Select(id => _tileRepo.GetById(id))
+            .Select(id => _tileRepo.GetById(id)!)
             .Where(t => !t.Data.IsUnderwater)
             .ToList();
         for (var i = 0; i < 8; i++)
