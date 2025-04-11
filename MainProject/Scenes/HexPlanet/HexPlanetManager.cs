@@ -5,6 +5,7 @@ using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities.Civs;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.Planets;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Civs;
 
@@ -174,15 +175,17 @@ public partial class HexPlanetManager : Node3D
     private int _oldChunkDivisions;
     private float _lastUpdated;
 
-    #region services
+    #region 服务与存储
 
     private ILodMeshCacheService _lodMeshCacheService;
     private IChunkService _chunkService;
+    private IChunkRepo _chunkRepo;
     private ITileService _tileService;
+    private ITileRepo _tileRepo;
     private ITileShaderService _tileShaderService;
     private ITileSearchService _tileSearchService;
-    private IFaceService _faceService;
-    private IPointService _pointService;
+    private IFaceRepo _faceRepo;
+    private IPointRepo _pointRepo;
     private ISelectViewService _selectViewService;
     private IPlanetSettingService _planetSettingService;
     private INoiseService _noiseService;
@@ -193,11 +196,13 @@ public partial class HexPlanetManager : Node3D
     {
         _lodMeshCacheService = Context.GetBean<ILodMeshCacheService>();
         _chunkService = Context.GetBean<IChunkService>();
+        _chunkRepo = Context.GetBean<IChunkRepo>();
         _tileService = Context.GetBean<ITileService>();
+        _tileRepo = Context.GetBean<ITileRepo>();
         _tileShaderService = Context.GetBean<ITileShaderService>();
         _tileSearchService = Context.GetBean<ITileSearchService>();
-        _faceService = Context.GetBean<IFaceService>();
-        _pointService = Context.GetBean<IPointService>();
+        _faceRepo = Context.GetBean<IFaceRepo>();
+        _pointRepo = Context.GetBean<IPointRepo>();
         _selectViewService = Context.GetBean<ISelectViewService>();
         _planetSettingService = Context.GetBean<IPlanetSettingService>();
         _noiseService = Context.GetBean<INoiseService>();
@@ -318,8 +323,8 @@ public partial class HexPlanetManager : Node3D
     {
         foreach (var civ in _civService.GetAll())
         {
-            var tile = _tileService.GetById(civ.TileIds[GD.RandRange(0, civ.TileIds.Count - 1)]);
-            var conquerTile = _tileService.GetNeighbors(tile).FirstOrDefault(n => !n.Data.IsUnderwater && n.CivId <= 0);
+            var tile = _tileRepo.GetById(civ.TileIds[GD.RandRange(0, civ.TileIds.Count - 1)]);
+            var conquerTile = _tileRepo.GetNeighbors(tile).FirstOrDefault(n => !n.Data.IsUnderwater && n.CivId <= 0);
             if (conquerTile == null) continue;
             UpdateTileCivId(conquerTile, civ);
         }
@@ -389,17 +394,17 @@ public partial class HexPlanetManager : Node3D
         var pos = GetTileCollisionPositionUnderCursor();
         if (pos == Vector3.Zero) return null;
         var tileId = _tileService.SearchNearestTileId(pos);
-        return tileId == null ? null : _tileService.GetById((int)tileId);
+        return tileId == null ? null : _tileRepo.GetById((int)tileId);
     }
 
     private void ClearOldData()
     {
         // 必须先清理单位，否则相关可见度事件会查询地块，放最后会空引用异常
         _unitManager?.ClearAllUnits(); // 注意编辑器内 _unitManager == null
-        _chunkService.Truncate();
-        _tileService.Truncate();
-        _pointService.Truncate();
-        _faceService.Truncate();
+        _chunkRepo.Truncate();
+        _tileRepo.Truncate();
+        _pointRepo.Truncate();
+        _faceRepo.Truncate();
         _civService.Truncate();
         _selectViewService.ClearPath();
         _chunkManager.ClearOldData();
@@ -424,7 +429,7 @@ public partial class HexPlanetManager : Node3D
 
     private void RefreshAllTiles()
     {
-        foreach (var tile in _tileService.GetAll())
+        foreach (var tile in _tileRepo.GetAll())
         {
             _tileSearchService.RefreshTileSearchData(tile.Id);
             _tileShaderService.RefreshTerrain(tile.Id);
@@ -435,10 +440,10 @@ public partial class HexPlanetManager : Node3D
     private void InitCivilization()
     {
         // 在可见分块的陆地分块中随机
-        var tiles = _chunkService.GetAll()
+        var tiles = _chunkRepo.GetAll()
             .Where(c => c.Insight)
             .SelectMany(c => c.TileIds)
-            .Select(id => _tileService.GetById(id))
+            .Select(id => _tileRepo.GetById(id))
             .Where(t => !t.Data.IsUnderwater)
             .ToList();
         for (var i = 0; i < 8; i++)

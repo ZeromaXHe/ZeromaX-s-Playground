@@ -3,6 +3,7 @@ using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Structs;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
@@ -38,11 +39,13 @@ public partial class HexGridChunk : Node3D, IChunk
 
     #endregion
 
-    #region services
+    #region 服务与存储
 
     private static ILodMeshCacheService _lodMeshCacheService;
-    private static IChunkService _chunkService;
+    private static IPointRepo _pointRepo;
+    private static IChunkRepo _chunkRepo;
     private static ITileService _tileService;
+    private static ITileRepo _tileRepo;
     private static ITileShaderService _tileShaderService;
     private static IPlanetSettingService _planetSettingService;
     private static IEditorService _editorService;
@@ -50,8 +53,10 @@ public partial class HexGridChunk : Node3D, IChunk
     private void InitServices()
     {
         _lodMeshCacheService ??= Context.GetBean<ILodMeshCacheService>();
-        _chunkService ??= Context.GetBean<IChunkService>();
+        _pointRepo ??= Context.GetBean<IPointRepo>();
+        _chunkRepo ??= Context.GetBean<IChunkRepo>();
         _tileService ??= Context.GetBean<ITileService>();
+        _tileRepo ??= Context.GetBean<ITileRepo>();
         _tileShaderService ??= Context.GetBean<ITileShaderService>();
         _planetSettingService ??= Context.GetBean<IPlanetSettingService>();
         _editorService ??= Context.GetBean<IEditorService>();
@@ -95,7 +100,7 @@ public partial class HexGridChunk : Node3D, IChunk
         else
             label = _unusedTileUis.Dequeue();
 
-        var tile = _tileService.GetById(tileId);
+        var tile = _tileRepo.GetById(tileId);
         var position = 1.01f * tile.GetCentroid(_planetSettingService.Radius + _tileService.GetHeight(tile));
         var scale = _planetSettingService.StandardScale;
         label.Scale = Vector3.One * scale;
@@ -121,7 +126,7 @@ public partial class HexGridChunk : Node3D, IChunk
         foreach (var (tileId, _) in _usingTileUis)
             HideLabel(tileId);
 
-        var tileIds = _chunkService.GetById(id).TileIds;
+        var tileIds = _chunkRepo.GetById(id).TileIds;
         foreach (var tileId in tileIds)
             ShowLabel(tileId);
         // 在场景树中 _Ready 后 Label 才非 null
@@ -149,7 +154,7 @@ public partial class HexGridChunk : Node3D, IChunk
                 // 坐标
                 foreach (var (tileId, label) in _usingTileUis)
                 {
-                    var coords = _tileService.GetSphereAxial(_tileService.GetById(tileId));
+                    var coords = _pointRepo.GetSphereAxial(_tileRepo.GetById(tileId));
                     label.Label.Text = $"{coords.Coords}\n{coords.Type},{coords.TypeIdx}";
                     label.Label.FontSize = 24;
                     label.Show();
@@ -183,9 +188,9 @@ public partial class HexGridChunk : Node3D, IChunk
         {
             // var time = Time.GetTicksMsec();
             ClearOldData();
-            var chunk = _chunkService.GetById(_id);
+            var chunk = _chunkRepo.GetById(_id);
             var tileIds = chunk.TileIds;
-            var tiles = tileIds.Select(_tileService.GetById);
+            var tiles = tileIds.Select(_tileRepo.GetById);
             foreach (var tile in tiles)
             {
                 _chunkTriangulation.Triangulate(tile);
@@ -237,15 +242,15 @@ public partial class HexGridChunk : Node3D, IChunk
     }
 
     private static bool IsHandlingLodGaps(Chunk chunk) =>
-        (chunk.Lod == ChunkLod.PlaneHex && _chunkService.GetNeighbors(chunk).Any(n => n.Lod >= ChunkLod.SimpleHex))
-        || (chunk.Lod == ChunkLod.TerracesHex && _chunkService.GetNeighbors(chunk).Any(n => n.Lod == ChunkLod.Full));
+        (chunk.Lod == ChunkLod.PlaneHex && _chunkRepo.GetNeighbors(chunk).Any(n => n.Lod >= ChunkLod.SimpleHex))
+        || (chunk.Lod == ChunkLod.TerracesHex && _chunkRepo.GetNeighbors(chunk).Any(n => n.Lod == ChunkLod.Full));
 
     public void UpdateLod(ChunkLod lod, bool idChanged = true)
     {
         if (lod == _chunkTriangulation.Lod && !idChanged) return;
         _chunkTriangulation.Lod = lod;
 
-        var chunk = _chunkService.GetById(_id); // 获取当前分块
+        var chunk = _chunkRepo.GetById(_id); // 获取当前分块
         if (IsHandlingLodGaps(chunk))
         {
             // 对于需要处理接缝的情况，不使用缓存

@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils.HexSphereGrid;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.MiniMap.Impl;
@@ -10,7 +11,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.MiniMap.Impl;
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-03-23 10:09:06
-public class MiniMapService(ITileService tileService, IPlanetSettingService planetSettingService) : IMiniMapService
+public class MiniMapService(ITileService tileService, ITileRepo tileRepo) : IMiniMapService
 {
     public ImageTexture GenerateRectMap()
     {
@@ -27,7 +28,7 @@ public class MiniMapService(ITileService tileService, IPlanetSettingService plan
         var svgBuilder = new StringBuilder();
         svgBuilder.Append("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"").Append(width)
             .Append("\" height=\"").Append(height).Append("\">");
-        foreach (var tile in tileService.GetAll())
+        foreach (var tile in tileRepo.GetAll())
             GeneratePolygonForTile(svgBuilder, width, height, tile);
         svgBuilder.Append("</svg>");
         return svgBuilder.ToString();

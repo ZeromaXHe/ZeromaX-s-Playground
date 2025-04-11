@@ -56,24 +56,22 @@ public static class Context
         var noiseService = new NoiseService(planetSettingService);
         var unitService = new UnitService(unitRepo);
         var civService = new CivService(civRepo);
-        var faceService = new FaceService(faceRepo, pointRepo);
-        var pointService = new PointService(faceService, pointRepo);
-        var chunkService = new ChunkService(pointService, planetSettingService, chunkRepo);
-        var tileService = new TileService(chunkService, faceService, pointService,
+        var pointService = new PointService(faceRepo, pointRepo);
+        var chunkService = new ChunkService(pointService, pointRepo, faceRepo, planetSettingService, chunkRepo);
+        var tileService = new TileService(chunkService, chunkRepo, faceRepo, pointService, pointRepo,
             planetSettingService, noiseService, tileRepo);
-        var tileSearchService = new TileSearchService(tileService, planetSettingService);
-        var tileShaderService = new TileShaderService(tileService, tileSearchService,
-            unitService, civService, planetSettingService);
-        var editorService = new EditorService(tileService);
-        var miniMapService = new MiniMapService(tileService, planetSettingService);
-        var selectViewService = new SelectViewService(tileService, tileSearchService,
+        var tileSearchService = new TileSearchService(pointRepo, chunkRepo, tileRepo, planetSettingService);
+        var tileShaderService = new TileShaderService(tileRepo, tileSearchService, unitService,
+            civService, planetSettingService);
+        var editorService = new EditorService(tileRepo);
+        var miniMapService = new MiniMapService(tileService, tileRepo);
+        var selectViewService = new SelectViewService(chunkRepo, tileService, tileRepo, tileSearchService,
             planetSettingService, editorService);
         Register(nameof(ILodMeshCacheService), lodMeshCacheService);
         Register(nameof(IPlanetSettingService), planetSettingService);
         Register(nameof(INoiseService), noiseService);
         Register(nameof(IUnitService), unitService);
         Register(nameof(ICivService), civService);
-        Register(nameof(IFaceService), faceService);
         Register(nameof(IPointService), pointService);
         Register(nameof(IChunkService), chunkService);
         Register(nameof(ITileService), tileService);

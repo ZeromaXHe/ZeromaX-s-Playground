@@ -1,6 +1,7 @@
 using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Impl;
@@ -9,7 +10,9 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Impl;
 /// Author: Zhu XH
 /// Date: 2025-02-24 13:57
 public class SelectViewService(
+    IChunkRepo chunkRepo,
     ITileService tileService,
+    ITileRepo tileRepo,
     ITileSearchService tileSearchService,
     IPlanetSettingService planetSettingService,
     IEditorService editorService) : ISelectViewService
@@ -38,7 +41,7 @@ public class SelectViewService(
 
             if (_selectedTileId > 0)
             {
-                var selectedTile = tileService.GetById(_selectedTileId);
+                var selectedTile = tileRepo.GetById(_selectedTileId);
                 vi += AddHexFrame(selectedTile, Colors.Aquamarine,
                     1.01f * (planetSettingService.Radius + tileService.GetHeight(selectedTile)),
                     surfaceTool, vi); // 选择地块为蓝色框
@@ -46,10 +49,10 @@ public class SelectViewService(
 
             if (hoverTileId != null)
             {
-                var hoverTile = tileService.GetById((int)_hoverTileId);
+                var hoverTile = tileRepo.GetById((int)_hoverTileId);
 
                 var color = Colors.DarkGreen with { A = 0.8f };
-                var tiles = tileService.GetTilesInDistance(hoverTile, editorService.TileOverrider.BrushSize);
+                var tiles = tileRepo.GetTilesInDistance(hoverTile, editorService.TileOverrider.BrushSize);
                 var viewRadius = planetSettingService.Radius + planetSettingService.MaxHeight;
                 foreach (var t in tiles)
                     vi += AddHexFrame(t, color, viewRadius, surfaceTool, vi);
@@ -75,9 +78,9 @@ public class SelectViewService(
                 _selectedTileId = pathFindingFromTileId;
                 _hoverTileId = hoverTileId;
                 ClearPath();
-                var fromTile = tileService.GetById(pathFindingFromTileId);
+                var fromTile = tileRepo.GetById(pathFindingFromTileId);
                 var toTileId = (int)_hoverTileId;
-                var toTile = tileService.GetById(toTileId);
+                var toTile = tileRepo.GetById(toTileId);
                 var surfaceTool = new SurfaceTool();
                 surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
                 surfaceTool.SetSmoothGroup(uint.MaxValue);
@@ -101,7 +104,7 @@ public class SelectViewService(
                                 1.01f * (planetSettingService.Radius + tileService.GetHeight(nextTile)),
                                 surfaceTool, vi); // 路径点为白色框
                         cost += tileSearchService.GetMoveCost(preTile, nextTile);
-                        tileService.UpdateTileLabel(nextTile, cost.ToString());
+                        chunkRepo.RefreshTileLabel(nextTile, cost.ToString());
                         preTile = nextTile;
                     }
                 }
@@ -117,7 +120,7 @@ public class SelectViewService(
         if (pathFindingFromTileId == _selectedTileId) return null; // 寻路出发点没变
         _selectedTileId = pathFindingFromTileId;
         ClearPath();
-        var tile = tileService.GetById(pathFindingFromTileId);
+        var tile = tileRepo.GetById(pathFindingFromTileId);
         var surfaceTool2 = new SurfaceTool();
         surfaceTool2.Begin(Mesh.PrimitiveType.Triangles);
         surfaceTool2.SetSmoothGroup(uint.MaxValue);

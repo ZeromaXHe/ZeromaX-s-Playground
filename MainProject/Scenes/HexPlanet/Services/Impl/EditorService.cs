@@ -1,4 +1,5 @@
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Structs;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Impl;
@@ -6,7 +7,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Impl;
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-03-12 09:18
-public class EditorService(TileService tileService) : IEditorService
+public class EditorService(ITileRepo tileRepo) : IEditorService
 {
     public event IEditorService.LabelModeChangedEvent LabelModeChanged;
     public event IEditorService.EditModeChangedEvent EditModeChanged;
@@ -41,38 +42,38 @@ public class EditorService(TileService tileService) : IEditorService
 
     public void EditTiles(Tile tile, bool isDrag, Tile previousTile, Tile dragTile)
     {
-        foreach (var t in tileService.GetTilesInDistance(tile, TileOverrider.BrushSize))
+        foreach (var t in tileRepo.GetTilesInDistance(tile, TileOverrider.BrushSize))
             EditTile(t, isDrag, previousTile, dragTile);
     }
 
     private void EditTile(Tile tile, bool isDrag, Tile previousTile, Tile dragTile)
     {
         if (TileOverrider.ApplyTerrain)
-            tileService.SetTerrainTypeIndex(tile, TileOverrider.ActiveTerrain);
+            tileRepo.SetTerrainTypeIndex(tile, TileOverrider.ActiveTerrain);
         if (TileOverrider.ApplyElevation)
-            tileService.SetElevation(tile, TileOverrider.ActiveElevation);
+            tileRepo.SetElevation(tile, TileOverrider.ActiveElevation);
         if (TileOverrider.ApplyWaterLevel)
-            tileService.SetWaterLevel(tile, TileOverrider.ActiveWaterLevel);
+            tileRepo.SetWaterLevel(tile, TileOverrider.ActiveWaterLevel);
         if (TileOverrider.ApplySpecialIndex)
-            tileService.SetSpecialIndex(tile, TileOverrider.ActiveSpecialIndex);
+            tileRepo.SetSpecialIndex(tile, TileOverrider.ActiveSpecialIndex);
         if (TileOverrider.ApplyUrbanLevel)
-            tileService.SetUrbanLevel(tile, TileOverrider.ActiveUrbanLevel);
+            tileRepo.SetUrbanLevel(tile, TileOverrider.ActiveUrbanLevel);
         if (TileOverrider.ApplyFarmLevel)
-            tileService.SetFarmLevel(tile, TileOverrider.ActiveFarmLevel);
+            tileRepo.SetFarmLevel(tile, TileOverrider.ActiveFarmLevel);
         if (TileOverrider.ApplyPlantLevel)
-            tileService.SetPlantLevel(tile, TileOverrider.ActivePlantLevel);
+            tileRepo.SetPlantLevel(tile, TileOverrider.ActivePlantLevel);
         if (TileOverrider.RiverMode == OptionalToggle.No)
-            tileService.RemoveRiver(tile);
+            tileRepo.RemoveRiver(tile);
         if (TileOverrider.RoadMode == OptionalToggle.No)
-            tileService.RemoveRoads(tile);
+            tileRepo.RemoveRoads(tile);
         if (TileOverrider.WalledMode != OptionalToggle.Ignore)
-            tileService.SetWalled(tile, TileOverrider.WalledMode == OptionalToggle.Yes);
+            tileRepo.SetWalled(tile, TileOverrider.WalledMode == OptionalToggle.Yes);
         if (isDrag)
         {
             if (TileOverrider.RiverMode == OptionalToggle.Yes)
-                tileService.SetOutgoingRiver(previousTile, dragTile);
+                tileRepo.SetOutgoingRiver(previousTile, dragTile);
             if (TileOverrider.RoadMode == OptionalToggle.Yes)
-                tileService.AddRoad(previousTile, dragTile);
+                tileRepo.AddRoad(previousTile, dragTile);
         }
     }
 

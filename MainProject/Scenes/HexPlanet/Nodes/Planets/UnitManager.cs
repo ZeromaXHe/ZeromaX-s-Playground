@@ -1,6 +1,7 @@
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.Planets;
@@ -16,18 +17,18 @@ public partial class UnitManager : Node3D
 
     private readonly System.Collections.Generic.Dictionary<int, HexUnit> _units = new();
 
-    #region services
+    #region 服务和存储
 
     private IUnitService _unitService;
-    private ITileService _tileService;
+    private ITileRepo _tileRepo;
     private ITileSearchService _tileSearchService;
     private ISelectViewService _selectViewService;
 
     private void InitServices()
     {
         _unitService = Context.GetBean<IUnitService>();
-        _tileService = Context.GetBean<ITileService>();
-        _tileService.UnitValidateLocation += OnTileServiceUnitValidateLocation;
+        _tileRepo = Context.GetBean<ITileRepo>();
+        _tileRepo.UnitValidateLocation += OnTileServiceUnitValidateLocation;
         _tileSearchService = Context.GetBean<ITileSearchService>();
         _selectViewService = Context.GetBean<ISelectViewService>();
     }
@@ -38,7 +39,7 @@ public partial class UnitManager : Node3D
     {
         // 不小心忽视了事件的解绑，会在编辑器下"重载已保存场景"时出问题报错！
         // 【切记】所以这里需要在退出场景树时清理事件监听！！！
-        _tileService.UnitValidateLocation -= OnTileServiceUnitValidateLocation;
+        _tileRepo.UnitValidateLocation -= OnTileServiceUnitValidateLocation;
     }
 
     #endregion
@@ -111,7 +112,7 @@ public partial class UnitManager : Node3D
 
     private void MoveUnit(Tile toTile)
     {
-        var fromTile = _tileService.GetById(PathFromTileId);
+        var fromTile = _tileRepo.GetById(PathFromTileId);
         var path = _tileSearchService.FindPath(fromTile, toTile, true);
         if (path is { Count: > 1 })
         {

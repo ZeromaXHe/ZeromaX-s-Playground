@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Enums;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Structs;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
 
@@ -10,7 +11,11 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Impl;
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-03-03 09:14
-public class TileSearchService(ITileService tileService, IPlanetSettingService planetSettingService)
+public class TileSearchService(
+    IPointRepo pointRepo,
+    IChunkRepo chunkRepo,
+    ITileRepo tileRepo,
+    IPlanetSettingService planetSettingService)
     : ITileSearchService
 {
     private TileSearchData[] _searchData;
@@ -23,7 +28,7 @@ public class TileSearchService(ITileService tileService, IPlanetSettingService p
 
     public void InitSearchData()
     {
-        _searchData = new TileSearchData[tileService.GetCount() + 1];
+        _searchData = new TileSearchData[tileRepo.GetCount() + 1];
         _searchFrontier = null;
     }
 
@@ -46,7 +51,7 @@ public class TileSearchService(ITileService tileService, IPlanetSettingService p
         var res = new List<Tile>();
         while (currentId != _currentPathFromId)
         {
-            res.Add(tileService.GetById(currentId));
+            res.Add(tileRepo.GetById(currentId));
             currentId = _searchData[currentId].PathFrom;
         }
 
@@ -62,7 +67,7 @@ public class TileSearchService(ITileService tileService, IPlanetSettingService p
             var currentId = _currentPathToId;
             while (currentId != _currentPathFromId)
             {
-                tileService.UpdateTileLabel(tileService.GetById(currentId), "");
+                chunkRepo.RefreshTileLabel(tileRepo.GetById(currentId), "");
                 currentId = _searchData[currentId].PathFrom;
             }
 
@@ -83,12 +88,12 @@ public class TileSearchService(ITileService tileService, IPlanetSettingService p
         _searchFrontier.Enqueue(fromTile.Id);
         while (_searchFrontier.TryDequeue(out var currentId))
         {
-            var current = tileService.GetById(currentId);
+            var current = tileRepo.GetById(currentId);
             var currentDistance = _searchData[currentId].Distance;
             _searchData[currentId].SearchPhase++;
             if (current == toTile)
                 return true;
-            foreach (var neighbor in tileService.GetNeighbors(current))
+            foreach (var neighbor in tileRepo.GetNeighbors(current))
             {
                 var neighborData = _searchData[neighbor.Id];
                 if (neighborData.SearchPhase > _searchFrontierPhase || !IsValidDestination(neighbor))
@@ -134,20 +139,20 @@ public class TileSearchService(ITileService tileService, IPlanetSettingService p
             PathFrom = _searchData[fromTile.Id].PathFrom
         };
         _searchFrontier.Enqueue(fromTile.Id);
-        var fromCoords = tileService.GetSphereAxial(fromTile);
+        var fromCoords = pointRepo.GetSphereAxial(fromTile);
         while (_searchFrontier.TryDequeue(out var currentId))
         {
-            var current = tileService.GetById(currentId);
+            var current = tileRepo.GetById(currentId);
             _searchData[currentId].SearchPhase++;
             visibleTiles.Add(current);
-            foreach (var neighbor in tileService.GetNeighbors(current))
+            foreach (var neighbor in tileRepo.GetNeighbors(current))
             {
                 var neighborData = _searchData[neighbor.Id];
                 if (neighborData.SearchPhase > _searchFrontierPhase || !neighbor.Data.IsExplorable)
                     continue;
                 var distance = _searchData[currentId].Distance + 1;
                 if (distance + neighbor.Data.ViewElevation > range
-                    || distance > fromCoords.DistanceTo(tileService.GetSphereAxial(neighbor)))
+                    || distance > fromCoords.DistanceTo(pointRepo.GetSphereAxial(neighbor)))
                     // 没法直接拿到两地块间的最短间距，使用启发式值（估算球面距离）/ √3 * 2 作为最短间距
                     continue;
                 if (neighborData.SearchPhase < _searchFrontierPhase)
@@ -172,7 +177,7 @@ public class TileSearchService(ITileService tileService, IPlanetSettingService p
     }
 
     private int HeuristicCost(Tile from, Tile to) =>
-        tileService.GetSphereAxial(from).DistanceTo(tileService.GetSphereAxial(to));
+        pointRepo.GetSphereAxial(from).DistanceTo(pointRepo.GetSphereAxial(to));
     // {
     //     var fromSa = tileService.GetSphereAxial(from);
     //     var toSa = tileService.GetSphereAxial(to);
@@ -208,12 +213,12 @@ public class TileSearchService(ITileService tileService, IPlanetSettingService p
         _searchFrontier.Clear();
         _searchData[firstTileId] = new TileSearchData { SearchPhase = _searchFrontierPhase };
         _searchFrontier.Enqueue(firstTileId);
-        var firstTile = tileService.GetById(firstTileId);
-        var center = tileService.GetSphereAxial(firstTile);
+        var firstTile = tileRepo.GetById(firstTileId);
+        var center = pointRepo.GetSphereAxial(firstTile);
         var size = 0;
         while (size < chunkSize && _searchFrontier.TryDequeue(out var id))
         {
-            var current = tileService.GetById(id);
+            var current = tileRepo.GetById(id);
             var originalElevation = current.Data.Elevation;
             var newElevation = originalElevation + rise;
             if (newElevation > planetSettingService.ElevationStep)
@@ -223,13 +228,13 @@ public class TileSearchService(ITileService tileService, IPlanetSettingService p
                 && newElevation >= planetSettingService.DefaultWaterLevel && --budget == 0)
                 break;
             size++;
-            foreach (var neighbor in tileService.GetNeighbors(current))
+            foreach (var neighbor in tileRepo.GetNeighbors(current))
             {
                 if (_searchData[neighbor.Id].SearchPhase >= _searchFrontierPhase) continue;
                 _searchData[neighbor.Id] = new TileSearchData
                 {
                     SearchPhase = _searchFrontierPhase,
-                    Distance = tileService.GetSphereAxial(neighbor).DistanceTo(center),
+                    Distance = pointRepo.GetSphereAxial(neighbor).DistanceTo(center),
                     Heuristic = random.Randf() < jitterProbability ? 1 : 0
                 };
                 _searchFrontier.Enqueue(neighbor.Id);
@@ -249,12 +254,12 @@ public class TileSearchService(ITileService tileService, IPlanetSettingService p
         _searchFrontier.Clear();
         _searchData[firstTileId] = new TileSearchData { SearchPhase = _searchFrontierPhase };
         _searchFrontier.Enqueue(firstTileId);
-        var firstTile = tileService.GetById(firstTileId);
-        var center = tileService.GetSphereAxial(firstTile);
+        var firstTile = tileRepo.GetById(firstTileId);
+        var center = pointRepo.GetSphereAxial(firstTile);
         var size = 0;
         while (size < chunkSize && _searchFrontier.TryDequeue(out var id))
         {
-            var current = tileService.GetById(id);
+            var current = tileRepo.GetById(id);
             var originalElevation = current.Data.Elevation;
             var newElevation = originalElevation - sink;
             if (newElevation < planetSettingService.ElevationStep)
@@ -264,14 +269,14 @@ public class TileSearchService(ITileService tileService, IPlanetSettingService p
                 && newElevation < planetSettingService.DefaultWaterLevel)
                 budget++;
             size++;
-            foreach (var neighbor in tileService.GetNeighbors(current))
+            foreach (var neighbor in tileRepo.GetNeighbors(current))
             {
                 if (_searchData[neighbor.Id].SearchPhase < _searchFrontierPhase)
                 {
                     _searchData[neighbor.Id] = new TileSearchData
                     {
                         SearchPhase = _searchFrontierPhase,
-                        Distance = tileService.GetSphereAxial(neighbor).DistanceTo(center),
+                        Distance = pointRepo.GetSphereAxial(neighbor).DistanceTo(center),
                         Heuristic = random.Randf() < jitterProbability ? 1 : 0
                     };
                     _searchFrontier.Enqueue(neighbor.Id);

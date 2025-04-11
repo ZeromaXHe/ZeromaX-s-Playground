@@ -1,5 +1,6 @@
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.LandGenerators;
@@ -18,14 +19,16 @@ public partial class RealEarthLandGenerator : Node
     // 所以目前把四张图片压到同一张图片的 RGB 通道里了（陆地掩码（去除湖区） R，地形 G，海洋测深 B），并压缩大小到 4096x2048
     [Export] private Texture2D WorldMap { get; set; }
 
-    #region 服务
+    #region 服务和存储
 
-    private ITileService _tileService;
+    private IPointRepo _pointRepo;
+    private ITileRepo _tileRepo;
     private IPlanetSettingService _planetSettingService;
 
     private void InitServices()
     {
-        _tileService = Context.GetBean<ITileService>();
+        _pointRepo = Context.GetBean<IPointRepo>();
+        _tileRepo = Context.GetBean<ITileRepo>();
         _planetSettingService = Context.GetBean<IPlanetSettingService>();
     }
 
@@ -37,9 +40,9 @@ public partial class RealEarthLandGenerator : Node
         var elevationStep = _planetSettingService.ElevationStep;
         var landCount = 0;
         var worldMap = WorldMap.GetImage();
-        foreach (var tile in _tileService.GetAll())
+        foreach (var tile in _tileRepo.GetAll())
         {
-            var sphereAxial = _tileService.GetSphereAxial(tile);
+            var sphereAxial = _pointRepo.GetSphereAxial(tile);
             var lonLat = sphereAxial.ToLongitudeAndLatitude().ToVector2();
             var percentX = Mathf.Remap(lonLat.X, 180f, -180f, 0f, 1f); // 西经为正，所以这里得反一下
             var percentY = Mathf.Remap(lonLat.Y, 90f, -90f, 0f, 1f); // 北纬为正，所以这里得反一下

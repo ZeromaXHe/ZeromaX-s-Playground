@@ -3,6 +3,7 @@ using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Enums;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Impl;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Structs;
@@ -35,14 +36,18 @@ public class ChunkTriangulation
     #region 服务
 
     private static ITileService _tileService;
+    private static ITileRepo _tileRepo;
     private static IChunkService _chunkService;
+    private static IChunkRepo _chunkRepo;
     private static IPlanetSettingService _planetSettingService;
     private static INoiseService _noiseService;
 
     private static void InitServices()
     {
         _tileService ??= Context.GetBean<ITileService>();
+        _tileRepo ??= Context.GetBean<ITileRepo>();
         _chunkService ??= Context.GetBean<IChunkService>();
+        _chunkRepo ??= Context.GetBean<IChunkRepo>();
         _planetSettingService ??= Context.GetBean<IPlanetSettingService>();
         _noiseService ??= Context.GetBean<INoiseService>();
     }
@@ -92,9 +97,9 @@ public class ChunkTriangulation
         var ids = Vector3.One * tile.Id;
         var height = GetOverrideHeight(tile);
         var waterHeight = Overrider.WaterSurfaceY(tile);
-        var preNeighbor = _tileService.GetNeighborByIdx(tile, tile.PreviousIdx(0));
-        var neighbor = _tileService.GetNeighborByIdx(tile, 0);
-        var nextNeighbor = _tileService.GetNeighborByIdx(tile, tile.NextIdx(0));
+        var preNeighbor = _tileRepo.GetNeighborByIdx(tile, tile.PreviousIdx(0));
+        var neighbor = _tileRepo.GetNeighborByIdx(tile, 0);
+        var nextNeighbor = _tileRepo.GetNeighborByIdx(tile, tile.NextIdx(0));
         var v0 = Vector3.Zero;
         var vw0 = Vector3.Zero;
         for (var i = 0; i < tile.HexFaceIds.Count; i++)
@@ -129,7 +134,7 @@ public class ChunkTriangulation
 
             preNeighbor = neighbor;
             neighbor = nextNeighbor;
-            nextNeighbor = _tileService.GetNeighborByIdx(tile, tile.Next2Idx(i));
+            nextNeighbor = _tileRepo.GetNeighborByIdx(tile, tile.Next2Idx(i));
         }
     }
 
@@ -147,7 +152,7 @@ public class ChunkTriangulation
         {
             var v2 = _tileService.GetSecondCorner(tile, i, _planetSettingService.Radius + height);
             var vw2 = _tileService.GetSecondCorner(tile, i, _planetSettingService.Radius + waterSurfaceHeight);
-            var neighbor = _tileService.GetNeighborByIdx(tile, i);
+            var neighbor = _tileRepo.GetNeighborByIdx(tile, i);
             var nIds = new Vector3(tile.Id, neighbor.Id, tile.Id);
             var neighborHeight = GetOverrideHeight(neighbor);
             var neighborWaterSurfaceHeight = Overrider.WaterSurfaceY(neighbor);
@@ -173,7 +178,7 @@ public class ChunkTriangulation
 
             // 处理接缝（目前很粗暴的对所有相邻地块的分块的 LOD 是 SimpleHex 以上时向外绘制到 Solid 边界）
             if (neighbor.ChunkId != tile.ChunkId
-                && _chunkService.GetById(neighbor.ChunkId).Lod >= ChunkLod.SimpleHex)
+                && _chunkRepo.GetById(neighbor.ChunkId).Lod >= ChunkLod.SimpleHex)
             {
                 var vn1 = _tileService.GetCornerByFaceId(neighbor, tile.HexFaceIds[i],
                     _planetSettingService.Radius + neighborHeight, HexMetrics.SolidFactor);
@@ -243,10 +248,10 @@ public class ChunkTriangulation
         {
             if (Lod == ChunkLod.Full)
                 return false;
-            var neighbor = _tileService.GetNeighborByIdx(tile, idx);
+            var neighbor = _tileRepo.GetNeighborByIdx(tile, idx);
             if (neighbor.ChunkId == tile.ChunkId)
                 return true;
-            var neighborChunk = _chunkService.GetById(neighbor.ChunkId);
+            var neighborChunk = _chunkRepo.GetById(neighbor.ChunkId);
             return neighborChunk.Lod < ChunkLod.Full;
         }
     }
@@ -255,7 +260,7 @@ public class ChunkTriangulation
     {
         var waterSurfaceHeight = Overrider.WaterSurfaceY(tile);
         centroid = Math3dUtil.ProjectToSphere(centroid, _planetSettingService.Radius + waterSurfaceHeight);
-        var neighbor = _tileService.GetNeighborByIdx(tile, idx);
+        var neighbor = _tileRepo.GetNeighborByIdx(tile, idx);
         if (!Overrider.IsUnderwater(neighbor))
             TriangulateWaterShore(tile, idx, waterSurfaceHeight, neighbor, centroid, simple);
         else
@@ -309,7 +314,7 @@ public class ChunkTriangulation
                 QuadUv(0f, 0f, 0f, 1f), tis: ids);
         }
 
-        var nextNeighbor = _tileService.GetNeighborByIdx(tile, tile.NextIdx(idx));
+        var nextNeighbor = _tileRepo.GetNeighborByIdx(tile, tile.NextIdx(idx));
         var nextNeighborWaterSurfaceHeight = Overrider.WaterSurfaceY(nextNeighbor);
         var cnn = _tileService.GetCornerByFaceId(nextNeighbor, tile.HexFaceIds[tile.NextIdx(idx)],
             _planetSettingService.Radius + nextNeighborWaterSurfaceHeight,
@@ -367,7 +372,7 @@ public class ChunkTriangulation
         ids.Y = neighbor.Id;
         _chunk.Water.AddQuad([c1, c2, cn1, cn2], HexMesh.QuadArr(HexMesh.Weights1, HexMesh.Weights2), tis: ids);
 
-        var nextNeighbor = _tileService.GetNeighborByIdx(tile, tile.NextIdx(idx));
+        var nextNeighbor = _tileRepo.GetNeighborByIdx(tile, tile.NextIdx(idx));
         // 由最大 Id 的地块绘制水域角落三角形，或者是由编辑地块绘制和不编辑的两个邻接地块间的连接
         if (tile.Id <= nextNeighbor.Id && !Overrider.IsOverridingTileConnection(tile, nextNeighbor))
             return;
@@ -744,7 +749,7 @@ public class ChunkTriangulation
     private void TriangulateConnection(Tile tile, int idx, EdgeVertices e, bool simple)
     {
         var tileHeight = GetOverrideHeight(tile);
-        var neighbor = _tileService.GetNeighborByIdx(tile, idx);
+        var neighbor = _tileRepo.GetNeighborByIdx(tile, idx);
         var neighborHeight = GetOverrideHeight(neighbor);
         // 连接将由更低的地块或相同高度时 Id 更大的地块生成，或者是编辑地块与非编辑地块间的连接
         if ((tileHeight > neighborHeight
@@ -790,7 +795,7 @@ public class ChunkTriangulation
 
         _chunk.Features.AddWall(e, tile, en, neighbor, hasRiver, hasRoad, Overrider, Lod);
 
-        var preNeighbor = _tileService.GetNeighborByIdx(tile, tile.PreviousIdx(idx));
+        var preNeighbor = _tileRepo.GetNeighborByIdx(tile, tile.PreviousIdx(idx));
         var preNeighborHeight = GetOverrideHeight(preNeighbor);
         // 连接角落的三角形由周围 3 个地块中最低或者一样高时 Id 最大的生成，或者是编辑地块与非编辑地块间的连接三角形
         if (tileHeight < preNeighborHeight

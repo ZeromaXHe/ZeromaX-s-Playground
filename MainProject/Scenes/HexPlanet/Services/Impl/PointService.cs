@@ -1,8 +1,6 @@
-using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Constants;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils.HexSphereGrid;
@@ -14,62 +12,8 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Impl;
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-02-24 13:35
-public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPointService
+public class PointService(IFaceRepo faceRepo, IPointRepo pointRepo) : IPointService
 {
-    #region 透传存储库方法
-
-    public void Truncate() => pointRepo.Truncate();
-    public Point GetById(int id) => pointRepo.GetById(id);
-    public int? GetIdByPosition(bool chunky, Vector3 pos) => pointRepo.GetIdByPosition(chunky, pos);
-    public IEnumerable<Point> GetAllByChunky(bool chunky) => pointRepo.GetAllByChunky(chunky);
-
-    #endregion
-
-    public List<Face> GetOrderedFaces(Point center)
-    {
-        var faces = center.FaceIds.Select(faceService.GetById).ToList();
-        if (faces.Count == 0) return faces;
-        // 将第一个面设置为最接近北方顺时针方向第一个的面
-        var first = faces[0];
-        var minAngle = Mathf.Tau;
-        foreach (var face in faces)
-        {
-            var angle = center.Position.DirectionTo(face.Center).AngleTo(Vector3.Up);
-            if (angle < minAngle)
-            {
-                minAngle = angle;
-                first = face;
-            }
-        }
-
-        // 第二个面必须保证和第一个面形成顺时针方向，从而保证所有都是顺时针
-        var second =
-            faces.First(face =>
-                face.Id != first.Id
-                && face.IsAdjacentTo(first)
-                && Math3dUtil.IsRightVSeq(Vector3.Zero, center.Position, first.Center, face.Center));
-        var orderedList = new List<Face> { first, second };
-        var currentFace = orderedList[1];
-        while (orderedList.Count < faces.Count)
-        {
-            var existingIds = orderedList.Select(face => face.Id).ToList();
-            var neighbour = faces.First(face =>
-                !existingIds.Contains(face.Id) && face.IsAdjacentTo(currentFace));
-            currentFace = neighbour;
-            orderedList.Add(currentFace);
-        }
-
-        return orderedList;
-    }
-
-    public List<Point> GetNeighborCenterIds(List<Face> hexFaces, Point center)
-    {
-        return (
-            from face in hexFaces
-            select faceService.GetRightOtherPoints(face, center)
-        ).ToList();
-    }
-
     public void InitPointsAndFaces(bool chunky, int divisions)
     {
         var time = Time.GetTicksMsec();
@@ -80,7 +24,7 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
 
     private void InitPointFaceIds(bool chunky)
     {
-        foreach (var face in faceService.GetAllByChunky(chunky))
+        foreach (var face in faceRepo.GetAllByChunky(chunky))
         foreach (var p in face.TriVertices.Select(v => pointRepo.GetByPosition(chunky, v)))
         {
             if (p.FaceIds == null)
@@ -152,14 +96,14 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
             {
                 if (j > 0)
                 {
-                    faceService.Add(chunky, [nowLine[j], preLine[j], preLine[j - 1]]);
+                    faceRepo.Add(chunky, [nowLine[j], preLine[j], preLine[j - 1]]);
                     if (i == divisions)
                         pointRepo.Add(chunky, nowLine[j], new SphereAxial(-divisions * col - j, 0));
                     else
                         pointRepo.Add(chunky, nowLine[j], new SphereAxial(-divisions * col - j, i - divisions));
                 }
 
-                faceService.Add(chunky, [preLine[j], nowLine[j], nowLine[j + 1]]);
+                faceRepo.Add(chunky, [preLine[j], nowLine[j], nowLine[j + 1]]);
             }
 
             preLine = nowLine;
@@ -188,14 +132,14 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
             {
                 if (j > 0)
                 {
-                    faceService.Add(chunky, [nowLineEast[j], preLineEast[j], preLineEast[j - 1]]);
+                    faceRepo.Add(chunky, [nowLineEast[j], preLineEast[j], preLineEast[j - 1]]);
                     if (i == divisions)
                         pointRepo.Add(chunky, nowLineEast[j], new SphereAxial(-divisions * col - j, i));
                     else
                         pointRepo.Add(chunky, nowLineEast[j], new SphereAxial(-divisions * col - j, i));
                 }
 
-                faceService.Add(chunky, [preLineEast[j], nowLineEast[j], nowLineEast[j + 1]]);
+                faceRepo.Add(chunky, [preLineEast[j], nowLineEast[j], nowLineEast[j + 1]]);
             }
 
             // 构造西边面（第二面）
@@ -205,12 +149,12 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
             {
                 if (j > 0)
                 {
-                    faceService.Add(chunky, [preLineWest[j], nowLineWest[j - 1], nowLineWest[j]]);
+                    faceRepo.Add(chunky, [preLineWest[j], nowLineWest[j - 1], nowLineWest[j]]);
                     if (j < divisions - i)
                         pointRepo.Add(chunky, nowLineWest[j], new SphereAxial(-divisions * col - i - j, i));
                 }
 
-                faceService.Add(chunky, [nowLineWest[j], preLineWest[j + 1], preLineWest[j]]);
+                faceRepo.Add(chunky, [nowLineWest[j], preLineWest[j + 1], preLineWest[j]]);
             }
 
             preLineEast = nowLineEast;
@@ -234,12 +178,12 @@ public class PointService(IFaceService faceService, IPointRepo pointRepo) : IPoi
             {
                 if (j > 0)
                 {
-                    faceService.Add(chunky, [preLine[j], nowLine[j - 1], nowLine[j]]);
+                    faceRepo.Add(chunky, [preLine[j], nowLine[j - 1], nowLine[j]]);
                     if (j < divisions - i)
                         pointRepo.Add(chunky, nowLine[j], new SphereAxial(-divisions * col - i - j, divisions + i));
                 }
 
-                faceService.Add(chunky, [nowLine[j], preLine[j + 1], preLine[j]]);
+                faceRepo.Add(chunky, [nowLine[j], preLine[j + 1], preLine[j]]);
             }
 
             preLine = nowLine;

@@ -3,6 +3,7 @@ using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.MiniMap;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
@@ -207,7 +208,9 @@ public partial class HexPlanetHud : Control
     #region services
 
     private ITileService _tileService;
-    private IChunkService _chunkService;
+    private ITileRepo _tileRepo;
+    private IChunkRepo _chunkRepo;
+    private IPointRepo _pointRepo;
     private IPlanetSettingService _planetSettingService;
     private IEditorService _editorService;
     private IMiniMapService _miniMapService;
@@ -215,7 +218,9 @@ public partial class HexPlanetHud : Control
     private void InitServices()
     {
         _tileService = Context.GetBean<ITileService>();
-        _chunkService = Context.GetBean<IChunkService>();
+        _tileRepo = Context.GetBean<ITileRepo>();
+        _chunkRepo = Context.GetBean<IChunkRepo>();
+        _pointRepo = Context.GetBean<IPointRepo>();
         _planetSettingService = Context.GetBean<IPlanetSettingService>();
         _editorService = Context.GetBean<IEditorService>();
         _miniMapService = Context.GetBean<IMiniMapService>();
@@ -263,7 +268,7 @@ public partial class HexPlanetHud : Control
             {
                 _idLineEdit.Text = _chosenTile.Id.ToString();
                 _chunkLineEdit.Text = _chosenTile.ChunkId.ToString();
-                var sa = _tileService.GetSphereAxial(_chosenTile);
+                var sa = _pointRepo.GetSphereAxial(_chosenTile);
                 _coordsLineEdit.Text = sa.ToString();
                 _coordsLineEdit.TooltipText = _coordsLineEdit.Text;
                 _heightLineEdit.Text = $"{_tileService.GetHeight(_chosenTile):F4}";
@@ -398,8 +403,8 @@ public partial class HexPlanetHud : Control
         _radiusLineEdit.Text = $"{_hexPlanetManager.Radius:F2}";
         _divisionLineEdit.Text = $"{_hexPlanetManager.Divisions}";
         _chunkDivisionLineEdit.Text = $"{_hexPlanetManager.ChunkDivisions}";
-        _chunkCountLabel.Text = $"分块总数：{_chunkService.GetCount()}";
-        _tileCountLabel.Text = $"地块总数：{_tileService.GetCount()}";
+        _chunkCountLabel.Text = $"分块总数：{_chunkRepo.GetCount()}";
+        _tileCountLabel.Text = $"地块总数：{_tileRepo.GetCount()}";
     }
 
     public override void _Process(double delta)
@@ -460,6 +465,6 @@ public partial class HexPlanetHud : Control
     private void ValidateDrag(Tile currentTile)
     {
         _dragTile = currentTile;
-        _isDrag = _tileService.IsNeighbor(currentTile, _previousTile);
+        _isDrag = currentTile.IsNeighbor(_previousTile);
     }
 }

@@ -14,4 +14,6 @@ public interface IPointRepo : IRepository<Point>
     Point GetByPosition(bool chunky, Vector3 position);
     int? GetIdByPosition(bool chunky, Vector3 position);
     IEnumerable<Point> GetAllByChunky(bool chunky);
+    List<Point> GetNeighborCenterIds(List<Face> hexFaces, Point center);
+    SphereAxial GetSphereAxial(Tile tile);
 }

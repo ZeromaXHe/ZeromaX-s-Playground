@@ -3,6 +3,7 @@ using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Structs;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
@@ -29,14 +30,14 @@ public partial class EditPreviewChunk : Node3D, IChunk
     [Export] public HexMesh Estuary { get; set; }
     [Export] public HexFeatureManager Features { get; set; }
 
-    #region 服务
+    #region 服务与存储
 
-    private ITileService _tileService;
+    private ITileRepo _tileRepo;
     private IEditorService _editorService;
 
     private void InitServices()
     {
-        _tileService = Context.GetBean<ITileService>();
+        _tileRepo = Context.GetBean<ITileRepo>();
         _editorService = Context.GetBean<IEditorService>();
     }
 
@@ -83,7 +84,7 @@ public partial class EditPreviewChunk : Node3D, IChunk
         {
             // 更新地块预览
             Refresh(_editorService.TileOverrider,
-                _tileService.GetTilesInDistance(tile, _editorService.TileOverrider.BrushSize));
+                _tileRepo.GetTilesInDistance(tile, _editorService.TileOverrider.BrushSize));
             Show();
         }
         else Hide();

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
@@ -60,4 +61,51 @@ public class PointRepo : Repository<Point>, IPointRepo
         (chunky ? _chunkPositionIndex : _tilePositionIndex).TryGetValue(position, out var id)
             ? id
             : null;
+
+    public List<Point> GetNeighborCenterIds(List<Face> hexFaces, Point center)
+    {
+        return (
+            from face in hexFaces
+            select GetRightOtherPoints(face, center)
+        ).ToList();
+    }
+
+    // 按照顺时针方向返回三角形上的在指定顶点后的另外两个顶点
+    private IEnumerable<Point> GetOtherPoints(Face face, Point point)
+    {
+        // 注意：并没有对 face 和 point 的 Chunky 进行校验
+        var idx = GetPointIdx(face, point);
+        yield return GetByPosition(face.Chunky, face.TriVertices[(idx + 1) % 3]);
+        yield return GetByPosition(face.Chunky, face.TriVertices[(idx + 2) % 3]);
+    }
+
+    // 顺时针第一个顶点
+    private Point GetLeftOtherPoints(Face face, Point point)
+    {
+        var idx = GetPointIdx(face, point);
+        return GetByPosition(face.Chunky, face.TriVertices[(idx + 1) % 3]);
+    }
+
+    // 顺时针第二个顶点
+    private Point GetRightOtherPoints(Face face, Point point)
+    {
+        var idx = GetPointIdx(face, point);
+        return GetByPosition(face.Chunky, face.TriVertices[(idx + 2) % 3]);
+    }
+
+    private static int GetPointIdx(Face face, Point point)
+    {
+        if (face.TriVertices.All(facePointId => facePointId != point.Position))
+            throw new ArgumentException("Given point must be one of the points on the face!");
+
+        for (var i = 0; i < 3; i++)
+        {
+            if (face.TriVertices[i] == point.Position)
+                return i;
+        }
+
+        return -1;
+    }
+
+    public SphereAxial GetSphereAxial(Tile tile) => GetById(tile.CenterId).Coords;
 }

@@ -6,6 +6,7 @@ using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.LandGenerators;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
 
@@ -135,15 +136,17 @@ public partial class HexMapGenerator : Node
 
     #endregion
 
-    #region 服务
+    #region 服务和存储
 
-    private ITileService _tileService;
+    private IPointRepo _pointRepo;
+    private ITileRepo _tileRepo;
     private INoiseService _noiseService;
     private IPlanetSettingService _planetSettingService;
 
     private void InitServices()
     {
-        _tileService = Context.GetBean<ITileService>();
+        _pointRepo = Context.GetBean<IPointRepo>();
+        _tileRepo = Context.GetBean<ITileRepo>();
         _noiseService = Context.GetBean<INoiseService>();
         _planetSettingService = Context.GetBean<IPlanetSettingService>();
     }
@@ -172,7 +175,7 @@ public partial class HexMapGenerator : Node
 
         GD.Print($"Generating map with seed {_seed}");
         _random.Seed = (ulong)_seed;
-        foreach (var tile in _tileService.GetAll())
+        foreach (var tile in _tileRepo.GetAll())
             tile.Data = tile.Data with
             {
                 Values = tile.Data.Values.WithWaterLevel(DefaultWaterLevel).WithElevation(0)
@@ -234,7 +237,7 @@ public partial class HexMapGenerator : Node
         _nextClimate.Clear();
         var initialData = new ClimateData { Moisture = _startingMoisture };
         var clearData = new ClimateData();
-        for (var i = 0; i <= _tileService.GetCount(); i++)
+        for (var i = 0; i <= _tileRepo.GetCount(); i++)
         {
             _climate.Add(initialData);
             _nextClimate.Add(clearData);
@@ -242,7 +245,7 @@ public partial class HexMapGenerator : Node
 
         for (var cycle = 0; cycle < 40; cycle++)
         {
-            foreach (var tile in _tileService.GetAll())
+            foreach (var tile in _tileRepo.GetAll())
                 EvolveClimate(tile);
             (_nextClimate, _climate) = (_climate, _nextClimate);
         }
@@ -278,7 +281,7 @@ public partial class HexMapGenerator : Node
         var cloudDispersal = tileClimate.Clouds * (1f / (edgeCount - 1 + _windStrength));
         var runoff = tileClimate.Moisture * _runoffFactor * (1f / edgeCount);
         var seepage = tileClimate.Moisture * _seepageFactor * (1f / edgeCount);
-        foreach (var neighbor in _tileService.GetNeighbors(tile))
+        foreach (var neighbor in _tileRepo.GetNeighbors(tile))
         {
             var neighborClimate = _nextClimate[neighbor.Id];
             if (tile.GetNeighborIdx(neighbor) == mainDispersalDirection)
@@ -311,7 +314,7 @@ public partial class HexMapGenerator : Node
     private void CreateRivers()
     {
         var riverOrigins = new List<Tile>();
-        foreach (var tile in _tileService.GetAll())
+        foreach (var tile in _tileRepo.GetAll())
         {
             if (tile.Data.IsUnderwater) continue;
             var data = _climate[tile.Id];
@@ -340,7 +343,7 @@ public partial class HexMapGenerator : Node
             riverOrigins.RemoveAt(lastIndex);
             if (!origin.Data.HasRiver)
             {
-                var isValidOrigin = _tileService.GetNeighbors(origin)
+                var isValidOrigin = _tileRepo.GetNeighbors(origin)
                     .All(neighbor => !neighbor.Data.HasRiver && !neighbor.Data.IsUnderwater);
                 if (isValidOrigin)
                     riverBudget -= CreateRiver(origin);
@@ -362,7 +365,7 @@ public partial class HexMapGenerator : Node
         {
             var minNeighborElevation = int.MaxValue;
             _flowDirections.Clear();
-            var neighbors = _tileService.GetNeighbors(tile).ToList();
+            var neighbors = _tileRepo.GetNeighbors(tile).ToList();
             foreach (var neighbor in neighbors)
             {
                 if (neighbor.Data.Elevation < minNeighborElevation)
@@ -374,7 +377,7 @@ public partial class HexMapGenerator : Node
                     continue;
                 if (neighbor.Data.HasOutgoingRiver)
                 {
-                    _tileService.SetOutgoingRiver(tile, neighbor);
+                    _tileRepo.SetOutgoingRiver(tile, neighbor);
                     return length;
                 }
 
@@ -409,8 +412,8 @@ public partial class HexMapGenerator : Node
             }
 
             direction = _flowDirections[_random.RandiRange(0, _flowDirections.Count - 1)];
-            var riverToTile = _tileService.GetNeighborByIdx(tile, direction);
-            _tileService.SetOutgoingRiver(tile, riverToTile);
+            var riverToTile = _tileRepo.GetNeighborByIdx(tile, direction);
+            _tileRepo.SetOutgoingRiver(tile, riverToTile);
             length++;
             if (minNeighborElevation >= tile.Data.Elevation && _random.Randf() < _extraLakeProbability)
             {
@@ -435,7 +438,7 @@ public partial class HexMapGenerator : Node
     {
         _temperatureJitterChannel = _random.RandiRange(0, 3);
         var rockDesertElevation = ElevationStep - (ElevationStep - DefaultWaterLevel) / 2;
-        foreach (var tile in _tileService.GetAll())
+        foreach (var tile in _tileRepo.GetAll())
         {
             var temperature = DetermineTemperature(tile);
             var moisture = _climate[tile.Id].Moisture;
@@ -478,7 +481,7 @@ public partial class HexMapGenerator : Node
                 if (tile.Data.Elevation == DefaultWaterLevel - 1)
                 {
                     int cliffs = 0, slopes = 0;
-                    foreach (var neighbor in _tileService.GetNeighbors(tile))
+                    foreach (var neighbor in _tileRepo.GetNeighbors(tile))
                     {
                         var delta = neighbor.Data.Elevation - tile.Data.WaterLevel;
                         if (delta == 0)
@@ -515,7 +518,7 @@ public partial class HexMapGenerator : Node
 
     private float DetermineTemperature(Tile tile)
     {
-        var sphereAxial = _tileService.GetSphereAxial(tile);
+        var sphereAxial = _pointRepo.GetSphereAxial(tile);
         var latitude = (sphereAxial.Coords.R + _planetSettingService.Divisions) /
                        (3f * _planetSettingService.Divisions);
         // 具有南北半球

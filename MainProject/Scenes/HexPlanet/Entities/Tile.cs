@@ -33,8 +33,8 @@ public class Tile(
     // 已确保顺序和 HexFaceIds 对应，每个邻居共边的顶点是 HexFaceIds[i] 和 HexFaceIds[(i + 1) % HexFaceIds.Count]
     public List<int> NeighborCenterIds { get; } = neighborCenterIds;
 
-    public int GetNeighborIdx(Tile neighbor) =>
-        NeighborCenterIds.FindIndex(cId => cId == neighbor.CenterId);
+    public int GetNeighborIdx(Tile neighbor) => NeighborCenterIds.FindIndex(cId => cId == neighbor.CenterId);
+    public bool IsNeighbor(Tile tile) => NeighborCenterIds.Contains(tile.CenterId);
 
     public HexTileData Data { get; set; } = new();
 

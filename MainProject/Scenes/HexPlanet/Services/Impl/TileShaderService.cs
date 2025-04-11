@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Enums;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Civs;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services.Impl;
@@ -13,18 +14,18 @@ public class TileShaderService : ITileShaderService
 {
     public event ITileShaderService.TileExploredEvent TileExplored;
 
-    private readonly ITileService _tileService;
+    private readonly ITileRepo _tileRepo;
     private readonly ITileSearchService _tileSearchService;
     private readonly IUnitService _unitService;
     private readonly ICivService _civService;
     private readonly IPlanetSettingService _planetSettingService;
 
-    public TileShaderService(ITileService tileService, ITileSearchService tileSearchService,
+    public TileShaderService(ITileRepo tileRepo, ITileSearchService tileSearchService,
         IUnitService unitService, ICivService civService, IPlanetSettingService planetSettingService)
     {
-        _tileService = tileService;
-        _tileService.RefreshTerrainShader += RefreshTerrain;
-        _tileService.ViewElevationChanged += ViewElevationChanged;
+        _tileRepo = tileRepo;
+        _tileRepo.RefreshTerrainShader += RefreshTerrain;
+        _tileRepo.ViewElevationChanged += ViewElevationChanged;
         _tileSearchService = tileSearchService;
         _unitService = unitService;
         _civService = civService;
@@ -79,7 +80,7 @@ public class TileShaderService : ITileShaderService
 
     public void RefreshCiv(int tileId)
     {
-        var tile = _tileService.GetById(tileId);
+        var tile = _tileRepo.GetById(tileId);
         if (tile.CivId <= 0)
             _tileCivTextureData[tileId] = Colors.Black;
         else
@@ -93,7 +94,7 @@ public class TileShaderService : ITileShaderService
 
     public void RefreshTerrain(int tileId)
     {
-        var tile = _tileService.GetById(tileId);
+        var tile = _tileRepo.GetById(tileId);
         var data = _tileTextureData[tileId];
         data.B8 = tile.Data.IsUnderwater
             ? (int)(tile.Data.WaterSurfaceY * (255f / _planetSettingService.MaxHeight))
@@ -108,7 +109,7 @@ public class TileShaderService : ITileShaderService
     {
         if (ImmediateMode)
         {
-            var tile = _tileService.GetById(tileId);
+            var tile = _tileRepo.GetById(tileId);
             _tileTextureData[tileId].R8 = tile.IsVisible ? 255 : 0;
             _tileTextureData[tileId].G8 = tile.Data.IsExplored ? 255 : 0;
             ChangePixel(_tileTexture, tileId, _tileTextureData[tileId]);
@@ -159,7 +160,7 @@ public class TileShaderService : ITileShaderService
 
     private void ResetVisibility()
     {
-        foreach (var tile in _tileService.GetAll())
+        foreach (var tile in _tileRepo.GetAll())
         {
             if (tile.Visibility <= 0) continue;
             tile.Visibility = 0;
@@ -168,7 +169,7 @@ public class TileShaderService : ITileShaderService
 
         foreach (var unit in _unitService.GetAll())
         {
-            IncreaseVisibility(_tileService.GetById(unit.TileId), Unit.VisionRange);
+            IncreaseVisibility(_tileRepo.GetById(unit.TileId), Unit.VisionRange);
         }
     }
 
@@ -206,7 +207,7 @@ public class TileShaderService : ITileShaderService
 
     public void ViewElevationChanged(int tileId)
     {
-        var tile = _tileService.GetById(tileId);
+        var tile = _tileRepo.GetById(tileId);
         _tileTextureData[tileId].B8 = tile.Data.IsUnderwater
             ? (int)(tile.Data.WaterSurfaceY * (255f / _planetSettingService.MaxHeight))
             : 0;
@@ -219,7 +220,7 @@ public class TileShaderService : ITileShaderService
     {
         var data = _tileTextureData[id];
         var stillUpdating = false;
-        var tile = _tileService.GetById(id);
+        var tile = _tileRepo.GetById(id);
         if (tile.Data.IsExplored && data.G8 < 255)
         {
             stillUpdating = true;

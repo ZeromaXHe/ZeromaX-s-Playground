@@ -3,6 +3,7 @@ using System.Linq;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Entities;
+using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Repos;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Services;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.LandGenerators;
@@ -35,14 +36,14 @@ public partial class ErosionLandGenerator : Node
 
     [Export(PropertyHint.Range, "0, 100")] private int _erosionPercentage = 50;
 
-    #region 服务
+    #region 服务和存储
 
-    private ITileService _tileService;
+    private ITileRepo _tileRepo;
     private ITileSearchService _tileSearchService;
 
     private void InitServices()
     {
-        _tileService = Context.GetBean<ITileService>();
+        _tileRepo = Context.GetBean<ITileRepo>();
         _tileSearchService = Context.GetBean<ITileSearchService>();
     }
 
@@ -50,7 +51,7 @@ public partial class ErosionLandGenerator : Node
 
     public int CreateLand(RandomNumberGenerator random, List<MapRegion> regions)
     {
-        var landTileCount = Mathf.RoundToInt(_tileService.GetCount() * _landPercentage * 0.01f);
+        var landTileCount = Mathf.RoundToInt(_tileRepo.GetCount() * _landPercentage * 0.01f);
         var landBudget = landTileCount;
         // 根据地图尺寸来设置对应循环次数上限，保证大地图也能尽量用完 landBudget
         for (var guard = 0; guard < landTileCount; guard++) // 防止无限循环的守卫值
@@ -92,13 +93,13 @@ public partial class ErosionLandGenerator : Node
 
     private int GetRandomCellIndex(MapRegion region)
     {
-        return GD.RandRange(1, _tileService.GetCount());
+        return GD.RandRange(1, _tileRepo.GetCount());
     }
 
 
     public void ErodeLand(RandomNumberGenerator random)
     {
-        var erodibleTiles = _tileService.GetAll().Where(IsErodible).ToList();
+        var erodibleTiles = _tileRepo.GetAll().Where(IsErodible).ToList();
         var targetErodibleCount = (int)(erodibleTiles.Count * (100 - _erosionPercentage) * 0.01f);
         while (erodibleTiles.Count > targetErodibleCount)
         {
@@ -117,7 +118,7 @@ public partial class ErosionLandGenerator : Node
                 erodibleTiles.RemoveAt(lastIndex);
             }
 
-            foreach (var neighbor in _tileService.GetNeighbors(tile))
+            foreach (var neighbor in _tileRepo.GetNeighbors(tile))
             {
                 if (neighbor.Data.Elevation == tile.Data.Elevation + 2 && !erodibleTiles.Contains(neighbor))
                     erodibleTiles.Add(neighbor);
@@ -125,7 +126,7 @@ public partial class ErosionLandGenerator : Node
 
             if (IsErodible(targetTile) && !erodibleTiles.Contains(targetTile))
                 erodibleTiles.Add(targetTile);
-            foreach (var neighbor in _tileService.GetNeighbors(targetTile))
+            foreach (var neighbor in _tileRepo.GetNeighbors(targetTile))
             {
                 // 有一个台阶上去就不是悬崖孤台了
                 if (neighbor.Data.Elevation == targetTile.Data.Elevation + 1 && !IsErodible(neighbor))
@@ -137,14 +138,14 @@ public partial class ErosionLandGenerator : Node
     private bool IsErodible(Tile tile)
     {
         var erodibleElevation = tile.Data.Elevation - 2;
-        return _tileService.GetNeighbors(tile)
+        return _tileRepo.GetNeighbors(tile)
             .Any(neighbor => neighbor.Data.Elevation <= erodibleElevation);
     }
 
     private Tile GetErosionTarget(RandomNumberGenerator random, Tile tile)
     {
         var erodibleElevation = tile.Data.Elevation - 2;
-        var candidates = _tileService.GetNeighbors(tile)
+        var candidates = _tileRepo.GetNeighbors(tile)
             .Where(neighbor => neighbor.Data.Elevation <= erodibleElevation)
             .ToList();
         return candidates[random.RandiRange(0, candidates.Count - 1)];
