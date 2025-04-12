@@ -1,5 +1,5 @@
+using Apps.Events;
 using Godot;
-using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 
@@ -51,12 +51,12 @@ public partial class LongitudeLatitude : Node3D
                 _fadeVisibility = false;
                 Show();
                 if (_ready)
-                    EventBus.Instance.CameraMoved -= OnCameraMoved;
+                    OrbitCameraEvent.Instance.Moved -= OnCameraMoved;
             }
             else
             {
                 if (_ready)
-                    EventBus.Instance.CameraMoved += OnCameraMoved;
+                    OrbitCameraEvent.Instance.Moved += OnCameraMoved;
                 SetProcess(true);
             }
         }
@@ -88,7 +88,7 @@ public partial class LongitudeLatitude : Node3D
         _meshIns = new MeshInstance3D();
         AddChild(_meshIns);
         if (!Engine.IsEditorHint())
-            EventBus.Instance.CameraMoved += OnCameraMoved;
+            OrbitCameraEvent.Instance.Moved += OnCameraMoved;
         _ready = true;
         // 在 _ready = true 后面，触发 setter 的着色器参数初始化
         Visibility = FullVisibility;
@@ -97,7 +97,7 @@ public partial class LongitudeLatitude : Node3D
     public override void _ExitTree()
     {
         if (!Engine.IsEditorHint())
-            EventBus.Instance.CameraMoved -= OnCameraMoved;
+            OrbitCameraEvent.Instance.Moved -= OnCameraMoved;
     }
 
     public override void _Process(double delta)

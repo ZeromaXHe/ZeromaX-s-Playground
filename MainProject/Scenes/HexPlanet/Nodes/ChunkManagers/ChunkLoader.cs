@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Apps.Events;
 using Apps.Services.Shaders;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.ValueObjects.PlanetGenerates;
@@ -9,7 +10,6 @@ using Domains.Repos.PlanetGenerates;
 using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
-using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.ChunkManagers;
 
@@ -41,7 +41,7 @@ public partial class ChunkLoader : Node3D
         _tileShaderService.TileExplored += ExploreFeatures;
         if (!Engine.IsEditorHint())
         {
-            EventBus.Instance.CameraTransformed += UpdateInsightChunks;
+            OrbitCameraEvent.Instance.Transformed += UpdateInsightChunks;
         }
     }
 
@@ -77,7 +77,7 @@ public partial class ChunkLoader : Node3D
         _chunkRepo.RefreshChunkTileLabel -= OnChunkServiceRefreshChunkTileLabel;
         if (!Engine.IsEditorHint())
         {
-            EventBus.Instance.CameraTransformed -= UpdateInsightChunks;
+            OrbitCameraEvent.Instance.Transformed -= UpdateInsightChunks;
         }
     }
 

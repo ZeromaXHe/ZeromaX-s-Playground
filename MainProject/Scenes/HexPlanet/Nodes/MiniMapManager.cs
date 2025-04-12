@@ -1,10 +1,10 @@
+using Apps.Events;
 using Commons.Utils.HexSphereGrid;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Repos.PlanetGenerates;
 using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
-using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 
@@ -55,14 +55,14 @@ public partial class MiniMapManager : Node2D
     {
         InitOnReadyNodes();
         InitServices();
-        EventBus.Instance.CameraMoved += SyncCameraIconPos;
+        OrbitCameraEvent.Instance.Moved += SyncCameraIconPos;
         GD.Print("MiniMapManager _Ready");
     }
 
     public override void _ExitTree()
     {
         CleanEventListeners();
-        EventBus.Instance.CameraMoved -= SyncCameraIconPos;
+        OrbitCameraEvent.Instance.Moved -= SyncCameraIconPos;
     }
 
     // 同步相机标志的位置
@@ -87,7 +87,7 @@ public partial class MiniMapManager : Node2D
         var mapVec = _terrainLayer.LocalToMap(mousePos);
         var sa = new SphereAxial(mapVec.X, mapVec.Y);
         if (!sa.IsValid()) return;
-        EventBus.EmitNewCameraDestination(sa.ToLongitudeAndLatitude().ToDirectionVector3());
+        OrbitCameraEvent.EmitNewDestination(sa.ToLongitudeAndLatitude().ToDirectionVector3());
     }
 
     // 标准摄像机对应 Divisions = 10

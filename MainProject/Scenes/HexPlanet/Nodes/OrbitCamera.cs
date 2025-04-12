@@ -1,7 +1,7 @@
+using Apps.Events;
 using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
-using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 
@@ -136,7 +136,7 @@ public partial class OrbitCamera : Node3D
         InitOnReadyNodes();
         if (!Engine.IsEditorHint())
         {
-            EventBus.Instance.NewCameraDestination += SetAutoPilot;
+            OrbitCameraEvent.Instance.NewDestination += SetAutoPilot;
             // 必须在 _ready = true 后面，触发各数据 setter 的初始化
             Reset();
         }
@@ -147,7 +147,7 @@ public partial class OrbitCamera : Node3D
     public override void _ExitTree()
     {
         if (!Engine.IsEditorHint())
-            EventBus.Instance.NewCameraDestination -= SetAutoPilot;
+            OrbitCameraEvent.Instance.NewDestination -= SetAutoPilot;
     }
 
     public Vector3 GetFocusBasePos() => _focusBase.GlobalPosition;
@@ -207,7 +207,7 @@ public partial class OrbitCamera : Node3D
             if (!lookDir.IsEqualApprox(GetFocusBasePos().Normalized()))
             {
                 LookAt(lookDir, _focusBase.GlobalBasis.Z);
-                EventBus.EmitCameraMoved(GetFocusBasePos(), floatDelta);
+                OrbitCameraEvent.EmitMoved(GetFocusBasePos(), floatDelta);
                 transformed = true;
             }
 
@@ -231,7 +231,7 @@ public partial class OrbitCamera : Node3D
         }
 
         if (transformed)
-            EventBus.EmitCameraTransformed(_camRig.GlobalTransform, floatDelta);
+            OrbitCameraEvent.EmitTransformed(_camRig.GlobalTransform, floatDelta);
 
         // 根据相对于全局太阳光的位置，控制灯光亮度
         if (_sun == null)
@@ -268,7 +268,7 @@ public partial class OrbitCamera : Node3D
         _antiStuckSpeedMultiplier = prePos.IsEqualApprox(GetFocusBasePos())
             ? _antiStuckSpeedMultiplier * 1.5f
             : 1f;
-        EventBus.EmitCameraMoved(GetFocusBasePos(), delta);
+        OrbitCameraEvent.EmitMoved(GetFocusBasePos(), delta);
         // 打断自动跳转
         CancelAutoPilot();
         return true;
@@ -282,7 +282,7 @@ public partial class OrbitCamera : Node3D
         {
             var zoomDelta = 0.025f * e.Factor * (e.ButtonIndex == MouseButton.WheelUp ? 1f : -1f);
             Zoom = Mathf.Clamp(Zoom + zoomDelta, 0f, 1f);
-            EventBus.EmitCameraTransformed(_camRig.GlobalTransform, (float)GetProcessDeltaTime());
+            OrbitCameraEvent.EmitTransformed(_camRig.GlobalTransform, (float)GetProcessDeltaTime());
         }
     }
 

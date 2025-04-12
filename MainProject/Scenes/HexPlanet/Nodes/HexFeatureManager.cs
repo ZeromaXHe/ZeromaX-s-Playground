@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Apps.Events;
+using Apps.Models.Features;
 using Apps.Services.Uis;
 using Commons.Enums;
 using Commons.Utils;
@@ -9,43 +11,8 @@ using Domains.Models.ValueObjects.PlanetGenerates;
 using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
-using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
-
-public enum FeatureType
-{
-    // 城市
-    UrbanHigh1,
-    UrbanHigh2,
-    UrbanMid1,
-    UrbanMid2,
-    UrbanLow1,
-    UrbanLow2,
-
-    // 农田
-    FarmHigh1,
-    FarmHigh2,
-    FarmMid1,
-    FarmMid2,
-    FarmLow1,
-    FarmLow2,
-
-    // 植被
-    PlantHigh1,
-    PlantHigh2,
-    PlantMid1,
-    PlantMid2,
-    PlantLow1,
-    PlantLow2,
-
-    // 特殊
-    Tower,
-    Bridge,
-    Castle,
-    Ziggurat,
-    MegaFlora
-}
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
@@ -121,7 +88,7 @@ public partial class HexFeatureManager : Node3D
         foreach (var (_, list) in _container)
         foreach (var feature in list.Where(f => f.Id > -1 && (!onlyUnexplored || !f.Explored)))
         {
-            EventBus.EmitHideFeature(feature.Id, feature.Type, _preview);
+            FeatureEvent.EmitHidden(feature.Id, feature.Type, _preview);
             feature.Id = -1;
         }
     }
@@ -130,7 +97,7 @@ public partial class HexFeatureManager : Node3D
     {
         foreach (var (_, list) in _container)
         foreach (var feature in list.Where(f => f.Id == -1 && (!onlyExplored || f.Explored)))
-            feature.Id = EventBus.EmitShowFeature(feature.Transform, feature.Type, _preview);
+            feature.Id = FeatureEvent.EmitShown(feature.Transform, feature.Type, _preview);
     }
 
     public void ExploreFeatures(int tileId)
@@ -141,7 +108,7 @@ public partial class HexFeatureManager : Node3D
             feature.Explored = true;
             // 正常情况按道理不应该出现还没探索就有 Id 的情况
             if (feature.Id == -1)
-                feature.Id = EventBus.EmitShowFeature(feature.Transform, feature.Type, _preview);
+                feature.Id = FeatureEvent.EmitShown(feature.Transform, feature.Type, _preview);
         }
     }
 

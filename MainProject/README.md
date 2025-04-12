@@ -95,7 +95,7 @@ git gc --prune=now
 
 # 代码架构
 
-- Godot 节点层 Nodes（默认项目）
+- Godot 节点层 Nodes（默认项目，仅保留最浅层的功能；也可以称为展示层 Presenter）
   - 游戏场景
   - UI
 - 应用服务层 Application（提供命令和查询）
@@ -103,27 +103,30 @@ git gc --prune=now
     - 验证 Validation
   - 查询处理器 Query Handler
   - 应用服务 Service
+  - 集成事件 Integration Events
   - DTO
     - 请求 Request
       - 命令 Command
       - 查询 Query
     - 响应 Response
-      - 结果 Result（可以通过接口来控制外界对返回结果的操作权限，这样也就不需要新建对象了）
+      - 结果 Result
+        - 可以通过接口来控制外界对返回结果的操作权限，这样也就不需要新建对象了
+        - 单纯的接口又好像不行，因为领域层在内部，所以估计得用包装器模式？
       - 视图模型 View Model
+- 基础设施 Infrastructure
+  - 数据存储层 Repository
+    - 持久化对象 PO、数据模型 Data Model
 - 领域层 Domain
   - 实体 Entity
   - 值对象 Value Object
   - 聚合根 Aggregate Root
   - 领域服务 Service
   - 工厂 Factory（复杂的初始化逻辑）
-  - 事件总线 Event Bus
+  - 领域事件总线 Event Bus
     - 事件处理器 Event Handler（同步）
     - 信息处理器 Message Handler（异步）
     - 通知处理器 Notification Handler（回调到前端）
     - 事件存储 Event Store
-- 基础设施 Infrastructure
-  - 数据存储层 Repository
-    - 持久化对象 PO、数据模型 Data Model
 - 工具类 Common、Utils
   - Godot 的基础依赖
 
@@ -132,7 +135,14 @@ git gc --prune=now
 需要考虑的一些特殊情况：
 
 1. 全局着色器变量的设置
+   1. 枚举类代替字符串
 2. 事件如何回调到 Godot 节点层
+   1. 用统一用 event 来处理向平级和上级的回调
+   2. 事件类不需要接口，本身就是 delegate 的浅封装
+3. 依赖注入
+   1. 感觉必须有个 Context 来管理单例多例，不然在各自静态方法里面进行初始化的话，无法控制循环依赖
+   2. 每层一个 Context? 从而避免低层次对所有较高层级直接暴露
+   3. 特殊的是展示层节点的单例、多例如何处理。因为涉及到 Godot 的生命周期，感觉好像就不适合自己维护
 
 # 玩法策划
 

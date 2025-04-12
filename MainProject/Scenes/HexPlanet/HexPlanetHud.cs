@@ -1,3 +1,4 @@
+using Apps.Events;
 using Apps.Services.Uis;
 using Commons.Utils;
 using Commons.Utils.HexSphereGrid;
@@ -6,7 +7,6 @@ using Domains.Repos.PlanetGenerates;
 using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
-using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
@@ -154,8 +154,8 @@ public partial class HexPlanetHud : Control
 
         _hexPlanetManager.NewPlanetGenerated += UpdateNewPlanetInfo;
         _hexPlanetManager.NewPlanetGenerated += InitMiniMap;
-        EventBus.Instance.CameraMoved += OnCameraMoved;
-        EventBus.Instance.CameraTransformed += OnCameraTransformed;
+        OrbitCameraEvent.Instance.Moved += OnCameraMoved;
+        OrbitCameraEvent.Instance.Transformed += OnCameraTransformed;
     }
 
     private void InitMiniMap()
@@ -199,8 +199,8 @@ public partial class HexPlanetHud : Control
     {
         _hexPlanetManager.NewPlanetGenerated -= UpdateNewPlanetInfo;
         _hexPlanetManager.NewPlanetGenerated -= InitMiniMap;
-        EventBus.Instance.CameraMoved -= OnCameraMoved;
-        EventBus.Instance.CameraTransformed -= OnCameraTransformed;
+        OrbitCameraEvent.Instance.Moved -= OnCameraMoved;
+        OrbitCameraEvent.Instance.Transformed -= OnCameraTransformed;
     }
 
     #endregion

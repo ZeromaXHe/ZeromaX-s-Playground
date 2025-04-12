@@ -1,5 +1,6 @@
+using Apps.Events;
+using Apps.Models.Features;
 using Godot;
-using ZeromaXsPlaygroundProject.Scenes.Framework.GlobalNode;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.ChunkManagers;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
@@ -56,15 +57,15 @@ public partial class ChunkManager : Node3D
     private void CleanEventListeners()
     {
         _ready = false;
-        EventBus.Instance.ShowFeature -= OnShowFeature;
-        EventBus.Instance.HideFeature -= OnHideFeature;
+        FeatureEvent.Instance.Shown -= OnShowFeature;
+        FeatureEvent.Instance.Hidden -= OnHideFeature;
     }
 
     public void ClearOldData()
     {
         // 清空分块
-        EventBus.Instance.ShowFeature -= OnShowFeature;
-        EventBus.Instance.HideFeature -= OnHideFeature;
+        FeatureEvent.Instance.Shown -= OnShowFeature;
+        FeatureEvent.Instance.Hidden -= OnHideFeature;
         _chunkLoader.ClearOldData();
         _featurePreviewManager.ClearForData();
         _featureMeshManager.ClearOldData();
@@ -73,8 +74,8 @@ public partial class ChunkManager : Node3D
     public void InitChunkNodes()
     {
         var time = Time.GetTicksMsec();
-        EventBus.Instance.ShowFeature += OnShowFeature;
-        EventBus.Instance.HideFeature += OnHideFeature;
+        FeatureEvent.Instance.Shown += OnShowFeature;
+        FeatureEvent.Instance.Hidden += OnHideFeature;
         _chunkLoader.InitChunkNodes();
         GD.Print($"InitChunkNodes cost: {Time.GetTicksMsec() - time} ms");
     }
