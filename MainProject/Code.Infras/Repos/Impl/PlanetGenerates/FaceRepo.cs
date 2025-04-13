@@ -21,6 +21,10 @@ public class FaceRepo : Repository<Face>, IFaceRepo
     {
     }
 
+    protected override void DeleteHook(Face entity)
+    {
+    }
+
     protected override void TruncateHook()
     {
     }

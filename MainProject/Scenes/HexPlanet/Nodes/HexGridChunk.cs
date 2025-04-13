@@ -1,13 +1,14 @@
 using System.Collections.Generic;
 using System.Linq;
-using Apps.Services.Caches;
-using Apps.Services.Shaders;
-using Apps.Services.Uis;
+using Apps.Applications.Features;
 using Commons.Utils;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Domains.Repos.PlanetGenerates;
+using Domains.Services.Caches;
 using Domains.Services.PlanetGenerates;
+using Domains.Services.Shaders;
+using Domains.Services.Uis;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
@@ -53,6 +54,7 @@ public partial class HexGridChunk : Node3D, IChunk
     private static ITileShaderService _tileShaderService;
     private static IPlanetSettingService _planetSettingService;
     private static IEditorService _editorService;
+    private static IFeatureApplication _featureApplication;
 
     private void InitServices()
     {
@@ -64,6 +66,7 @@ public partial class HexGridChunk : Node3D, IChunk
         _tileShaderService ??= Context.GetBeanFromHolder<ITileShaderService>();
         _planetSettingService ??= Context.GetBeanFromHolder<IPlanetSettingService>();
         _editorService ??= Context.GetBeanFromHolder<IEditorService>();
+        _featureApplication ??= Context.GetBeanFromHolder<IFeatureApplication>();
     }
 
     private void OnEditorEditModeChanged(bool mode) =>
@@ -122,7 +125,9 @@ public partial class HexGridChunk : Node3D, IChunk
         ShowInSight(chunk.Lod);
     }
 
+#if !FEATURE_NEW
     public void ExploreFeatures(int tileId) => Features.ExploreFeatures(tileId);
+#endif
 
     private void InitLabels(int id)
     {
@@ -194,7 +199,7 @@ public partial class HexGridChunk : Node3D, IChunk
             ClearOldData();
             var chunk = _chunkRepo.GetById(_id)!;
             var tileIds = chunk.TileIds;
-            var tiles = tileIds.Select(_tileRepo.GetById);
+            var tiles = tileIds.Select(_tileRepo.GetById).ToList();
             foreach (var tile in tiles)
             {
                 _chunkTriangulation.Triangulate(tile);
@@ -208,7 +213,12 @@ public partial class HexGridChunk : Node3D, IChunk
             }
 
             ApplyNewData(!IsHandlingLodGaps(chunk));
+#if FEATURE_NEW
+            foreach (var tile in tiles)
+                _featureApplication.ShowFeatures(tile, !EditMode, false);
+#else
             Features.ShowFeatures(!EditMode);
+#endif
             // GD.Print($"Chunk {_id} BuildMesh cost: {Time.GetTicksMsec() - time} ms");
         }
 
@@ -242,7 +252,11 @@ public partial class HexGridChunk : Node3D, IChunk
         Water.Clear();
         WaterShore.Clear();
         Estuary.Clear();
+#if FEATURE_NEW
+        Features.Clear(false, true);
+#else
         Features.Clear();
+#endif
     }
 
     private static bool IsHandlingLodGaps(Chunk chunk) =>
@@ -287,7 +301,13 @@ public partial class HexGridChunk : Node3D, IChunk
     {
         Show();
         UpdateLod(lod);
+#if FEATURE_NEW
+        // 编辑模式下全部显示，游戏模式下仅显示探索过的
+        foreach (var tile in _chunkRepo.GetById(_id)!.TileIds.Select(_tileRepo.GetById))
+            _featureApplication.ShowFeatures(tile, !EditMode, false);
+#else
         Features.ShowFeatures(!EditMode); // 编辑模式下全部显示，游戏模式下仅显示探索过的
+#endif
         OnEditorEditModeChanged(EditMode);
         _editorService.LabelModeChanged += RefreshTilesLabelMode;
         _editorService.EditModeChanged += OnEditorEditModeChanged;
@@ -302,7 +322,11 @@ public partial class HexGridChunk : Node3D, IChunk
         Water.Clear();
         WaterShore.Clear();
         Estuary.Clear();
+#if FEATURE_NEW
+        Features.Clear(false, false);
+#else
         Features.Clear();
+#endif
         _id = 0; // 重置 id，归还给池子
         _editorService.LabelModeChanged -= RefreshTilesLabelMode;
         _editorService.EditModeChanged -= OnEditorEditModeChanged;

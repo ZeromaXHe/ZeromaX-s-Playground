@@ -10,6 +10,10 @@ public class UnitRepo : Repository<Unit>, IUnitRepo
     {
     }
 
+    protected override void DeleteHook(Unit entity)
+    {
+    }
+
     protected override void TruncateHook()
     {
     }

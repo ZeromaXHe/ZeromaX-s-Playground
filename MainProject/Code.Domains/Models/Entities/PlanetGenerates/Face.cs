@@ -6,7 +6,7 @@ namespace Domains.Models.Entities.PlanetGenerates;
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-02-14 11:50
-public class Face(bool chunky, Vector3 center, int id = -1) : AEntity(id)
+public class Face(bool chunky, Vector3 center, int id = -1) : Entity(id)
 {
     // 是，属于分块；否，属于地块
     public bool Chunky { get; } = chunky;

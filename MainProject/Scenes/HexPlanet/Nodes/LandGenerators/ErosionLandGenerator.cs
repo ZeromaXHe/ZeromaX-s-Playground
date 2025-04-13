@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
-using Apps.Services.Navigations;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Repos.PlanetGenerates;
+using Domains.Services.Navigations;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 

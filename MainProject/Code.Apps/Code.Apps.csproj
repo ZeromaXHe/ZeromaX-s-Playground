@@ -12,4 +12,12 @@
       <ProjectReference Include="..\Code.Domains\Code.Domains.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Remove="Services\Features\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="Services\Features\**" />
+    </ItemGroup>
+
 </Project>

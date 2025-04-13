@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Apps.Models.Features;
+using Domains.Models.ValueObjects.PlanetGenerates;
 using Godot;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.ChunkManagers;

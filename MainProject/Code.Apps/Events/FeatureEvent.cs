@@ -1,4 +1,5 @@
-using Apps.Models.Features;
+using Domains.Models.Entities.PlanetGenerates;
+using Domains.Models.ValueObjects.PlanetGenerates;
 using Godot;
 
 namespace Apps.Events;
@@ -15,13 +16,11 @@ public class FeatureEvent
 
     public event ShowFeatureEvent? Shown;
 
-    public delegate void HideFeatureEvent(int id, FeatureType type, bool preview);
-
-    public event HideFeatureEvent? Hidden;
-
     public static int EmitShown(Transform3D transform, FeatureType type, bool preview) =>
         Instance.Shown?.Invoke(transform, type, preview) ?? -1;
 
-    public static void EmitHidden(int id, FeatureType type, bool preview) =>
-        Instance.Hidden?.Invoke(id, type, preview);
+    public delegate void HideFeatureEvent(int id, FeatureType type, bool preview);
+
+    public event HideFeatureEvent? Hidden;
+    public static void EmitHidden(int id, FeatureType type, bool preview) => Instance.Hidden?.Invoke(id, type, preview);
 }

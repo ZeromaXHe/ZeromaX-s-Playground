@@ -2,12 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Apps.Applications.Features;
 using Apps.Events;
-using Apps.Services.Shaders;
+using Domains.Events.Tiles;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Domains.Repos.PlanetGenerates;
 using Domains.Services.PlanetGenerates;
+using Domains.Services.Shaders;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 
@@ -27,7 +29,6 @@ public partial class ChunkLoader : Node3D
 
     private IChunkRepo _chunkRepo;
     private ITileRepo _tileRepo;
-    private ITileShaderService _tileShaderService;
     private IPlanetSettingService _planetSettingService;
 
     private void InitServices()
@@ -36,21 +37,25 @@ public partial class ChunkLoader : Node3D
         _chunkRepo.RefreshChunkTileLabel += OnChunkServiceRefreshChunkTileLabel;
         _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
         _tileRepo.RefreshChunk += OnChunkServiceRefreshChunk;
-        _tileShaderService = Context.GetBeanFromHolder<ITileShaderService>();
         _planetSettingService = Context.GetBeanFromHolder<IPlanetSettingService>();
-        _tileShaderService.TileExplored += ExploreFeatures;
+#if !FEATURE_NEW
+        TileShaderEvent.Instance.TileExplored += ExploreFeatures;
+#endif
         if (!Engine.IsEditorHint())
         {
             OrbitCameraEvent.Instance.Transformed += UpdateInsightChunks;
         }
     }
 
-    private void ExploreFeatures(int tileId)
+#if !FEATURE_NEW
+    private void ExploreFeatures(Tile tile)
     {
+        var tileId = tile.Id;
         var chunkId = _tileRepo.GetById(tileId)!.ChunkId;
         // BUG: 动态加载的分块会显示未探索的特征
         _usingChunks[chunkId]?.ExploreFeatures(tileId);
     }
+#endif
 
     private void OnChunkServiceRefreshChunk(int id)
     {
@@ -72,7 +77,9 @@ public partial class ChunkLoader : Node3D
         // ERROR: /root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/NativeInterop/ExceptionUtils.cs:113 - System.ObjectDisposedException: Cannot access a disposed object.
         // ERROR: Object name: 'ZeromaXsPlaygroundProject.Scenes.HexPlanet.Node.HexGridChunk'.
         // 【切记】所以这里需要在退出场景树时清理事件监听！！！
-        _tileShaderService.TileExplored -= ExploreFeatures;
+#if !FEATURE_NEW
+        TileShaderEvent.Instance.TileExplored -= ExploreFeatures;
+#endif
         _tileRepo.RefreshChunk -= OnChunkServiceRefreshChunk;
         _chunkRepo.RefreshChunkTileLabel -= OnChunkServiceRefreshChunkTileLabel;
         if (!Engine.IsEditorHint())

@@ -32,6 +32,20 @@ public class PointRepo : Repository<Point>, IPointRepo
         }
     }
 
+    protected override void DeleteHook(Point entity)
+    {
+        if (entity.Chunky)
+        {
+            _chunkPositionIndex.Remove(entity.Position);
+            _chunkCoordsIndex.Remove(entity.Coords);
+        }
+        else
+        {
+            _tilePositionIndex.Remove(entity.Position);
+            _tileCoordsIndex.Remove(entity.Coords);
+        }
+    }
+
     protected override void TruncateHook()
     {
         _tilePositionIndex.Clear();

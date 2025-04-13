@@ -1,4 +1,4 @@
-using Apps.Services.Shaders;
+using Apps.Applications.Tiles;
 using Commons.Utils;
 using Domains.Models.Entities.Civs;
 using Domains.Repos.PlanetGenerates;
@@ -25,7 +25,7 @@ public partial class HexUnit : CsgBox3D
 
     private static ITileService _tileService;
     private static ITileRepo _tileRepo;
-    private static ITileShaderService _tileShaderService;
+    private static ITileShaderApplication _tileShaderApplication;
     private static IUnitService _unitService;
     private static IPlanetSettingService _planetSettingService;
 
@@ -33,7 +33,7 @@ public partial class HexUnit : CsgBox3D
     {
         _tileService ??= Context.GetBeanFromHolder<ITileService>();
         _tileRepo ??= Context.GetBeanFromHolder<ITileRepo>();
-        _tileShaderService ??= Context.GetBeanFromHolder<ITileShaderService>();
+        _tileShaderApplication ??= Context.GetBeanFromHolder<ITileShaderApplication>();
         _unitService ??= Context.GetBeanFromHolder<IUnitService>();
         _planetSettingService ??= Context.GetBeanFromHolder<IPlanetSettingService>();
     }
@@ -52,7 +52,7 @@ public partial class HexUnit : CsgBox3D
             if (_tileId > 0)
             {
                 var preTile = _tileRepo.GetById(_tileId)!;
-                _tileShaderService.DecreaseVisibility(preTile, Unit.VisionRange);
+                _tileShaderApplication.DecreaseVisibility(preTile, Unit.VisionRange);
                 _tileRepo.SetUnitId(preTile, 0);
             }
 
@@ -60,7 +60,7 @@ public partial class HexUnit : CsgBox3D
             _unitService.GetById(Id)!.TileId = _tileId;
             ValidateLocation();
             var tile = _tileRepo.GetById(_tileId)!;
-            _tileShaderService.IncreaseVisibility(tile, Unit.VisionRange);
+            _tileShaderApplication.IncreaseVisibility(tile, Unit.VisionRange);
             _tileRepo.SetUnitId(tile, Id);
         }
     }
@@ -97,8 +97,8 @@ public partial class HexUnit : CsgBox3D
                 _pathTileIdx++;
             if (prePathTileIdx != _pathTileIdx)
             {
-                _tileShaderService.DecreaseVisibility(_path.Tiles[prePathTileIdx], Unit.VisionRange);
-                _tileShaderService.IncreaseVisibility(_path.Tiles[_pathTileIdx], Unit.VisionRange);
+                _tileShaderApplication.DecreaseVisibility(_path.Tiles[prePathTileIdx], Unit.VisionRange);
+                _tileShaderApplication.IncreaseVisibility(_path.Tiles[_pathTileIdx], Unit.VisionRange);
             }
 
             var before = _path.Curve.SampleBaked(progress - deltaProgress, true);
@@ -152,7 +152,7 @@ public partial class HexUnit : CsgBox3D
     {
         _unitService.Delete(Id);
         var tile = _tileRepo.GetById(_tileId)!;
-        _tileShaderService.DecreaseVisibility(tile, Unit.VisionRange);
+        _tileShaderApplication.DecreaseVisibility(tile, Unit.VisionRange);
         _tileRepo.SetUnitId(tile, 0);
         QueueFree();
     }

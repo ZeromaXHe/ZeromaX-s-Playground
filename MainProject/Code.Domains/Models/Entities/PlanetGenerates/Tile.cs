@@ -13,7 +13,7 @@ public class Tile(
     Vector3 unitCentroid,
     List<int> hexFaceIds,
     List<int> neighborCenterIds,
-    int id = -1) : AEntity(id)
+    int id = -1) : Entity(id)
 {
     public int ChunkId { get; } = chunkId;
     public int CenterId { get; } = centerId; // 注意，此处对应的是中心点投射到单位球上的 Point id。

@@ -33,6 +33,7 @@ public class TileRepo : Repository<Tile>, ITileRepo
         Add(id => new Tile(centerId, chunkId, unitCentroid, hexFaceIds, neighborCenterIds, id));
 
     protected override void AddHook(Tile tile) => _centerIdIndex.Add(tile.CenterId, tile.Id);
+    protected override void DeleteHook(Tile entity) => _centerIdIndex.Remove(entity.CenterId);
     protected override void TruncateHook() => _centerIdIndex.Clear();
 
     public Tile? GetByCenterId(int centerId) =>

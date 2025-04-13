@@ -1,5 +1,5 @@
 using Apps.Events;
-using Apps.Models.Features;
+using Domains.Models.ValueObjects.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.ChunkManagers;
 

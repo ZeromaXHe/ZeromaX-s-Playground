@@ -1,14 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Apps.Applications.Features;
 using Apps.Events;
-using Apps.Models.Features;
-using Apps.Services.Uis;
 using Commons.Enums;
 using Commons.Utils;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.ValueObjects.PlanetGenerates;
+using Domains.Repos.PlanetGenerates;
 using Domains.Services.PlanetGenerates;
+using Domains.Services.Uis;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 
@@ -30,12 +31,16 @@ public partial class HexFeatureManager : Node3D
     private static INoiseService _noiseService;
     private static IPlanetSettingService _planetSettingService;
     private static IEditorService _editorService;
+    private static IFeatureApplication _featureApplication;
+    private static IFeatureRepo _featureRepo;
 
     private void InitServices()
     {
         _noiseService ??= Context.GetBeanFromHolder<INoiseService>();
         _planetSettingService ??= Context.GetBeanFromHolder<IPlanetSettingService>();
         _editorService ??= Context.GetBeanFromHolder<IEditorService>();
+        _featureApplication ??= Context.GetBeanFromHolder<IFeatureApplication>();
+        _featureRepo ??= Context.GetBeanFromHolder<IFeatureRepo>();
     }
 
     #endregion
@@ -72,6 +77,27 @@ public partial class HexFeatureManager : Node3D
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, "new type no deal")
         };
 
+#if FEATURE_NEW
+    // 保存所有的显示中的地块 id
+    private readonly List<Tile> _tiles = [];
+
+    private void SaveTileFeatureInfo(FeatureType featureType, Transform3D transform, Tile tile)
+    {
+        _featureRepo.Add(featureType, transform, tile.Id);
+        _tiles.Add(tile);
+    }
+
+    public void Clear(bool preview, bool clearData)
+    {
+        foreach (var tile in _tiles)
+            // if (clearData)
+            _featureApplication.ClearFeatures(tile, preview);
+            // else
+            //     _featureApplication.HideFeatures(tile, preview);
+        _tiles.Clear();
+        _walls.Clear();
+    }
+#else
     private class Feature(FeatureType type, Transform3D transform)
     {
         public readonly FeatureType Type = type;
@@ -118,7 +144,7 @@ public partial class HexFeatureManager : Node3D
         _container.Clear();
         _walls.Clear();
     }
-
+#endif
     public void Apply() => _walls.Apply();
 
     public void AddTower(Tile tile, Vector3 left, Vector3 right)
@@ -129,10 +155,14 @@ public partial class HexFeatureManager : Node3D
         var rightDirection = right - left;
         transform = transform.Rotated(position.Normalized(),
             transform.Basis.X.SignedAngleTo(rightDirection, position.Normalized()));
+#if FEATURE_NEW
+        SaveTileFeatureInfo(FeatureType.Tower, transform, tile);
+#else
         if (_container.TryGetValue(tile.Id, out var tileFeatures))
             tileFeatures.Add(new Feature(FeatureType.Tower, transform));
         else
             _container.Add(tile.Id, [new Feature(FeatureType.Tower, transform)]);
+#endif
         // 不能采用 instance shader uniform 的解决方案，编辑器里会大量报错：
         // ERROR: servers/rendering/renderer_rd/storage_rd/material_storage.cpp:1791 - Condition "global_shader_uniforms.instance_buffer_pos.has(p_instance)" is true. Returning: -1
         // ERROR: Too many instances using shader instance variables. Increase buffer size in Project Settings.
@@ -151,10 +181,14 @@ public partial class HexFeatureManager : Node3D
             new Vector3(length / HexMetrics.BridgeDesignLength, scale, scale), GetHeight(FeatureType.Bridge));
         transform = transform.Rotated(position.Normalized(),
             transform.Basis.X.SignedAngleTo(roadCenter2 - roadCenter1, position.Normalized()));
+#if FEATURE_NEW
+        SaveTileFeatureInfo(FeatureType.Bridge, transform, tile);
+#else
         if (_container.TryGetValue(tile.Id, out var tileFeatures))
             tileFeatures.Add(new Feature(FeatureType.Bridge, transform));
         else
             _container.Add(tile.Id, [new Feature(FeatureType.Bridge, transform)]);
+#endif
     }
 
     public void AddSpecialFeature(Tile tile, Vector3 position, HexTileDataOverrider overrider)
@@ -171,10 +205,14 @@ public partial class HexFeatureManager : Node3D
             Vector3.One * _planetSettingService.StandardScale, GetHeight(specialType));
         var hash = _noiseService.SampleHashGrid(position);
         transform = transform.Rotated(position.Normalized(), hash.E * Mathf.Tau); // 入参 axis 还是得用全局坐标
+#if FEATURE_NEW
+        SaveTileFeatureInfo(specialType, transform, tile);
+#else
         if (_container.TryGetValue(tile.Id, out var tileFeatures))
             tileFeatures.Add(new Feature(specialType, transform));
         else
             _container.Add(tile.Id, [new Feature(specialType, transform)]);
+#endif
     }
 
     public void AddFeature(Tile tile, Vector3 position, HexTileDataOverrider overrider)
@@ -213,10 +251,15 @@ public partial class HexFeatureManager : Node3D
         var transform = Math3dUtil.PlaceOnSphere(Basis.Identity, position,
             Vector3.One * _planetSettingService.StandardScale, GetHeight(featureType));
         transform = transform.Rotated(position.Normalized(), hash.E * Mathf.Tau); // 入参 axis 还是得用全局坐标
+#if FEATURE_NEW
+        SaveTileFeatureInfo(featureType, transform, tile);
+#else
         if (_container.TryGetValue(tile.Id, out var tileFeatures))
             tileFeatures.Add(new Feature(featureType, transform));
         else
             _container.Add(tile.Id, [new Feature(featureType, transform)]);
+
+#endif
     }
 
     private static FeatureType? PickFeatureSizeType(FeatureType baseType, int level, float hash, float choice)
@@ -241,6 +284,7 @@ public partial class HexFeatureManager : Node3D
             AddWallSegment(nearTile, farTile, near.V1, far.V1, near.V5, far.V5, lod);
             return;
         }
+
         AddWallSegment(nearTile, farTile, near.V1, far.V1, near.V2, far.V2, lod);
         if (hasRiver || hasRoad)
         {

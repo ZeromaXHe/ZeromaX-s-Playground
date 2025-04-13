@@ -1,6 +1,6 @@
 namespace Domains.Bases;
 
-public interface IRepository<out T> where T : AEntity
+public interface IRepository<out T> where T : Entity
 {
     T? GetById(int id);
     IEnumerable<T> GetAll();

@@ -26,6 +26,7 @@ public class ChunkRepo : Repository<Chunk>, IChunkRepo
         Add(id => new Chunk(centerId, pos, hexFaceIds, neighborCenterIds, id));
 
     protected override void AddHook(Chunk entity) => _centerIdIndex.Add(entity.CenterId, entity.Id);
+    protected override void DeleteHook(Chunk entity) => _centerIdIndex.Remove(entity.CenterId);
     protected override void TruncateHook() => _centerIdIndex.Clear();
 
     public Chunk? GetByCenterId(int centerId) =>

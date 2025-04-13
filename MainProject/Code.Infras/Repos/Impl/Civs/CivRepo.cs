@@ -15,6 +15,10 @@ public class CivRepo: Repository<Civ>, ICivRepo
     {
     }
 
+    protected override void DeleteHook(Civ entity)
+    {
+    }
+
     protected override void TruncateHook()
     {
     }

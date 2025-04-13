@@ -1,9 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
-using Apps.Services.Uis;
+using Apps.Applications.Features;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Domains.Repos.PlanetGenerates;
+using Domains.Services.Uis;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
@@ -32,11 +33,13 @@ public partial class EditPreviewChunk : Node3D, IChunk
 
     #region 服务与存储
 
+    private IFeatureApplication _featureApplication;
     private ITileRepo _tileRepo;
     private IEditorService _editorService;
 
     private void InitServices()
     {
+        _featureApplication = Context.GetBeanFromHolder<IFeatureApplication>();
         _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
         _editorService = Context.GetBeanFromHolder<IEditorService>();
     }
@@ -58,7 +61,13 @@ public partial class EditPreviewChunk : Node3D, IChunk
             Water.Clear();
             WaterShore.Clear();
             Estuary.Clear();
+#if FEATURE_NEW
+            Features.Clear(true, false);
+            foreach (var tile in TileDataOverrider.OverrideTiles)
+                _featureApplication.HideFeatures(tile, true);
+#else
             Features.Clear();
+#endif
             foreach (var tile in TileDataOverrider.OverrideTiles)
                 _chunkTriangulation.Triangulate(tile);
             Terrain.Apply();
@@ -68,10 +77,18 @@ public partial class EditPreviewChunk : Node3D, IChunk
             WaterShore.Apply();
             Estuary.Apply();
             Features.Apply();
+#if FEATURE_NEW
+            foreach (var tile in TileDataOverrider.OverrideTiles)
+                if (Visible)
+                    _featureApplication.ShowFeatures(tile, false, true);
+                else
+                    _featureApplication.HideFeatures(tile, true);
+#else
             if (Visible)
                 Features.ShowFeatures(false);
             else
                 Features.HideFeatures(false);
+#endif
             // GD.Print($"EditPreviewChunk BuildMesh cost: {Time.GetTicksMsec() - time} ms");
         }
 

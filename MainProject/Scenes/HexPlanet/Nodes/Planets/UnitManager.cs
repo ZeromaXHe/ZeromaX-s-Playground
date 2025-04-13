@@ -1,8 +1,8 @@
-using Apps.Services.Navigations;
-using Apps.Services.Uis;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Repos.PlanetGenerates;
 using Domains.Services.Civs;
+using Domains.Services.Navigations;
+using Domains.Services.Uis;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 

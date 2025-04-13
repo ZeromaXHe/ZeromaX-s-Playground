@@ -1,20 +1,25 @@
 #nullable enable
 using System.Collections.Generic;
-using Apps.Services.Caches;
-using Apps.Services.Caches.Impl;
-using Apps.Services.Navigations;
-using Apps.Services.Navigations.Impl;
-using Apps.Services.Shaders;
-using Apps.Services.Shaders.Impl;
-using Apps.Services.Uis;
-using Apps.Services.Uis.Impl;
+using Apps.Applications.Features;
+using Apps.Applications.Features.Impl;
+using Apps.Applications.Tiles;
+using Apps.Applications.Tiles.Impl;
 using Commons.Frameworks;
+using Domains.Events.Tiles;
 using Domains.Repos.Civs;
 using Domains.Repos.PlanetGenerates;
+using Domains.Services.Caches;
+using Domains.Services.Caches.Impl;
 using Domains.Services.Civs;
 using Domains.Services.Civs.Impl;
+using Domains.Services.Navigations;
+using Domains.Services.Navigations.Impl;
 using Domains.Services.PlanetGenerates;
 using Domains.Services.PlanetGenerates.Impl;
+using Domains.Services.Shaders;
+using Domains.Services.Shaders.Impl;
+using Domains.Services.Uis;
+using Domains.Services.Uis.Impl;
 using Infras.Repos.Impl.Civs;
 using Infras.Repos.Impl.PlanetGenerates;
 
@@ -30,14 +35,14 @@ public class Context : IContext
         ContextHolder.Context ??= new Context();
         return ContextHolder.Context.GetBean<T>()!;
     }
-    
+
     // 目前逻辑不校验类型是否正确，依赖于使用者自己保证正确
     private readonly Dictionary<string, object> _singletons = new();
     private bool _initialized;
     private void Register(string singleton, object bean) => _singletons.Add(singleton, bean);
     private bool Destroy(string singleton) => _singletons.Remove(singleton);
     private void Reboot() => _singletons.Clear();
-    
+
     // 仿 setter 注入写法：
     // private readonly Lazy<ITileRepo> _tileRepo = new(() => Context.GetBean<ITileRepo>());
     public T? GetBean<T>() where T : class
@@ -55,12 +60,14 @@ public class Context : IContext
         _initialized = true;
         var chunkRepo = new ChunkRepo();
         var tileRepo = new TileRepo();
+        var featureRepo = new FeatureRepo();
         var faceRepo = new FaceRepo();
         var pointRepo = new PointRepo();
         var unitRepo = new UnitRepo();
         var civRepo = new CivRepo();
         Register(nameof(IChunkRepo), chunkRepo);
         Register(nameof(ITileRepo), tileRepo);
+        Register(nameof(IFeatureRepo), featureRepo);
         Register(nameof(IFaceRepo), faceRepo);
         Register(nameof(IPointRepo), pointRepo);
         Register(nameof(IUnitRepo), unitRepo);
@@ -75,8 +82,7 @@ public class Context : IContext
         var tileService = new TileService(chunkService, faceRepo, pointService, pointRepo,
             planetSettingService, noiseService, tileRepo);
         var tileSearchService = new TileSearchService(pointRepo, chunkRepo, tileRepo, planetSettingService);
-        var tileShaderService = new TileShaderService(tileRepo, tileSearchService, unitService,
-            civService, planetSettingService);
+        var tileShaderService = new TileShaderService(tileRepo, unitService, civService, planetSettingService);
         var editorService = new EditorService(tileRepo);
         var miniMapService = new MiniMapService(tileService, tileRepo);
         var selectViewService = new SelectViewService(chunkRepo, tileService, tileRepo, tileSearchService,
@@ -94,5 +100,11 @@ public class Context : IContext
         Register(nameof(IEditorService), editorService);
         Register(nameof(IMiniMapService), miniMapService);
         Register(nameof(ISelectViewService), selectViewService);
+        var featureApplication = new FeatureApplication(featureRepo);
+        TileShaderEvent.Instance.TileExplored += featureApplication.ExploreFeatures;
+        var tileShaderApplication = new TileShaderApplication(tileSearchService, tileShaderService);
+        TileShaderEvent.Instance.RangeVisibilityIncreased += tileShaderApplication.IncreaseVisibility;
+        Register(nameof(IFeatureApplication), featureApplication);
+        Register(nameof(ITileShaderApplication), tileShaderApplication);
     }
 }
