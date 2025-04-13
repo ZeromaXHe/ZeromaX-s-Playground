@@ -1,12 +1,12 @@
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Godot;
 
-namespace Domains.Services.PlanetGenerates;
+namespace Domains.Models.Singletons.Planets;
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-03-12 07:52
-public interface INoiseService
+public interface INoiseConfig
 {
     Image? NoiseSource { get; set; }
 

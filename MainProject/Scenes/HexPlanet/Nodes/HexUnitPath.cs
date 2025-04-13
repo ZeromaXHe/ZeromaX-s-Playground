@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using Domains.Models.Entities.PlanetGenerates;
+using Domains.Models.Singletons.Planets;
+using Domains.Repos.PlanetGenerates;
 using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
@@ -18,12 +20,14 @@ public partial class HexUnitPath : Path3D
     #region 服务
 
     private static ITileService _tileService;
-    private static IPlanetSettingService _planetSettingService;
+    private static ITileRepo _tileRepo;
+    private static IPlanetConfig _planetConfig;
 
     private static void InitServices()
     {
         _tileService ??= Context.GetBeanFromHolder<ITileService>();
-        _planetSettingService ??= Context.GetBeanFromHolder<IPlanetSettingService>();
+        _tileRepo ??= Context.GetBeanFromHolder<ITileRepo>();
+        _planetConfig ??= Context.GetBeanFromHolder<IPlanetConfig>();
     }
 
     #endregion
@@ -75,16 +79,16 @@ public partial class HexUnitPath : Path3D
         // 转换为曲线
         var curve = new Curve3D();
         var fromTile = path[0];
-        var fromHeight = _tileService.GetHeight(fromTile);
-        var fromCentroid = fromTile.GetCentroid(_planetSettingService.Radius + fromHeight);
+        var fromHeight = _tileRepo.GetHeight(fromTile);
+        var fromCentroid = fromTile.GetCentroid(_planetConfig.Radius + fromHeight);
         var toTile = path[1];
-        var toHeight = _tileService.GetHeight(toTile);
-        var toCentroid = toTile.GetCentroid(_planetSettingService.Radius + toHeight);
+        var toHeight = _tileRepo.GetHeight(toTile);
+        var toCentroid = toTile.GetCentroid(_planetConfig.Radius + toHeight);
 
         var fromIdx = fromTile.GetNeighborIdx(toTile);
         var toIdx = toTile.GetNeighborIdx(fromTile);
-        var fromEdgeMid = _tileService.GetSolidEdgeMiddle(fromTile, fromIdx, _planetSettingService.Radius + fromHeight);
-        var toEdgeMid = _tileService.GetSolidEdgeMiddle(toTile, toIdx, _planetSettingService.Radius + toHeight);
+        var fromEdgeMid = fromTile.GetSolidEdgeMiddle(fromIdx, _planetConfig.Radius + fromHeight);
+        var toEdgeMid = toTile.GetSolidEdgeMiddle(toIdx, _planetConfig.Radius + toHeight);
         // 需要注意下面 in out 入参 / 2f 的操作，用于避免 in out 入参太长（前后相交于 centroid），导致 Curve3D 不连续
         curve.AddPoint(fromCentroid, @out: (fromEdgeMid - fromCentroid) / 2f);
         curve.AddPoint(fromEdgeMid, (fromCentroid - fromEdgeMid) / 2f, (toEdgeMid - fromEdgeMid) / 2f);
@@ -98,13 +102,13 @@ public partial class HexUnitPath : Path3D
             fromCentroid = toCentroid;
 
             toTile = path[i + 1];
-            toHeight = _tileService.GetHeight(toTile);
-            toCentroid = toTile.GetCentroid(_planetSettingService.Radius + toHeight);
+            toHeight = _tileRepo.GetHeight(toTile);
+            toCentroid = toTile.GetCentroid(_planetConfig.Radius + toHeight);
 
             fromIdx = fromTile.GetNeighborIdx(toTile);
             toIdx = toTile.GetNeighborIdx(fromTile);
-            fromEdgeMid = _tileService.GetSolidEdgeMiddle(fromTile, fromIdx, _planetSettingService.Radius + fromHeight);
-            toEdgeMid = _tileService.GetSolidEdgeMiddle(toTile, toIdx, _planetSettingService.Radius + toHeight);
+            fromEdgeMid = fromTile.GetSolidEdgeMiddle(fromIdx, _planetConfig.Radius + fromHeight);
+            toEdgeMid = toTile.GetSolidEdgeMiddle(toIdx, _planetConfig.Radius + toHeight);
             curve.AddPoint(fromEdgeMid, (fromCentroid - fromEdgeMid) / 2f, (toEdgeMid - fromEdgeMid) / 2f);
             curve.AddPoint(toEdgeMid, (fromEdgeMid - toEdgeMid) / 2f, (toCentroid - toEdgeMid) / 2f);
             keyPoint = fromEdgeMid.Lerp(toEdgeMid, 0.5f);

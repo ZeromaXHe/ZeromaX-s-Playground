@@ -82,7 +82,7 @@ public class EditorService(ITileRepo tileRepo) : IEditorService
     public void SetEditMode(bool toggle) => TileOverrider = TileOverrider with { EditMode = toggle };
     public void SetLabelMode(long mode) => LabelMode = (int)mode;
 
-    public void SelectTerrain(long index)
+    public void SetTerrain(long index)
     {
         TileOverrider = TileOverrider with { ApplyTerrain = index > 0 };
         if (TileOverrider.ApplyTerrain)

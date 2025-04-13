@@ -1,5 +1,5 @@
 using System.Linq;
-using Domains.Services.PlanetGenerates;
+using Domains.Models.Singletons.Planets;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 
@@ -20,11 +20,11 @@ public partial class HexMesh : MeshInstance3D
 
     #region 服务
 
-    private static INoiseService _noiseService;
+    private static INoiseConfig _noiseConfig;
 
     private static void InitServices()
     {
-        _noiseService ??= Context.GetBeanFromHolder<INoiseService>();
+        _noiseConfig ??= Context.GetBeanFromHolder<INoiseConfig>();
     }
 
     #endregion
@@ -95,7 +95,7 @@ public partial class HexMesh : MeshInstance3D
     /// <param name="tis">地块ID tileIds</param>
     public void AddTriangle(Vector3[] vs, Color[] tws = null,
         Vector2[] uvs = null, Vector2[] uvs2 = null, Vector3 tis = default) =>
-        AddTriangleUnperturbed(vs.Select(_noiseService.Perturb).ToArray(), tws, uvs, uvs2, tis);
+        AddTriangleUnperturbed(vs.Select(_noiseConfig.Perturb).ToArray(), tws, uvs, uvs2, tis);
 
     public void AddTriangleUnperturbed(Vector3[] vs, Color[] tws = null,
         Vector2[] uvs = null, Vector2[] uvs2 = null, Vector3 tis = default)
@@ -123,7 +123,7 @@ public partial class HexMesh : MeshInstance3D
 
     public void AddQuad(Vector3[] vs, Color[] tws = null,
         Vector2[] uvs = null, Vector2[] uvs2 = null, Vector3 tis = default) =>
-        AddQuadUnperturbed(vs.Select(_noiseService.Perturb).ToArray(), tws, uvs, uvs2, tis);
+        AddQuadUnperturbed(vs.Select(_noiseConfig.Perturb).ToArray(), tws, uvs, uvs2, tis);
 
     public void AddQuadUnperturbed(Vector3[] vs, Color[] tws = null,
         Vector2[] uvs = null, Vector2[] uvs2 = null, Vector3 tis = default)

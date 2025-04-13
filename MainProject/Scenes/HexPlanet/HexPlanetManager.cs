@@ -1,6 +1,7 @@
 using System.Linq;
 using Domains.Models.Entities.Civs;
 using Domains.Models.Entities.PlanetGenerates;
+using Domains.Models.Singletons.Planets;
 using Domains.Repos.PlanetGenerates;
 using Domains.Services.Caches;
 using Domains.Services.Civs;
@@ -49,7 +50,7 @@ public partial class HexPlanetManager : Node3D
             _radius = value;
             if (_ready)
             {
-                _planetSettingService.Radius = _radius;
+                _planetConfig.Radius = _radius;
                 var camAttr = _planetCamera.Attributes as CameraAttributesPractical;
                 camAttr?.SetDofBlurFarDistance(_radius);
                 camAttr?.SetDofBlurFarTransition(_radius / 2);
@@ -61,7 +62,7 @@ public partial class HexPlanetManager : Node3D
                 groundSphere?.SetHeight(_radius * 1.98f);
                 _planetAtmosphere.Set("planet_radius", _radius);
                 _planetAtmosphere.Set("atmosphere_height", _radius * 0.25f);
-                _longitudeLatitude.Draw(_radius + _planetSettingService.MaxHeight * 1.25f);
+                _longitudeLatitude.Draw(_radius + _planetConfig.MaxHeight * 1.25f);
 
                 _celestialMotionManager.UpdateMoonMeshRadius(); // 卫星半径
                 _celestialMotionManager.UpdateLunarDist(); // 卫星轨道半径
@@ -81,8 +82,8 @@ public partial class HexPlanetManager : Node3D
             _chunkDivisions = Mathf.Min(Mathf.Max(1, _divisions / 10), _chunkDivisions);
             if (_ready)
             {
-                _planetSettingService.Divisions = _divisions;
-                _planetSettingService.ChunkDivisions = _chunkDivisions;
+                _planetConfig.Divisions = _divisions;
+                _planetConfig.ChunkDivisions = _chunkDivisions;
                 _orbitCamera.Reset();
             }
         }
@@ -100,8 +101,8 @@ public partial class HexPlanetManager : Node3D
             _divisions = Mathf.Max(Mathf.Min(200, _chunkDivisions * 10), _divisions);
             if (_ready)
             {
-                _planetSettingService.ChunkDivisions = _chunkDivisions;
-                _planetSettingService.Divisions = _divisions;
+                _planetConfig.ChunkDivisions = _chunkDivisions;
+                _planetConfig.Divisions = _divisions;
                 _orbitCamera.Reset();
             }
         }
@@ -191,8 +192,8 @@ public partial class HexPlanetManager : Node3D
     private IFaceRepo _faceRepo;
     private IPointRepo _pointRepo;
     private ISelectViewService _selectViewService;
-    private IPlanetSettingService _planetSettingService;
-    private INoiseService _noiseService;
+    private IPlanetConfig _planetConfig;
+    private INoiseConfig _noiseConfig;
     private IEditorService _editorService;
     private ICivService _civService;
 
@@ -208,8 +209,8 @@ public partial class HexPlanetManager : Node3D
         _faceRepo = Context.GetBeanFromHolder<IFaceRepo>();
         _pointRepo = Context.GetBeanFromHolder<IPointRepo>();
         _selectViewService = Context.GetBeanFromHolder<ISelectViewService>();
-        _planetSettingService = Context.GetBeanFromHolder<IPlanetSettingService>();
-        _noiseService = Context.GetBeanFromHolder<INoiseService>();
+        _planetConfig = Context.GetBeanFromHolder<IPlanetConfig>();
+        _noiseConfig = Context.GetBeanFromHolder<INoiseConfig>();
         _editorService = Context.GetBeanFromHolder<IEditorService>();
         _editorService.EditModeChanged += OnEditorEditModeChanged;
         _civService = Context.GetBeanFromHolder<ICivService>();
@@ -294,8 +295,8 @@ public partial class HexPlanetManager : Node3D
         Radius = _radius;
         Divisions = _divisions;
 
-        _noiseService.NoiseSource = _noiseSource.GetImage();
-        _noiseService.InitializeHashGrid(Seed);
+        _noiseConfig.NoiseSource = _noiseSource.GetImage();
+        _noiseConfig.InitializeHashGrid(Seed);
         DrawHexSphereMesh();
         GD.Print("HexPlanetManager _Ready end");
     }

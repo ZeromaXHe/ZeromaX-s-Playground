@@ -1,5 +1,5 @@
 using Apps.Events;
-using Domains.Services.PlanetGenerates;
+using Domains.Models.Singletons.Planets;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 
@@ -23,9 +23,9 @@ public partial class OrbitCamera : Node3D
         {
             _radius = value;
             if (!_ready) return;
-            _focusBase.Position = Vector3.Forward * value * (1 + _planetSettingService.MaxHeightRatio);
-            _focusBox.Size = Vector3.One * value * _boxSizeMultiplier * _planetSettingService.StandardScale;
-            _backBox.Size = Vector3.One * value * _boxSizeMultiplier * _planetSettingService.StandardScale;
+            _focusBase.Position = Vector3.Forward * value * (1 + _planetConfig.MaxHeightRatio);
+            _focusBox.Size = Vector3.One * value * _boxSizeMultiplier * _planetConfig.StandardScale;
+            _backBox.Size = Vector3.One * value * _boxSizeMultiplier * _planetConfig.StandardScale;
             _light.SpotRange = value * _lightRangeMultiplier;
             _light.Position = Vector3.Up * value * _lightRangeMultiplier * 0.5f;
         }
@@ -67,11 +67,11 @@ public partial class OrbitCamera : Node3D
 
     #region 服务
 
-    private IPlanetSettingService _planetSettingService;
+    private IPlanetConfig _planetConfig;
 
     private void InitService()
     {
-        _planetSettingService = Context.GetBeanFromHolder<IPlanetSettingService>();
+        _planetConfig = Context.GetBeanFromHolder<IPlanetConfig>();
     }
 
     #endregion
@@ -115,9 +115,9 @@ public partial class OrbitCamera : Node3D
             if (!_ready) return;
             _focusBackStick.Position =
                 _focusBackStick.Basis * Vector3.Back * Mathf.Lerp(0f,
-                    _focusBackZoom * Radius * _planetSettingService.StandardScale, value);
+                    _focusBackZoom * Radius * _planetConfig.StandardScale, value);
             var distance = Mathf.Lerp(_stickMinZoom,
-                _stickMaxZoom * _planetSettingService.StandardScale * 2f,
+                _stickMaxZoom * _planetConfig.StandardScale * 2f,
                 value) * Radius;
             _stick.Position = Vector3.Back * distance;
             var angle = Mathf.Lerp(_swivelMinZoom, _swivelMaxZoom, value);
@@ -288,7 +288,7 @@ public partial class OrbitCamera : Node3D
 
     public void Reset()
     {
-        Radius = _planetSettingService.Radius;
+        Radius = _planetConfig.Radius;
         Zoom = 1f;
     }
 }

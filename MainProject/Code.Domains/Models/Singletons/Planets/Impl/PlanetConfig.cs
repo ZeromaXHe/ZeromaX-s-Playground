@@ -1,13 +1,14 @@
+using Commons.Constants;
 using Commons.Utils;
 using Commons.Utils.HexSphereGrid;
 using Godot;
 
-namespace Domains.Services.PlanetGenerates.Impl;
+namespace Domains.Models.Singletons.Planets.Impl;
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-03-12 07:52
-public class PlanetSettingService: IPlanetSettingService
+public class PlanetConfig: IPlanetConfig
 {
     private float _radius = 150f;
 
@@ -17,7 +18,7 @@ public class PlanetSettingService: IPlanetSettingService
         set
         {
             _radius = value;
-            RenderingServer.GlobalShaderParameterSet("radius", _radius);
+            RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.Radius, _radius);
             CalcUnitHeight();
         }
     }
@@ -30,7 +31,7 @@ public class PlanetSettingService: IPlanetSettingService
         set
         {
             _divisions = value;
-            RenderingServer.GlobalShaderParameterSet("divisions", _divisions);
+            RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.Divisions, _divisions);
             SphereAxial.Div = _divisions; // TODO：后续修改这个逻辑，临时在这里处理以方便测试 SphereAxial
             CalcUnitHeight();
         }
@@ -49,7 +50,7 @@ public class PlanetSettingService: IPlanetSettingService
     {
         MaxHeightRatio = StandardScale * MaxHeightRadiusRatio;
         MaxHeight = Radius * MaxHeightRatio;
-        RenderingServer.GlobalShaderParameterSet("max_height", MaxHeight);
+        RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.MaxHeight, MaxHeight);
         UnitHeight = MaxHeight / ElevationStep;
     }
 

@@ -3,10 +3,10 @@ using System.Linq;
 using Apps.Applications.Features;
 using Commons.Utils;
 using Domains.Models.Entities.PlanetGenerates;
+using Domains.Models.Singletons.Planets;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Domains.Repos.PlanetGenerates;
 using Domains.Services.Caches;
-using Domains.Services.PlanetGenerates;
 using Domains.Services.Shaders;
 using Domains.Services.Uis;
 using Godot;
@@ -49,10 +49,9 @@ public partial class HexGridChunk : Node3D, IChunk
     private static ILodMeshCacheService _lodMeshCacheService;
     private static IPointRepo _pointRepo;
     private static IChunkRepo _chunkRepo;
-    private static ITileService _tileService;
     private static ITileRepo _tileRepo;
     private static ITileShaderService _tileShaderService;
-    private static IPlanetSettingService _planetSettingService;
+    private static IPlanetConfig _planetConfig;
     private static IEditorService _editorService;
     private static IFeatureApplication _featureApplication;
 
@@ -61,10 +60,9 @@ public partial class HexGridChunk : Node3D, IChunk
         _lodMeshCacheService ??= Context.GetBeanFromHolder<ILodMeshCacheService>();
         _pointRepo ??= Context.GetBeanFromHolder<IPointRepo>();
         _chunkRepo ??= Context.GetBeanFromHolder<IChunkRepo>();
-        _tileService ??= Context.GetBeanFromHolder<ITileService>();
         _tileRepo ??= Context.GetBeanFromHolder<ITileRepo>();
         _tileShaderService ??= Context.GetBeanFromHolder<ITileShaderService>();
-        _planetSettingService ??= Context.GetBeanFromHolder<IPlanetSettingService>();
+        _planetConfig ??= Context.GetBeanFromHolder<IPlanetConfig>();
         _editorService ??= Context.GetBeanFromHolder<IEditorService>();
         _featureApplication ??= Context.GetBeanFromHolder<IFeatureApplication>();
     }
@@ -108,8 +106,8 @@ public partial class HexGridChunk : Node3D, IChunk
             label = _unusedTileUis.Dequeue();
 
         var tile = _tileRepo.GetById(tileId)!;
-        var position = 1.01f * tile.GetCentroid(_planetSettingService.Radius + _tileService.GetHeight(tile));
-        var scale = _planetSettingService.StandardScale;
+        var position = 1.01f * tile.GetCentroid(_planetConfig.Radius + _tileRepo.GetHeight(tile));
+        var scale = _planetConfig.StandardScale;
         label.Scale = Vector3.One * scale;
         label.Position = position;
         Node3dUtil.AlignYAxisToDirection(label, position, Vector3.Up);
@@ -207,7 +205,7 @@ public partial class HexGridChunk : Node3D, IChunk
                 if (tileUi != null)
                 {
                     tileUi.Position =
-                        1.01f * tile.GetCentroid(_planetSettingService.Radius + _tileService.GetHeight(tile));
+                        1.01f * tile.GetCentroid(_planetConfig.Radius + _tileRepo.GetHeight(tile));
                 }
                 else GD.PrintErr($"Tile {tile.Id} UI not found");
             }

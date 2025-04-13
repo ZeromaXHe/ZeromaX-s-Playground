@@ -4,8 +4,8 @@ using System.Diagnostics;
 using System.Linq;
 using Commons.Utils;
 using Domains.Models.Entities.PlanetGenerates;
+using Domains.Models.Singletons.Planets;
 using Domains.Repos.PlanetGenerates;
-using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.LandGenerators;
@@ -35,15 +35,15 @@ public partial class HexMapGenerator : Node
     [Export(PropertyHint.Range, "1, 5")]
     public int DefaultWaterLevel
     {
-        get => _planetSettingService.DefaultWaterLevel;
-        set => _planetSettingService.DefaultWaterLevel = value;
+        get => _planetConfig.DefaultWaterLevel;
+        set => _planetConfig.DefaultWaterLevel = value;
     }
 
     [Export(PropertyHint.Range, "10, 15")]
     public int ElevationStep
     {
-        get => _planetSettingService.ElevationStep;
-        set => _planetSettingService.ElevationStep = value;
+        get => _planetConfig.ElevationStep;
+        set => _planetConfig.ElevationStep = value;
     }
 
     [Export(PropertyHint.Range, "0, 10")] private int _mapBoardX = 5;
@@ -140,15 +140,15 @@ public partial class HexMapGenerator : Node
 
     private IPointRepo _pointRepo;
     private ITileRepo _tileRepo;
-    private INoiseService _noiseService;
-    private IPlanetSettingService _planetSettingService;
+    private INoiseConfig _noiseConfig;
+    private IPlanetConfig _planetConfig;
 
     private void InitServices()
     {
         _pointRepo = Context.GetBeanFromHolder<IPointRepo>();
         _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
-        _noiseService = Context.GetBeanFromHolder<INoiseService>();
-        _planetSettingService = Context.GetBeanFromHolder<IPlanetSettingService>();
+        _noiseConfig = Context.GetBeanFromHolder<INoiseConfig>();
+        _planetConfig = Context.GetBeanFromHolder<IPlanetConfig>();
     }
 
     #endregion
@@ -519,15 +519,15 @@ public partial class HexMapGenerator : Node
     private float DetermineTemperature(Tile tile)
     {
         var sphereAxial = _pointRepo.GetSphereAxial(tile);
-        var latitude = (sphereAxial.Coords.R + _planetSettingService.Divisions) /
-                       (3f * _planetSettingService.Divisions);
+        var latitude = (sphereAxial.Coords.R + _planetConfig.Divisions) /
+                       (3f * _planetConfig.Divisions);
         // 具有南北半球
         latitude *= 2f;
         if (latitude > 1f)
             latitude = 2f - latitude;
         var temperature = Mathf.Lerp(_lowTemperature, _highTemperature, latitude);
         temperature *= 1f - (tile.Data.ViewElevation - DefaultWaterLevel) / (ElevationStep - DefaultWaterLevel + 1f);
-        var jitter = _noiseService.SampleNoise(tile.GetCentroid(HexMetrics.StandardRadius))[_temperatureJitterChannel];
+        var jitter = _noiseConfig.SampleNoise(tile.GetCentroid(HexMetrics.StandardRadius))[_temperatureJitterChannel];
         temperature += (jitter * 2f - 1f) * _temperatureJitter;
         return temperature;
     }

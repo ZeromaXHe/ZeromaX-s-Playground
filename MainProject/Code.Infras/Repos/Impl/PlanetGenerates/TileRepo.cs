@@ -1,4 +1,6 @@
+using Commons.Utils;
 using Domains.Models.Entities.PlanetGenerates;
+using Domains.Models.Singletons.Planets;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Domains.Repos.PlanetGenerates;
 using Godot;
@@ -6,7 +8,7 @@ using Infras.Base;
 
 namespace Infras.Repos.Impl.PlanetGenerates;
 
-public class TileRepo : Repository<Tile>, ITileRepo
+public class TileRepo(IPlanetConfig planetConfig, INoiseConfig noiseConfig) : Repository<Tile>, ITileRepo
 {
     #region 事件
 
@@ -28,9 +30,9 @@ public class TileRepo : Repository<Tile>, ITileRepo
 
     private readonly Dictionary<int, int> _centerIdIndex = new();
 
-    public Tile Add(int centerId, int chunkId, Vector3 unitCentroid,
+    public Tile Add(int centerId, int chunkId, Vector3 unitCentroid, List<Vector3> unitCorners,
         List<int> hexFaceIds, List<int> neighborCenterIds) =>
-        Add(id => new Tile(centerId, chunkId, unitCentroid, hexFaceIds, neighborCenterIds, id));
+        Add(id => new Tile(centerId, chunkId, unitCentroid, unitCorners, hexFaceIds, neighborCenterIds, id));
 
     protected override void AddHook(Tile tile) => _centerIdIndex.Add(tile.CenterId, tile.Id);
     protected override void DeleteHook(Tile entity) => _centerIdIndex.Remove(entity.CenterId);
@@ -130,6 +132,22 @@ public class TileRepo : Repository<Tile>, ITileRepo
         if (tile.UnitId == unitId) return;
         tile.UnitId = unitId;
     }
+
+    #endregion
+
+    #region 高度
+
+    public float GetHeight(Tile tile) =>
+        (tile.Data.Elevation + GetPerturbHeight(tile)) * planetConfig.UnitHeight;
+
+    public float GetOverrideHeight(Tile tile, HexTileDataOverrider tileDataOverrider) =>
+        (tileDataOverrider.Elevation(tile) + GetPerturbHeight(tile) + 0.05f) * planetConfig.UnitHeight;
+
+    public float GetHeightById(int id) => GetHeight(GetById(id)!);
+
+    private float GetPerturbHeight(Tile tile) =>
+        (noiseConfig.SampleNoise(tile.GetCentroid(HexMetrics.StandardRadius)).Y * 2f - 1f)
+        * noiseConfig.ElevationPerturbStrength * planetConfig.UnitHeight;
 
     #endregion
 

@@ -1,9 +1,8 @@
+using Apps.Applications.Uis;
 using Apps.Events;
 using Commons.Utils;
 using Commons.Utils.HexSphereGrid;
 using Domains.Models.Entities.PlanetGenerates;
-using Domains.Repos.PlanetGenerates;
-using Domains.Services.PlanetGenerates;
 using Domains.Services.Uis;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
@@ -16,7 +15,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 /// Date: 2025-02-17 15:49
 public partial class HexPlanetHud : Control
 {
-    public HexPlanetHud() => InitServices();
+    public HexPlanetHud() => InitApps();
 
     [Export] private HexPlanetManager _hexPlanetManager;
 
@@ -100,7 +99,7 @@ public partial class HexPlanetHud : Control
         _compassPanel = GetNode<PanelContainer>("%CompassPanel");
         // 矩形地图测试
         _rectMap = GetNode<TextureRect>("%RectMap");
-        _rectMap.Texture = _miniMapService.GenerateRectMap();
+        _rectMap.Texture = _hexPlanetHudApplication.GenerateRectMap();
         // 星球信息
         _planetTabBar = GetNode<TabBar>("%PlanetTabBar");
         _planetGrid = GetNode<GridContainer>("%PlanetGrid");
@@ -147,10 +146,10 @@ public partial class HexPlanetHud : Control
         _specialFeatureOptionButton = GetNode<OptionButton>("%SpecialFeatureOptionButton");
 
         // 按照指定的高程分割数量确定 UI
-        _elevationVSlider.MaxValue = _planetSettingService.ElevationStep;
-        _elevationVSlider.TickCount = _planetSettingService.ElevationStep + 1;
-        _waterVSlider.MaxValue = _planetSettingService.ElevationStep;
-        _waterVSlider.TickCount = _planetSettingService.ElevationStep + 1;
+        _elevationVSlider.MaxValue = _hexPlanetHudApplication.GetElevationStep();
+        _elevationVSlider.TickCount = _hexPlanetHudApplication.GetElevationStep() + 1;
+        _waterVSlider.MaxValue = _hexPlanetHudApplication.GetElevationStep();
+        _waterVSlider.TickCount = _hexPlanetHudApplication.GetElevationStep() + 1;
 
         _hexPlanetManager.NewPlanetGenerated += UpdateNewPlanetInfo;
         _hexPlanetManager.NewPlanetGenerated += InitMiniMap;
@@ -161,7 +160,7 @@ public partial class HexPlanetHud : Control
     private void InitMiniMap()
     {
         _miniMapManager.Init(_hexPlanetManager.GetOrbitCameraFocusPos());
-        _rectMap.Texture = _miniMapService.GenerateRectMap();
+        _rectMap.Texture = _hexPlanetHudApplication.GenerateRectMap();
     }
 
     private void UpdateNewPlanetInfo()
@@ -205,53 +204,35 @@ public partial class HexPlanetHud : Control
 
     #endregion
 
-    #region services
+    #region 应用服务
 
-    private ITileService _tileService;
-    private ITileRepo _tileRepo;
-    private IChunkRepo _chunkRepo;
-    private IPointRepo _pointRepo;
-    private IPlanetSettingService _planetSettingService;
-    private IEditorService _editorService;
-    private IMiniMapService _miniMapService;
+    private IHexPlanetHudApplication _hexPlanetHudApplication;
 
-    private void InitServices()
+    private void InitApps()
     {
-        _tileService = Context.GetBeanFromHolder<ITileService>();
-        _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
-        _chunkRepo = Context.GetBeanFromHolder<IChunkRepo>();
-        _pointRepo = Context.GetBeanFromHolder<IPointRepo>();
-        _planetSettingService = Context.GetBeanFromHolder<IPlanetSettingService>();
-        _editorService = Context.GetBeanFromHolder<IEditorService>();
-        _miniMapService = Context.GetBeanFromHolder<IMiniMapService>();
+        _hexPlanetHudApplication = Context.GetBeanFromHolder<IHexPlanetHudApplication>();
     }
 
     #endregion
 
     #region 编辑功能
 
-    private void SetEditMode(bool toggle)
-    {
-        _editorService.SetEditMode(toggle);
-        RenderingServer.GlobalShaderParameterSet("hex_map_edit_mode", toggle);
-    }
-
     private void SetElevation(double elevation)
     {
-        _editorService.SetElevation(elevation);
-        _elevationValueLabel.Text = _editorService.TileOverrider.ActiveElevation.ToString();
+        _hexPlanetHudApplication.SetElevation(elevation);
+        _elevationValueLabel.Text = _hexPlanetHudApplication.GetActiveElevation().ToString();
     }
 
     private void SetBrushSize(double brushSize)
     {
-        _editorService.SetBrushSize(brushSize);
-        _brushLabel.Text = $"笔刷大小：{_editorService.TileOverrider.BrushSize}";
+        _hexPlanetHudApplication.SetBrushSize(brushSize);
+        _brushLabel.Text = $"笔刷大小：{_hexPlanetHudApplication.GetBrushSize()}";
     }
 
     private void SetWaterLevel(double level)
     {
-        _editorService.SetWaterLevel(level);
-        _waterValueLabel.Text = _editorService.TileOverrider.ActiveWaterLevel.ToString();
+        _hexPlanetHudApplication.SetWaterLevel(level);
+        _waterValueLabel.Text = _hexPlanetHudApplication.GetActiveWaterLevel().ToString();
     }
 
     #endregion
@@ -268,12 +249,12 @@ public partial class HexPlanetHud : Control
             {
                 _idLineEdit.Text = _chosenTile.Id.ToString();
                 _chunkLineEdit.Text = _chosenTile.ChunkId.ToString();
-                var sa = _pointRepo.GetSphereAxial(_chosenTile);
-                _coordsLineEdit.Text = sa.ToString();
+                var tileInfoResp = _hexPlanetHudApplication.GetTileInfo(_chosenTile);
+                _coordsLineEdit.Text = tileInfoResp.SphereAxial.ToString();
                 _coordsLineEdit.TooltipText = _coordsLineEdit.Text;
-                _heightLineEdit.Text = $"{_tileService.GetHeight(_chosenTile):F4}";
+                _heightLineEdit.Text = $"{tileInfoResp.Height:F4}";
                 _elevationLineEdit.Text = _chosenTile.Data.Elevation.ToString();
-                var lonLat = sa.ToLongitudeAndLatitude();
+                var lonLat = tileInfoResp.SphereAxial.ToLongitudeAndLatitude();
                 _lonLineEdit.Text = lonLat.GetLongitudeString();
                 _lonLineEdit.TooltipText = _lonLineEdit.Text;
                 _latLineEdit.Text = lonLat.GetLatitudeString();
@@ -306,9 +287,9 @@ public partial class HexPlanetHud : Control
         OnCameraMoved(_hexPlanetManager.GetOrbitCameraFocusPos(), 0f);
         OnCameraTransformed(_hexPlanetManager.GetViewport().GetCamera3D().GetGlobalTransform(), 0f);
 
-        SetEditMode(_editCheckButton.ButtonPressed);
-        _editorService.SetLabelMode(_showLableOptionButton.Selected);
-        _editorService.SelectTerrain(0);
+        _hexPlanetHudApplication.SetEditMode(_editCheckButton.ButtonPressed);
+        _hexPlanetHudApplication.SetLabelMode(_showLableOptionButton.Selected);
+        _hexPlanetHudApplication.SetTerrain(0);
         UpdateNewPlanetInfo();
         InitSignals();
 
@@ -366,45 +347,46 @@ public partial class HexPlanetHud : Control
             _editGrid.Visible = vis;
             if (vis)
             {
-                _editorService.SelectTerrain(_terrainOptionButton.Selected);
+                _hexPlanetHudApplication.SetTerrain(_terrainOptionButton.Selected);
                 SetElevation(_elevationVSlider.Value);
             }
             else
             {
-                _editorService.SetApplyTerrain(false);
-                _editorService.SetApplyElevation(false);
+                _hexPlanetHudApplication.SetApplyTerrain(false);
+                _hexPlanetHudApplication.SetApplyElevation(false);
             }
         };
 
-        _editCheckButton.Toggled += SetEditMode;
-        _showLableOptionButton.ItemSelected += _editorService.SetLabelMode;
-        _terrainOptionButton.ItemSelected += _editorService.SelectTerrain;
+        _editCheckButton.Toggled += _hexPlanetHudApplication.SetEditMode;
+        _showLableOptionButton.ItemSelected += _hexPlanetHudApplication.SetLabelMode;
+        _terrainOptionButton.ItemSelected += _hexPlanetHudApplication.SetTerrain;
         _elevationVSlider.ValueChanged += SetElevation;
-        _elevationCheckButton.Toggled += _editorService.SetApplyElevation;
+        _elevationCheckButton.Toggled += _hexPlanetHudApplication.SetApplyElevation;
         _waterVSlider.ValueChanged += SetWaterLevel;
-        _waterCheckButton.Toggled += _editorService.SetApplyWaterLevel;
+        _waterCheckButton.Toggled += _hexPlanetHudApplication.SetApplyWaterLevel;
         _brushHSlider.ValueChanged += SetBrushSize;
-        _riverOptionButton.ItemSelected += _editorService.SetRiverMode;
-        _roadOptionButton.ItemSelected += _editorService.SetRoadMode;
-        _urbanCheckButton.Toggled += _editorService.SetApplyUrbanLevel;
-        _urbanHSlider.ValueChanged += _editorService.SetUrbanLevel;
-        _farmCheckButton.Toggled += _editorService.SetApplyFarmLevel;
-        _farmHSlider.ValueChanged += _editorService.SetFarmLevel;
-        _plantCheckButton.Toggled += _editorService.SetApplyPlantLevel;
-        _plantHSlider.ValueChanged += _editorService.SetPlantLevel;
-        _wallOptionButton.ItemSelected += _editorService.SetWalledMode;
-        _specialFeatureCheckButton.Toggled += _editorService.SetApplySpecialIndex;
-        _specialFeatureOptionButton.ItemSelected += _editorService.SetSpecialIndex;
+        _riverOptionButton.ItemSelected += _hexPlanetHudApplication.SetRiverMode;
+        _roadOptionButton.ItemSelected += _hexPlanetHudApplication.SetRoadMode;
+        _urbanCheckButton.Toggled += _hexPlanetHudApplication.SetApplyUrbanLevel;
+        _urbanHSlider.ValueChanged += _hexPlanetHudApplication.SetUrbanLevel;
+        _farmCheckButton.Toggled += _hexPlanetHudApplication.SetApplyFarmLevel;
+        _farmHSlider.ValueChanged += _hexPlanetHudApplication.SetFarmLevel;
+        _plantCheckButton.Toggled += _hexPlanetHudApplication.SetApplyPlantLevel;
+        _plantHSlider.ValueChanged += _hexPlanetHudApplication.SetPlantLevel;
+        _wallOptionButton.ItemSelected += _hexPlanetHudApplication.SetWalledMode;
+        _specialFeatureCheckButton.Toggled += _hexPlanetHudApplication.SetApplySpecialIndex;
+        _specialFeatureOptionButton.ItemSelected += _hexPlanetHudApplication.SetSpecialIndex;
     }
 
 
     private void UpdatePlanetUi()
     {
-        _radiusLineEdit.Text = $"{_hexPlanetManager.Radius:F2}";
-        _divisionLineEdit.Text = $"{_hexPlanetManager.Divisions}";
-        _chunkDivisionLineEdit.Text = $"{_hexPlanetManager.ChunkDivisions}";
-        _chunkCountLabel.Text = $"分块总数：{_chunkRepo.GetCount()}";
-        _tileCountLabel.Text = $"地块总数：{_tileRepo.GetCount()}";
+        var planetInfoResp = _hexPlanetHudApplication.GetPlanetInfo();
+        _radiusLineEdit.Text = $"{planetInfoResp.Radius:F2}";
+        _divisionLineEdit.Text = $"{planetInfoResp.Divisions}";
+        _chunkDivisionLineEdit.Text = $"{planetInfoResp.ChunkDivisions}";
+        _chunkCountLabel.Text = $"分块总数：{planetInfoResp.ChunkCount}";
+        _tileCountLabel.Text = $"地块总数：{planetInfoResp.TileCount}";
     }
 
     public override void _Process(double delta)
@@ -439,9 +421,9 @@ public partial class HexPlanetHud : Control
                 ValidateDrag(ChosenTile);
             else
                 _isDrag = false;
-            if (_editorService.TileOverrider.EditMode)
+            if (_hexPlanetHudApplication.GetEditMode())
             {
-                _editorService.EditTiles(ChosenTile, _isDrag, _previousTile, _dragTile);
+                _hexPlanetHudApplication.EditTiles(ChosenTile, _isDrag, _previousTile, _dragTile);
                 ChosenTile = _chosenTile; // 刷新 GUI 地块信息
                 // 编辑模式下绘制选择地块框
                 _hexPlanetManager.SelectEditingTile(ChosenTile);
@@ -453,7 +435,7 @@ public partial class HexPlanetHud : Control
         }
         else
         {
-            if (!_editorService.TileOverrider.EditMode)
+            if (!_hexPlanetHudApplication.GetEditMode())
                 _hexPlanetManager.FindPath(ChosenTile);
             else
                 // 清理选择地块框

@@ -1,6 +1,7 @@
 using Apps.Applications.Tiles;
 using Commons.Utils;
 using Domains.Models.Entities.Civs;
+using Domains.Models.Singletons.Planets;
 using Domains.Repos.PlanetGenerates;
 using Domains.Services.Civs;
 using Domains.Services.PlanetGenerates;
@@ -23,19 +24,17 @@ public partial class HexUnit : CsgBox3D
 
     #region 服务与存储
 
-    private static ITileService _tileService;
     private static ITileRepo _tileRepo;
     private static ITileShaderApplication _tileShaderApplication;
     private static IUnitService _unitService;
-    private static IPlanetSettingService _planetSettingService;
+    private static IPlanetConfig _planetConfig;
 
     private static void InitServices()
     {
-        _tileService ??= Context.GetBeanFromHolder<ITileService>();
         _tileRepo ??= Context.GetBeanFromHolder<ITileRepo>();
         _tileShaderApplication ??= Context.GetBeanFromHolder<ITileShaderApplication>();
         _unitService ??= Context.GetBeanFromHolder<IUnitService>();
-        _planetSettingService ??= Context.GetBeanFromHolder<IPlanetSettingService>();
+        _planetConfig ??= Context.GetBeanFromHolder<IPlanetConfig>();
     }
 
     #endregion
@@ -88,7 +87,7 @@ public partial class HexUnit : CsgBox3D
     public override void _Process(double delta)
     {
         if (_path == null) return;
-        var deltaProgress = (float)delta * _planetSettingService.StandardScale * PathMoveSpeed;
+        var deltaProgress = (float)delta * _planetConfig.StandardScale * PathMoveSpeed;
         if (_pathOriented)
         {
             var prePathTileIdx = _pathTileIdx;
@@ -142,8 +141,8 @@ public partial class HexUnit : CsgBox3D
     public void ValidateLocation()
     {
         var tile = _tileRepo.GetById(_tileId)!;
-        var position = tile.GetCentroid(_planetSettingService.Radius + _tileService.GetHeight(tile));
-        Node3dUtil.PlaceOnSphere(this, position, _planetSettingService.StandardScale,
+        var position = tile.GetCentroid(_planetConfig.Radius + _tileRepo.GetHeight(tile));
+        Node3dUtil.PlaceOnSphere(this, position, _planetConfig.StandardScale,
             alignForward: Vector3.Up); // 单位不需要抬高，场景里已经设置好了
         _beginRotation = Rotation;
     }

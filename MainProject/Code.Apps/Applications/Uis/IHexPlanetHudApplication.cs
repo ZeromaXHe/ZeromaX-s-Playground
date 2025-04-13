@@ -1,37 +1,37 @@
+using Apps.Models.Responses;
 using Domains.Models.Entities.PlanetGenerates;
-using Domains.Models.ValueObjects.PlanetGenerates;
+using Godot;
 
-namespace Domains.Services.Uis;
+namespace Apps.Applications.Uis;
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
-/// Date: 2025-03-12 09:18
-public interface IEditorService
+/// Date: 2025-04-13 13:00:13
+public interface IHexPlanetHudApplication
 {
-    delegate void LabelModeChangedEvent(int labelMode);
-
-    event LabelModeChangedEvent LabelModeChanged;
-
-    delegate void EditModeChangedEvent(bool editMode);
-
-    event EditModeChangedEvent EditModeChanged;
-    int LabelMode { get; set; }
-    HexTileDataOverrider TileOverrider { get; set; }
+    PlanetInfoRespDto GetPlanetInfo();
+    TileInfoRespDto GetTileInfo(Tile tile);
     void EditTiles(Tile tile, bool isDrag, Tile? previousTile, Tile dragTile);
+    int GetElevationStep();
+    ImageTexture GenerateRectMap();
 
-    #region 编辑
+    #region 编辑功能
 
     void SetEditMode(bool toggle);
+    bool GetEditMode();
     void SetLabelMode(long mode);
     void SetTerrain(long index);
     void SetApplyTerrain(bool toggle);
     void SetElevation(double elevation);
+    int GetActiveElevation();
     void SetApplyElevation(bool toggle);
     void SetBrushSize(double brushSize);
+    int GetBrushSize();
     void SetRiverMode(long mode);
     void SetRoadMode(long mode);
     void SetApplyWaterLevel(bool toggle);
     void SetWaterLevel(double level);
+    int GetActiveWaterLevel();
     void SetApplyUrbanLevel(bool toggle);
     void SetUrbanLevel(double level);
     void SetApplyFarmLevel(bool toggle);

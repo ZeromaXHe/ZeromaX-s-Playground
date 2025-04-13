@@ -1,5 +1,5 @@
+using Domains.Models.Singletons.Planets;
 using Domains.Repos.PlanetGenerates;
-using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 
@@ -23,21 +23,21 @@ public partial class RealEarthLandGenerator : Node
 
     private IPointRepo _pointRepo;
     private ITileRepo _tileRepo;
-    private IPlanetSettingService _planetSettingService;
+    private IPlanetConfig _planetConfig;
 
     private void InitServices()
     {
         _pointRepo = Context.GetBeanFromHolder<IPointRepo>();
         _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
-        _planetSettingService = Context.GetBeanFromHolder<IPlanetSettingService>();
+        _planetConfig = Context.GetBeanFromHolder<IPlanetConfig>();
     }
 
     #endregion
 
     public int CreateLand()
     {
-        var water = _planetSettingService.DefaultWaterLevel;
-        var elevationStep = _planetSettingService.ElevationStep;
+        var water = _planetConfig.DefaultWaterLevel;
+        var elevationStep = _planetConfig.ElevationStep;
         var landCount = 0;
         var worldMap = WorldMap.GetImage();
         foreach (var tile in _tileRepo.GetAll())

@@ -4,8 +4,12 @@ using Apps.Applications.Features;
 using Apps.Applications.Features.Impl;
 using Apps.Applications.Tiles;
 using Apps.Applications.Tiles.Impl;
+using Apps.Applications.Uis;
+using Apps.Applications.Uis.Impl;
 using Commons.Frameworks;
 using Domains.Events.Tiles;
+using Domains.Models.Singletons.Planets;
+using Domains.Models.Singletons.Planets.Impl;
 using Domains.Repos.Civs;
 using Domains.Repos.PlanetGenerates;
 using Domains.Services.Caches;
@@ -58,8 +62,14 @@ public class Context : IContext
     {
         Reboot();
         _initialized = true;
+        // 单例
+        var planetConfig = new PlanetConfig();
+        var noiseConfig = new NoiseConfig(planetConfig);
+        Register(nameof(IPlanetConfig), planetConfig);
+        Register(nameof(INoiseConfig), noiseConfig);
+        // 存储
         var chunkRepo = new ChunkRepo();
-        var tileRepo = new TileRepo();
+        var tileRepo = new TileRepo(planetConfig, noiseConfig);
         var featureRepo = new FeatureRepo();
         var faceRepo = new FaceRepo();
         var pointRepo = new PointRepo();
@@ -72,24 +82,20 @@ public class Context : IContext
         Register(nameof(IPointRepo), pointRepo);
         Register(nameof(IUnitRepo), unitRepo);
         Register(nameof(ICivRepo), civRepo);
+        // 服务
         var lodMeshCacheService = new LodMeshCacheService();
-        var planetSettingService = new PlanetSettingService();
-        var noiseService = new NoiseService(planetSettingService);
         var unitService = new UnitService(unitRepo);
         var civService = new CivService(civRepo);
         var pointService = new PointService(faceRepo, pointRepo);
-        var chunkService = new ChunkService(pointService, pointRepo, faceRepo, planetSettingService, chunkRepo);
-        var tileService = new TileService(chunkService, faceRepo, pointService, pointRepo,
-            planetSettingService, noiseService, tileRepo);
-        var tileSearchService = new TileSearchService(pointRepo, chunkRepo, tileRepo, planetSettingService);
-        var tileShaderService = new TileShaderService(tileRepo, unitService, civService, planetSettingService);
+        var chunkService = new ChunkService(pointService, pointRepo, faceRepo, planetConfig, chunkRepo);
+        var tileService = new TileService(chunkService, faceRepo, pointService, pointRepo, planetConfig, tileRepo);
+        var tileSearchService = new TileSearchService(pointRepo, chunkRepo, tileRepo, planetConfig);
+        var tileShaderService = new TileShaderService(tileRepo, unitService, civService, planetConfig);
         var editorService = new EditorService(tileRepo);
-        var miniMapService = new MiniMapService(tileService, tileRepo);
+        var miniMapService = new MiniMapService(tileRepo);
         var selectViewService = new SelectViewService(chunkRepo, tileService, tileRepo, tileSearchService,
-            planetSettingService, editorService);
+            planetConfig, editorService);
         Register(nameof(ILodMeshCacheService), lodMeshCacheService);
-        Register(nameof(IPlanetSettingService), planetSettingService);
-        Register(nameof(INoiseService), noiseService);
         Register(nameof(IUnitService), unitService);
         Register(nameof(ICivService), civService);
         Register(nameof(IPointService), pointService);
@@ -100,11 +106,15 @@ public class Context : IContext
         Register(nameof(IEditorService), editorService);
         Register(nameof(IMiniMapService), miniMapService);
         Register(nameof(ISelectViewService), selectViewService);
+        // 应用
         var featureApplication = new FeatureApplication(featureRepo);
         TileShaderEvent.Instance.TileExplored += featureApplication.ExploreFeatures;
         var tileShaderApplication = new TileShaderApplication(tileSearchService, tileShaderService);
         TileShaderEvent.Instance.RangeVisibilityIncreased += tileShaderApplication.IncreaseVisibility;
+        var hexPlanetHudApplication = new HexPlanetHudApplication(planetConfig, chunkRepo, tileRepo, pointRepo,
+            editorService, miniMapService);
         Register(nameof(IFeatureApplication), featureApplication);
         Register(nameof(ITileShaderApplication), tileShaderApplication);
+        Register(nameof(IHexPlanetHudApplication), hexPlanetHudApplication);
     }
 }

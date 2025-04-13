@@ -1,5 +1,6 @@
 using Commons.Utils;
 using Domains.Models.Entities.PlanetGenerates;
+using Domains.Models.Singletons.Planets;
 using Domains.Repos.PlanetGenerates;
 using Godot;
 
@@ -12,7 +13,7 @@ public class ChunkService(
     IPointService pointService,
     IPointRepo pointRepo,
     IFaceRepo faceRepo,
-    IPlanetSettingService planetSettingService,
+    IPlanetConfig planetConfig,
     IChunkRepo chunkRepo)
     : IChunkService
 {
@@ -29,20 +30,20 @@ public class ChunkService(
     public void InitChunks()
     {
         var time = Time.GetTicksMsec();
-        pointService.InitPointsAndFaces(true, planetSettingService.ChunkDivisions);
+        pointService.InitPointsAndFaces(true, planetConfig.ChunkDivisions);
         foreach (var point in pointRepo.GetAllByChunky(true))
         {
             var hexFaces = faceRepo.GetOrderedFaces(point);
             var neighborCenters = pointRepo.GetNeighborCenterIds(hexFaces, point)
                 .Select(c => c.Id)
                 .ToList();
-            chunkRepo.Add(point.Id, point.Position * (planetSettingService.Radius + planetSettingService.MaxHeight),
+            chunkRepo.Add(point.Id, point.Position * (planetConfig.Radius + planetConfig.MaxHeight),
                 hexFaces.Select(f => f.Id).ToList(), neighborCenters);
         }
 
         _chunkPointVpTree.Create(pointRepo.GetAllByChunky(true).Select(c => c.Position).ToArray(),
             (p0, p1) => p0.DistanceTo(p1));
         GD.Print($"InitChunks chunkDivisions {
-            planetSettingService.ChunkDivisions}, cost: {Time.GetTicksMsec() - time} ms");
+            planetConfig.ChunkDivisions}, cost: {Time.GetTicksMsec() - time} ms");
     }
 }

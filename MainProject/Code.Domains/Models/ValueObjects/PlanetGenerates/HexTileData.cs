@@ -1,7 +1,7 @@
 using Commons.Enums;
 using Commons.Frameworks;
 using Commons.Utils;
-using Domains.Services.PlanetGenerates;
+using Domains.Models.Singletons.Planets;
 
 namespace Domains.Models.ValueObjects.PlanetGenerates;
 
@@ -17,11 +17,11 @@ public struct HexTileData
 
     #region 服务
 
-    private static IPlanetSettingService? _planetSettingService;
+    private static IPlanetConfig? _planetConfig;
 
     private static void InitServices()
     {
-        _planetSettingService ??= ContextHolder.Context?.GetBean<IPlanetSettingService>();
+        _planetConfig ??= ContextHolder.Context?.GetBean<IPlanetConfig>();
     }
 
     #endregion
@@ -138,21 +138,21 @@ public struct HexTileData
     /// </summary>
     public readonly float StreamBedY =>
         (Values.Elevation + HexMetrics.StreamBedElevationOffset) *
-        _planetSettingService!.UnitHeight;
+        _planetConfig!.UnitHeight;
 
     /// <summary>
     /// Vertical position of the river's surface, if applicable.
     /// </summary>
     public readonly float RiverSurfaceY =>
         (Values.Elevation + HexMetrics.WaterElevationOffset) *
-        _planetSettingService!.UnitHeight;
+        _planetConfig!.UnitHeight;
 
     /// <summary>
     /// Vertical position of the water surface, if applicable.
     /// </summary>
     public readonly float WaterSurfaceY =>
         (Values.WaterLevel + HexMetrics.WaterElevationOffset) *
-        _planetSettingService!.UnitHeight;
+        _planetConfig!.UnitHeight;
 
     /// <summary>
     /// Elevation at which the cell is visible.

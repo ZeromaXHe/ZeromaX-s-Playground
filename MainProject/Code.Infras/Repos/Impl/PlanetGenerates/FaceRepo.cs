@@ -65,4 +65,7 @@ public class FaceRepo : Repository<Face>, IFaceRepo
 
         return orderedList;
     }
+
+    public Vector3 GetCornerByFaceId(Tile tile, int id, float radius = 1f, float size = 1f) =>
+        Math3dUtil.ProjectToSphere(tile.UnitCentroid.Lerp(GetById(id)!.Center, size), radius);
 }

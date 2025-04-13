@@ -2,14 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using Apps.Applications.Features;
 using Apps.Events;
 using Domains.Events.Tiles;
 using Domains.Models.Entities.PlanetGenerates;
+using Domains.Models.Singletons.Planets;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Domains.Repos.PlanetGenerates;
-using Domains.Services.PlanetGenerates;
-using Domains.Services.Shaders;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 
@@ -29,7 +27,7 @@ public partial class ChunkLoader : Node3D
 
     private IChunkRepo _chunkRepo;
     private ITileRepo _tileRepo;
-    private IPlanetSettingService _planetSettingService;
+    private IPlanetConfig _planetConfig;
 
     private void InitServices()
     {
@@ -37,7 +35,7 @@ public partial class ChunkLoader : Node3D
         _chunkRepo.RefreshChunkTileLabel += OnChunkServiceRefreshChunkTileLabel;
         _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
         _tileRepo.RefreshChunk += OnChunkServiceRefreshChunk;
-        _planetSettingService = Context.GetBeanFromHolder<IPlanetSettingService>();
+        _planetConfig = Context.GetBeanFromHolder<IPlanetConfig>();
 #if !FEATURE_NEW
         TileShaderEvent.Instance.TileExplored += ExploreFeatures;
 #endif
@@ -414,7 +412,7 @@ public partial class ChunkLoader : Node3D
 
     private ChunkLod CalcLod(float distance)
     {
-        var tileLen = _planetSettingService.Radius / _planetSettingService.Divisions;
+        var tileLen = _planetConfig.Radius / _planetConfig.Divisions;
         return distance > tileLen * 160 ? ChunkLod.JustHex :
             distance > tileLen * 80 ? ChunkLod.PlaneHex :
             distance > tileLen * 40 ? ChunkLod.SimpleHex :
@@ -425,6 +423,6 @@ public partial class ChunkLoader : Node3D
     // 因为后面要根据相机位置动态更新可见区域，上面方法这个仅仅是对应初始时的可见区域
     private bool IsChunkInsight(Chunk chunk, Camera3D camera) =>
         Mathf.Cos(chunk.Pos.Normalized().AngleTo(ToLocal(camera.GlobalPosition).Normalized()))
-        > _planetSettingService.Radius / camera.GlobalPosition.Length()
+        > _planetConfig.Radius / camera.GlobalPosition.Length()
         && camera.IsPositionInFrustum(ToGlobal(chunk.Pos));
 }

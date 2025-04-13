@@ -1,3 +1,5 @@
+using Commons.Constants;
+using Domains.Models.Singletons.Planets;
 using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
@@ -25,7 +27,7 @@ public partial class CelestialMotionManager : Node3D
         {
             PlanetRevolution = false;
             _sunRevolution.RotationDegrees = Vector3.Up * 180f;
-            RenderingServer.GlobalShaderParameterSet("dir_to_sun", _sunMesh.GlobalPosition.Normalized());
+            RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.DirToSun, _sunMesh.GlobalPosition.Normalized());
         }
         else
             PlanetRevolution = true;
@@ -188,11 +190,11 @@ public partial class CelestialMotionManager : Node3D
 
     #region services
 
-    private IPlanetSettingService _planetSettingService;
+    private IPlanetConfig _planetConfig;
 
     private void InitServices()
     {
-        _planetSettingService = Context.GetBeanFromHolder<IPlanetSettingService>();
+        _planetConfig = Context.GetBeanFromHolder<IPlanetConfig>();
     }
 
     #endregion
@@ -233,7 +235,7 @@ public partial class CelestialMotionManager : Node3D
         _moonMesh = GetNode<MeshInstance3D>("%MoonMesh");
         UpdateMoonMeshRadius();
         _sunMesh = GetNode<MeshInstance3D>("%SunMesh");
-        RenderingServer.GlobalShaderParameterSet("dir_to_sun", _sunMesh.GlobalPosition.Normalized());
+        RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.DirToSun, _sunMesh.GlobalPosition.Normalized());
     }
 
     #endregion
@@ -259,8 +261,8 @@ public partial class CelestialMotionManager : Node3D
     private void UpdateLunarObliquityRotation() => _lunarObliquity.RotationDegrees = Vector3.Right * SatelliteObliquity;
 
     public void UpdateLunarDist() => _lunarDist.Position =
-        Vector3.Back * Mathf.Clamp(_planetSettingService.Radius * SatelliteDistRatio,
-            _planetSettingService.Radius * (1 + _satelliteRadiusRatio), 800f);
+        Vector3.Back * Mathf.Clamp(_planetConfig.Radius * SatelliteDistRatio,
+            _planetConfig.Radius * (1 + _satelliteRadiusRatio), 800f);
 
     private void UpdateGalaxySkyRotation() =>
         _worldEnvironment.Environment.SkyRotation =
@@ -269,8 +271,8 @@ public partial class CelestialMotionManager : Node3D
     public void UpdateMoonMeshRadius()
     {
         var moonMesh = _moonMesh.Mesh as SphereMesh;
-        moonMesh?.SetRadius(_planetSettingService.Radius * SatelliteRadiusRatio);
-        moonMesh?.SetHeight(_planetSettingService.Radius * SatelliteRadiusRatio * 2);
+        moonMesh?.SetRadius(_planetConfig.Radius * SatelliteRadiusRatio);
+        moonMesh?.SetHeight(_planetConfig.Radius * SatelliteRadiusRatio * 2);
     }
 
     // 更新天体旋转
@@ -278,7 +280,7 @@ public partial class CelestialMotionManager : Node3D
     {
         if (PlanetRevolution || PlanetRotation)
         {
-            RenderingServer.GlobalShaderParameterSet("dir_to_sun",
+            RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.DirToSun,
                 _planetAxis.ToLocal(_sunMesh.GlobalPosition.Normalized()));
             // 行星公转
             if (PlanetRevolution)
@@ -289,7 +291,7 @@ public partial class CelestialMotionManager : Node3D
             {
                 _planetAxis.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
                     _planetAxis.RotationDegrees.Y + PlanetRotationSpeed * delta, 0f, 360f);
-                RenderingServer.GlobalShaderParameterSet("inv_planet_matrix",
+                RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.InvPlanetMatrix,
                     _planetAxis.Transform.Inverse());
             }
         }

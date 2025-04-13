@@ -2,7 +2,6 @@ using System.Text;
 using Commons.Utils.HexSphereGrid;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Repos.PlanetGenerates;
-using Domains.Services.PlanetGenerates;
 using Godot;
 
 namespace Domains.Services.Uis.Impl;
@@ -10,7 +9,7 @@ namespace Domains.Services.Uis.Impl;
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-03-23 10:09:06
-public class MiniMapService(ITileService tileService, ITileRepo tileRepo) : IMiniMapService
+public class MiniMapService(ITileRepo tileRepo) : IMiniMapService
 {
     public ImageTexture GenerateRectMap()
     {
@@ -35,7 +34,7 @@ public class MiniMapService(ITileService tileService, ITileRepo tileRepo) : IMin
 
     private void GeneratePolygonForTile(StringBuilder svgBuilder, int width, int height, Tile tile)
     {
-        var uvs = tileService.GetCorners(tile, 1f)
+        var uvs = tile.UnitCorners
             .Select(c => LongitudeLatitudeCoords.From(c).ToUv())
             .ToList();
         svgBuilder.Append("<polygon points=\"");

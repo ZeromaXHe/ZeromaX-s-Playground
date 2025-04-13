@@ -1,5 +1,5 @@
+using Domains.Models.Singletons.Planets;
 using Domains.Repos.PlanetGenerates;
-using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Resources.LandGenerators;
@@ -19,24 +19,24 @@ public partial class FractalNoiseLandGenerator : Node
     #region 服务与存储
 
     private ITileRepo _tileRepo;
-    private IPlanetSettingService _planetSettingService;
+    private IPlanetConfig _planetConfig;
 
     private void InitServices()
     {
         _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
-        _planetSettingService = Context.GetBeanFromHolder<IPlanetSettingService>();
+        _planetConfig = Context.GetBeanFromHolder<IPlanetConfig>();
     }
 
     #endregion
 
     public int CreateLand(RandomNumberGenerator random)
     {
-        var origin = new Vector3(random.Randf(), random.Randf(), random.Randf()) * _planetSettingService.Radius;
+        var origin = new Vector3(random.Randf(), random.Randf(), random.Randf()) * _planetConfig.Radius;
         var minNoise = float.MaxValue;
         var maxNoise = float.MinValue;
         foreach (var tile in _tileRepo.GetAll())
         {
-            var noise = LayeredNoises.GetLayeredNoise3Dv(tile.UnitCentroid * _planetSettingService.Radius + origin);
+            var noise = LayeredNoises.GetLayeredNoise3Dv(tile.UnitCentroid * _planetConfig.Radius + origin);
             if (noise > maxNoise) maxNoise = noise;
             if (noise < minNoise) minNoise = noise;
         }
@@ -44,12 +44,12 @@ public partial class FractalNoiseLandGenerator : Node
         var landCount = 0;
         foreach (var tile in _tileRepo.GetAll())
         {
-            var noise = LayeredNoises.GetLayeredNoise3Dv(tile.UnitCentroid * _planetSettingService.Radius + origin);
+            var noise = LayeredNoises.GetLayeredNoise3Dv(tile.UnitCentroid * _planetConfig.Radius + origin);
             var noiseDiff = noise > 0 ? noise : noise - minNoise;
             var elevation = Mathf.RoundToInt(noise > 0
-                ? _planetSettingService.DefaultWaterLevel +
-                  (_planetSettingService.ElevationStep - _planetSettingService.DefaultWaterLevel) * noiseDiff / maxNoise
-                : _planetSettingService.DefaultWaterLevel * noiseDiff / -minNoise);
+                ? _planetConfig.DefaultWaterLevel +
+                  (_planetConfig.ElevationStep - _planetConfig.DefaultWaterLevel) * noiseDiff / maxNoise
+                : _planetConfig.DefaultWaterLevel * noiseDiff / -minNoise);
             tile.Data = tile.Data with { Values = tile.Data.Values.WithElevation(elevation) };
             if (!tile.Data.IsUnderwater)
                 landCount++;

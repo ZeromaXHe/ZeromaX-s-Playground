@@ -1,6 +1,6 @@
 using Commons.Utils;
 using Domains.Models.Entities.PlanetGenerates;
-using Domains.Models.ValueObjects.PlanetGenerates;
+using Domains.Models.Singletons.Planets;
 using Domains.Repos.PlanetGenerates;
 using Godot;
 
@@ -14,8 +14,7 @@ public class TileService(
     IFaceRepo faceRepo,
     IPointService pointService,
     IPointRepo pointRepo,
-    IPlanetSettingService planetSettingService,
-    INoiseService noiseService,
+    IPlanetConfig planetConfig,
     ITileRepo tileRepo) : ITileService
 {
     private readonly VpTree<Vector3> _tilePointVpTree = new();
@@ -29,22 +28,10 @@ public class TileService(
         return tileRepo.GetByCenterId((int)pointId)!.Id;
     }
 
-    public float GetHeight(Tile tile) =>
-        (tile.Data.Elevation + GetPerturbHeight(tile)) * planetSettingService.UnitHeight;
-
-    public float GetOverrideHeight(Tile tile, HexTileDataOverrider tileDataOverrider) =>
-        (tileDataOverrider.Elevation(tile) + GetPerturbHeight(tile) + 0.05f) * planetSettingService.UnitHeight;
-
-    public float GetHeightById(int id) => GetHeight(tileRepo.GetById(id)!);
-
-    private float GetPerturbHeight(Tile tile) =>
-        (noiseService.SampleNoise(tile.GetCentroid(HexMetrics.StandardRadius)).Y * 2f - 1f)
-        * noiseService.ElevationPerturbStrength * planetSettingService.UnitHeight;
-
     public void InitTiles()
     {
         var time = Time.GetTicksMsec();
-        pointService.InitPointsAndFaces(false, planetSettingService.Divisions);
+        pointService.InitPointsAndFaces(false, planetConfig.Divisions);
         foreach (var point in pointRepo.GetAllByChunky(false)) // 虽然没有排序，但好像默认也有顺序？不过不能依赖这一点
         {
             var hexFaces = faceRepo.GetOrderedFaces(point);
@@ -69,7 +56,8 @@ public class TileService(
     }
 
     private Tile Add(int centerId, int chunkId, List<int> hexFaceIds, List<int> neighborCenterIds) =>
-        tileRepo.Add(centerId, chunkId, InitUnitCentroid(hexFaceIds), hexFaceIds, neighborCenterIds);
+        tileRepo.Add(centerId, chunkId, InitUnitCentroid(hexFaceIds), InitUnitCorners(hexFaceIds),
+            hexFaceIds, neighborCenterIds);
 
     // 初始计算单位重心（顶点坐标的算术平均）
     private Vector3 InitUnitCentroid(List<int> hexFaceIds) =>
@@ -77,57 +65,9 @@ public class TileService(
             .Select(id => faceRepo.GetById(id)!.Center.Normalized())
             .Aggregate((v1, v2) => v1 + v2) / hexFaceIds.Count;
 
-    public IEnumerable<Vector3> GetCorners(Tile tile, float radius, float size = 1f) =>
-        from faceId in tile.HexFaceIds
-        select faceRepo.GetById(faceId)
-        into face
-        select tile.UnitCentroid.Lerp(face.Center, size)
-        into pos
-        select Math3dUtil.ProjectToSphere(pos, radius);
-
-    public Vector3 GetCornerByFaceId(Tile tile, int id, float radius = 1f, float size = 1f) =>
-        Math3dUtil.ProjectToSphere(tile.UnitCentroid.Lerp(faceRepo.GetById(id)!.Center, size), radius);
-
-    public Vector3 GetFirstCorner(Tile tile, int idx, float radius = 1f, float size = 1f) =>
-        GetCornerByFaceId(tile, tile.HexFaceIds[idx], radius, size);
-
-    public Vector3 GetSecondCorner(Tile tile, int idx, float radius = 1f, float size = 1f) =>
-        GetFirstCorner(tile, tile.NextIdx(idx), radius, size);
-
-    public Vector3 GetFirstSolidCorner(Tile tile, int idx, float radius = 1f, float size = 1f) =>
-        GetFirstCorner(tile, idx, radius, size * HexMetrics.SolidFactor);
-
-    public Vector3 GetSecondSolidCorner(Tile tile, int idx, float radius = 1f, float size = 1f) =>
-        GetSecondCorner(tile, idx, radius, size * HexMetrics.SolidFactor);
-
-    public Vector3 GetEdgeMiddle(Tile tile, int idx, float radius = 1f, float size = 1f)
-    {
-        var corner1 = GetFirstCorner(tile, idx, radius, size);
-        var corner2 = GetFirstCorner(tile, tile.NextIdx(idx), radius, size);
-        return corner1.Lerp(corner2, 0.5f);
-    }
-
-    public Vector3 GetSolidEdgeMiddle(Tile tile, int idx, float radius = 1f, float size = 1f) =>
-        GetEdgeMiddle(tile, idx, radius, size * HexMetrics.SolidFactor);
-
-    private List<Vector3>? GetNeighborCommonCorners(Tile tile, Tile neighbor, float radius = 1f)
-    {
-        var idx = tile.NeighborCenterIds.FindIndex(ncId => ncId == neighbor.CenterId);
-        if (idx == -1) return null;
-        return
-        [
-            GetFirstCorner(tile, idx, radius),
-            GetFirstCorner(tile, tile.NextIdx(idx), radius)
-        ];
-    }
-
-    #region 水面
-
-    public Vector3 GetFirstWaterCorner(Tile tile, int idx, float radius = 1f, float size = 1f) =>
-        GetFirstCorner(tile, idx, radius, size * HexMetrics.WaterFactor);
-
-    public Vector3 GetSecondWaterCorner(Tile tile, int idx, float radius = 1f, float size = 1f) =>
-        GetSecondCorner(tile, idx, radius, size * HexMetrics.WaterFactor);
-
-    #endregion
+    // 初始计算单位顶点坐标
+    private List<Vector3> InitUnitCorners(List<int> hexFaceIds) =>
+        hexFaceIds
+            .Select(faceId => faceRepo.GetById(faceId)!.Center)
+            .ToList();
 }

@@ -1,6 +1,8 @@
+using Commons.Constants;
 using Domains.Events.Tiles;
 using Domains.Models.Entities.Civs;
 using Domains.Models.Entities.PlanetGenerates;
+using Domains.Models.Singletons.Planets;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Domains.Repos.PlanetGenerates;
 using Domains.Services.Civs;
@@ -17,17 +19,17 @@ public class TileShaderService : ITileShaderService
     private readonly ITileRepo _tileRepo;
     private readonly IUnitService _unitService;
     private readonly ICivService _civService;
-    private readonly IPlanetSettingService _planetSettingService;
+    private readonly IPlanetConfig _planetConfig;
 
     public TileShaderService(ITileRepo tileRepo, IUnitService unitService, ICivService civService,
-        IPlanetSettingService planetSettingService)
+        IPlanetConfig planetConfig)
     {
         _tileRepo = tileRepo;
         _tileRepo.RefreshTerrainShader += RefreshTerrain;
         _tileRepo.ViewElevationChanged += ViewElevationChanged;
         _unitService = unitService;
         _civService = civService;
-        _planetSettingService = planetSettingService;
+        _planetConfig = planetConfig;
     }
 
     private Image? _tileTexture; // 地块地理信息
@@ -47,15 +49,15 @@ public class TileShaderService : ITileShaderService
     public void Initialize()
     {
         // 地块数等于 20 * div * div / 2 + 2 = 10 * div ^ 2 + 2
-        var x = _planetSettingService.Divisions * 5;
-        var z = _planetSettingService.Divisions * 2 + 1; // 十二个五边形会导致余数
+        var x = _planetConfig.Divisions * 5;
+        var z = _planetConfig.Divisions * 2 + 1; // 十二个五边形会导致余数
         _tileTexture = Image.CreateEmpty(x, z, false, Image.Format.Rgba8);
         _tileCivTexture = Image.CreateEmpty(x, z, false, Image.Format.Rgba8);
         _hexTileData = ImageTexture.CreateFromImage(_tileTexture);
         _hexTileCivData = ImageTexture.CreateFromImage(_tileCivTexture);
-        RenderingServer.GlobalShaderParameterSet("hex_tile_data", Variant.CreateFrom(_hexTileData));
-        RenderingServer.GlobalShaderParameterSet("hex_tile_civ_data", Variant.CreateFrom(_hexTileCivData));
-        RenderingServer.GlobalShaderParameterSet("hex_tile_data_texel_size", new Vector4(1f / x, 1f / z, x, z));
+        RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.HexTileData, Variant.CreateFrom(_hexTileData));
+        RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.HexTileCivData, Variant.CreateFrom(_hexTileCivData));
+        RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.HexTileDataTexelSize, new Vector4(1f / x, 1f / z, x, z));
         if (_tileTextureData.Length == 0 || _tileTextureData.Length != x * z)
         {
             _tileTextureData = new Color[x * z];
@@ -96,7 +98,7 @@ public class TileShaderService : ITileShaderService
         var tile = _tileRepo.GetById(tileId)!;
         var data = _tileTextureData[tileId];
         data.B8 = tile.Data.IsUnderwater
-            ? (int)(tile.Data.WaterSurfaceY * (255f / _planetSettingService.MaxHeight))
+            ? (int)(tile.Data.WaterSurfaceY * (255f / _planetConfig.MaxHeight))
             : 0;
         data.A8 = tile.Data.TerrainTypeIndex;
         _tileTextureData[tileId] = data;
@@ -192,7 +194,7 @@ public class TileShaderService : ITileShaderService
     {
         var tile = _tileRepo.GetById(tileId)!;
         _tileTextureData[tileId].B8 = tile.Data.IsUnderwater
-            ? (int)(tile.Data.WaterSurfaceY * (255f / _planetSettingService.MaxHeight))
+            ? (int)(tile.Data.WaterSurfaceY * (255f / _planetConfig.MaxHeight))
             : 0;
         ChangePixel(_tileTexture!, tileId, _tileTextureData[tileId]);
         _needsVisibilityReset = true;

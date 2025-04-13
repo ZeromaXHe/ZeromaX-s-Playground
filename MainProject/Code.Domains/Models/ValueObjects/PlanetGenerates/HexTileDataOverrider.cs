@@ -2,7 +2,7 @@ using Commons.Enums;
 using Commons.Frameworks;
 using Commons.Utils;
 using Domains.Models.Entities.PlanetGenerates;
-using Domains.Services.PlanetGenerates;
+using Domains.Models.Singletons.Planets;
 
 namespace Domains.Models.ValueObjects.PlanetGenerates;
 
@@ -19,11 +19,11 @@ public struct HexTileDataOverrider
 
     #region 服务
 
-    private static IPlanetSettingService? _planetSettingService;
+    private static IPlanetConfig? _planetConfig;
 
     private static void InitServices()
     {
-        _planetSettingService ??= ContextHolder.Context?.GetBean<IPlanetSettingService>();
+        _planetConfig ??= ContextHolder.Context?.GetBean<IPlanetConfig>();
     }
 
     #endregion
@@ -68,17 +68,17 @@ public struct HexTileDataOverrider
 
     public float StreamBedY(Tile tile) =>
         IsOverrideTile(tile)
-            ? (Elevation(tile) + HexMetrics.StreamBedElevationOffset) * _planetSettingService!.UnitHeight
+            ? (Elevation(tile) + HexMetrics.StreamBedElevationOffset) * _planetConfig!.UnitHeight
             : tile.Data.StreamBedY;
 
     public float RiverSurfaceY(Tile tile) =>
         IsOverrideTile(tile)
-            ? (Elevation(tile) + HexMetrics.WaterElevationOffset) * _planetSettingService!.UnitHeight
+            ? (Elevation(tile) + HexMetrics.WaterElevationOffset) * _planetConfig!.UnitHeight
             : tile.Data.RiverSurfaceY;
 
     public float WaterSurfaceY(Tile tile) =>
         IsOverrideTile(tile)
-            ? (WaterLevel(tile) + HexMetrics.WaterElevationOffset) * _planetSettingService!.UnitHeight
+            ? (WaterLevel(tile) + HexMetrics.WaterElevationOffset) * _planetConfig!.UnitHeight
             : tile.Data.WaterSurfaceY;
 
     public bool HasRiver(Tile tile) => !IsOverrideNoRiver(tile) && tile.Data.HasRiver;

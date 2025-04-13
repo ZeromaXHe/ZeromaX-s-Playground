@@ -1,6 +1,7 @@
 using Commons.Enums;
 using Domains.Models.DataStructures.Navigations;
 using Domains.Models.Entities.PlanetGenerates;
+using Domains.Models.Singletons.Planets;
 using Domains.Models.ValueObjects.Navigations;
 using Domains.Repos.PlanetGenerates;
 using Domains.Services.PlanetGenerates;
@@ -15,7 +16,7 @@ public class TileSearchService(
     IPointRepo pointRepo,
     IChunkRepo chunkRepo,
     ITileRepo tileRepo,
-    IPlanetSettingService planetSettingService)
+    IPlanetConfig planetConfig)
     : ITileSearchService
 {
     private TileSearchData[] _searchData = [];
@@ -219,11 +220,11 @@ public class TileSearchService(
             var current = tileRepo.GetById(id)!;
             var originalElevation = current.Data.Elevation;
             var newElevation = originalElevation + rise;
-            if (newElevation > planetSettingService.ElevationStep)
+            if (newElevation > planetConfig.ElevationStep)
                 continue;
             current.Data = current.Data with { Values = current.Data.Values.WithElevation(newElevation) };
-            if (originalElevation < planetSettingService.DefaultWaterLevel
-                && newElevation >= planetSettingService.DefaultWaterLevel && --budget == 0)
+            if (originalElevation < planetConfig.DefaultWaterLevel
+                && newElevation >= planetConfig.DefaultWaterLevel && --budget == 0)
                 break;
             size++;
             foreach (var neighbor in tileRepo.GetNeighbors(current))
@@ -260,11 +261,11 @@ public class TileSearchService(
             var current = tileRepo.GetById(id)!;
             var originalElevation = current.Data.Elevation;
             var newElevation = originalElevation - sink;
-            if (newElevation < planetSettingService.ElevationStep)
+            if (newElevation < planetConfig.ElevationStep)
                 continue;
             current.Data = current.Data with { Values = current.Data.Values.WithElevation(newElevation) };
-            if (originalElevation >= planetSettingService.DefaultWaterLevel
-                && newElevation < planetSettingService.DefaultWaterLevel)
+            if (originalElevation >= planetConfig.DefaultWaterLevel
+                && newElevation < planetConfig.DefaultWaterLevel)
                 budget++;
             size++;
             foreach (var neighbor in tileRepo.GetNeighbors(current))

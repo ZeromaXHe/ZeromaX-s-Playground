@@ -1,6 +1,7 @@
 using Apps.Events;
 using Commons.Utils.HexSphereGrid;
 using Domains.Models.Entities.PlanetGenerates;
+using Domains.Models.Singletons.Planets;
 using Domains.Repos.PlanetGenerates;
 using Domains.Services.PlanetGenerates;
 using Godot;
@@ -35,7 +36,7 @@ public partial class MiniMapManager : Node2D
     private ITileService _tileService;
     private ITileRepo _tileRepo;
     private IPointRepo _pointRepo;
-    private IPlanetSettingService _planetSettingService;
+    private IPlanetConfig _planetConfig;
 
     private void InitServices()
     {
@@ -43,7 +44,7 @@ public partial class MiniMapManager : Node2D
         _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
         _tileRepo.RefreshTerrainShader += RefreshTile;
         _pointRepo = Context.GetBeanFromHolder<IPointRepo>();
-        _planetSettingService = Context.GetBeanFromHolder<IPlanetSettingService>();
+        _planetConfig = Context.GetBeanFromHolder<IPlanetConfig>();
     }
 
     private void CleanEventListeners() =>
@@ -96,8 +97,8 @@ public partial class MiniMapManager : Node2D
 
     public void UpdateCamera()
     {
-        _camera.Position = StandardCamPos / 10 * _planetSettingService.Divisions;
-        _camera.Zoom = StandardCamZoom * 10 / _planetSettingService.Divisions;
+        _camera.Position = StandardCamPos / 10 * _planetConfig.Divisions;
+        _camera.Zoom = StandardCamZoom * 10 / _planetConfig.Divisions;
     }
 
     public void Init(Vector3 orbitCamPos)

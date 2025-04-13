@@ -2,12 +2,12 @@ using Commons.Utils;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Godot;
 
-namespace Domains.Services.PlanetGenerates.Impl;
+namespace Domains.Models.Singletons.Planets.Impl;
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-03-12 07:52
-public class NoiseService(IPlanetSettingService planetSettingService) : INoiseService
+public class NoiseConfig(IPlanetConfig planetConfig) : INoiseConfig
 {
     #region 噪声扰动
 
@@ -44,8 +44,8 @@ public class NoiseService(IPlanetSettingService planetSettingService) : INoiseSe
     // X 映射向右，Y 映射为左向上 60 度，Z 映射为左向下 60 度
     public Vector4 SampleNoise(Vector3 position) =>
         GetPixelBilinear(NoiseSource!,
-            (position.X - position.Y * 0.5f - position.Z * 0.5f) * NoiseScale / planetSettingService.StandardScale,
-            (position.Y - position.Z) * HexMetrics.OuterToInner * NoiseScale / planetSettingService.StandardScale);
+            (position.X - position.Y * 0.5f - position.Z * 0.5f) * NoiseScale / planetConfig.StandardScale,
+            (position.Y - position.Z) * HexMetrics.OuterToInner * NoiseScale / planetConfig.StandardScale);
 
     private const float CellPerturbStrength = 4f;
     public float ElevationPerturbStrength => 0.5f;
@@ -59,9 +59,9 @@ public class NoiseService(IPlanetSettingService planetSettingService) : INoiseSe
             : Vector3.Up.Cross(position).Normalized();
         var vecZ = vecX.Cross(position).Normalized();
         var x = vecX * (sample.X * 2f - 1f) * CellPerturbStrength
-            * planetSettingService.StandardScale * position.Length() / HexMetrics.StandardRadius;
+            * planetConfig.StandardScale * position.Length() / HexMetrics.StandardRadius;
         var z = vecZ * (sample.Z * 2f - 1f) * CellPerturbStrength
-            * planetSettingService.StandardScale * position.Length() / HexMetrics.StandardRadius;
+            * planetConfig.StandardScale * position.Length() / HexMetrics.StandardRadius;
         return position + x + z;
     }
 
