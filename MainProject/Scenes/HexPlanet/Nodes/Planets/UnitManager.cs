@@ -1,6 +1,6 @@
 using Domains.Models.Entities.PlanetGenerates;
+using Domains.Repos.Civs;
 using Domains.Repos.PlanetGenerates;
-using Domains.Services.Civs;
 using Domains.Services.Navigations;
 using Domains.Services.Uis;
 using Godot;
@@ -21,14 +21,14 @@ public partial class UnitManager : Node3D
 
     #region 服务和存储
 
-    private IUnitService _unitService;
+    private IUnitRepo _unitRepo;
     private ITileRepo _tileRepo;
     private ITileSearchService _tileSearchService;
     private ISelectViewService _selectViewService;
 
     private void InitServices()
     {
-        _unitService = Context.GetBeanFromHolder<IUnitService>();
+        _unitRepo = Context.GetBeanFromHolder<IUnitRepo>();
         _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
         _tileRepo.UnitValidateLocation += OnTileServiceUnitValidateLocation;
         _tileSearchService = Context.GetBeanFromHolder<ITileSearchService>();
@@ -93,7 +93,7 @@ public partial class UnitManager : Node3D
         foreach (var unit in _units.Values)
             unit.Die();
         _units.Clear();
-        _unitService.Truncate();
+        _unitRepo.Truncate();
     }
 
     public void FindPath(Tile tile)

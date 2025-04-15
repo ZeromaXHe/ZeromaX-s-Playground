@@ -4,9 +4,8 @@ using Domains.Models.Entities.Civs;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.Singletons.Planets;
 using Domains.Models.ValueObjects.PlanetGenerates;
+using Domains.Repos.Civs;
 using Domains.Repos.PlanetGenerates;
-using Domains.Services.Civs;
-using Domains.Services.PlanetGenerates;
 using Godot;
 
 namespace Domains.Services.Shaders.Impl;
@@ -17,18 +16,18 @@ namespace Domains.Services.Shaders.Impl;
 public class TileShaderService : ITileShaderService
 {
     private readonly ITileRepo _tileRepo;
-    private readonly IUnitService _unitService;
-    private readonly ICivService _civService;
+    private readonly IUnitRepo _unitRepo;
+    private readonly ICivRepo _civRepo;
     private readonly IPlanetConfig _planetConfig;
 
-    public TileShaderService(ITileRepo tileRepo, IUnitService unitService, ICivService civService,
+    public TileShaderService(ITileRepo tileRepo, IUnitRepo unitRepo, ICivRepo civRepo,
         IPlanetConfig planetConfig)
     {
         _tileRepo = tileRepo;
         _tileRepo.RefreshTerrainShader += RefreshTerrain;
         _tileRepo.ViewElevationChanged += ViewElevationChanged;
-        _unitService = unitService;
-        _civService = civService;
+        _unitRepo = unitRepo;
+        _civRepo = civRepo;
         _planetConfig = planetConfig;
     }
 
@@ -85,7 +84,7 @@ public class TileShaderService : ITileShaderService
             _tileCivTextureData[tileId] = Colors.Black;
         else
         {
-            var civ = _civService.GetById(tile.CivId)!;
+            var civ = _civRepo.GetById(tile.CivId)!;
             _tileCivTextureData[tileId] = civ.Color;
         }
 
@@ -168,7 +167,7 @@ public class TileShaderService : ITileShaderService
             RefreshVisibility(tile.Id);
         }
 
-        foreach (var unit in _unitService.GetAll())
+        foreach (var unit in _unitRepo.GetAll())
             TileShaderEvent.EmitRangeVisibilityIncreased(_tileRepo.GetById(unit.TileId)!, Unit.VisionRange);
     }
 

@@ -2,9 +2,8 @@ using Apps.Applications.Tiles;
 using Commons.Utils;
 using Domains.Models.Entities.Civs;
 using Domains.Models.Singletons.Planets;
+using Domains.Repos.Civs;
 using Domains.Repos.PlanetGenerates;
-using Domains.Services.Civs;
-using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 
@@ -18,7 +17,7 @@ public partial class HexUnit : CsgBox3D
     public HexUnit()
     {
         InitServices();
-        var unit = _unitService.Add();
+        var unit = _unitRepo.Add();
         Id = unit.Id;
     }
 
@@ -26,14 +25,14 @@ public partial class HexUnit : CsgBox3D
 
     private static ITileRepo _tileRepo;
     private static ITileShaderApplication _tileShaderApplication;
-    private static IUnitService _unitService;
+    private static IUnitRepo _unitRepo;
     private static IPlanetConfig _planetConfig;
 
     private static void InitServices()
     {
         _tileRepo ??= Context.GetBeanFromHolder<ITileRepo>();
         _tileShaderApplication ??= Context.GetBeanFromHolder<ITileShaderApplication>();
-        _unitService ??= Context.GetBeanFromHolder<IUnitService>();
+        _unitRepo ??= Context.GetBeanFromHolder<IUnitRepo>();
         _planetConfig ??= Context.GetBeanFromHolder<IPlanetConfig>();
     }
 
@@ -56,7 +55,7 @@ public partial class HexUnit : CsgBox3D
             }
 
             _tileId = value;
-            _unitService.GetById(Id)!.TileId = _tileId;
+            _unitRepo.GetById(Id)!.TileId = _tileId;
             ValidateLocation();
             var tile = _tileRepo.GetById(_tileId)!;
             _tileShaderApplication.IncreaseVisibility(tile, Unit.VisionRange);
@@ -129,7 +128,7 @@ public partial class HexUnit : CsgBox3D
         _tileRepo.SetUnitId(fromTile, 0);
         var toTile = _path.Tiles[^1];
         _tileRepo.SetUnitId(toTile, Id);
-        _unitService.GetById(Id)!.TileId = toTile.Id;
+        _unitRepo.GetById(Id)!.TileId = toTile.Id;
         _tileId = toTile.Id;
     }
 
@@ -149,7 +148,7 @@ public partial class HexUnit : CsgBox3D
 
     public void Die()
     {
-        _unitService.Delete(Id);
+        _unitRepo.Delete(Id);
         var tile = _tileRepo.GetById(_tileId)!;
         _tileShaderApplication.DecreaseVisibility(tile, Unit.VisionRange);
         _tileRepo.SetUnitId(tile, 0);

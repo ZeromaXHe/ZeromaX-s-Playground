@@ -1,7 +1,7 @@
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Godot;
 
-namespace Domains.Services.Caches.Impl;
+namespace Domains.Models.Singletons.Caches.Impl;
 
 /// <summary>
 /// LRU 缓存
@@ -60,7 +60,7 @@ class LruCache<TKey, TValue>(int capacity) where TKey : notnull
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-03-15 20:53
-public class LodMeshCacheService : ILodMeshCacheService
+public class LodMeshCache : ILodMeshCache
 {
     private readonly Dictionary<ChunkLod, LruCache<int, Mesh[]>> _cache = new()
     {

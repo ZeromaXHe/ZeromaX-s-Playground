@@ -3,10 +3,10 @@ using System.Linq;
 using Apps.Applications.Features;
 using Commons.Utils;
 using Domains.Models.Entities.PlanetGenerates;
+using Domains.Models.Singletons.Caches;
 using Domains.Models.Singletons.Planets;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Domains.Repos.PlanetGenerates;
-using Domains.Services.Caches;
 using Domains.Services.Shaders;
 using Domains.Services.Uis;
 using Godot;
@@ -46,7 +46,7 @@ public partial class HexGridChunk : Node3D, IChunk
 
     #region 服务与存储
 
-    private static ILodMeshCacheService _lodMeshCacheService;
+    private static ILodMeshCache _lodMeshCache;
     private static IPointRepo _pointRepo;
     private static IChunkRepo _chunkRepo;
     private static ITileRepo _tileRepo;
@@ -57,7 +57,7 @@ public partial class HexGridChunk : Node3D, IChunk
 
     private void InitServices()
     {
-        _lodMeshCacheService ??= Context.GetBeanFromHolder<ILodMeshCacheService>();
+        _lodMeshCache ??= Context.GetBeanFromHolder<ILodMeshCache>();
         _pointRepo ??= Context.GetBeanFromHolder<IPointRepo>();
         _chunkRepo ??= Context.GetBeanFromHolder<IChunkRepo>();
         _tileRepo ??= Context.GetBeanFromHolder<ITileRepo>();
@@ -238,7 +238,7 @@ public partial class HexGridChunk : Node3D, IChunk
         var lod = _chunkTriangulation.Lod;
         if (Terrain.Mesh == null)
             GD.PrintErr($"Chunk {_id} Terrain Mesh is null");
-        _lodMeshCacheService.AddLodMeshes(lod, _id,
+        _lodMeshCache.AddLodMeshes(lod, _id,
             [Terrain.Mesh, Water.Mesh, WaterShore.Mesh, Estuary.Mesh]);
     }
 
@@ -274,7 +274,7 @@ public partial class HexGridChunk : Node3D, IChunk
             return;
         }
 
-        var meshes = _lodMeshCacheService.GetLodMeshes(lod, _id);
+        var meshes = _lodMeshCache.GetLodMeshes(lod, _id);
         // 如果之前生成过 Lod 网格，直接应用；否则重新生成
         if (meshes != null)
         {
@@ -289,7 +289,7 @@ public partial class HexGridChunk : Node3D, IChunk
     public void Refresh()
     {
         // 让所有旧的网格缓存过期
-        _lodMeshCacheService.RemoveLodMeshes(_id);
+        _lodMeshCache.RemoveLodMeshes(_id);
         SetProcess(true);
     }
 
