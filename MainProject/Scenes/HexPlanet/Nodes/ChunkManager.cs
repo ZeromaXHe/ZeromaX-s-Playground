@@ -13,9 +13,9 @@ public partial class ChunkManager : Node3D
 {
     #region on-ready 节点
 
-    private FeatureMeshManager _featureMeshManager;
-    private FeaturePreviewManager _featurePreviewManager;
-    private ChunkLoader _chunkLoader;
+    private FeatureMeshManager? _featureMeshManager;
+    private FeaturePreviewManager? _featurePreviewManager;
+    private ChunkLoader? _chunkLoader;
 
     private void InitOnReadyNodes()
     {
@@ -31,15 +31,15 @@ public partial class ChunkManager : Node3D
     private void OnHideFeature(int id, FeatureType type, bool preview)
     {
         if (preview)
-            _featurePreviewManager.OnHideFeature(id, type);
+            _featurePreviewManager!.OnHideFeature(id, type);
         else
-            _featureMeshManager.OnHideFeature(id, type);
+            _featureMeshManager!.OnHideFeature(id, type);
     }
 
     private int OnShowFeature(Transform3D transform, FeatureType type, bool preview) =>
         preview
-            ? _featurePreviewManager.OnShowFeature(transform, type, _featureMeshManager.GetMultiMesh(type).Mesh)
-            : _featureMeshManager.OnShowFeature(transform, type);
+            ? _featurePreviewManager!.OnShowFeature(transform, type, _featureMeshManager!.GetMultiMesh(type).Mesh)
+            : _featureMeshManager!.OnShowFeature(transform, type);
 
     #endregion
 
@@ -48,7 +48,7 @@ public partial class ChunkManager : Node3D
     public override void _Ready()
     {
         InitOnReadyNodes();
-        _featureMeshManager.InitMultiMeshInstances();
+        _featureMeshManager!.InitMultiMeshInstances();
         _ready = true;
     }
 
@@ -66,9 +66,9 @@ public partial class ChunkManager : Node3D
         // 清空分块
         FeatureEvent.Instance.Shown -= OnShowFeature;
         FeatureEvent.Instance.Hidden -= OnHideFeature;
-        _chunkLoader.ClearOldData();
-        _featurePreviewManager.ClearForData();
-        _featureMeshManager.ClearOldData();
+        _chunkLoader!.ClearOldData();
+        _featurePreviewManager!.ClearForData();
+        _featureMeshManager!.ClearOldData();
     }
 
     public void InitChunkNodes()
@@ -76,7 +76,7 @@ public partial class ChunkManager : Node3D
         var time = Time.GetTicksMsec();
         FeatureEvent.Instance.Shown += OnShowFeature;
         FeatureEvent.Instance.Hidden += OnHideFeature;
-        _chunkLoader.InitChunkNodes();
+        _chunkLoader!.InitChunkNodes();
         GD.Print($"InitChunkNodes cost: {Time.GetTicksMsec() - time} ms");
     }
 }

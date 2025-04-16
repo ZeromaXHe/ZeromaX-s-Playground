@@ -1,9 +1,8 @@
+using Apps.Applications.Uis;
+using Apps.Contexts;
 using Apps.Events;
+using Apps.Nodes;
 using Commons.Utils.HexSphereGrid;
-using Domains.Models.Entities.PlanetGenerates;
-using Domains.Models.Singletons.Planets;
-using Domains.Repos.PlanetGenerates;
-using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 
@@ -12,150 +11,58 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-03-05 12:21
-public partial class MiniMapManager : Node2D
+public partial class MiniMapManager : Node2D, IMiniMapManager
 {
+    public MiniMapManager() => InitApps();
+
+    public override void _EnterTree() =>
+        NodeContext.Instance.RegisterSingleton<IMiniMapManager>(this);
+
     #region on-ready 节点
 
-    private TileMapLayer _terrainLayer;
-    private TileMapLayer _colorLayer;
-    private Camera2D _camera;
-    private Sprite2D _cameraIcon;
+    public TileMapLayer? TerrainLayer { get; private set; }
+    public TileMapLayer? ColorLayer { get; private set; }
+    public Camera2D? Camera { get; private set; }
+    public Sprite2D? CameraIcon { get; private set; }
 
     private void InitOnReadyNodes()
     {
-        _terrainLayer = GetNode<TileMapLayer>("%TerrainLayer");
-        _colorLayer = GetNode<TileMapLayer>("%ColorLayer");
-        _camera = GetNode<Camera2D>("%Camera2D");
-        _cameraIcon = GetNode<Sprite2D>("%CameraIcon");
+        TerrainLayer = GetNode<TileMapLayer>("%TerrainLayer");
+        ColorLayer = GetNode<TileMapLayer>("%ColorLayer");
+        Camera = GetNode<Camera2D>("%Camera2D");
+        CameraIcon = GetNode<Sprite2D>("%CameraIcon");
     }
 
     #endregion
 
-    #region 服务与存储
+    #region 应用服务
 
-    private ITileService _tileService;
-    private ITileRepo _tileRepo;
-    private IPointRepo _pointRepo;
-    private IPlanetConfig _planetConfig;
+    private IMiniMapManagerApp? _miniMapManagerApp;
 
-    private void InitServices()
+    private void InitApps()
     {
-        _tileService = Context.GetBeanFromHolder<ITileService>();
-        _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
-        _tileRepo.RefreshTerrainShader += RefreshTile;
-        _pointRepo = Context.GetBeanFromHolder<IPointRepo>();
-        _planetConfig = Context.GetBeanFromHolder<IPlanetConfig>();
+        _miniMapManagerApp = Context.GetBeanFromHolder<IMiniMapManagerApp>();
     }
-
-    private void CleanEventListeners() =>
-        _tileRepo.RefreshTerrainShader -= RefreshTile;
 
     #endregion
 
     public override void _Ready()
     {
         InitOnReadyNodes();
-        InitServices();
-        OrbitCameraEvent.Instance.Moved += SyncCameraIconPos;
+        _miniMapManagerApp!.OnReady();
         GD.Print("MiniMapManager _Ready");
     }
 
-    public override void _ExitTree()
-    {
-        CleanEventListeners();
-        OrbitCameraEvent.Instance.Moved -= SyncCameraIconPos;
-    }
-
-    // 同步相机标志的位置
-    private void SyncCameraIconPos(Vector3 pos, float delta)
-    {
-        var tileId = _tileService.SearchNearestTileId(pos);
-        if (tileId == null)
-        {
-            GD.PrintErr($"未找到摄像机对应地块：{pos}");
-            return;
-        }
-
-        var sa = _pointRepo.GetSphereAxial(_tileRepo.GetById((int)tileId)!);
-        // TODO: 缓动，以及更精确的位置转换
-        _cameraIcon.GlobalPosition = _terrainLayer.ToGlobal(
-            _terrainLayer.MapToLocal(sa.Coords.ToVector2I()));
-    }
+    public override void _ExitTree() => _miniMapManagerApp!.OnExitTree();
 
     public void ClickOnMiniMap()
     {
-        var mousePos = _terrainLayer.GetLocalMousePosition();
-        var mapVec = _terrainLayer.LocalToMap(mousePos);
+        var mousePos = TerrainLayer!.GetLocalMousePosition();
+        var mapVec = TerrainLayer.LocalToMap(mousePos);
         var sa = new SphereAxial(mapVec.X, mapVec.Y);
         if (!sa.IsValid()) return;
         OrbitCameraEvent.EmitNewDestination(sa.ToLongitudeAndLatitude().ToDirectionVector3());
     }
 
-    // 标准摄像机对应 Divisions = 10
-    private static readonly Vector2 StandardCamPos = new(-345, 75);
-    private static readonly Vector2 StandardCamZoom = new(0.4f, 0.4f);
-
-    public void UpdateCamera()
-    {
-        _camera.Position = StandardCamPos / 10 * _planetConfig.Divisions;
-        _camera.Zoom = StandardCamZoom * 10 / _planetConfig.Divisions;
-    }
-
-    public void Init(Vector3 orbitCamPos)
-    {
-        SyncCameraIconPos(orbitCamPos, 0f);
-        UpdateCamera();
-        _terrainLayer.Clear();
-        _colorLayer.Clear();
-        foreach (var tile in _tileRepo.GetAll())
-        {
-            var sphereAxial = _pointRepo.GetSphereAxial(tile);
-            _terrainLayer.SetCell(sphereAxial.Coords.ToVector2I(), 0, TerrainAtlas(tile));
-            switch (sphereAxial.Type)
-            {
-                case SphereAxial.TypeEnum.PoleVertices or SphereAxial.TypeEnum.MidVertices:
-                    _colorLayer.SetCell(sphereAxial.Coords.ToVector2I(), 0, new Vector2I(2, 3));
-                    break;
-                case SphereAxial.TypeEnum.EdgesSpecial
-                    when sphereAxial.TypeIdx % 6 == 0 || sphereAxial.TypeIdx % 6 == 5:
-                    _colorLayer.SetCell(sphereAxial.Coords.ToVector2I(), 0, EdgeAtlas(sphereAxial));
-                    break;
-            }
-        }
-    }
-
-    private void RefreshTile(int tileId)
-    {
-        var tile = _tileRepo.GetById(tileId)!;
-        var sphereAxial = _pointRepo.GetSphereAxial(tile);
-        _terrainLayer.SetCell(sphereAxial.Coords.ToVector2I(), 0, TerrainAtlas(tile));
-    }
-
-    private static Vector2I? EdgeAtlas(SphereAxial sphereAxial)
-    {
-        return sphereAxial.Column switch
-        {
-            0 => new Vector2I(0, 3),
-            1 => new Vector2I(0, 2),
-            2 => new Vector2I(1, 3),
-            3 => new Vector2I(1, 2),
-            4 => new Vector2I(2, 2),
-            _ => null
-        };
-    }
-
-    private static Vector2I? TerrainAtlas(Tile tile)
-    {
-        if (tile.Data.IsUnderwater)
-            return tile.Data.WaterLevel - tile.Data.Elevation > 1 ? new Vector2I(0, 1) : new Vector2I(1, 1);
-        return tile.Data.TerrainTypeIndex switch
-        {
-            0 => new Vector2I(3, 0), // 0 沙漠
-            1 => new Vector2I(0, 0), // 1 草原
-            2 => new Vector2I(2, 0), // 2 泥地
-            3 => new Vector2I(3, 1), // 3 岩石
-            4 => new Vector2I(2, 1), // 4 雪地
-            _ => null
-        };
-    }
+    public void Init(Vector3 orbitCamPos) => _miniMapManagerApp!.Init(orbitCamPos);
 }

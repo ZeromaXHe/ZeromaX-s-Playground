@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using Apps.Applications.Features;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Domains.Repos.PlanetGenerates;
@@ -22,24 +21,22 @@ public partial class EditPreviewChunk : Node3D, IChunk
         InitServices();
     }
 
-    [Export] public HexMesh Terrain { get; set; }
-    [Export] public ShaderMaterial[] TerrainMaterials { get; set; }
-    [Export] public HexMesh Rivers { get; set; }
-    [Export] public HexMesh Roads { get; set; }
-    [Export] public HexMesh Water { get; set; }
-    [Export] public HexMesh WaterShore { get; set; }
-    [Export] public HexMesh Estuary { get; set; }
-    [Export] public HexFeatureManager Features { get; set; }
+    [Export] public HexMesh? Terrain { get; set; }
+    [Export] public ShaderMaterial[]? TerrainMaterials { get; set; }
+    [Export] public HexMesh? Rivers { get; set; }
+    [Export] public HexMesh? Roads { get; set; }
+    [Export] public HexMesh? Water { get; set; }
+    [Export] public HexMesh? WaterShore { get; set; }
+    [Export] public HexMesh? Estuary { get; set; }
+    [Export] public HexFeatureManager? Features { get; set; }
 
     #region 服务与存储
 
-    private IFeatureApplication _featureApplication;
-    private ITileRepo _tileRepo;
-    private IEditorService _editorService;
+    private ITileRepo? _tileRepo;
+    private IEditorService? _editorService;
 
     private void InitServices()
     {
-        _featureApplication = Context.GetBeanFromHolder<IFeatureApplication>();
         _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
         _editorService = Context.GetBeanFromHolder<IEditorService>();
     }
@@ -48,25 +45,25 @@ public partial class EditPreviewChunk : Node3D, IChunk
 
     private readonly ChunkTriangulation _chunkTriangulation;
     public HexTileDataOverrider TileDataOverrider { get; set; } = new();
-    private int _terrainMaterialIdx = 0;
+    private int _terrainMaterialIdx;
 
     public override void _Process(double delta)
     {
         if (TileDataOverrider.OverrideTiles.Count > 0)
         {
             // var time = Time.GetTicksMsec();
-            Terrain.Clear();
-            Rivers.Clear();
-            Roads.Clear();
-            Water.Clear();
-            WaterShore.Clear();
-            Estuary.Clear();
+            Terrain!.Clear();
+            Rivers!.Clear();
+            Roads!.Clear();
+            Water!.Clear();
+            WaterShore!.Clear();
+            Estuary!.Clear();
 #if FEATURE_NEW
             Features.Clear(true, false);
             foreach (var tile in TileDataOverrider.OverrideTiles)
                 _featureApplication.HideFeatures(tile, true);
 #else
-            Features.Clear();
+            Features!.Clear();
 #endif
             foreach (var tile in TileDataOverrider.OverrideTiles)
                 _chunkTriangulation.Triangulate(tile);
@@ -95,13 +92,13 @@ public partial class EditPreviewChunk : Node3D, IChunk
         SetProcess(false);
     }
 
-    public void Update(Tile tile)
+    public void Update(Tile? tile)
     {
         if (tile != null)
         {
             // 更新地块预览
-            Refresh(_editorService.TileOverrider,
-                _tileRepo.GetTilesInDistance(tile, _editorService.TileOverrider.BrushSize));
+            Refresh(_editorService!.TileOverrider,
+                _tileRepo!.GetTilesInDistance(tile, _editorService.TileOverrider.BrushSize));
             Show();
         }
         else Hide();
@@ -113,7 +110,7 @@ public partial class EditPreviewChunk : Node3D, IChunk
         var newMaterialIdx = GetTerrainMaterialIdx();
         if (newMaterialIdx != _terrainMaterialIdx)
         {
-            Terrain.MaterialOverride = TerrainMaterials[newMaterialIdx];
+            Terrain!.MaterialOverride = TerrainMaterials![newMaterialIdx];
             _terrainMaterialIdx = newMaterialIdx;
         }
 

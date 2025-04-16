@@ -21,7 +21,7 @@ public struct HexTileData
 
     private static void InitServices()
     {
-        _planetConfig ??= ContextHolder.Context?.GetBean<IPlanetConfig>();
+        _planetConfig ??= ContextHolder.BeanContext?.GetBean<IPlanetConfig>();
     }
 
     #endregion

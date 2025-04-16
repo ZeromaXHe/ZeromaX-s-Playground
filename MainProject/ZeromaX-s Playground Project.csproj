@@ -3,26 +3,23 @@
         <TargetFramework>net8.0</TargetFramework>
         <EnableDynamicLoading>true</EnableDynamicLoading>
         <RootNamespace>ZeromaXsPlaygroundProject</RootNamespace>
+        <Nullable>enable</Nullable>
     </PropertyGroup>
     <ItemGroup>
         <Compile Remove="UnitTest\**"/>
-        <Compile Remove="Code.Apps\**"/>
-        <Compile Remove="Code.Commons\**"/>
-        <Compile Remove="Code.Domains\**"/>
-        <Compile Remove="Code.Infras\**"/>
+        <Compile Remove="Code.*\**"/>
+        <Compile Remove="GodotNodes.Abstractions\**"/>
     </ItemGroup>
     <ItemGroup>
         <EmbeddedResource Remove="UnitTest\**"/>
-        <EmbeddedResource Remove="Code.Apps\**"/>
-        <EmbeddedResource Remove="Code.Commons\**"/>
-        <EmbeddedResource Remove="Code.Domains\**"/>
-        <EmbeddedResource Remove="Code.Infras\**"/>
+        <EmbeddedResource Remove="Code.*\**"/>
+        <EmbeddedResource Remove="GodotNodes.Abstractions\**"/>
     </ItemGroup>
     <ItemGroup>
-      <ProjectReference Include="Code.Apps\Code.Apps.csproj" />
-      <ProjectReference Include="Code.Infras\Code.Infras.csproj" />
+        <ProjectReference Include="Code.Apps\Code.Apps.csproj"/>
+        <ProjectReference Include="Code.Infras\Code.Infras.csproj"/>
     </ItemGroup>
     <ItemGroup>
-      <PackageReference Include="Autofac" Version="8.2.1" />
+        <PackageReference Include="Autofac" Version="8.2.1"/>
     </ItemGroup>
 </Project>

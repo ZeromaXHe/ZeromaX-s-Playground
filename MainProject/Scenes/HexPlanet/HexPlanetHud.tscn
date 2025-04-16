@@ -41,7 +41,7 @@ shader_parameter/angle_to_north = 0.0
 
 [sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_usno0"]
 
-[node name="HexPlanetHud" type="Control" node_paths=PackedStringArray("_hexPlanetManager")]
+[node name="HexPlanetHud" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -49,7 +49,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_r2qro")
-_hexPlanetManager = NodePath("SubViewportContainer/SubViewport/HexPlanetManager")
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="."]
 unique_name_in_owner = true

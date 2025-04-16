@@ -15,16 +15,16 @@ public partial class UnitManager : Node3D
 {
     public UnitManager() => InitServices();
 
-    [Export] private PackedScene _unitScene;
+    [Export] private PackedScene? _unitScene;
 
     private readonly System.Collections.Generic.Dictionary<int, HexUnit> _units = new();
 
     #region 服务和存储
 
-    private IUnitRepo _unitRepo;
-    private ITileRepo _tileRepo;
-    private ITileSearchService _tileSearchService;
-    private ISelectViewService _selectViewService;
+    private IUnitRepo? _unitRepo;
+    private ITileRepo? _tileRepo;
+    private ITileSearchService? _tileSearchService;
+    private ISelectViewService? _selectViewService;
 
     private void InitServices()
     {
@@ -41,14 +41,14 @@ public partial class UnitManager : Node3D
     {
         // 不小心忽视了事件的解绑，会在编辑器下"重载已保存场景"时出问题报错！
         // 【切记】所以这里需要在退出场景树时清理事件监听！！！
-        _tileRepo.UnitValidateLocation -= OnTileServiceUnitValidateLocation;
+        _tileRepo!.UnitValidateLocation -= OnTileServiceUnitValidateLocation;
     }
 
     #endregion
 
     #region on-ready 节点
 
-    private HexUnitPathPool _hexUnitPathPool;
+    private HexUnitPathPool? _hexUnitPathPool;
 
     private void InitOnReadyNodes()
     {
@@ -66,7 +66,7 @@ public partial class UnitManager : Node3D
         {
             _pathFromTileId = value;
             if (_pathFromTileId == 0)
-                _selectViewService.ClearPath();
+                _selectViewService!.ClearPath();
         }
     }
 
@@ -75,7 +75,7 @@ public partial class UnitManager : Node3D
 
     public void AddUnit(int tileId, float orientation)
     {
-        var unit = _unitScene.Instantiate<HexUnit>();
+        var unit = _unitScene!.Instantiate<HexUnit>();
         AddChild(unit);
         _units[unit.Id] = unit;
         unit.TileId = tileId;
@@ -93,10 +93,10 @@ public partial class UnitManager : Node3D
         foreach (var unit in _units.Values)
             unit.Die();
         _units.Clear();
-        _unitRepo.Truncate();
+        _unitRepo!.Truncate();
     }
 
-    public void FindPath(Tile tile)
+    public void FindPath(Tile? tile)
     {
         if (PathFromTileId != 0)
         {
@@ -114,13 +114,13 @@ public partial class UnitManager : Node3D
 
     private void MoveUnit(Tile toTile)
     {
-        var fromTile = _tileRepo.GetById(PathFromTileId)!;
-        var path = _tileSearchService.FindPath(fromTile, toTile, true);
+        var fromTile = _tileRepo!.GetById(PathFromTileId)!;
+        var path = _tileSearchService!.FindPath(fromTile, toTile, true);
         if (path is { Count: > 1 })
         {
             // 确实有找到从出发点到 tile 的路径
             var unit = _units[fromTile.UnitId];
-            _hexUnitPathPool.NewTask(unit, path);
+            _hexUnitPathPool!.NewTask(unit, path);
         }
 
         PathFromTileId = 0;

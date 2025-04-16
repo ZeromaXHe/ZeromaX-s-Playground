@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using Godot;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Resources.LandGenerators;
@@ -11,7 +10,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Resources.LandGenerators;
 [GlobalClass]
 public partial class LayeredFastNoise : Resource
 {
-    [Export] public NoiseSettings[] NoiseLayers { get; set; }
+    [Export] public NoiseSettings[]? NoiseLayers { get; set; }
 
     public float GetLayeredNoise3Dv(Vector3 v) => GetLayeredNoise(x => x.GetNoise3Dv(v));
     public float GetMax() => GetLayeredNoise(x => (1 + x.Bias) * x.Strength);
@@ -21,13 +20,13 @@ public partial class LayeredFastNoise : Resource
     {
         var noiseSum = 0f;
         var firstLayerValue = 0f;
-        if (NoiseLayers.Length > 1 && NoiseLayers[0].Enabled)
+        if (NoiseLayers!.Length > 1 && NoiseLayers[0].Enabled)
         {
             firstLayerValue = getNoise3Dv.Invoke(NoiseLayers[0]);
             noiseSum += firstLayerValue;
         }
 
-        for (var i = 1; i < NoiseLayers.Length; i++)
+        for (var i = 1; i < NoiseLayers!.Length; i++)
         {
             var noiseLayer = NoiseLayers[i];
             if (NoiseLayers == null || !noiseLayer.Enabled)

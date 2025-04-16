@@ -17,7 +17,7 @@ public interface IEditorService
     event EditModeChangedEvent EditModeChanged;
     int LabelMode { get; set; }
     HexTileDataOverrider TileOverrider { get; set; }
-    void EditTiles(Tile tile, bool isDrag, Tile? previousTile, Tile dragTile);
+    void EditTiles(Tile tile, bool isDrag, Tile? previousTile, Tile? dragTile);
 
     #region 编辑
 

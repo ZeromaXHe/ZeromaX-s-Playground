@@ -18,8 +18,8 @@ public partial class FractalNoiseLandGenerator : Node
 
     #region 服务与存储
 
-    private ITileRepo _tileRepo;
-    private IPlanetConfig _planetConfig;
+    private ITileRepo? _tileRepo;
+    private IPlanetConfig? _planetConfig;
 
     private void InitServices()
     {
@@ -31,10 +31,10 @@ public partial class FractalNoiseLandGenerator : Node
 
     public int CreateLand(RandomNumberGenerator random)
     {
-        var origin = new Vector3(random.Randf(), random.Randf(), random.Randf()) * _planetConfig.Radius;
+        var origin = new Vector3(random.Randf(), random.Randf(), random.Randf()) * _planetConfig!.Radius;
         var minNoise = float.MaxValue;
         var maxNoise = float.MinValue;
-        foreach (var tile in _tileRepo.GetAll())
+        foreach (var tile in _tileRepo!.GetAll())
         {
             var noise = LayeredNoises.GetLayeredNoise3Dv(tile.UnitCentroid * _planetConfig.Radius + origin);
             if (noise > maxNoise) maxNoise = noise;

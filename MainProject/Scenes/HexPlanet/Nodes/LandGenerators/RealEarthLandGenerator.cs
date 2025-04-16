@@ -17,13 +17,13 @@ public partial class RealEarthLandGenerator : Node
     // 其实这里可以直接导入 Image, 在导入界面选择导入类型。但是导入 Image 的场景 tscn 文件会大得吓人……（等于直接按像素写一遍）
     // 这里是否改为 Image 需要权衡，目前 Texture2D.GetImage() 会耗时比较长，但是提前把 Image 加载到内存的话，消耗很大。
     // 所以目前把四张图片压到同一张图片的 RGB 通道里了（陆地掩码（去除湖区） R，地形 G，海洋测深 B），并压缩大小到 4096x2048
-    [Export] private Texture2D WorldMap { get; set; }
+    [Export] private Texture2D? WorldMap { get; set; }
 
     #region 服务和存储
 
-    private IPointRepo _pointRepo;
-    private ITileRepo _tileRepo;
-    private IPlanetConfig _planetConfig;
+    private IPointRepo? _pointRepo;
+    private ITileRepo? _tileRepo;
+    private IPlanetConfig? _planetConfig;
 
     private void InitServices()
     {
@@ -36,13 +36,13 @@ public partial class RealEarthLandGenerator : Node
 
     public int CreateLand()
     {
-        var water = _planetConfig.DefaultWaterLevel;
+        var water = _planetConfig!.DefaultWaterLevel;
         var elevationStep = _planetConfig.ElevationStep;
         var landCount = 0;
-        var worldMap = WorldMap.GetImage();
-        foreach (var tile in _tileRepo.GetAll())
+        var worldMap = WorldMap!.GetImage();
+        foreach (var tile in _tileRepo!.GetAll())
         {
-            var sphereAxial = _pointRepo.GetSphereAxial(tile);
+            var sphereAxial = _pointRepo!.GetSphereAxial(tile);
             var lonLat = sphereAxial.ToLongitudeAndLatitude().ToVector2();
             var percentX = Mathf.Remap(lonLat.X, 180f, -180f, 0f, 1f); // 西经为正，所以这里得反一下
             var percentY = Mathf.Remap(lonLat.Y, 90f, -90f, 0f, 1f); // 北纬为正，所以这里得反一下

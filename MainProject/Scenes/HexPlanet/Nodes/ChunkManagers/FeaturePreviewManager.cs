@@ -12,11 +12,11 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.ChunkManagers;
 [Tool]
 public partial class FeaturePreviewManager : Node3D
 {
-    [Export] private Material _urbanPreviewOverrideMaterial;
-    [Export] private Material _plantPreviewOverrideMaterial;
-    [Export] private Material _farmPreviewOverrideMaterial;
+    [Export] private Material? _urbanPreviewOverrideMaterial;
+    [Export] private Material? _plantPreviewOverrideMaterial;
+    [Export] private Material? _farmPreviewOverrideMaterial;
 
-    private Material GetPreviewOverrideMaterial(FeatureType type) => type switch
+    private Material? GetPreviewOverrideMaterial(FeatureType type) => type switch
     {
         // 城市（红色）
         FeatureType.UrbanHigh1 or FeatureType.UrbanHigh2 or FeatureType.UrbanMid1 or FeatureType.UrbanMid2

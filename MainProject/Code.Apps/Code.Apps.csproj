@@ -10,6 +10,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Code.Domains\Code.Domains.csproj" />
+      <ProjectReference Include="..\GodotNodes.Abstractions\GodotNodes.Abstractions.csproj" />
     </ItemGroup>
 
     <ItemGroup>

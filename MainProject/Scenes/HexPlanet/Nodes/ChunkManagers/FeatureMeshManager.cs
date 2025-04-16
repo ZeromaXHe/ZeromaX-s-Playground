@@ -12,19 +12,19 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.ChunkManagers;
 [Tool]
 public partial class FeatureMeshManager : Node3D
 {
-    [Export] private PackedScene[] _urbanScenes;
-    [Export] private PackedScene[] _farmScenes;
-    [Export] private PackedScene[] _plantScenes;
-    [Export] private PackedScene _wallTowerScene;
-    [Export] private PackedScene _bridgeScene;
-    [Export] private PackedScene[] _specialScenes;
+    [Export] private PackedScene[]? _urbanScenes;
+    [Export] private PackedScene[]? _farmScenes;
+    [Export] private PackedScene[]? _plantScenes;
+    [Export] private PackedScene? _wallTowerScene;
+    [Export] private PackedScene? _bridgeScene;
+    [Export] private PackedScene[]? _specialScenes;
 
     #region on-ready 节点
 
-    private Node3D _urbans;
-    private Node3D _farms;
-    private Node3D _plants;
-    private Node3D _others;
+    private Node3D? _urbans;
+    private Node3D? _farms;
+    private Node3D? _plants;
+    private Node3D? _others;
 
     private void InitOnReadyNodes()
     {
@@ -41,27 +41,27 @@ public partial class FeatureMeshManager : Node3D
         InitOnReadyNodes();
     }
 
-    private MultiMeshInstance3D[] _multiUrbans;
-    private MultiMeshInstance3D[] _multiFarms;
-    private MultiMeshInstance3D[] _multiPlants;
-    private MultiMeshInstance3D _multiTowers;
-    private MultiMeshInstance3D _multiBridges;
-    private MultiMeshInstance3D[] _multiSpecials;
+    private MultiMeshInstance3D[]? _multiUrbans;
+    private MultiMeshInstance3D[]? _multiFarms;
+    private MultiMeshInstance3D[]? _multiPlants;
+    private MultiMeshInstance3D? _multiTowers;
+    private MultiMeshInstance3D? _multiBridges;
+    private MultiMeshInstance3D[]? _multiSpecials;
 
     public void InitMultiMeshInstances()
     {
-        _multiUrbans = new MultiMeshInstance3D[_urbanScenes.Length];
-        InitMultiMeshInstancesForCsgBox("Urbans", _multiUrbans, _urbans, _urbanScenes, 10000);
-        _multiFarms = new MultiMeshInstance3D[_farmScenes.Length];
-        InitMultiMeshInstancesForCsgBox("Farms", _multiFarms, _farms, _farmScenes, 10000);
-        _multiPlants = new MultiMeshInstance3D[_plantScenes.Length];
-        InitMultiMeshInstancesForCsgBox("Plants", _multiPlants, _plants, _plantScenes, 10000);
-        _multiSpecials = new MultiMeshInstance3D[_specialScenes.Length];
-        InitMultiMeshInstancesForCsgBox("Specials", _multiSpecials, _others, _specialScenes, 1000);
+        _multiUrbans = new MultiMeshInstance3D[_urbanScenes!.Length];
+        InitMultiMeshInstancesForCsgBox("Urbans", _multiUrbans, _urbans!, _urbanScenes, 10000);
+        _multiFarms = new MultiMeshInstance3D[_farmScenes!.Length];
+        InitMultiMeshInstancesForCsgBox("Farms", _multiFarms, _farms!, _farmScenes, 10000);
+        _multiPlants = new MultiMeshInstance3D[_plantScenes!.Length];
+        InitMultiMeshInstancesForCsgBox("Plants", _multiPlants, _plants!, _plantScenes, 10000);
+        _multiSpecials = new MultiMeshInstance3D[_specialScenes!.Length];
+        InitMultiMeshInstancesForCsgBox("Specials", _multiSpecials, _others!, _specialScenes, 1000);
 
-        _multiTowers = InitMultiMeshIns("Towers", _wallTowerScene, 10000);
-        _others.AddChild(_multiTowers);
-        _multiBridges = InitMultiMeshIns("Bridges", _bridgeScene, 3000);
+        _multiTowers = InitMultiMeshIns("Towers", _wallTowerScene!, 10000);
+        _others!.AddChild(_multiTowers);
+        _multiBridges = InitMultiMeshIns("Bridges", _bridgeScene!, 3000);
         _others.AddChild(_multiBridges);
 
         // 初始化 _hidingIds
@@ -100,21 +100,21 @@ public partial class FeatureMeshManager : Node3D
     public void ClearOldData()
     {
         // 刷新 MultiMesh
-        foreach (var multi in _multiUrbans.Concat(_multiFarms).Concat(_multiPlants))
+        foreach (var multi in _multiUrbans!.Concat(_multiFarms!).Concat(_multiPlants!))
         {
             multi.Multimesh.InstanceCount = 10000;
             multi.Multimesh.VisibleInstanceCount = 0;
         }
 
-        foreach (var multi in _multiSpecials)
+        foreach (var multi in _multiSpecials!)
         {
             multi.Multimesh.InstanceCount = 1000;
             multi.Multimesh.VisibleInstanceCount = 0;
         }
 
-        _multiBridges.Multimesh.InstanceCount = 3000;
+        _multiBridges!.Multimesh.InstanceCount = 3000;
         _multiBridges.Multimesh.VisibleInstanceCount = 0;
-        _multiTowers.Multimesh.InstanceCount = 10000;
+        _multiTowers!.Multimesh.InstanceCount = 10000;
         _multiTowers.Multimesh.VisibleInstanceCount = 0;
         // 清理 _hidingIds
         foreach (var (_, set) in _hidingIds)
@@ -127,24 +127,24 @@ public partial class FeatureMeshManager : Node3D
         FeatureType.UrbanHigh1 or FeatureType.UrbanHigh2
             or FeatureType.UrbanMid1 or FeatureType.UrbanMid2
             or FeatureType.UrbanLow1 or FeatureType.UrbanLow2 =>
-            _multiUrbans[type - FeatureType.UrbanHigh1].Multimesh,
+            _multiUrbans![type - FeatureType.UrbanHigh1].Multimesh,
         // 农田
         FeatureType.FarmHigh1 or FeatureType.FarmHigh2
             or FeatureType.FarmMid1 or FeatureType.FarmMid2
             or FeatureType.FarmLow1 or FeatureType.FarmLow2 =>
-            _multiFarms[type - FeatureType.FarmHigh1].Multimesh,
+            _multiFarms![type - FeatureType.FarmHigh1].Multimesh,
 
         // 植被
         FeatureType.PlantHigh1 or FeatureType.PlantHigh2
             or FeatureType.PlantMid1 or FeatureType.PlantMid2
             or FeatureType.PlantLow1 or FeatureType.PlantLow2 =>
-            _multiPlants[type - FeatureType.PlantHigh1].Multimesh,
+            _multiPlants![type - FeatureType.PlantHigh1].Multimesh,
 
         // 特殊
-        FeatureType.Tower => _multiTowers.Multimesh,
-        FeatureType.Bridge => _multiBridges.Multimesh,
+        FeatureType.Tower => _multiTowers!.Multimesh,
+        FeatureType.Bridge => _multiBridges!.Multimesh,
         FeatureType.Castle or FeatureType.Ziggurat or FeatureType.MegaFlora =>
-            _multiSpecials[type - FeatureType.Castle].Multimesh,
+            _multiSpecials![type - FeatureType.Castle].Multimesh,
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, "new type no deal")
     };
 

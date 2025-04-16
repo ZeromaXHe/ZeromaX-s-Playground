@@ -8,7 +8,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 [Tool]
 public partial class HexTileLabel : Node3D
 {
-    public Label3D Label { get; private set; }
+    public Label3D? Label { get; private set; }
 
     public override void _Ready()
     {

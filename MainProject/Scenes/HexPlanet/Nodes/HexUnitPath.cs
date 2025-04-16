@@ -19,9 +19,9 @@ public partial class HexUnitPath : Path3D
 
     #region 服务
 
-    private static ITileService _tileService;
-    private static ITileRepo _tileRepo;
-    private static IPlanetConfig _planetConfig;
+    private static ITileService? _tileService;
+    private static ITileRepo? _tileRepo;
+    private static IPlanetConfig? _planetConfig;
 
     private static void InitServices()
     {
@@ -34,9 +34,9 @@ public partial class HexUnitPath : Path3D
 
     #region on-ready 节点
 
-    private PathFollow3D _pathFollow;
-    private RemoteTransform3D _remoteTransform;
-    private CsgPolygon3D _view;
+    private PathFollow3D? _pathFollow;
+    private RemoteTransform3D? _remoteTransform;
+    private CsgPolygon3D? _view;
 
     private void InitOnReadyNodes()
     {
@@ -47,8 +47,8 @@ public partial class HexUnitPath : Path3D
 
     #endregion
 
-    public List<Tile> Tiles { get; private set; }
-    public List<float> Progresses { get; private set; }
+    public List<Tile>? Tiles { get; private set; }
+    public List<float>? Progresses { get; private set; }
 
     public override void _Ready()
     {
@@ -69,7 +69,7 @@ public partial class HexUnitPath : Path3D
     public void TaskStart(List<Tile> path)
     {
         SetPathAndCurve(path);
-        _view.Visible = true;
+        _view!.Visible = true;
     }
 
     private void SetPathAndCurve(List<Tile> path)
@@ -79,8 +79,8 @@ public partial class HexUnitPath : Path3D
         // 转换为曲线
         var curve = new Curve3D();
         var fromTile = path[0];
-        var fromHeight = _tileRepo.GetHeight(fromTile);
-        var fromCentroid = fromTile.GetCentroid(_planetConfig.Radius + fromHeight);
+        var fromHeight = _tileRepo!.GetHeight(fromTile);
+        var fromCentroid = fromTile.GetCentroid(_planetConfig!.Radius + fromHeight);
         var toTile = path[1];
         var toHeight = _tileRepo.GetHeight(toTile);
         var toCentroid = toTile.GetCentroid(_planetConfig.Radius + toHeight);
@@ -125,8 +125,8 @@ public partial class HexUnitPath : Path3D
 
     public void StartMove(HexUnit unit)
     {
-        _pathFollow.ProgressRatio = 0;
-        _remoteTransform.SetRemoteNode(unit.GetPath());
+        _pathFollow!.ProgressRatio = 0;
+        _remoteTransform!.SetRemoteNode(unit.GetPath());
         var duration = Curve.PointCount / 2.0 / MoveSpeedByTile;
         var tween = GetTree().CreateTween();
         tween.TweenProperty(_pathFollow, PathFollow3D.PropertyName.ProgressRatio.ToString(), 1, duration);
@@ -134,19 +134,19 @@ public partial class HexUnitPath : Path3D
         tween.TweenCallback(Callable.From(() =>
         {
             Working = false;
-            _view.Visible = false;
+            _view!.Visible = false;
             Tiles = null;
             _remoteTransform.SetRemoteNode(null);
             unit.FinishPath();
         }));
     }
 
-    public float GetProgress() => _pathFollow.Progress;
+    public float GetProgress() => _pathFollow!.Progress;
 
     public Tile GetProgressTile()
     {
-        var idx = Progresses.BinarySearch(_pathFollow.Progress);
+        var idx = Progresses!.BinarySearch(_pathFollow!.Progress);
         if (idx < 0) idx = ~idx;
-        return Tiles[idx];
+        return Tiles![idx];
     }
 }

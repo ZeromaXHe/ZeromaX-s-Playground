@@ -1,7 +1,8 @@
 using Apps.Applications.Planets;
+using Apps.Contexts;
+using Apps.Nodes;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.Singletons.Planets;
-using Domains.Repos.Civs;
 using Domains.Repos.PlanetGenerates;
 using Domains.Services.Navigations;
 using Domains.Services.PlanetGenerates;
@@ -18,7 +19,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 /// Author: Zhu XH
 /// Date: 2025-02-12 21:07
 [Tool]
-public partial class HexPlanetManager : Node3D
+public partial class HexPlanetManager : Node3D, IHexPlanetManager
 {
     // Godot C# 的生命周期方法执行顺序：
     // 父节点构造函数 -> 子节点构造函数
@@ -28,14 +29,13 @@ public partial class HexPlanetManager : Node3D
     // -> 子节点 _Ready()（从下到上） -> 父节点 _Ready() 【特别注意这里的顺序！！！】
     // -> 父节点 _Process() -> 子节点 _Process()（从上到下）
     // -> 子节点 _ExitTree()（从下到上） -> 父节点 _ExitTree() 【特别注意这里的顺序！！！】
-    public HexPlanetManager()
-    {
-        InitServices(); // 现在 4.4 甚至构造函数会执行两次！奇了怪了，不知道之前 4.3 是不是也是这样
-    }
+    public HexPlanetManager() => InitServices(); // 现在 4.4 甚至构造函数会执行两次！奇了怪了，不知道之前 4.3 是不是也是这样
+    // 调用两次构造函数（_EnterTree()、_Ready() 也一样）居然是好久以前（2020 年 7 月 3.2.2）以来一直的问题：
+    // https://github.com/godotengine/godot-docs/issues/2930#issuecomment-662407208
+    // https://github.com/godotengine/godot/issues/40970
+    public override void _EnterTree() => NodeContext.Instance.RegisterSingleton<IHexPlanetManager>(this);
 
-    public delegate void NewPlanetGeneratedEvent();
-
-    public event NewPlanetGeneratedEvent NewPlanetGenerated;
+    public event IHexPlanetManager.NewPlanetGeneratedEvent? NewPlanetGenerated;
 
     private float _radius = 100f;
 
@@ -48,21 +48,21 @@ public partial class HexPlanetManager : Node3D
             _radius = value;
             if (_ready)
             {
-                _planetConfig.Radius = _radius;
-                var camAttr = _planetCamera.Attributes as CameraAttributesPractical;
+                _planetConfig!.Radius = _radius;
+                var camAttr = _planetCamera!.Attributes as CameraAttributesPractical;
                 camAttr?.SetDofBlurFarDistance(_radius);
                 camAttr?.SetDofBlurFarTransition(_radius / 2);
                 camAttr?.SetDofBlurNearDistance(_radius / 10);
                 camAttr?.SetDofBlurNearTransition(_radius / 20);
-                _orbitCamera.Reset();
-                var groundSphere = _groundPlaceHolder.Mesh as SphereMesh;
+                _orbitCamera!.Reset();
+                var groundSphere = _groundPlaceHolder!.Mesh as SphereMesh;
                 groundSphere?.SetRadius(_radius * 0.99f);
                 groundSphere?.SetHeight(_radius * 1.98f);
-                _planetAtmosphere.Set("planet_radius", _radius);
+                _planetAtmosphere!.Set("planet_radius", _radius);
                 _planetAtmosphere.Set("atmosphere_height", _radius * 0.25f);
-                _longitudeLatitude.Draw(_radius + _planetConfig.MaxHeight * 1.25f);
+                _longitudeLatitude!.Draw(_radius + _planetConfig.MaxHeight * 1.25f);
 
-                _celestialMotionManager.UpdateMoonMeshRadius(); // 卫星半径
+                _celestialMotionManager!.UpdateMoonMeshRadius(); // 卫星半径
                 _celestialMotionManager.UpdateLunarDist(); // 卫星轨道半径
             }
         }
@@ -80,9 +80,9 @@ public partial class HexPlanetManager : Node3D
             _chunkDivisions = Mathf.Min(Mathf.Max(1, _divisions / 10), _chunkDivisions);
             if (_ready)
             {
-                _planetConfig.Divisions = _divisions;
+                _planetConfig!.Divisions = _divisions;
                 _planetConfig.ChunkDivisions = _chunkDivisions;
-                _orbitCamera.Reset();
+                _orbitCamera!.Reset();
             }
         }
     }
@@ -99,15 +99,15 @@ public partial class HexPlanetManager : Node3D
             _divisions = Mathf.Max(Mathf.Min(200, _chunkDivisions * 10), _divisions);
             if (_ready)
             {
-                _planetConfig.ChunkDivisions = _chunkDivisions;
+                _planetConfig!.ChunkDivisions = _chunkDivisions;
                 _planetConfig.Divisions = _divisions;
-                _orbitCamera.Reset();
+                _orbitCamera!.Reset();
             }
         }
     }
 
     // 其实这里可以直接导入 Image, 在导入界面选择导入类型。但是导入 Image 的场景 tscn 文件会大得吓人……（等于直接按像素写一遍）
-    [Export] private Texture2D _noiseSource;
+    [Export] private Texture2D? _noiseSource;
     [Export] public ulong Seed { get; set; } = 1234;
 
     private bool _planetRevolution = true;
@@ -122,7 +122,7 @@ public partial class HexPlanetManager : Node3D
         {
             _planetRevolution = value;
             if (_ready)
-                _celestialMotionManager.PlanetRevolution = value;
+                _celestialMotionManager!.PlanetRevolution = value;
         }
     }
 
@@ -137,7 +137,7 @@ public partial class HexPlanetManager : Node3D
         {
             _planetRotation = value;
             if (_ready)
-                _celestialMotionManager.PlanetRotation = value;
+                _celestialMotionManager!.PlanetRotation = value;
         }
     }
 
@@ -152,7 +152,7 @@ public partial class HexPlanetManager : Node3D
         {
             _satelliteRevolution = value;
             if (_ready)
-                _celestialMotionManager.SatelliteRevolution = value;
+                _celestialMotionManager!.SatelliteRevolution = value;
         }
     }
 
@@ -167,7 +167,7 @@ public partial class HexPlanetManager : Node3D
         {
             _satelliteRotation = value;
             if (_ready)
-                _celestialMotionManager.SatelliteRotation = value;
+                _celestialMotionManager!.SatelliteRotation = value;
         }
     }
 
@@ -180,22 +180,19 @@ public partial class HexPlanetManager : Node3D
 
     #region 服务与存储
 
-    private IChunkService _chunkService;
-    private IChunkRepo _chunkRepo;
-    private ITileService _tileService;
-    private ITileRepo _tileRepo;
-    private ITileShaderService _tileShaderService;
-    private ITileSearchService _tileSearchService;
-    private IPlanetConfig _planetConfig;
-    private INoiseConfig _noiseConfig;
-    private IEditorService _editorService;
-    private ICivRepo _civRepo;
-    private IHexPlanetManagerApplication _hexPlanetManagerApplication;
+    private IChunkService? _chunkService;
+    private ITileService? _tileService;
+    private ITileRepo? _tileRepo;
+    private ITileShaderService? _tileShaderService;
+    private ITileSearchService? _tileSearchService;
+    private IPlanetConfig? _planetConfig;
+    private INoiseConfig? _noiseConfig;
+    private IEditorService? _editorService;
+    private IHexPlanetManagerApplication? _hexPlanetManagerApplication;
 
     private void InitServices()
     {
         _chunkService = Context.GetBeanFromHolder<IChunkService>();
-        _chunkRepo = Context.GetBeanFromHolder<IChunkRepo>();
         _tileService = Context.GetBeanFromHolder<ITileService>();
         _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
         _tileShaderService = Context.GetBeanFromHolder<ITileShaderService>();
@@ -204,7 +201,6 @@ public partial class HexPlanetManager : Node3D
         _noiseConfig = Context.GetBeanFromHolder<INoiseConfig>();
         _editorService = Context.GetBeanFromHolder<IEditorService>();
         _editorService.EditModeChanged += OnEditorEditModeChanged;
-        _civRepo = Context.GetBeanFromHolder<ICivRepo>();
         _hexPlanetManagerApplication = Context.GetBeanFromHolder<IHexPlanetManagerApplication>();
     }
 
@@ -212,12 +208,12 @@ public partial class HexPlanetManager : Node3D
     {
         UpdateSelectTileViewer();
         if (editMode)
-            _unitManager.PathFromTileId = 0; // 清除单位移动路径 UI
+            _unitManager!.PathFromTileId = 0; // 清除单位移动路径 UI
         else
         {
             // 游戏模式下永远不显示编辑预览网格
-            _editPreviewChunk.Hide();
-            _selectTileViewer.CleanEditingTile();
+            _editPreviewChunk!.Hide();
+            _selectTileViewer!.CleanEditingTile();
         }
     }
 
@@ -226,27 +222,27 @@ public partial class HexPlanetManager : Node3D
         // 不小心忽视了事件的解绑，会在编辑器下"重载已保存场景"时出问题报错！
         // 【切记】所以这里需要在退出场景树时清理事件监听！！！
         _ready = false;
-        _editorService.EditModeChanged -= OnEditorEditModeChanged;
+        _editorService!.EditModeChanged -= OnEditorEditModeChanged;
     }
 
     #endregion
 
     #region on-ready nodes
 
-    private CelestialMotionManager _celestialMotionManager; // 天体运动
-    private Node3D _planetContainer; // 所有行星相关节点的父节点，用于整体一起自转
+    private CelestialMotionManager? _celestialMotionManager; // 天体运动
+    private Node3D? _planetContainer; // 所有行星相关节点的父节点，用于整体一起自转
 
     // 行星节点
-    private Node3D _planetAtmosphere; // 大气层插件的 GDScript 节点
-    private MeshInstance3D _groundPlaceHolder; // 球面占位网格
-    private ChunkManager _chunkManager;
-    private UnitManager _unitManager; // 单位管理节点
-    private OrbitCamera _orbitCamera;
-    private Camera3D _planetCamera; // 行星主摄像机
-    private SelectTileViewer _selectTileViewer;
-    private EditPreviewChunk _editPreviewChunk;
-    private HexMapGenerator _hexMapGenerator;
-    private LongitudeLatitude _longitudeLatitude;
+    private Node3D? _planetAtmosphere; // 大气层插件的 GDScript 节点
+    private MeshInstance3D? _groundPlaceHolder; // 球面占位网格
+    private ChunkManager? _chunkManager;
+    private UnitManager? _unitManager; // 单位管理节点
+    private OrbitCamera? _orbitCamera;
+    private Camera3D? _planetCamera; // 行星主摄像机
+    private SelectTileViewer? _selectTileViewer;
+    private EditPreviewChunk? _editPreviewChunk;
+    private HexMapGenerator? _hexMapGenerator;
+    private LongitudeLatitude? _longitudeLatitude;
 
     private void InitOnReadyNodes()
     {
@@ -287,7 +283,7 @@ public partial class HexPlanetManager : Node3D
         Radius = _radius;
         Divisions = _divisions;
 
-        _noiseConfig.NoiseSource = _noiseSource.GetImage();
+        _noiseConfig!.NoiseSource = _noiseSource!.GetImage();
         _noiseConfig.InitializeHashGrid(Seed);
         DrawHexSphereMesh();
         GD.Print("HexPlanetManager _Ready end");
@@ -299,7 +295,7 @@ public partial class HexPlanetManager : Node3D
     {
         if (!_ready) return;
         var floatDelta = (float)delta;
-        _tileShaderService.UpdateData(floatDelta);
+        _tileShaderService!.UpdateData(floatDelta);
 
         _lastUpdated += floatDelta;
         if (_lastUpdated < 0.1f) return; // 每 0.1s 更新一次
@@ -310,7 +306,7 @@ public partial class HexPlanetManager : Node3D
         if (!Engine.IsEditorHint())
         {
             UpdateSelectTileViewer();
-            _hexPlanetManagerApplication.UpdateCivTerritory();
+            _hexPlanetManagerApplication!.UpdateCivTerritory();
         }
 
         _lastUpdated = 0f; // 每一秒检查一次
@@ -319,12 +315,12 @@ public partial class HexPlanetManager : Node3D
     private void UpdateSelectTileViewer()
     {
         var position = GetTileCollisionPositionUnderCursor();
-        _selectTileViewer.Update(_unitManager.PathFromTileId, position);
+        _selectTileViewer!.Update(_unitManager!.PathFromTileId, position);
     }
 
     public bool UpdateUiInEditMode()
     {
-        if (!_editorService.TileOverrider.EditMode) return false;
+        if (!_editorService!.TileOverrider.EditMode) return false;
         // 编辑模式下更新预览网格
         UpdateEditPreviewChunk();
         if (Input.IsActionJustPressed("destroy_unit"))
@@ -346,7 +342,7 @@ public partial class HexPlanetManager : Node3D
     {
         var tile = GetTileUnderCursor();
         // 更新地块预览
-        _editPreviewChunk.Update(tile);
+        _editPreviewChunk!.Update(tile);
     }
 
     private Godot.Collections.Dictionary GetTileCollisionResult()
@@ -368,20 +364,20 @@ public partial class HexPlanetManager : Node3D
         return Vector3.Zero;
     }
 
-    public Tile GetTileUnderCursor()
+    public Tile? GetTileUnderCursor()
     {
         var pos = GetTileCollisionPositionUnderCursor();
         if (pos == Vector3.Zero) return null;
-        var tileId = _tileService.SearchNearestTileId(pos);
-        return tileId == null ? null : _tileRepo.GetById((int)tileId);
+        var tileId = _tileService!.SearchNearestTileId(pos);
+        return tileId == null ? null : _tileRepo!.GetById((int)tileId);
     }
 
     private void ClearOldData()
     {
         // 必须先清理单位，否则相关可见度事件会查询地块，放最后会空引用异常
         _unitManager?.ClearAllUnits(); // 注意编辑器内 _unitManager == null
-        _chunkManager.ClearOldData();
-        _hexPlanetManagerApplication.ClearOldData();
+        _chunkManager!.ClearOldData();
+        _hexPlanetManagerApplication!.ClearOldData();
     }
 
     private void DrawHexSphereMesh()
@@ -394,7 +390,7 @@ public partial class HexPlanetManager : Node3D
         _lastUpdated = 0f;
         ClearOldData();
         InitHexSphere();
-        _hexPlanetManagerApplication.InitCivilization();
+        _hexPlanetManagerApplication!.InitCivilization();
         _hexPlanetManagerApplication.RefreshAllTiles();
         NewPlanetGenerated?.Invoke(); // 触发事件，这种向直接上级事件回调的情况，不提取到 EventBus
         GD.Print($"[===DrawHexSphereMesh===] total cost: {Time.GetTicksMsec() - time} ms");
@@ -402,25 +398,25 @@ public partial class HexPlanetManager : Node3D
 
     private void InitHexSphere()
     {
-        _chunkService.InitChunks();
-        _tileService.InitTiles();
-        _tileShaderService.Initialize();
-        _tileSearchService.InitSearchData();
-        _hexMapGenerator.GenerateMap();
-        _chunkManager.InitChunkNodes();
+        _chunkService!.InitChunks();
+        _tileService!.InitTiles();
+        _tileShaderService!.Initialize();
+        _tileSearchService!.InitSearchData();
+        _hexMapGenerator!.GenerateMap();
+        _chunkManager!.InitChunkNodes();
     }
 
-    public void SelectEditingTile(Tile tile) => _selectTileViewer.SelectEditingTile(tile);
-    public void CleanEditingTile() => _selectTileViewer.CleanEditingTile();
+    public void SelectEditingTile(Tile tile) => _selectTileViewer!.SelectEditingTile(tile);
+    public void CleanEditingTile() => _selectTileViewer!.CleanEditingTile();
 
     #region 单位相关
 
-    public void FindPath(Tile tile)
+    public void FindPath(Tile? tile)
     {
-        _unitManager.FindPath(tile);
+        _unitManager!.FindPath(tile);
     }
 
-    public void CreateUnit()
+    private void CreateUnit()
     {
         var tile = GetTileUnderCursor();
         if (tile == null || tile.UnitId > 0)
@@ -430,23 +426,23 @@ public partial class HexPlanetManager : Node3D
         }
 
         GD.Print($"CreateUnit at tile {tile.Id}");
-        _unitManager.AddUnit(tile.Id, GD.Randf() * Mathf.Tau);
+        _unitManager!.AddUnit(tile.Id, GD.Randf() * Mathf.Tau);
     }
 
-    public void DestroyUnit()
+    private void DestroyUnit()
     {
         var tile = GetTileUnderCursor();
         if (tile is not { UnitId: > 0 })
             return;
-        _unitManager.RemoveUnit(tile.UnitId);
+        _unitManager!.RemoveUnit(tile.UnitId);
     }
 
     #endregion
 
     // 锁定经纬网的显示
-    public void FixLatLon(bool toggle) => _longitudeLatitude.FixFullVisibility = toggle;
+    public void FixLatLon(bool toggle) => _longitudeLatitude!.FixFullVisibility = toggle;
 
-    public Vector3 GetOrbitCameraFocusPos() => _orbitCamera.GetFocusBasePos();
+    public Vector3 GetOrbitCameraFocusPos() => _orbitCamera!.GetFocusBasePos();
 
-    public Vector3 ToPlanetLocal(Vector3 global) => _planetContainer.ToLocal(global);
+    public Vector3 ToPlanetLocal(Vector3 global) => _planetContainer!.ToLocal(global);
 }

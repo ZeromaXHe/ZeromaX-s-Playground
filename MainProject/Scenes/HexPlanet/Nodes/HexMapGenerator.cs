@@ -35,15 +35,15 @@ public partial class HexMapGenerator : Node
     [Export(PropertyHint.Range, "1, 5")]
     public int DefaultWaterLevel
     {
-        get => _planetConfig.DefaultWaterLevel;
-        set => _planetConfig.DefaultWaterLevel = value;
+        get => _planetConfig!.DefaultWaterLevel;
+        set => _planetConfig!.DefaultWaterLevel = value;
     }
 
     [Export(PropertyHint.Range, "10, 15")]
     public int ElevationStep
     {
-        get => _planetConfig.ElevationStep;
-        set => _planetConfig.ElevationStep = value;
+        get => _planetConfig!.ElevationStep;
+        set => _planetConfig!.ElevationStep = value;
     }
 
     [Export(PropertyHint.Range, "0, 10")] private int _mapBoardX = 5;
@@ -123,9 +123,9 @@ public partial class HexMapGenerator : Node
 
     #region on-ready 节点
 
-    private ErosionLandGenerator _erosionLandGenerator;
-    private FractalNoiseLandGenerator _fractalNoiseLandGenerator;
-    private RealEarthLandGenerator _realEarthLandGenerator;
+    private ErosionLandGenerator? _erosionLandGenerator;
+    private FractalNoiseLandGenerator? _fractalNoiseLandGenerator;
+    private RealEarthLandGenerator? _realEarthLandGenerator;
 
     private void InitOnReadyNodes()
     {
@@ -138,10 +138,10 @@ public partial class HexMapGenerator : Node
 
     #region 服务和存储
 
-    private IPointRepo _pointRepo;
-    private ITileRepo _tileRepo;
-    private INoiseConfig _noiseConfig;
-    private IPlanetConfig _planetConfig;
+    private IPointRepo? _pointRepo;
+    private ITileRepo? _tileRepo;
+    private INoiseConfig? _noiseConfig;
+    private IPlanetConfig? _planetConfig;
 
     private void InitServices()
     {
@@ -175,7 +175,7 @@ public partial class HexMapGenerator : Node
 
         GD.Print($"Generating map with seed {_seed}");
         _random.Seed = (ulong)_seed;
-        foreach (var tile in _tileRepo.GetAll())
+        foreach (var tile in _tileRepo!.GetAll())
             tile.Data = tile.Data with
             {
                 Values = tile.Data.Values.WithWaterLevel(DefaultWaterLevel).WithElevation(0)
@@ -187,7 +187,7 @@ public partial class HexMapGenerator : Node
                 GD.Print($"--- CreatedRegions in {stopwatch.ElapsedMilliseconds} ms");
                 stopwatch.Restart();
 
-                _landTileCount = _erosionLandGenerator.CreateLand(_random, _regions);
+                _landTileCount = _erosionLandGenerator!.CreateLand(_random, _regions);
                 GD.Print($"--- CreatedLand in {stopwatch.ElapsedMilliseconds} ms");
                 stopwatch.Restart();
 
@@ -196,13 +196,13 @@ public partial class HexMapGenerator : Node
                 stopwatch.Restart();
                 break;
             case LandGeneratorType.FractalNoise:
-                _landTileCount = _fractalNoiseLandGenerator.CreateLand(_random);
+                _landTileCount = _fractalNoiseLandGenerator!.CreateLand(_random);
                 GD.Print($"--- CreatedLand in {stopwatch.ElapsedMilliseconds} ms");
                 stopwatch.Restart();
                 break;
             case LandGeneratorType.RealEarth:
             default:
-                _landTileCount = _realEarthLandGenerator.CreateLand();
+                _landTileCount = _realEarthLandGenerator!.CreateLand();
                 GD.Print($"--- CreatedLand in {stopwatch.ElapsedMilliseconds} ms");
                 stopwatch.Restart();
                 break;
@@ -237,7 +237,7 @@ public partial class HexMapGenerator : Node
         _nextClimate.Clear();
         var initialData = new ClimateData { Moisture = _startingMoisture };
         var clearData = new ClimateData();
-        for (var i = 0; i <= _tileRepo.GetCount(); i++)
+        for (var i = 0; i <= _tileRepo!.GetCount(); i++)
         {
             _climate.Add(initialData);
             _nextClimate.Add(clearData);
@@ -281,7 +281,7 @@ public partial class HexMapGenerator : Node
         var cloudDispersal = tileClimate.Clouds * (1f / (edgeCount - 1 + _windStrength));
         var runoff = tileClimate.Moisture * _runoffFactor * (1f / edgeCount);
         var seepage = tileClimate.Moisture * _seepageFactor * (1f / edgeCount);
-        foreach (var neighbor in _tileRepo.GetNeighbors(tile))
+        foreach (var neighbor in _tileRepo!.GetNeighbors(tile))
         {
             var neighborClimate = _nextClimate[neighbor.Id];
             if (tile.GetNeighborIdx(neighbor) == mainDispersalDirection)
@@ -314,7 +314,7 @@ public partial class HexMapGenerator : Node
     private void CreateRivers()
     {
         var riverOrigins = new List<Tile>();
-        foreach (var tile in _tileRepo.GetAll())
+        foreach (var tile in _tileRepo!.GetAll())
         {
             if (tile.Data.IsUnderwater) continue;
             var data = _climate[tile.Id];
@@ -365,7 +365,7 @@ public partial class HexMapGenerator : Node
         {
             var minNeighborElevation = int.MaxValue;
             _flowDirections.Clear();
-            var neighbors = _tileRepo.GetNeighbors(tile).ToList();
+            var neighbors = _tileRepo!.GetNeighbors(tile).ToList();
             foreach (var neighbor in neighbors)
             {
                 if (neighbor.Data.Elevation < minNeighborElevation)
@@ -438,7 +438,7 @@ public partial class HexMapGenerator : Node
     {
         _temperatureJitterChannel = _random.RandiRange(0, 3);
         var rockDesertElevation = ElevationStep - (ElevationStep - DefaultWaterLevel) / 2;
-        foreach (var tile in _tileRepo.GetAll())
+        foreach (var tile in _tileRepo!.GetAll())
         {
             var temperature = DetermineTemperature(tile);
             var moisture = _climate[tile.Id].Moisture;
@@ -518,8 +518,8 @@ public partial class HexMapGenerator : Node
 
     private float DetermineTemperature(Tile tile)
     {
-        var sphereAxial = _pointRepo.GetSphereAxial(tile);
-        var latitude = (sphereAxial.Coords.R + _planetConfig.Divisions) /
+        var sphereAxial = _pointRepo!.GetSphereAxial(tile);
+        var latitude = (sphereAxial.Coords.R + _planetConfig!.Divisions) /
                        (3f * _planetConfig.Divisions);
         // 具有南北半球
         latitude *= 2f;
@@ -527,7 +527,7 @@ public partial class HexMapGenerator : Node
             latitude = 2f - latitude;
         var temperature = Mathf.Lerp(_lowTemperature, _highTemperature, latitude);
         temperature *= 1f - (tile.Data.ViewElevation - DefaultWaterLevel) / (ElevationStep - DefaultWaterLevel + 1f);
-        var jitter = _noiseConfig.SampleNoise(tile.GetCentroid(HexMetrics.StandardRadius))[_temperatureJitterChannel];
+        var jitter = _noiseConfig!.SampleNoise(tile.GetCentroid(HexMetrics.StandardRadius))[_temperatureJitterChannel];
         temperature += (jitter * 2f - 1f) * _temperatureJitter;
         return temperature;
     }

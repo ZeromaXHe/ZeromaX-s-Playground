@@ -14,6 +14,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Code.Infras", "Code.Infras\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Code.Apps", "Code.Apps\Code.Apps.csproj", "{F1528380-482A-4771-9B4C-B4E91A4B0878}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GodotNodes.Abstractions", "GodotNodes.Abstractions\GodotNodes.Abstractions.csproj", "{ACCB75B3-3741-4139-9BC9-F2DAC4C48CFF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 	Debug|Any CPU = Debug|Any CPU
@@ -63,5 +65,11 @@ Global
 		{F1528380-482A-4771-9B4C-B4E91A4B0878}.ExportDebug|Any CPU.Build.0 = Debug|Any CPU
 		{F1528380-482A-4771-9B4C-B4E91A4B0878}.ExportRelease|Any CPU.ActiveCfg = Debug|Any CPU
 		{F1528380-482A-4771-9B4C-B4E91A4B0878}.ExportRelease|Any CPU.Build.0 = Debug|Any CPU
+		{ACCB75B3-3741-4139-9BC9-F2DAC4C48CFF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ACCB75B3-3741-4139-9BC9-F2DAC4C48CFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ACCB75B3-3741-4139-9BC9-F2DAC4C48CFF}.ExportDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ACCB75B3-3741-4139-9BC9-F2DAC4C48CFF}.ExportDebug|Any CPU.Build.0 = Debug|Any CPU
+		{ACCB75B3-3741-4139-9BC9-F2DAC4C48CFF}.ExportRelease|Any CPU.ActiveCfg = Debug|Any CPU
+		{ACCB75B3-3741-4139-9BC9-F2DAC4C48CFF}.ExportRelease|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 EndGlobal

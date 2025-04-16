@@ -6,6 +6,6 @@ namespace Commons.Frameworks;
 public interface IContext
 {
     // 仿 setter 注入写法：
-    // private readonly Lazy<ITileRepo> _tileRepo = new(() => Context.GetBean<ITileRepo>());
+    // private readonly Lazy<ITileRepo> _tileRepo = new(() => Context.GetSingleton<ITileRepo>());
     T? GetBean<T>() where T : class;
 }

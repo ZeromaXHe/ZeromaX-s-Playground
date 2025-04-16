@@ -17,16 +17,16 @@ public partial class HexUnit : CsgBox3D
     public HexUnit()
     {
         InitServices();
-        var unit = _unitRepo.Add();
+        var unit = _unitRepo!.Add();
         Id = unit.Id;
     }
 
     #region 服务与存储
 
-    private static ITileRepo _tileRepo;
-    private static ITileShaderApplication _tileShaderApplication;
-    private static IUnitRepo _unitRepo;
-    private static IPlanetConfig _planetConfig;
+    private static ITileRepo? _tileRepo;
+    private static ITileShaderApplication? _tileShaderApplication;
+    private static IUnitRepo? _unitRepo;
+    private static IPlanetConfig? _planetConfig;
 
     private static void InitServices()
     {
@@ -38,7 +38,7 @@ public partial class HexUnit : CsgBox3D
 
     #endregion
 
-    public int Id { get; set; }
+    public int Id { get; private set; }
     private Vector3 _beginRotation;
     private int _tileId;
 
@@ -49,16 +49,16 @@ public partial class HexUnit : CsgBox3D
         {
             if (_tileId > 0)
             {
-                var preTile = _tileRepo.GetById(_tileId)!;
-                _tileShaderApplication.DecreaseVisibility(preTile, Unit.VisionRange);
+                var preTile = _tileRepo!.GetById(_tileId)!;
+                _tileShaderApplication!.DecreaseVisibility(preTile, Unit.VisionRange);
                 _tileRepo.SetUnitId(preTile, 0);
             }
 
             _tileId = value;
-            _unitRepo.GetById(Id)!.TileId = _tileId;
+            _unitRepo!.GetById(Id)!.TileId = _tileId;
             ValidateLocation();
-            var tile = _tileRepo.GetById(_tileId)!;
-            _tileShaderApplication.IncreaseVisibility(tile, Unit.VisionRange);
+            var tile = _tileRepo!.GetById(_tileId)!;
+            _tileShaderApplication!.IncreaseVisibility(tile, Unit.VisionRange);
             _tileRepo.SetUnitId(tile, Id);
         }
     }
@@ -77,7 +77,7 @@ public partial class HexUnit : CsgBox3D
         }
     }
 
-    private HexUnitPath _path;
+    private HexUnitPath? _path;
     private int _pathTileIdx;
     private bool _pathOriented;
     private const float PathRotationSpeed = Mathf.Pi;
@@ -86,7 +86,7 @@ public partial class HexUnit : CsgBox3D
     public override void _Process(double delta)
     {
         if (_path == null) return;
-        var deltaProgress = (float)delta * _planetConfig.StandardScale * PathMoveSpeed;
+        var deltaProgress = (float)delta * _planetConfig!.StandardScale * PathMoveSpeed;
         if (_pathOriented)
         {
             var prePathTileIdx = _pathTileIdx;
@@ -95,7 +95,7 @@ public partial class HexUnit : CsgBox3D
                 _pathTileIdx++;
             if (prePathTileIdx != _pathTileIdx)
             {
-                _tileShaderApplication.DecreaseVisibility(_path.Tiles[prePathTileIdx], Unit.VisionRange);
+                _tileShaderApplication!.DecreaseVisibility(_path.Tiles![prePathTileIdx], Unit.VisionRange);
                 _tileShaderApplication.IncreaseVisibility(_path.Tiles[_pathTileIdx], Unit.VisionRange);
             }
 
@@ -124,11 +124,11 @@ public partial class HexUnit : CsgBox3D
         _pathOriented = false;
         _pathTileIdx = 0;
         // 提前把实际单位数据设置到目标 Tile 中
-        var fromTile = _tileRepo.GetById(_tileId)!;
+        var fromTile = _tileRepo!.GetById(_tileId)!;
         _tileRepo.SetUnitId(fromTile, 0);
-        var toTile = _path.Tiles[^1];
+        var toTile = _path.Tiles![^1];
         _tileRepo.SetUnitId(toTile, Id);
-        _unitRepo.GetById(Id)!.TileId = toTile.Id;
+        _unitRepo!.GetById(Id)!.TileId = toTile.Id;
         _tileId = toTile.Id;
     }
 
@@ -139,8 +139,8 @@ public partial class HexUnit : CsgBox3D
 
     public void ValidateLocation()
     {
-        var tile = _tileRepo.GetById(_tileId)!;
-        var position = tile.GetCentroid(_planetConfig.Radius + _tileRepo.GetHeight(tile));
+        var tile = _tileRepo!.GetById(_tileId)!;
+        var position = tile.GetCentroid(_planetConfig!.Radius + _tileRepo.GetHeight(tile));
         Node3dUtil.PlaceOnSphere(this, position, _planetConfig.StandardScale,
             alignForward: Vector3.Up); // 单位不需要抬高，场景里已经设置好了
         _beginRotation = Rotation;
@@ -148,9 +148,9 @@ public partial class HexUnit : CsgBox3D
 
     public void Die()
     {
-        _unitRepo.Delete(Id);
-        var tile = _tileRepo.GetById(_tileId)!;
-        _tileShaderApplication.DecreaseVisibility(tile, Unit.VisionRange);
+        _unitRepo!.Delete(Id);
+        var tile = _tileRepo!.GetById(_tileId)!;
+        _tileShaderApplication!.DecreaseVisibility(tile, Unit.VisionRange);
         _tileRepo.SetUnitId(tile, 0);
         QueueFree();
     }

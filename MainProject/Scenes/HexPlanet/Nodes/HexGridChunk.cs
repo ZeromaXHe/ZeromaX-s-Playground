@@ -23,19 +23,19 @@ public partial class HexGridChunk : Node3D, IChunk
 {
     public HexGridChunk() => InitServices();
 
-    [Export] public HexMesh Terrain { get; set; }
-    [Export] public HexMesh Rivers { get; set; }
-    [Export] public HexMesh Roads { get; set; }
-    [Export] public HexMesh Water { get; set; }
-    [Export] public HexMesh WaterShore { get; set; }
-    [Export] public HexMesh Estuary { get; set; }
-    [Export] public HexFeatureManager Features { get; set; }
+    [Export] public HexMesh? Terrain { get; set; }
+    [Export] public HexMesh? Rivers { get; set; }
+    [Export] public HexMesh? Roads { get; set; }
+    [Export] public HexMesh? Water { get; set; }
+    [Export] public HexMesh? WaterShore { get; set; }
+    [Export] public HexMesh? Estuary { get; set; }
+    [Export] public HexFeatureManager? Features { get; set; }
     public HexTileDataOverrider TileDataOverrider => new();
-    [Export] private PackedScene _labelScene;
+    [Export] private PackedScene? _labelScene;
 
     #region on-ready 节点
 
-    private Node3D _labels;
+    private Node3D? _labels;
 
     private void InitOnReadyNodes()
     {
@@ -46,14 +46,14 @@ public partial class HexGridChunk : Node3D, IChunk
 
     #region 服务与存储
 
-    private static ILodMeshCache _lodMeshCache;
-    private static IPointRepo _pointRepo;
-    private static IChunkRepo _chunkRepo;
-    private static ITileRepo _tileRepo;
-    private static ITileShaderService _tileShaderService;
-    private static IPlanetConfig _planetConfig;
-    private static IEditorService _editorService;
-    private static IFeatureApplication _featureApplication;
+    private static ILodMeshCache? _lodMeshCache;
+    private static IPointRepo? _pointRepo;
+    private static IChunkRepo? _chunkRepo;
+    private static ITileRepo? _tileRepo;
+    private static ITileShaderService? _tileShaderService;
+    private static IPlanetConfig? _planetConfig;
+    private static IEditorService? _editorService;
+    private static IFeatureApplication? _featureApplication;
 
     private void InitServices()
     {
@@ -68,23 +68,23 @@ public partial class HexGridChunk : Node3D, IChunk
     }
 
     private void OnEditorEditModeChanged(bool mode) =>
-        RefreshTilesLabelMode(mode ? _editorService.LabelMode : 0);
+        RefreshTilesLabelMode(mode ? _editorService!.LabelMode : 0);
 
     private void CleanEventListeners()
     {
-        _editorService.LabelModeChanged -= RefreshTilesLabelMode;
+        _editorService!.LabelModeChanged -= RefreshTilesLabelMode;
         _editorService.EditModeChanged -= OnEditorEditModeChanged;
     }
 
     #endregion
 
-    private static bool EditMode => _editorService.TileOverrider.EditMode;
-    private static int LabelMode => _editorService.LabelMode;
+    private static bool EditMode => _editorService!.TileOverrider.EditMode;
+    private static int LabelMode => _editorService!.LabelMode;
 
     private int _id;
     private readonly Dictionary<int, HexTileLabel> _usingTileUis = new();
     private readonly Queue<HexTileLabel> _unusedTileUis = new();
-    private ChunkTriangulation _chunkTriangulation;
+    private ChunkTriangulation? _chunkTriangulation;
 
     private void HideLabel(int tileId)
     {
@@ -99,14 +99,14 @@ public partial class HexGridChunk : Node3D, IChunk
         HexTileLabel label;
         if (_unusedTileUis.Count == 0)
         {
-            label = _labelScene.Instantiate<HexTileLabel>();
-            _labels.AddChild(label);
+            label = _labelScene!.Instantiate<HexTileLabel>();
+            _labels!.AddChild(label);
         }
         else
             label = _unusedTileUis.Dequeue();
 
-        var tile = _tileRepo.GetById(tileId)!;
-        var position = 1.01f * tile.GetCentroid(_planetConfig.Radius + _tileRepo.GetHeight(tile));
+        var tile = _tileRepo!.GetById(tileId)!;
+        var position = 1.01f * tile.GetCentroid(_planetConfig!.Radius + _tileRepo.GetHeight(tile));
         var scale = _planetConfig.StandardScale;
         label.Scale = Vector3.One * scale;
         label.Position = position;
@@ -124,7 +124,7 @@ public partial class HexGridChunk : Node3D, IChunk
     }
 
 #if !FEATURE_NEW
-    public void ExploreFeatures(int tileId) => Features.ExploreFeatures(tileId);
+    public void ExploreFeatures(int tileId) => Features!.ExploreFeatures(tileId);
 #endif
 
     private void InitLabels(int id)
@@ -133,7 +133,7 @@ public partial class HexGridChunk : Node3D, IChunk
         foreach (var (tileId, _) in _usingTileUis)
             HideLabel(tileId);
 
-        var tileIds = _chunkRepo.GetById(id)!.TileIds;
+        var tileIds = _chunkRepo!.GetById(id)!.TileIds;
         foreach (var tileId in tileIds)
             ShowLabel(tileId);
         // 在场景树中 _Ready 后 Label 才非 null
@@ -161,7 +161,7 @@ public partial class HexGridChunk : Node3D, IChunk
                 // 坐标
                 foreach (var (tileId, label) in _usingTileUis)
                 {
-                    var coords = _pointRepo.GetSphereAxial(_tileRepo.GetById(tileId)!);
+                    var coords = _pointRepo!.GetSphereAxial(_tileRepo!.GetById(tileId)!);
                     label.Label.Text = $"{coords.Coords}\n{coords.Type},{coords.TypeIdx}";
                     label.Label.FontSize = 24;
                     label.Show();
@@ -195,17 +195,17 @@ public partial class HexGridChunk : Node3D, IChunk
         {
             // var time = Time.GetTicksMsec();
             ClearOldData();
-            var chunk = _chunkRepo.GetById(_id)!;
+            var chunk = _chunkRepo!.GetById(_id)!;
             var tileIds = chunk.TileIds;
-            var tiles = tileIds.Select(_tileRepo.GetById).ToList();
+            var tiles = tileIds.Select(id => _tileRepo!.GetById(id)!).ToList();
             foreach (var tile in tiles)
             {
-                _chunkTriangulation.Triangulate(tile);
+                _chunkTriangulation!.Triangulate(tile);
                 _usingTileUis.TryGetValue(tile.Id, out var tileUi);
                 if (tileUi != null)
                 {
                     tileUi.Position =
-                        1.01f * tile.GetCentroid(_planetConfig.Radius + _tileRepo.GetHeight(tile));
+                        1.01f * tile.GetCentroid(_planetConfig!.Radius + _tileRepo!.GetHeight(tile));
                 }
                 else GD.PrintErr($"Tile {tile.Id} UI not found");
             }
@@ -215,7 +215,7 @@ public partial class HexGridChunk : Node3D, IChunk
             foreach (var tile in tiles)
                 _featureApplication.ShowFeatures(tile, !EditMode, false);
 #else
-            Features.ShowFeatures(!EditMode);
+            Features!.ShowFeatures(!EditMode);
 #endif
             // GD.Print($"Chunk {_id} BuildMesh cost: {Time.GetTicksMsec() - time} ms");
         }
@@ -225,48 +225,48 @@ public partial class HexGridChunk : Node3D, IChunk
 
     private void ApplyNewData(bool cacheMesh)
     {
-        Terrain.Apply();
-        Rivers.Apply(); // 河流暂时不支持 Lod
-        Roads.Apply(); // 道路暂时不支持 Lod
-        Water.Apply();
-        WaterShore.Apply();
-        Estuary.Apply();
-        Features.Apply(); // 特征暂时无 Lod
+        Terrain!.Apply();
+        Rivers!.Apply(); // 河流暂时不支持 Lod
+        Roads!.Apply(); // 道路暂时不支持 Lod
+        Water!.Apply();
+        WaterShore!.Apply();
+        Estuary!.Apply();
+        Features!.Apply(); // 特征暂时无 Lod
 
         if (!cacheMesh)
             return;
-        var lod = _chunkTriangulation.Lod;
+        var lod = _chunkTriangulation!.Lod;
         if (Terrain.Mesh == null)
             GD.PrintErr($"Chunk {_id} Terrain Mesh is null");
-        _lodMeshCache.AddLodMeshes(lod, _id,
-            [Terrain.Mesh, Water.Mesh, WaterShore.Mesh, Estuary.Mesh]);
+        _lodMeshCache!.AddLodMeshes(lod, _id,
+            [Terrain.Mesh!, Water.Mesh!, WaterShore.Mesh!, Estuary.Mesh!]);
     }
 
     private void ClearOldData()
     {
-        Terrain.Clear();
-        Rivers.Clear();
-        Roads.Clear();
-        Water.Clear();
-        WaterShore.Clear();
-        Estuary.Clear();
+        Terrain!.Clear();
+        Rivers!.Clear();
+        Roads!.Clear();
+        Water!.Clear();
+        WaterShore!.Clear();
+        Estuary!.Clear();
 #if FEATURE_NEW
         Features.Clear(false, true);
 #else
-        Features.Clear();
+        Features!.Clear();
 #endif
     }
 
     private static bool IsHandlingLodGaps(Chunk chunk) =>
-        (chunk.Lod == ChunkLod.PlaneHex && _chunkRepo.GetNeighbors(chunk).Any(n => n.Lod >= ChunkLod.SimpleHex))
-        || (chunk.Lod == ChunkLod.TerracesHex && _chunkRepo.GetNeighbors(chunk).Any(n => n.Lod == ChunkLod.Full));
+        (chunk.Lod == ChunkLod.PlaneHex && _chunkRepo!.GetNeighbors(chunk).Any(n => n.Lod >= ChunkLod.SimpleHex))
+        || (chunk.Lod == ChunkLod.TerracesHex && _chunkRepo!.GetNeighbors(chunk).Any(n => n.Lod == ChunkLod.Full));
 
     public void UpdateLod(ChunkLod lod, bool idChanged = true)
     {
-        if (lod == _chunkTriangulation.Lod && !idChanged) return;
+        if (lod == _chunkTriangulation!.Lod && !idChanged) return;
         _chunkTriangulation.Lod = lod;
 
-        var chunk = _chunkRepo.GetById(_id); // 获取当前分块
+        var chunk = _chunkRepo!.GetById(_id)!; // 获取当前分块
         if (IsHandlingLodGaps(chunk))
         {
             // 对于需要处理接缝的情况，不使用缓存
@@ -274,14 +274,14 @@ public partial class HexGridChunk : Node3D, IChunk
             return;
         }
 
-        var meshes = _lodMeshCache.GetLodMeshes(lod, _id);
+        var meshes = _lodMeshCache!.GetLodMeshes(lod, _id);
         // 如果之前生成过 Lod 网格，直接应用；否则重新生成
         if (meshes != null)
         {
-            Terrain.ShowMesh(meshes[(int)MeshType.Terrain]);
-            Water.ShowMesh(meshes[(int)MeshType.Water]);
-            WaterShore.ShowMesh(meshes[(int)MeshType.WaterShore]);
-            Estuary.ShowMesh(meshes[(int)MeshType.Estuary]);
+            Terrain!.ShowMesh(meshes[(int)MeshType.Terrain]);
+            Water!.ShowMesh(meshes[(int)MeshType.Water]);
+            WaterShore!.ShowMesh(meshes[(int)MeshType.WaterShore]);
+            Estuary!.ShowMesh(meshes[(int)MeshType.Estuary]);
         }
         else SetProcess(true);
     }
@@ -289,11 +289,11 @@ public partial class HexGridChunk : Node3D, IChunk
     public void Refresh()
     {
         // 让所有旧的网格缓存过期
-        _lodMeshCache.RemoveLodMeshes(_id);
+        _lodMeshCache!.RemoveLodMeshes(_id);
         SetProcess(true);
     }
 
-    public void ShowUi(bool show) => _labels.Visible = show;
+    public void ShowUi(bool show) => _labels!.Visible = show;
 
     private void ShowInSight(ChunkLod lod)
     {
@@ -304,29 +304,29 @@ public partial class HexGridChunk : Node3D, IChunk
         foreach (var tile in _chunkRepo.GetById(_id)!.TileIds.Select(_tileRepo.GetById))
             _featureApplication.ShowFeatures(tile, !EditMode, false);
 #else
-        Features.ShowFeatures(!EditMode); // 编辑模式下全部显示，游戏模式下仅显示探索过的
+        Features!.ShowFeatures(!EditMode); // 编辑模式下全部显示，游戏模式下仅显示探索过的
 #endif
         OnEditorEditModeChanged(EditMode);
-        _editorService.LabelModeChanged += RefreshTilesLabelMode;
+        _editorService!.LabelModeChanged += RefreshTilesLabelMode;
         _editorService.EditModeChanged += OnEditorEditModeChanged;
     }
 
     public void HideOutOfSight()
     {
         Hide();
-        Terrain.Clear();
-        Rivers.Clear();
-        Roads.Clear();
-        Water.Clear();
-        WaterShore.Clear();
-        Estuary.Clear();
+        Terrain!.Clear();
+        Rivers!.Clear();
+        Roads!.Clear();
+        Water!.Clear();
+        WaterShore!.Clear();
+        Estuary!.Clear();
 #if FEATURE_NEW
         Features.Clear(false, false);
 #else
-        Features.Clear();
+        Features!.Clear();
 #endif
         _id = 0; // 重置 id，归还给池子
-        _editorService.LabelModeChanged -= RefreshTilesLabelMode;
+        _editorService!.LabelModeChanged -= RefreshTilesLabelMode;
         _editorService.EditModeChanged -= OnEditorEditModeChanged;
     }
 }

@@ -21,13 +21,13 @@ public partial class ChunkLoader : Node3D
 {
     public ChunkLoader() => InitServices();
 
-    [Export] private PackedScene _gridChunkScene;
+    [Export] private PackedScene? _gridChunkScene;
 
     #region 服务和存储
 
-    private IChunkRepo _chunkRepo;
-    private ITileRepo _tileRepo;
-    private IPlanetConfig _planetConfig;
+    private IChunkRepo? _chunkRepo;
+    private ITileRepo? _tileRepo;
+    private IPlanetConfig? _planetConfig;
 
     private void InitServices()
     {
@@ -49,9 +49,10 @@ public partial class ChunkLoader : Node3D
     private void ExploreFeatures(Tile tile)
     {
         var tileId = tile.Id;
-        var chunkId = _tileRepo.GetById(tileId)!.ChunkId;
+        var chunkId = _tileRepo!.GetById(tileId)!.ChunkId;
         // BUG: 动态加载的分块会显示未探索的特征
-        _usingChunks[chunkId]?.ExploreFeatures(tileId);
+        if (_usingChunks.TryGetValue(chunkId, out var chunk))
+            chunk.ExploreFeatures(tileId);
     }
 #endif
 
@@ -60,11 +61,14 @@ public partial class ChunkLoader : Node3D
         // 现在地图生成器也会调用，这时候分块还没创建。
         // _ready 不可或缺，否则启动失败
         if (_ready && _usingChunks.TryGetValue(id, out var chunk))
-            chunk?.Refresh();
+            chunk.Refresh();
     }
 
-    private void OnChunkServiceRefreshChunkTileLabel(int chunkId, int tileId, string text) =>
-        _usingChunks[chunkId]?.RefreshTileLabel(tileId, text);
+    private void OnChunkServiceRefreshChunkTileLabel(int chunkId, int tileId, string text)
+    {
+        if (_usingChunks.TryGetValue(chunkId, out var chunk))
+            chunk.RefreshTileLabel(tileId, text);
+    }
 
     private void CleanEventListeners()
     {
@@ -78,8 +82,8 @@ public partial class ChunkLoader : Node3D
 #if !FEATURE_NEW
         TileShaderEvent.Instance.TileExplored -= ExploreFeatures;
 #endif
-        _tileRepo.RefreshChunk -= OnChunkServiceRefreshChunk;
-        _chunkRepo.RefreshChunkTileLabel -= OnChunkServiceRefreshChunkTileLabel;
+        _tileRepo!.RefreshChunk -= OnChunkServiceRefreshChunk;
+        _chunkRepo!.RefreshChunkTileLabel -= OnChunkServiceRefreshChunkTileLabel;
         if (!Engine.IsEditorHint())
         {
             OrbitCameraEvent.Instance.Transformed -= UpdateInsightChunks;
@@ -88,7 +92,6 @@ public partial class ChunkLoader : Node3D
 
     #endregion
 
-    // 值可能为 null，为 null 时说明分块需要初始化
     private readonly Dictionary<int, HexGridChunk> _usingChunks = new();
     private readonly Queue<HexGridChunk> _unusedChunks = [];
 
@@ -129,7 +132,7 @@ public partial class ChunkLoader : Node3D
         {
             var chunkId = _loadSet.First();
             _loadSet.Remove(chunkId);
-            ShowChunk(_chunkRepo.GetById(chunkId));
+            ShowChunk(_chunkRepo!.GetById(chunkId)!);
             limitCount--;
 #if MY_DEBUG
             loadCount++;
@@ -151,7 +154,7 @@ public partial class ChunkLoader : Node3D
         {
             var chunkId = _refreshSet.First();
             _refreshSet.Remove(chunkId);
-            ShowChunk(_chunkRepo.GetById(chunkId));
+            ShowChunk(_chunkRepo!.GetById(chunkId)!);
             limitCount--;
 #if MY_DEBUG
             refreshCount++;
@@ -235,13 +238,13 @@ public partial class ChunkLoader : Node3D
         foreach (var chunkId in _rimChunkIds.Where(id => _usingChunks.ContainsKey(id)))
         {
             _unloadSet.Add(chunkId);
-            UpdateChunkInsightAndLod(_chunkRepo.GetById(chunkId), camera, false);
+            UpdateChunkInsightAndLod(_chunkRepo!.GetById(chunkId)!, camera, false);
         }
 
         _rimChunkIds.Clear();
         foreach (var preInsightChunkId in InsightChunkIdsNow)
         {
-            var preInsightChunk = _chunkRepo.GetById(preInsightChunkId);
+            var preInsightChunk = _chunkRepo!.GetById(preInsightChunkId)!;
             _visitedChunkIds.Add(preInsightChunkId);
             if (!IsChunkInsight(preInsightChunk, camera))
             {
@@ -268,13 +271,13 @@ public partial class ChunkLoader : Node3D
         // （因为我们认为新位置还是会具有空间上的相近性，BFS 应该会比随便找可见分块更好）
         if (InsightChunkIdsNext.Count == 0)
         {
-            foreach (var chunk in InsightChunkIdsNow.Select(_chunkRepo.GetById))
-                SearchNeighbor(chunk, _visitedChunkIds); // 搜索所有外缘邻居
+            foreach (var chunk in InsightChunkIdsNow.Select(_chunkRepo!.GetById))
+                SearchNeighbor(chunk!, _visitedChunkIds); // 搜索所有外缘邻居
 
             while (_chunkQueryQueue.Count > 0)
             {
                 var chunkId = _chunkQueryQueue.Dequeue();
-                var chunk = _chunkRepo.GetById(chunkId);
+                var chunk = _chunkRepo.GetById(chunkId)!;
                 if (IsChunkInsight(chunk, camera))
                 {
                     // 找到第一个可见分块，重新入队，后面进行真正的处理
@@ -290,7 +293,7 @@ public partial class ChunkLoader : Node3D
         while (_chunkQueryQueue.Count > 0)
         {
             var chunkId = _chunkQueryQueue.Dequeue();
-            var chunk = _chunkRepo.GetById(chunkId);
+            var chunk = _chunkRepo!.GetById(chunkId)!;
             if (!IsChunkInsight(chunk, camera)) continue;
             if (!InsightChunkIdsNext.Add(chunkId)) continue;
             _loadSet.Add(chunkId);
@@ -309,9 +312,9 @@ public partial class ChunkLoader : Node3D
         // GD.Print($"ChunkLoader UpdateInsightChunks cost {Time.GetTicksMsec() - time} ms");
     }
 
-    private void SearchNeighbor(Chunk chunk, HashSet<int> filterSet = null)
+    private void SearchNeighbor(Chunk chunk, HashSet<int>? filterSet = null)
     {
-        foreach (var neighbor in _chunkRepo.GetNeighbors(chunk))
+        foreach (var neighbor in _chunkRepo!.GetNeighbors(chunk))
         {
             if (filterSet?.Contains(neighbor.Id) ?? false) continue;
             if (_visitedChunkIds.Add(neighbor.Id))
@@ -320,7 +323,7 @@ public partial class ChunkLoader : Node3D
     }
 
     private void UpdateChunkInsightAndLod(Chunk chunk, Camera3D camera, bool insight) =>
-        _chunkRepo.UpdateChunkInsightAndLod(chunk.Id, insight,
+        _chunkRepo!.UpdateChunkInsightAndLod(chunk.Id, insight,
             insight ? CalcLod(chunk.Pos.DistanceTo(ToLocal(camera.GlobalPosition))) : ChunkLod.JustHex);
 
     // 处理视野外的一圈边缘分块。如果是之前的边缘地块，需要放入刷新队列，如果是新的，则放入加载队列
@@ -356,7 +359,7 @@ public partial class ChunkLoader : Node3D
             if (_unusedChunks.Count == 0)
             {
                 // 没有空闲分块的话，初始化新的
-                hexGridChunk = _gridChunkScene.Instantiate<HexGridChunk>();
+                hexGridChunk = _gridChunkScene!.Instantiate<HexGridChunk>();
                 hexGridChunk.Name = $"HexGridChunk{GetChildCount()}";
                 AddChild(hexGridChunk); // 必须先加入场景树，让 _Ready() 先于 Init() 执行
             }
@@ -395,7 +398,7 @@ public partial class ChunkLoader : Node3D
     public void InitChunkNodes()
     {
         var camera = GetViewport().GetCamera3D();
-        foreach (var chunk in _chunkRepo.GetAll())
+        foreach (var chunk in _chunkRepo!.GetAll())
         {
             var id = chunk.Id;
             // 此时拿不到真正 focusBase 的位置，暂且用相机自己的代替
@@ -412,7 +415,7 @@ public partial class ChunkLoader : Node3D
 
     private ChunkLod CalcLod(float distance)
     {
-        var tileLen = _planetConfig.Radius / _planetConfig.Divisions;
+        var tileLen = _planetConfig!.Radius / _planetConfig.Divisions;
         return distance > tileLen * 160 ? ChunkLod.JustHex :
             distance > tileLen * 80 ? ChunkLod.PlaneHex :
             distance > tileLen * 40 ? ChunkLod.SimpleHex :
@@ -423,6 +426,6 @@ public partial class ChunkLoader : Node3D
     // 因为后面要根据相机位置动态更新可见区域，上面方法这个仅仅是对应初始时的可见区域
     private bool IsChunkInsight(Chunk chunk, Camera3D camera) =>
         Mathf.Cos(chunk.Pos.Normalized().AngleTo(ToLocal(camera.GlobalPosition).Normalized()))
-        > _planetConfig.Radius / camera.GlobalPosition.Length()
+        > _planetConfig!.Radius / camera.GlobalPosition.Length()
         && camera.IsPositionInFrustum(ToGlobal(chunk.Pos));
 }

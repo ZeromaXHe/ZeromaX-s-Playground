@@ -1,6 +1,5 @@
 using Commons.Constants;
 using Domains.Models.Singletons.Planets;
-using Domains.Services.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
 
@@ -26,8 +25,8 @@ public partial class CelestialMotionManager : Node3D
         if (PlanetRevolution)
         {
             PlanetRevolution = false;
-            _sunRevolution.RotationDegrees = Vector3.Up * 180f;
-            RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.DirToSun, _sunMesh.GlobalPosition.Normalized());
+            _sunRevolution!.RotationDegrees = Vector3.Up * 180f;
+            RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.DirToSun, _sunMesh!.GlobalPosition.Normalized());
         }
         else
             PlanetRevolution = true;
@@ -41,7 +40,7 @@ public partial class CelestialMotionManager : Node3D
         if (PlanetRotation)
         {
             PlanetRotation = false;
-            _planetAxis.Rotation = Vector3.Zero;
+            _planetAxis!.Rotation = Vector3.Zero;
         }
         else
             PlanetRotation = true;
@@ -102,8 +101,8 @@ public partial class CelestialMotionManager : Node3D
         {
             SatelliteRevolution = false;
             SatelliteRotation = false;
-            _lunarRevolution.RotationDegrees = Vector3.Up * 180f;
-            _moonAxis.Rotation = Vector3.Zero;
+            _lunarRevolution!.RotationDegrees = Vector3.Up * 180f;
+            _moonAxis!.Rotation = Vector3.Zero;
         }
         else
         {
@@ -190,7 +189,7 @@ public partial class CelestialMotionManager : Node3D
 
     #region services
 
-    private IPlanetConfig _planetConfig;
+    private IPlanetConfig? _planetConfig;
 
     private void InitServices()
     {
@@ -201,19 +200,19 @@ public partial class CelestialMotionManager : Node3D
 
     #region on-ready 节点
 
-    private WorldEnvironment _worldEnvironment;
+    private WorldEnvironment? _worldEnvironment;
 
     // 天体公转自转
-    private Node3D _eclipticPlane;
-    private Node3D _sunRevolution;
-    private Node3D _planetAxis;
-    private Node3D _lunarOrbitPlane;
-    private Node3D _lunarRevolution;
-    private Node3D _lunarDist;
-    private Node3D _lunarObliquity;
-    private Node3D _moonAxis;
-    private MeshInstance3D _moonMesh;
-    private MeshInstance3D _sunMesh;
+    private Node3D? _eclipticPlane;
+    private Node3D? _sunRevolution;
+    private Node3D? _planetAxis;
+    private Node3D? _lunarOrbitPlane;
+    private Node3D? _lunarRevolution;
+    private Node3D? _lunarDist;
+    private Node3D? _lunarObliquity;
+    private Node3D? _moonAxis;
+    private MeshInstance3D? _moonMesh;
+    private MeshInstance3D? _sunMesh;
 
     private void InitOnReadyNodes()
     {
@@ -255,24 +254,24 @@ public partial class CelestialMotionManager : Node3D
     }
 
     private void UpdateLunarOrbitPlaneRotation() =>
-        _lunarOrbitPlane.RotationDegrees = Vector3.Right * SatelliteOrbitInclination;
+        _lunarOrbitPlane!.RotationDegrees = Vector3.Right * SatelliteOrbitInclination;
 
-    private void UpdateEclipticPlaneRotation() => _eclipticPlane.RotationDegrees = Vector3.Right * PlanetObliquity;
-    private void UpdateLunarObliquityRotation() => _lunarObliquity.RotationDegrees = Vector3.Right * SatelliteObliquity;
+    private void UpdateEclipticPlaneRotation() => _eclipticPlane!.RotationDegrees = Vector3.Right * PlanetObliquity;
+    private void UpdateLunarObliquityRotation() => _lunarObliquity!.RotationDegrees = Vector3.Right * SatelliteObliquity;
 
-    public void UpdateLunarDist() => _lunarDist.Position =
-        Vector3.Back * Mathf.Clamp(_planetConfig.Radius * SatelliteDistRatio,
+    public void UpdateLunarDist() => _lunarDist!.Position =
+        Vector3.Back * Mathf.Clamp(_planetConfig!.Radius * SatelliteDistRatio,
             _planetConfig.Radius * (1 + _satelliteRadiusRatio), 800f);
 
     private void UpdateGalaxySkyRotation() =>
-        _worldEnvironment.Environment.SkyRotation =
+        _worldEnvironment!.Environment.SkyRotation =
             Vector3.Right * Mathf.DegToRad(PlanetObliquity - EclipticInclinationToGalactic);
 
     public void UpdateMoonMeshRadius()
     {
-        var moonMesh = _moonMesh.Mesh as SphereMesh;
-        moonMesh?.SetRadius(_planetConfig.Radius * SatelliteRadiusRatio);
-        moonMesh?.SetHeight(_planetConfig.Radius * SatelliteRadiusRatio * 2);
+        var moonMesh = _moonMesh!.Mesh as SphereMesh;
+        moonMesh?.SetRadius(_planetConfig!.Radius * SatelliteRadiusRatio);
+        moonMesh?.SetHeight(_planetConfig!.Radius * SatelliteRadiusRatio * 2);
     }
 
     // 更新天体旋转
@@ -281,10 +280,10 @@ public partial class CelestialMotionManager : Node3D
         if (PlanetRevolution || PlanetRotation)
         {
             RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.DirToSun,
-                _planetAxis.ToLocal(_sunMesh.GlobalPosition.Normalized()));
+                _planetAxis!.ToLocal(_sunMesh!.GlobalPosition.Normalized()));
             // 行星公转
             if (PlanetRevolution)
-                _sunRevolution.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
+                _sunRevolution!.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
                     _sunRevolution.RotationDegrees.Y + PlanetRevolutionSpeed * delta, 0f, 360f);
             // 行星自转
             if (PlanetRotation)
@@ -298,11 +297,11 @@ public partial class CelestialMotionManager : Node3D
 
         // 卫星公转
         if (SatelliteRevolution)
-            _lunarRevolution.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
+            _lunarRevolution!.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
                 _lunarRevolution.RotationDegrees.Y + SatelliteRevolutionSpeed * delta, 0f, 360f);
         // 卫星自转
         if (SatelliteRotation)
-            _moonAxis.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
+            _moonAxis!.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
                 _moonAxis.RotationDegrees.Y + SatelliteRotationSpeed * delta, 0f, 360f);
     }
 }

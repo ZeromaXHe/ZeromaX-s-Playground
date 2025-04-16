@@ -40,13 +40,13 @@ public class EditorService(ITileRepo tileRepo) : IEditorService
         }
     }
 
-    public void EditTiles(Tile tile, bool isDrag, Tile? previousTile, Tile dragTile)
+    public void EditTiles(Tile tile, bool isDrag, Tile? previousTile, Tile? dragTile)
     {
         foreach (var t in tileRepo.GetTilesInDistance(tile, TileOverrider.BrushSize))
             EditTile(t, isDrag, previousTile, dragTile);
     }
 
-    private void EditTile(Tile tile, bool isDrag, Tile? previousTile, Tile dragTile)
+    private void EditTile(Tile tile, bool isDrag, Tile? previousTile, Tile? dragTile)
     {
         if (TileOverrider.ApplyTerrain)
             tileRepo.SetTerrainTypeIndex(tile, TileOverrider.ActiveTerrain);
@@ -71,9 +71,9 @@ public class EditorService(ITileRepo tileRepo) : IEditorService
         if (isDrag)
         {
             if (TileOverrider.RiverMode == OptionalToggle.Yes)
-                tileRepo.SetOutgoingRiver(previousTile!, dragTile);
+                tileRepo.SetOutgoingRiver(previousTile!, dragTile!);
             if (TileOverrider.RoadMode == OptionalToggle.Yes)
-                tileRepo.AddRoad(previousTile!, dragTile);
+                tileRepo.AddRoad(previousTile!, dragTile!);
         }
     }
 

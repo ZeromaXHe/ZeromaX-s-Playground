@@ -14,8 +14,8 @@ public partial class SelectTileViewer : MeshInstance3D
 
     #region 服务
 
-    private ISelectViewService _selectViewService;
-    private IEditorService _editorService;
+    private ISelectViewService? _selectViewService;
+    private IEditorService? _editorService;
 
     private void InitServices()
     {
@@ -25,9 +25,9 @@ public partial class SelectTileViewer : MeshInstance3D
 
     #endregion
 
-    private bool EditMode => _editorService.TileOverrider.EditMode;
+    private bool EditMode => _editorService!.TileOverrider.EditMode;
     private int EditingTileId { get; set; }
-    public void SelectEditingTile(Tile tile) => EditingTileId = tile?.Id ?? 0;
+    public void SelectEditingTile(Tile tile) => EditingTileId = tile.Id;
     public void CleanEditingTile() => EditingTileId = 0;
 
     public void Update(int pathFromTileId, Vector3 position)
@@ -47,7 +47,7 @@ public partial class SelectTileViewer : MeshInstance3D
         }
 
         Show();
-        var mesh = _selectViewService.GenerateMeshForPlayMode(pathFromTileId, position);
+        var mesh = _selectViewService!.GenerateMeshForPlayMode(pathFromTileId, position);
         if (mesh != null)
             Mesh = mesh;
     }
@@ -58,7 +58,7 @@ public partial class SelectTileViewer : MeshInstance3D
         {
             // 更新选择地块框
             Show();
-            var mesh = _selectViewService.GenerateMeshForEditMode(EditingTileId, position);
+            var mesh = _selectViewService!.GenerateMeshForEditMode(EditingTileId, position);
             if (mesh != null)
                 Mesh = mesh;
         }

@@ -12,7 +12,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 public partial class OrbitCamera : Node3D
 {
     public OrbitCamera() => InitService();
-    [Export] private Camera3D _camera; // 设置摄像机节点
+    [Export] private Camera3D? _camera; // 设置摄像机节点
     private float _radius = 10f;
 
     [Export(PropertyHint.Range, "0.01, 1000, or_greater")]
@@ -23,10 +23,10 @@ public partial class OrbitCamera : Node3D
         {
             _radius = value;
             if (!_ready) return;
-            _focusBase.Position = Vector3.Forward * value * (1 + _planetConfig.MaxHeightRatio);
-            _focusBox.Size = Vector3.One * value * _boxSizeMultiplier * _planetConfig.StandardScale;
-            _backBox.Size = Vector3.One * value * _boxSizeMultiplier * _planetConfig.StandardScale;
-            _light.SpotRange = value * _lightRangeMultiplier;
+            _focusBase!.Position = Vector3.Forward * value * (1 + _planetConfig!.MaxHeightRatio);
+            _focusBox!.Size = Vector3.One * value * _boxSizeMultiplier * _planetConfig.StandardScale;
+            _backBox!.Size = Vector3.One * value * _boxSizeMultiplier * _planetConfig.StandardScale;
+            _light!.SpotRange = value * _lightRangeMultiplier;
             _light.Position = Vector3.Up * value * _lightRangeMultiplier * 0.5f;
         }
     }
@@ -58,7 +58,7 @@ public partial class OrbitCamera : Node3D
     [Export(PropertyHint.Range, "0.01, 3600, degrees")]
     private float _rotationSpeed = 180f;
 
-    [Export] private Node3D _sun;
+    [Export] private Node3D? _sun;
 
     [ExportGroup("自动导航设置")]
     // 自动导航速度。该值的倒数，对应自动移动时间：比如 2f 对应 0.5s 抵达
@@ -67,7 +67,7 @@ public partial class OrbitCamera : Node3D
 
     #region 服务
 
-    private IPlanetConfig _planetConfig;
+    private IPlanetConfig? _planetConfig;
 
     private void InitService()
     {
@@ -78,14 +78,14 @@ public partial class OrbitCamera : Node3D
 
     #region on-ready 节点
 
-    private Node3D _focusBase;
-    private CsgBox3D _focusBox;
-    private Node3D _focusBackStick;
-    private CsgBox3D _backBox;
-    private SpotLight3D _light;
-    private Node3D _swivel;
-    private Node3D _stick;
-    private RemoteTransform3D _camRig; // 对应相机应该在的位置
+    private Node3D? _focusBase;
+    private CsgBox3D? _focusBox;
+    private Node3D? _focusBackStick;
+    private CsgBox3D? _backBox;
+    private SpotLight3D? _light;
+    private Node3D? _swivel;
+    private Node3D? _stick;
+    private RemoteTransform3D? _camRig; // 对应相机应该在的位置
 
     private void InitOnReadyNodes()
     {
@@ -113,15 +113,15 @@ public partial class OrbitCamera : Node3D
         {
             _zoom = value;
             if (!_ready) return;
-            _focusBackStick.Position =
+            _focusBackStick!.Position =
                 _focusBackStick.Basis * Vector3.Back * Mathf.Lerp(0f,
-                    _focusBackZoom * Radius * _planetConfig.StandardScale, value);
+                    _focusBackZoom * Radius * _planetConfig!.StandardScale, value);
             var distance = Mathf.Lerp(_stickMinZoom,
                 _stickMaxZoom * _planetConfig.StandardScale * 2f,
                 value) * Radius;
-            _stick.Position = Vector3.Back * distance;
+            _stick!.Position = Vector3.Back * distance;
             var angle = Mathf.Lerp(_swivelMinZoom, _swivelMaxZoom, value);
-            _swivel.RotationDegrees = Vector3.Right * angle;
+            _swivel!.RotationDegrees = Vector3.Right * angle;
         }
     }
 
@@ -150,7 +150,7 @@ public partial class OrbitCamera : Node3D
             OrbitCameraEvent.Instance.NewDestination -= SetAutoPilot;
     }
 
-    public Vector3 GetFocusBasePos() => _focusBase.GlobalPosition;
+    public Vector3 GetFocusBasePos() => _focusBase!.GlobalPosition;
 
     private void SetAutoPilot(Vector3 destinationDirection)
     {
@@ -206,7 +206,7 @@ public partial class OrbitCamera : Node3D
             // 有可能出现一帧内移动距离过短无法 LookAt 的情况
             if (!lookDir.IsEqualApprox(GetFocusBasePos().Normalized()))
             {
-                LookAt(lookDir, _focusBase.GlobalBasis.Z);
+                LookAt(lookDir, _focusBase!.GlobalBasis.Z);
                 OrbitCameraEvent.EmitMoved(GetFocusBasePos(), floatDelta);
                 transformed = true;
             }
@@ -231,12 +231,12 @@ public partial class OrbitCamera : Node3D
         }
 
         if (transformed)
-            OrbitCameraEvent.EmitTransformed(_camRig.GlobalTransform, floatDelta);
+            OrbitCameraEvent.EmitTransformed(_camRig!.GlobalTransform, floatDelta);
 
         // 根据相对于全局太阳光的位置，控制灯光亮度
         if (_sun == null)
             return;
-        var lightSunAngle = _light.GlobalPosition.AngleTo(_sun.GlobalPosition);
+        var lightSunAngle = _light!.GlobalPosition.AngleTo(_sun.GlobalPosition);
         // 从 60 度开始到 120 度之间，灯光亮度逐渐从 0 增加到 1
         _light.LightEnergy = Mathf.Clamp((lightSunAngle - Mathf.Pi / 3) / (Mathf.Pi / 3), 0f, 0.1f);
     }
@@ -246,7 +246,7 @@ public partial class OrbitCamera : Node3D
         // 旋转
         if (rotationDelta == 0f)
             return false;
-        _focusBackStick.RotateY(-Mathf.DegToRad(rotationDelta * _rotationSpeed));
+        _focusBackStick!.RotateY(-Mathf.DegToRad(rotationDelta * _rotationSpeed));
         Zoom = _zoom; // 更新 FocusBackStick 方向
         return true;
     }
@@ -260,11 +260,11 @@ public partial class OrbitCamera : Node3D
         var distance = Mathf.Lerp(_moveSpeedMinZoom, _moveSpeedMaxZoom, Zoom)
                        * Radius * _antiStuckSpeedMultiplier * damping * delta;
         var target = GetFocusBasePos() - GlobalPosition +
-                     _focusBackStick.GlobalBasis * (direction * distance);
+                     _focusBackStick!.GlobalBasis * (direction * distance);
         // 现在在速度很慢，半径很大的时候，容易在南北极卡住（游戏开始后，只按 WS 即可走到南北极）
         // 所以检查一下按下移动键后，是否没能真正移动。如果没移动，则每帧放大速度 1.5 倍
         var prePos = GetFocusBasePos();
-        LookAt(target, _focusBase.GlobalBasis.Z);
+        LookAt(target, _focusBase!.GlobalBasis.Z);
         _antiStuckSpeedMultiplier = prePos.IsEqualApprox(GetFocusBasePos())
             ? _antiStuckSpeedMultiplier * 1.5f
             : 1f;
@@ -282,13 +282,13 @@ public partial class OrbitCamera : Node3D
         {
             var zoomDelta = 0.025f * e.Factor * (e.ButtonIndex == MouseButton.WheelUp ? 1f : -1f);
             Zoom = Mathf.Clamp(Zoom + zoomDelta, 0f, 1f);
-            OrbitCameraEvent.EmitTransformed(_camRig.GlobalTransform, (float)GetProcessDeltaTime());
+            OrbitCameraEvent.EmitTransformed(_camRig!.GlobalTransform, (float)GetProcessDeltaTime());
         }
     }
 
     public void Reset()
     {
-        Radius = _planetConfig.Radius;
+        Radius = _planetConfig!.Radius;
         Zoom = 1f;
     }
 }

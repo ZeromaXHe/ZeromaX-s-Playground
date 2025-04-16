@@ -38,8 +38,8 @@ public partial class ErosionLandGenerator : Node
 
     #region 服务和存储
 
-    private ITileRepo _tileRepo;
-    private ITileSearchService _tileSearchService;
+    private ITileRepo? _tileRepo;
+    private ITileSearchService? _tileSearchService;
 
     private void InitServices()
     {
@@ -51,7 +51,7 @@ public partial class ErosionLandGenerator : Node
 
     public int CreateLand(RandomNumberGenerator random, List<MapRegion> regions)
     {
-        var landTileCount = Mathf.RoundToInt(_tileRepo.GetCount() * _landPercentage * 0.01f);
+        var landTileCount = Mathf.RoundToInt(_tileRepo!.GetCount() * _landPercentage * 0.01f);
         var landBudget = landTileCount;
         // 根据地图尺寸来设置对应循环次数上限，保证大地图也能尽量用完 landBudget
         for (var guard = 0; guard < landTileCount; guard++) // 防止无限循环的守卫值
@@ -81,25 +81,25 @@ public partial class ErosionLandGenerator : Node
     {
         var firstTileId = GetRandomCellIndex(region);
         var rise = random.Randf() < _highRiseProbability ? 2 : 1;
-        return _tileSearchService.RaiseTerrain(chunkSize, budget, firstTileId, rise, random, _jitterProbability);
+        return _tileSearchService!.RaiseTerrain(chunkSize, budget, firstTileId, rise, random, _jitterProbability);
     }
 
     private int SinkTerrain(RandomNumberGenerator random, int chunkSize, int budget, MapRegion region)
     {
         var firstTileId = GetRandomCellIndex(region);
         var sink = random.Randf() < _highRiseProbability ? 2 : 1;
-        return _tileSearchService.SinkTerrain(chunkSize, budget, firstTileId, sink, random, _jitterProbability);
+        return _tileSearchService!.SinkTerrain(chunkSize, budget, firstTileId, sink, random, _jitterProbability);
     }
 
     private int GetRandomCellIndex(MapRegion region)
     {
-        return GD.RandRange(1, _tileRepo.GetCount());
+        return GD.RandRange(1, _tileRepo!.GetCount());
     }
 
 
     public void ErodeLand(RandomNumberGenerator random)
     {
-        var erodibleTiles = _tileRepo.GetAll().Where(IsErodible).ToList();
+        var erodibleTiles = _tileRepo!.GetAll().Where(IsErodible).ToList();
         var targetErodibleCount = (int)(erodibleTiles.Count * (100 - _erosionPercentage) * 0.01f);
         while (erodibleTiles.Count > targetErodibleCount)
         {
@@ -138,14 +138,14 @@ public partial class ErosionLandGenerator : Node
     private bool IsErodible(Tile tile)
     {
         var erodibleElevation = tile.Data.Elevation - 2;
-        return _tileRepo.GetNeighbors(tile)
+        return _tileRepo!.GetNeighbors(tile)
             .Any(neighbor => neighbor.Data.Elevation <= erodibleElevation);
     }
 
     private Tile GetErosionTarget(RandomNumberGenerator random, Tile tile)
     {
         var erodibleElevation = tile.Data.Elevation - 2;
-        var candidates = _tileRepo.GetNeighbors(tile)
+        var candidates = _tileRepo!.GetNeighbors(tile)
             .Where(neighbor => neighbor.Data.Elevation <= erodibleElevation)
             .ToList();
         return candidates[random.RandiRange(0, candidates.Count - 1)];

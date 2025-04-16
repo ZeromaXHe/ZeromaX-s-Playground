@@ -20,7 +20,7 @@ public partial class HexMesh : MeshInstance3D
 
     #region 服务
 
-    private static INoiseConfig _noiseConfig;
+    private static INoiseConfig? _noiseConfig;
 
     private static void InitServices()
     {
@@ -93,12 +93,12 @@ public partial class HexMesh : MeshInstance3D
     /// <param name="uvs">UV</param>
     /// <param name="uvs2">UV2</param>
     /// <param name="tis">地块ID tileIds</param>
-    public void AddTriangle(Vector3[] vs, Color[] tws = null,
-        Vector2[] uvs = null, Vector2[] uvs2 = null, Vector3 tis = default) =>
-        AddTriangleUnperturbed(vs.Select(_noiseConfig.Perturb).ToArray(), tws, uvs, uvs2, tis);
+    public void AddTriangle(Vector3[] vs, Color[]? tws = null,
+        Vector2[]? uvs = null, Vector2[]? uvs2 = null, Vector3 tis = default) =>
+        AddTriangleUnperturbed(vs.Select(_noiseConfig!.Perturb).ToArray(), tws, uvs, uvs2, tis);
 
-    public void AddTriangleUnperturbed(Vector3[] vs, Color[] tws = null,
-        Vector2[] uvs = null, Vector2[] uvs2 = null, Vector3 tis = default)
+    public void AddTriangleUnperturbed(Vector3[] vs, Color[]? tws = null,
+        Vector2[]? uvs = null, Vector2[]? uvs2 = null, Vector3 tis = default)
     {
         for (var i = 0; i < 3; i++)
         {
@@ -121,12 +121,12 @@ public partial class HexMesh : MeshInstance3D
         _vIdx += 3;
     }
 
-    public void AddQuad(Vector3[] vs, Color[] tws = null,
-        Vector2[] uvs = null, Vector2[] uvs2 = null, Vector3 tis = default) =>
-        AddQuadUnperturbed(vs.Select(_noiseConfig.Perturb).ToArray(), tws, uvs, uvs2, tis);
+    public void AddQuad(Vector3[] vs, Color[]? tws = null,
+        Vector2[]? uvs = null, Vector2[]? uvs2 = null, Vector3 tis = default) =>
+        AddQuadUnperturbed(vs.Select(_noiseConfig!.Perturb).ToArray(), tws, uvs, uvs2, tis);
 
-    public void AddQuadUnperturbed(Vector3[] vs, Color[] tws = null,
-        Vector2[] uvs = null, Vector2[] uvs2 = null, Vector3 tis = default)
+    public void AddQuadUnperturbed(Vector3[] vs, Color[]? tws = null,
+        Vector2[]? uvs = null, Vector2[]? uvs2 = null, Vector3 tis = default)
     {
         for (var i = 0; i < 4; i++)
         {

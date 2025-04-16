@@ -1,4 +1,3 @@
-using System;
 using Godot;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Resources.LandGenerators;
@@ -12,7 +11,7 @@ public partial class NoiseSettings : Resource
 {
     [Export] public float Strength { get; set; } = 1f;
     [Export] public float SampleRadius { get; set; } = 1f;
-    [Export] public FastNoiseLite Noise { get; set; }
+    [Export] public FastNoiseLite? Noise { get; set; }
 
     [Export(PropertyHint.Range, "-1.0, 1.0, 0.01")]
     public float Bias;

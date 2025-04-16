@@ -1,4 +1,3 @@
-#nullable enable
 using Apps.Applications.Features;
 using Apps.Applications.Features.Impl;
 using Apps.Applications.Planets;
@@ -36,8 +35,8 @@ public class Context : IContext
 {
     public static T GetBeanFromHolder<T>() where T : class
     {
-        ContextHolder.Context ??= new Context();
-        return ContextHolder.Context.GetBean<T>()!;
+        ContextHolder.BeanContext ??= new Context();
+        return ContextHolder.BeanContext.GetBean<T>()!;
     }
 
     public T GetBean<T>() where T : class
@@ -45,7 +44,6 @@ public class Context : IContext
         // 现在 4.4 的生命周期有点看不懂了，运行游戏时居然先调用 HexGridChunk 的构造函数而不是 HexPlanetManager 的？！
         // 所以只能在这里初始化，否则直接 GetBean null 容易把编辑器和游戏运行搞崩。
         if (_container == null) Init();
-        // nameof(T) 结果是 "T"，想要获取原类名字符串，需要使用 typeof(T).Name;
         return _container!.Resolve<T>();
     }
 
@@ -82,6 +80,7 @@ public class Context : IContext
         builder.RegisterType<TileShaderApplication>().As<ITileShaderApplication>().SingleInstance();
         builder.RegisterType<HexPlanetHudApplication>().As<IHexPlanetHudApplication>().SingleInstance();
         builder.RegisterType<HexPlanetManagerApplication>().As<IHexPlanetManagerApplication>().SingleInstance();
+        builder.RegisterType<MiniMapManagerApp>().As<IMiniMapManagerApp>().SingleInstance();
         _container = builder.Build();
         var featureApplication = _container.Resolve<IFeatureApplication>();
         TileShaderEvent.Instance.TileExplored += featureApplication.ExploreFeatures;

@@ -79,7 +79,7 @@ public partial class LongitudeLatitude : Node3D
     private bool _fadeVisibility;
 
     private float _radius = 110;
-    private MeshInstance3D _meshIns;
+    private MeshInstance3D? _meshIns;
 
     private bool _ready;
 
@@ -174,7 +174,7 @@ public partial class LongitudeLatitude : Node3D
             DrawLatitude(surfaceTool, Mathf.DegToRad(-66.567f), CircleColor, true);
 
         surfaceTool.SetMaterial(LineMaterial);
-        _meshIns.Mesh = surfaceTool.Commit();
+        _meshIns!.Mesh = surfaceTool.Commit();
     }
 
     /// <summary>

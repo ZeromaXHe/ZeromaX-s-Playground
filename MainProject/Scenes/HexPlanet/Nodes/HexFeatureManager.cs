@@ -23,16 +23,16 @@ public partial class HexFeatureManager : Node3D
 {
     public HexFeatureManager() => InitServices();
 
-    [Export] private HexMesh _walls;
+    [Export] private HexMesh? _walls;
     [Export] private bool _preview;
 
     #region 服务
 
-    private static INoiseConfig _noiseConfig;
-    private static IPlanetConfig _planetConfig;
-    private static IEditorService _editorService;
-    private static IFeatureApplication _featureApplication;
-    private static IFeatureRepo _featureRepo;
+    private static INoiseConfig? _noiseConfig;
+    private static IPlanetConfig? _planetConfig;
+    private static IEditorService? _editorService;
+    private static IFeatureApplication? _featureApplication;
+    private static IFeatureRepo? _featureRepo;
 
     private void InitServices()
     {
@@ -142,16 +142,16 @@ public partial class HexFeatureManager : Node3D
     {
         HideFeatures(false);
         _container.Clear();
-        _walls.Clear();
+        _walls!.Clear();
     }
 #endif
-    public void Apply() => _walls.Apply();
+    public void Apply() => _walls!.Apply();
 
-    public void AddTower(Tile tile, Vector3 left, Vector3 right)
+    private void AddTower(Tile tile, Vector3 left, Vector3 right)
     {
         var position = (left + right) * 0.5f;
         var transform = Math3dUtil.PlaceOnSphere(Basis.Identity, position,
-            Vector3.One * _planetConfig.StandardScale, GetHeight(FeatureType.Tower));
+            Vector3.One * _planetConfig!.StandardScale, GetHeight(FeatureType.Tower));
         var rightDirection = right - left;
         transform = transform.Rotated(position.Normalized(),
             transform.Basis.X.SignedAngleTo(rightDirection, position.Normalized()));
@@ -171,11 +171,11 @@ public partial class HexFeatureManager : Node3D
 
     public void AddBridge(Tile tile, Vector3 roadCenter1, Vector3 roadCenter2)
     {
-        roadCenter1 = _noiseConfig.Perturb(roadCenter1);
+        roadCenter1 = _noiseConfig!.Perturb(roadCenter1);
         roadCenter2 = _noiseConfig.Perturb(roadCenter2);
         var position = (roadCenter1 + roadCenter2) * 0.5f;
         var length = roadCenter1.DistanceTo(roadCenter2);
-        var scale = _planetConfig.StandardScale;
+        var scale = _planetConfig!.StandardScale;
         // 缩放需要沿着桥梁方向拉伸长度（X 轴）
         var transform = Math3dUtil.PlaceOnSphere(Basis.Identity, position,
             new Vector3(length / HexMetrics.BridgeDesignLength, scale, scale), GetHeight(FeatureType.Bridge));
@@ -200,9 +200,9 @@ public partial class HexFeatureManager : Node3D
             3 => FeatureType.MegaFlora,
             _ => throw new Exception($"Special feature index {overrider.SpecialIndex(tile)} is invalid")
         };
-        position = _noiseConfig.Perturb(position);
+        position = _noiseConfig!.Perturb(position);
         var transform = Math3dUtil.PlaceOnSphere(Basis.Identity, position,
-            Vector3.One * _planetConfig.StandardScale, GetHeight(specialType));
+            Vector3.One * _planetConfig!.StandardScale, GetHeight(specialType));
         var hash = _noiseConfig.SampleHashGrid(position);
         transform = transform.Rotated(position.Normalized(), hash.E * Mathf.Tau); // 入参 axis 还是得用全局坐标
 #if FEATURE_NEW
@@ -218,7 +218,7 @@ public partial class HexFeatureManager : Node3D
     public void AddFeature(Tile tile, Vector3 position, HexTileDataOverrider overrider)
     {
         if (overrider.IsSpecial(tile)) return;
-        var hash = _noiseConfig.SampleHashGrid(position);
+        var hash = _noiseConfig!.SampleHashGrid(position);
         var type = PickFeatureSizeType(FeatureType.UrbanHigh1, overrider.UrbanLevel(tile), hash.A, hash.D);
         var othertype = PickFeatureSizeType(FeatureType.FarmHigh1, overrider.FarmLevel(tile), hash.B, hash.D);
         var usedHash = hash.A;
@@ -249,7 +249,7 @@ public partial class HexFeatureManager : Node3D
         var featureType = (FeatureType)type;
         position = _noiseConfig.Perturb(position);
         var transform = Math3dUtil.PlaceOnSphere(Basis.Identity, position,
-            Vector3.One * _planetConfig.StandardScale, GetHeight(featureType));
+            Vector3.One * _planetConfig!.StandardScale, GetHeight(featureType));
         transform = transform.Rotated(position.Normalized(), hash.E * Mathf.Tau); // 入参 axis 还是得用全局坐标
 #if FEATURE_NEW
         SaveTileFeatureInfo(featureType, transform, tile);
@@ -265,7 +265,7 @@ public partial class HexFeatureManager : Node3D
     private static FeatureType? PickFeatureSizeType(FeatureType baseType, int level, float hash, float choice)
     {
         if (level <= 0) return null;
-        var thresholds = _planetConfig.GetFeatureThreshold(level - 1);
+        var thresholds = _planetConfig!.GetFeatureThreshold(level - 1);
         for (var i = 0; i < thresholds.Length; i++)
             if (hash < thresholds[i])
                 return (FeatureType)(int)baseType + i * 2 + (int)(choice * 2);
@@ -327,11 +327,11 @@ public partial class HexFeatureManager : Node3D
     private void AddWallSegment(Tile nearTile, Tile farTile, Vector3 nearLeft, Vector3 farLeft,
         Vector3 nearRight, Vector3 farRight, ChunkLod lod, bool addTower = false)
     {
-        nearLeft = _noiseConfig.Perturb(nearLeft);
+        nearLeft = _noiseConfig!.Perturb(nearLeft);
         farLeft = _noiseConfig.Perturb(farLeft);
         nearRight = _noiseConfig.Perturb(nearRight);
         farRight = _noiseConfig.Perturb(farRight);
-        var height = _planetConfig.GetWallHeight();
+        var height = _planetConfig!.GetWallHeight();
         var thickness = _planetConfig.GetWallThickness();
         var left = _planetConfig.WallLerp(nearLeft, farLeft);
         var right = _planetConfig.WallLerp(nearRight, farRight);
@@ -343,7 +343,7 @@ public partial class HexFeatureManager : Node3D
         v2 = v4 = _planetConfig.WallThicknessOffset(nearRight, farRight, true, thickness);
         v3 = Math3dUtil.ProjectToSphere(v3, leftTop);
         v4 = Math3dUtil.ProjectToSphere(v4, rightTop);
-        _walls.AddQuadUnperturbed([v1, v2, v3, v4], HexMesh.QuadArr(HexMesh.Weights1), tis: ids);
+        _walls!.AddQuadUnperturbed([v1, v2, v3, v4], HexMesh.QuadArr(HexMesh.Weights1), tis: ids);
         Vector3 t1 = v3, t2 = v4;
         v1 = v3 = _planetConfig.WallThicknessOffset(nearLeft, farLeft, false, thickness);
         v2 = v4 = _planetConfig.WallThicknessOffset(nearRight, farRight, false, thickness);
@@ -377,7 +377,7 @@ public partial class HexFeatureManager : Node3D
                 var hasTower = false;
                 if (overrider.Elevation(leftTile) == overrider.Elevation(rightTile))
                 {
-                    var hash = _noiseConfig.SampleHashGrid((pivot + left + right) / 3f);
+                    var hash = _noiseConfig!.SampleHashGrid((pivot + left + right) / 3f);
                     hasTower = hash.E < HexMetrics.WallTowerThreshold;
                 }
 
@@ -400,9 +400,9 @@ public partial class HexFeatureManager : Node3D
 
     private void AddWallCap(Tile nearTile, Vector3 near, Tile farTile, Vector3 far)
     {
-        near = _noiseConfig.Perturb(near);
+        near = _noiseConfig!.Perturb(near);
         far = _noiseConfig.Perturb(far);
-        var center = _planetConfig.WallLerp(near, far);
+        var center = _planetConfig!.WallLerp(near, far);
         var thickness = _planetConfig.GetWallThickness();
         var height = _planetConfig.GetWallHeight();
         var centerTop = center.Length() + height;
@@ -411,17 +411,17 @@ public partial class HexFeatureManager : Node3D
         v2 = v4 = _planetConfig.WallThicknessOffset(near, far, false, thickness);
         v3 = Math3dUtil.ProjectToSphere(v3, centerTop);
         v4 = Math3dUtil.ProjectToSphere(v4, centerTop);
-        _walls.AddQuadUnperturbed([v1, v2, v3, v4],
+        _walls!.AddQuadUnperturbed([v1, v2, v3, v4],
             [HexMesh.Weights1, HexMesh.Weights2, HexMesh.Weights1, HexMesh.Weights2],
             tis: new Vector3(nearTile.Id, farTile.Id, nearTile.Id));
     }
 
     private void AddWallWedge(Tile nearTile, Vector3 near, Tile farTile, Vector3 far, Tile pointTile, Vector3 point)
     {
-        near = _noiseConfig.Perturb(near);
+        near = _noiseConfig!.Perturb(near);
         far = _noiseConfig.Perturb(far);
         point = _noiseConfig.Perturb(point);
-        var center = _planetConfig.WallLerp(near, far);
+        var center = _planetConfig!.WallLerp(near, far);
         var thickness = _planetConfig.GetWallThickness();
         var height = _planetConfig.GetWallHeight();
         var centerTop = center.Length() + height;
@@ -433,7 +433,7 @@ public partial class HexFeatureManager : Node3D
         v3 = Math3dUtil.ProjectToSphere(v3, centerTop);
         v4 = Math3dUtil.ProjectToSphere(v4, centerTop);
         var ids = new Vector3(nearTile.Id, farTile.Id, pointTile.Id);
-        _walls.AddQuadUnperturbed([v1, point, v3, pointTop],
+        _walls!.AddQuadUnperturbed([v1, point, v3, pointTop],
             [HexMesh.Weights1, HexMesh.Weights3, HexMesh.Weights1, HexMesh.Weights3], tis: ids);
         _walls.AddQuadUnperturbed([point, v2, pointTop, v4],
             [HexMesh.Weights2, HexMesh.Weights3, HexMesh.Weights2, HexMesh.Weights3], tis: ids);

@@ -9,7 +9,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 /// Date: 2025-03-02 12:48
 public partial class HexUnitPathPool : Node3D
 {
-    [Export] private PackedScene _pathScene;
+    [Export] private PackedScene? _pathScene;
 
     private readonly List<HexUnitPath> _paths = [];
 
@@ -25,7 +25,7 @@ public partial class HexUnitPathPool : Node3D
         var path = _paths.Find(p => !p.Working);
         if (path == null)
         {
-            path = _pathScene.Instantiate<HexUnitPath>();
+            path = _pathScene!.Instantiate<HexUnitPath>();
             AddChild(path);
             _paths.Add(path);
         }
