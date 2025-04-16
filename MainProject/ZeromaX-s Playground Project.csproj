@@ -22,4 +22,7 @@
       <ProjectReference Include="Code.Apps\Code.Apps.csproj" />
       <ProjectReference Include="Code.Infras\Code.Infras.csproj" />
     </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="Autofac" Version="8.2.1" />
+    </ItemGroup>
 </Project>

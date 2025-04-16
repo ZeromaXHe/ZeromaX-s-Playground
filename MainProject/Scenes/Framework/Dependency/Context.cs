@@ -1,5 +1,4 @@
 #nullable enable
-using System.Collections.Generic;
 using Apps.Applications.Features;
 using Apps.Applications.Features.Impl;
 using Apps.Applications.Planets;
@@ -8,6 +7,7 @@ using Apps.Applications.Tiles;
 using Apps.Applications.Tiles.Impl;
 using Apps.Applications.Uis;
 using Apps.Applications.Uis.Impl;
+using Autofac;
 using Commons.Frameworks;
 using Domains.Events.Tiles;
 using Domains.Models.Singletons.Caches;
@@ -40,80 +40,52 @@ public class Context : IContext
         return ContextHolder.Context.GetBean<T>()!;
     }
 
-    // 目前逻辑不校验类型是否正确，依赖于使用者自己保证正确
-    private readonly Dictionary<string, object> _singletons = new();
-    private bool _initialized;
-    private void Register(string singleton, object bean) => _singletons.Add(singleton, bean);
-    private bool Destroy(string singleton) => _singletons.Remove(singleton);
-    private void Reboot() => _singletons.Clear();
-
-    // 仿 setter 注入写法：
-    // private readonly Lazy<ITileRepo> _tileRepo = new(() => Context.GetBean<ITileRepo>());
-    public T? GetBean<T>() where T : class
+    public T GetBean<T>() where T : class
     {
         // 现在 4.4 的生命周期有点看不懂了，运行游戏时居然先调用 HexGridChunk 的构造函数而不是 HexPlanetManager 的？！
         // 所以只能在这里初始化，否则直接 GetBean null 容易把编辑器和游戏运行搞崩。
-        if (!_initialized) Init();
-        // 不能直接 nameof(T)，因为结果是 "T"
-        return _singletons.GetValueOrDefault(typeof(T).Name) as T;
+        if (_container == null) Init();
+        // nameof(T) 结果是 "T"，想要获取原类名字符串，需要使用 typeof(T).Name;
+        return _container!.Resolve<T>();
     }
+
+    private IContainer? _container;
 
     private void Init()
     {
-        Reboot();
-        _initialized = true;
+        // 测试过，RegisterType 的顺序不影响注入结果（就是说不要求被依赖的放在前面），毕竟只是 Builder 的顺序
+        var builder = new ContainerBuilder();
         // 单例
-        var planetConfig = new PlanetConfig();
-        var noiseConfig = new NoiseConfig(planetConfig);
-        var lodMeshCache = new LodMeshCache();
-        Register(nameof(IPlanetConfig), planetConfig);
-        Register(nameof(INoiseConfig), noiseConfig);
-        Register(nameof(ILodMeshCache), lodMeshCache);
+        // 默认是瞬态 Instance，需要加 .SingleInstance()
+        builder.RegisterType<PlanetConfig>().As<IPlanetConfig>().SingleInstance();
+        builder.RegisterType<NoiseConfig>().As<INoiseConfig>().SingleInstance();
+        builder.RegisterType<LodMeshCache>().As<ILodMeshCache>().SingleInstance();
         // 存储
-        var chunkRepo = new ChunkRepo();
-        var tileRepo = new TileRepo(planetConfig, noiseConfig);
-        var featureRepo = new FeatureRepo();
-        var faceRepo = new FaceRepo();
-        var pointRepo = new PointRepo();
-        var unitRepo = new UnitRepo();
-        var civRepo = new CivRepo();
-        Register(nameof(IChunkRepo), chunkRepo);
-        Register(nameof(ITileRepo), tileRepo);
-        Register(nameof(IFeatureRepo), featureRepo);
-        Register(nameof(IFaceRepo), faceRepo);
-        Register(nameof(IPointRepo), pointRepo);
-        Register(nameof(IUnitRepo), unitRepo);
-        Register(nameof(ICivRepo), civRepo);
+        builder.RegisterType<ChunkRepo>().As<IChunkRepo>().SingleInstance();
+        builder.RegisterType<TileRepo>().As<ITileRepo>().SingleInstance();
+        builder.RegisterType<FeatureRepo>().As<IFeatureRepo>().SingleInstance();
+        builder.RegisterType<FaceRepo>().As<IFaceRepo>().SingleInstance();
+        builder.RegisterType<PointRepo>().As<IPointRepo>().SingleInstance();
+        builder.RegisterType<UnitRepo>().As<IUnitRepo>().SingleInstance();
+        builder.RegisterType<CivRepo>().As<ICivRepo>().SingleInstance();
         // 服务
-        var pointService = new PointService(faceRepo, pointRepo);
-        var chunkService = new ChunkService(pointService, pointRepo, faceRepo, planetConfig, chunkRepo);
-        var tileService = new TileService(chunkService, faceRepo, pointService, pointRepo, planetConfig, tileRepo);
-        var tileSearchService = new TileSearchService(pointRepo, chunkRepo, tileRepo, planetConfig);
-        var tileShaderService = new TileShaderService(tileRepo, unitRepo, civRepo, planetConfig);
-        var editorService = new EditorService(tileRepo);
-        var miniMapService = new MiniMapService(tileRepo);
-        var selectViewService = new SelectViewService(chunkRepo, tileService, tileRepo, tileSearchService,
-            planetConfig, editorService);
-        Register(nameof(IPointService), pointService);
-        Register(nameof(IChunkService), chunkService);
-        Register(nameof(ITileService), tileService);
-        Register(nameof(ITileSearchService), tileSearchService);
-        Register(nameof(ITileShaderService), tileShaderService);
-        Register(nameof(IEditorService), editorService);
-        Register(nameof(IMiniMapService), miniMapService);
-        Register(nameof(ISelectViewService), selectViewService);
+        builder.RegisterType<PointService>().As<IPointService>().SingleInstance();
+        builder.RegisterType<ChunkService>().As<IChunkService>().SingleInstance();
+        builder.RegisterType<TileService>().As<ITileService>().SingleInstance();
+        builder.RegisterType<TileSearchService>().As<ITileSearchService>().SingleInstance();
+        builder.RegisterType<TileShaderService>().As<ITileShaderService>().SingleInstance();
+        builder.RegisterType<EditorService>().As<IEditorService>().SingleInstance();
+        builder.RegisterType<MiniMapService>().As<IMiniMapService>().SingleInstance();
+        builder.RegisterType<SelectViewService>().As<ISelectViewService>().SingleInstance();
         // 应用
-        var featureApplication = new FeatureApplication(featureRepo);
+        builder.RegisterType<FeatureApplication>().As<IFeatureApplication>().SingleInstance();
+        builder.RegisterType<TileShaderApplication>().As<ITileShaderApplication>().SingleInstance();
+        builder.RegisterType<HexPlanetHudApplication>().As<IHexPlanetHudApplication>().SingleInstance();
+        builder.RegisterType<HexPlanetManagerApplication>().As<IHexPlanetManagerApplication>().SingleInstance();
+        _container = builder.Build();
+        var featureApplication = _container.Resolve<IFeatureApplication>();
         TileShaderEvent.Instance.TileExplored += featureApplication.ExploreFeatures;
-        var tileShaderApplication = new TileShaderApplication(tileSearchService, tileShaderService);
+        var tileShaderApplication = _container.Resolve<ITileShaderApplication>();
         TileShaderEvent.Instance.RangeVisibilityIncreased += tileShaderApplication.IncreaseVisibility;
-        var hexPlanetHudApplication = new HexPlanetHudApplication(planetConfig, chunkRepo, tileRepo, pointRepo,
-            editorService, miniMapService);
-        var hexPlanetManagerApplication = new HexPlanetManagerApplication(lodMeshCache, chunkRepo, tileRepo, pointRepo, faceRepo,
-            civRepo, tileSearchService, tileShaderService, selectViewService);
-        Register(nameof(IFeatureApplication), featureApplication);
-        Register(nameof(ITileShaderApplication), tileShaderApplication);
-        Register(nameof(IHexPlanetHudApplication), hexPlanetHudApplication);
-        Register(nameof(IHexPlanetManagerApplication), hexPlanetManagerApplication);
     }
 }

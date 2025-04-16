@@ -1,6 +1,4 @@
-using System.Linq;
 using Apps.Applications.Planets;
-using Domains.Models.Entities.Civs;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.Singletons.Planets;
 using Domains.Repos.Civs;

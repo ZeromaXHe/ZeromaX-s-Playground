@@ -10,4 +10,5 @@ public interface IFeatureApplication
     void HideFeatures(Tile tile, bool preview);
     void ClearFeatures(Tile tile, bool preview);
     void ShowFeatures(Tile tile, bool onlyExplored, bool preview);
+    void ExploreFeatures(Tile tile);
 }
