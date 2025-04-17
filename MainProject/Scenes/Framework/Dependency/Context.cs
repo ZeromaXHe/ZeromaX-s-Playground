@@ -78,8 +78,8 @@ public class Context : IContext
         // 应用
         builder.RegisterType<FeatureApplication>().As<IFeatureApplication>().SingleInstance();
         builder.RegisterType<TileShaderApplication>().As<ITileShaderApplication>().SingleInstance();
-        builder.RegisterType<HexPlanetHudApplication>().As<IHexPlanetHudApplication>().SingleInstance();
-        builder.RegisterType<HexPlanetManagerApplication>().As<IHexPlanetManagerApplication>().SingleInstance();
+        builder.RegisterType<HexPlanetHudApp>().As<IHexPlanetHudApp>().SingleInstance();
+        builder.RegisterType<HexPlanetManagerApp>().As<IHexPlanetManagerApp>().SingleInstance();
         builder.RegisterType<MiniMapManagerApp>().As<IMiniMapManagerApp>().SingleInstance();
         _container = builder.Build();
         var featureApplication = _container.Resolve<IFeatureApplication>();

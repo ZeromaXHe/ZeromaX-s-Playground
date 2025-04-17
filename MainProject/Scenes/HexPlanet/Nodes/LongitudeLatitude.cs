@@ -1,4 +1,6 @@
+using Apps.Contexts;
 using Apps.Events;
+using Apps.Nodes;
 using Godot;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
@@ -7,8 +9,13 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 /// Author: Zhu XH
 /// Date: 2025-03-10 00:18
 [Tool]
-public partial class LongitudeLatitude : Node3D
+public partial class LongitudeLatitude : Node3D, ILongitudeLatitude
 {
+    public LongitudeLatitude()
+    {
+        NodeContext.Instance.RegisterSingleton<ILongitudeLatitude>(this);
+    }
+    
     [ExportToolButton("手动触发重绘经纬线", Icon = "WorldEnvironment")]
     public Callable Redraw => Callable.From(DoDraw);
 

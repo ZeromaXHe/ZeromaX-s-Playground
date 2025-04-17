@@ -1,3 +1,5 @@
+using Apps.Contexts;
+using Apps.Nodes.LandGenerators;
 using Domains.Models.Singletons.Planets;
 using Domains.Repos.PlanetGenerates;
 using Godot;
@@ -11,9 +13,14 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.LandGenerators;
 /// Author: Zhu XH
 /// Date: 2025-03-20 19:51:43
 [Tool]
-public partial class FractalNoiseLandGenerator : Node
+public partial class FractalNoiseLandGenerator : Node, IFractalNoiseLandGenerator
 {
-    public FractalNoiseLandGenerator() => InitServices();
+    public FractalNoiseLandGenerator()
+    {
+        InitServices();
+        NodeContext.Instance.RegisterSingleton<IFractalNoiseLandGenerator>(this);
+    }
+
     [Export] public LayeredFastNoise LayeredNoises { get; set; } = new();
 
     #region 服务与存储

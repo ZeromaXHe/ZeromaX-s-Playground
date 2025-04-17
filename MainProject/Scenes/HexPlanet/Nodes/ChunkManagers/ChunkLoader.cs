@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Apps.Contexts;
 using Apps.Events;
+using Apps.Nodes.ChunkManagers;
 using Domains.Events.Tiles;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.Singletons.Planets;
@@ -17,9 +19,13 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.ChunkManagers;
 /// Author: Zhu XH
 /// Date: 2025-03-26 20:33:11
 [Tool]
-public partial class ChunkLoader : Node3D
+public partial class ChunkLoader : Node3D, IChunkLoader
 {
-    public ChunkLoader() => InitServices();
+    public ChunkLoader()
+    {
+        InitServices();
+        NodeContext.Instance.RegisterSingleton<IChunkLoader>(this);
+    }
 
     [Export] private PackedScene? _gridChunkScene;
 

@@ -1,3 +1,5 @@
+using Apps.Contexts;
+using Apps.Nodes.Planets;
 using Commons.Constants;
 using Domains.Models.Singletons.Planets;
 using Godot;
@@ -9,9 +11,13 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.Planets;
 /// Author: Zhu XH
 /// Date: 2025-03-26 23:10:38
 [Tool]
-public partial class CelestialMotionManager : Node3D
+public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
 {
-    public CelestialMotionManager() => InitServices();
+    public CelestialMotionManager()
+    {
+        InitServices();
+        NodeContext.Instance.RegisterSingleton<ICelestialMotionManager>(this);
+    }
 
     [Export(PropertyHint.Range, "-100.0, 100.0")]
     public float RotationTimeFactor = 1f;

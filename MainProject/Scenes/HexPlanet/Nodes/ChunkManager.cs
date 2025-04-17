@@ -1,4 +1,6 @@
+using Apps.Contexts;
 using Apps.Events;
+using Apps.Nodes;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.ChunkManagers;
@@ -9,8 +11,13 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 /// Author: Zhu XH
 /// Date: 2025-03-12 12:46
 [Tool]
-public partial class ChunkManager : Node3D
+public partial class ChunkManager : Node3D, IChunkManager
 {
+    public ChunkManager()
+    {
+        NodeContext.Instance.RegisterSingleton<IChunkManager>(this);
+    }
+
     #region on-ready 节点
 
     private FeatureMeshManager? _featureMeshManager;

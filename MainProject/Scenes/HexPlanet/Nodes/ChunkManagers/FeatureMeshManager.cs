@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Apps.Contexts;
+using Apps.Nodes.ChunkManagers;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Godot;
 
@@ -10,8 +12,10 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.ChunkManagers;
 /// Author: Zhu XH
 /// Date: 2025-03-26 20:53:19
 [Tool]
-public partial class FeatureMeshManager : Node3D
+public partial class FeatureMeshManager : Node3D, IFeatureMeshManager
 {
+    public FeatureMeshManager() => NodeContext.Instance.RegisterSingleton<IFeatureMeshManager>(this);
+
     [Export] private PackedScene[]? _urbanScenes;
     [Export] private PackedScene[]? _farmScenes;
     [Export] private PackedScene[]? _plantScenes;

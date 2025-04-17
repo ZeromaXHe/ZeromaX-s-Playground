@@ -1,4 +1,5 @@
 using Apps.Applications.Tiles;
+using Apps.Nodes;
 using Commons.Utils;
 using Domains.Models.Entities.Civs;
 using Domains.Models.Singletons.Planets;
@@ -12,7 +13,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-03-01 12:45
-public partial class HexUnit : CsgBox3D
+public partial class HexUnit : CsgBox3D, IHexUnit
 {
     public HexUnit()
     {

@@ -1,4 +1,6 @@
+using Apps.Contexts;
 using Apps.Events;
+using Apps.Nodes;
 using Domains.Models.Singletons.Planets;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
@@ -9,9 +11,14 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 /// Author: Zhu XH
 /// Date: 2025-02-17 22:45
 [Tool]
-public partial class OrbitCamera : Node3D
+public partial class OrbitCamera : Node3D, IOrbitCamera
 {
-    public OrbitCamera() => InitService();
+    public OrbitCamera()
+    {
+        InitService();
+        NodeContext.Instance.RegisterSingleton<IOrbitCamera>(this);
+    }
+
     [Export] private Camera3D? _camera; // 设置摄像机节点
     private float _radius = 10f;
 

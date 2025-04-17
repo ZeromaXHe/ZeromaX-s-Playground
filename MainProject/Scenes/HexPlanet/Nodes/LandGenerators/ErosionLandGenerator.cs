@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
+using Apps.Contexts;
+using Apps.Nodes.LandGenerators;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Repos.PlanetGenerates;
 using Domains.Services.Navigations;
@@ -14,9 +16,13 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.LandGenerators;
 /// Author: Zhu XH
 /// Date: 2025-03-20 19:01:10
 [Tool]
-public partial class ErosionLandGenerator : Node
+public partial class ErosionLandGenerator : Node, IErosionLandGenerator
 {
-    public ErosionLandGenerator() => InitServices();
+    public ErosionLandGenerator()
+    {
+        InitServices();
+        NodeContext.Instance.RegisterSingleton<IErosionLandGenerator>(this);
+    }
 
     [Export(PropertyHint.Range, "5, 95")] private int _landPercentage = 50;
 

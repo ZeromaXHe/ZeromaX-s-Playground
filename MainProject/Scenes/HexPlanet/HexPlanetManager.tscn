@@ -137,7 +137,7 @@ height = 54.6
 script = ExtResource("1_414p1")
 Divisions = 40
 ChunkDivisions = 4
-_noiseSource = ExtResource("2_w1eb8")
+NoiseSource = ExtResource("2_w1eb8")
 PlanetRevolution = false
 PlanetRotation = false
 SatelliteRevolution = false
@@ -147,7 +147,7 @@ SatelliteRotation = false
 unique_name_in_owner = true
 _landGeneratorType = 2
 _windStrength = 1.0
-_seed = 1943900735
+_seed = -1339155116
 
 [node name="LensFlare" type="Node" parent="."]
 script = ExtResource("16_das15")

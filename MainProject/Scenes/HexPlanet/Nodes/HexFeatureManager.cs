@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Apps.Applications.Features;
 using Apps.Events;
+using Apps.Nodes;
 using Commons.Enums;
 using Commons.Utils;
 using Domains.Models.Entities.PlanetGenerates;
@@ -19,7 +20,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 /// Author: Zhu XH
 /// Date: 2025-02-25 23:58
 [Tool]
-public partial class HexFeatureManager : Node3D
+public partial class HexFeatureManager : Node3D, IHexFeatureManager
 {
     public HexFeatureManager() => InitServices();
 

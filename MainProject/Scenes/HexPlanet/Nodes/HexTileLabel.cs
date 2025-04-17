@@ -1,3 +1,4 @@
+using Apps.Nodes;
 using Godot;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
@@ -6,7 +7,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 /// Author: Zhu XH
 /// Date: 2025-02-28 16:30
 [Tool]
-public partial class HexTileLabel : Node3D
+public partial class HexTileLabel : Node3D, IHexTileLabel
 {
     public Label3D? Label { get; private set; }
 

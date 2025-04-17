@@ -1,3 +1,5 @@
+using Apps.Contexts;
+using Apps.Nodes.LandGenerators;
 using Domains.Models.Singletons.Planets;
 using Domains.Repos.PlanetGenerates;
 using Godot;
@@ -10,9 +12,13 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.LandGenerators;
 /// Author: Zhu XH
 /// Date: 2025-03-21 19:35:33
 [Tool]
-public partial class RealEarthLandGenerator : Node
+public partial class RealEarthLandGenerator : Node, IRealEarthLandGenerator
 {
-    public RealEarthLandGenerator() => InitServices();
+    public RealEarthLandGenerator()
+    {
+        InitServices();
+        NodeContext.Instance.RegisterSingleton<IRealEarthLandGenerator>(this);
+    }
 
     // 其实这里可以直接导入 Image, 在导入界面选择导入类型。但是导入 Image 的场景 tscn 文件会大得吓人……（等于直接按像素写一遍）
     // 这里是否改为 Image 需要权衡，目前 Texture2D.GetImage() 会耗时比较长，但是提前把 Image 加载到内存的话，消耗很大。

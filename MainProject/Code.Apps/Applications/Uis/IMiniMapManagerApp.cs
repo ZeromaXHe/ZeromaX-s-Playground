@@ -1,3 +1,4 @@
+using Apps.Applications.Base;
 using Godot;
 
 namespace Apps.Applications.Uis;
@@ -5,14 +6,7 @@ namespace Apps.Applications.Uis;
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-04-16 20:44:16
-public interface IMiniMapManagerApp
+public interface IMiniMapManagerApp: INodeApp
 {
-    #region 上下文节点
-
-    void OnReady();
-    void OnExitTree();
-
-    #endregion
-
     void Init(Vector3 orbitCamPos);
 }

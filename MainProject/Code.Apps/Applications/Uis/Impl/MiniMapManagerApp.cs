@@ -24,18 +24,23 @@ public class MiniMapManagerApp(
 
     private IMiniMapManager? _miniMapManager;
     private IHexPlanetManager? _hexPlanetManager;
+    private IOrbitCamera? _orbitCamera;
 
+    public bool NodeReady { get; set; }
     public void OnReady()
     {
+        NodeReady = true;
+        // 初始化上下文节点
         _miniMapManager = NodeContext.Instance.GetSingleton<IMiniMapManager>()!;
         _hexPlanetManager = NodeContext.Instance.GetSingleton<IHexPlanetManager>()!;
-
+        _orbitCamera = NodeContext.Instance.GetSingleton<IOrbitCamera>()!;
+        // 绑定事件
         _hexPlanetManager.NewPlanetGenerated += InitMiniMap;
         tileRepo.RefreshTerrainShader += RefreshTile;
         OrbitCameraEvent.Instance.Moved += SyncCameraIconPos;
     }
 
-    private void InitMiniMap() => _miniMapManager!.Init(_hexPlanetManager!.GetOrbitCameraFocusPos());
+    private void InitMiniMap() => _miniMapManager!.Init(_orbitCamera!.GetFocusBasePos());
 
     private void RefreshTile(int tileId)
     {
@@ -75,14 +80,22 @@ public class MiniMapManagerApp(
         };
     }
 
+    public void OnProcess(double delta)
+    {
+        throw new NotImplementedException();
+    }
+
     public void OnExitTree()
     {
+        NodeReady = false;
+        // 解绑事件
         _hexPlanetManager!.NewPlanetGenerated -= InitMiniMap;
         tileRepo.RefreshTerrainShader -= RefreshTile;
         OrbitCameraEvent.Instance.Moved -= SyncCameraIconPos;
-
+        // 上下文节点置空
         _hexPlanetManager = null;
         _miniMapManager = null;
+        _orbitCamera = null;
     }
 
     #endregion

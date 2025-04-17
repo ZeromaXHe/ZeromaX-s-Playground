@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Apps.Applications.Features;
+using Apps.Nodes;
 using Commons.Utils;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.Singletons.Caches;
@@ -19,7 +20,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 /// Author: Zhu XH
 /// Date: 2025-02-22 23:31
 [Tool]
-public partial class HexGridChunk : Node3D, IChunk
+public partial class HexGridChunk : Node3D, IChunk, IHexGridChunk
 {
     public HexGridChunk() => InitServices();
 

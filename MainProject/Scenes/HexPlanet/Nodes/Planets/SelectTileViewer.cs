@@ -1,3 +1,5 @@
+using Apps.Contexts;
+using Apps.Nodes.Planets;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Services.Uis;
 using Godot;
@@ -8,9 +10,13 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.Planets;
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-03-27 11:26:48
-public partial class SelectTileViewer : MeshInstance3D
+public partial class SelectTileViewer : MeshInstance3D, ISelectTileViewer
 {
-    public SelectTileViewer() => InitServices();
+    public SelectTileViewer()
+    {
+        InitServices();
+        NodeContext.Instance.RegisterSingleton<ISelectTileViewer>(this);
+    }
 
     #region 服务
 

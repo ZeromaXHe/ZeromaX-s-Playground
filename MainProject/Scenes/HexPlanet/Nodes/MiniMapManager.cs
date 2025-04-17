@@ -13,10 +13,11 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 /// Date: 2025-03-05 12:21
 public partial class MiniMapManager : Node2D, IMiniMapManager
 {
-    public MiniMapManager() => InitApps();
-
-    public override void _EnterTree() =>
+    public MiniMapManager()
+    {
+        InitApps();
         NodeContext.Instance.RegisterSingleton<IMiniMapManager>(this);
+    }
 
     #region on-ready 节点
 

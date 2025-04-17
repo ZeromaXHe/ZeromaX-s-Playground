@@ -12,16 +12,17 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 /// Date: 2025-02-17 15:49
 public partial class HexPlanetHud : Control, IHexPlanetHud
 {
-    public HexPlanetHud() => InitApps();
-
-    public override void _EnterTree() =>
+    public HexPlanetHud()
+    {
+        InitApps();
         NodeContext.Instance.RegisterSingleton<IHexPlanetHud>(this);
+    }
 
     #region 应用服务
 
-    private IHexPlanetHudApplication? _hexPlanetHudApplication;
+    private IHexPlanetHudApp? _hexPlanetHudApp;
 
-    private void InitApps() => _hexPlanetHudApplication = Context.GetBeanFromHolder<IHexPlanetHudApplication>();
+    private void InitApps() => _hexPlanetHudApp = Context.GetBeanFromHolder<IHexPlanetHudApp>();
 
     #endregion
 
@@ -103,7 +104,7 @@ public partial class HexPlanetHud : Control, IHexPlanetHud
         CompassPanel = GetNode<PanelContainer>("%CompassPanel");
         // 矩形地图测试
         RectMap = GetNode<TextureRect>("%RectMap");
-        RectMap.Texture = _hexPlanetHudApplication!.GenerateRectMap();
+        RectMap.Texture = _hexPlanetHudApp!.GenerateRectMap();
         // 星球信息
         PlanetTabBar = GetNode<TabBar>("%PlanetTabBar");
         PlanetGrid = GetNode<GridContainer>("%PlanetGrid");
@@ -164,7 +165,7 @@ public partial class HexPlanetHud : Control, IHexPlanetHud
             {
                 IdLineEdit!.Text = _chosenTile.Id.ToString();
                 ChunkLineEdit!.Text = _chosenTile.ChunkId.ToString();
-                var tileInfoResp = _hexPlanetHudApplication!.GetTileInfo(_chosenTile);
+                var tileInfoResp = _hexPlanetHudApp!.GetTileInfo(_chosenTile);
                 CoordsLineEdit!.Text = tileInfoResp.SphereAxial.ToString();
                 CoordsLineEdit.TooltipText = CoordsLineEdit.Text;
                 HeightLineEdit!.Text = $"{tileInfoResp.Height:F4}";
@@ -198,9 +199,9 @@ public partial class HexPlanetHud : Control, IHexPlanetHud
     public override void _Ready()
     {
         InitOnReadyNodes();
-        _hexPlanetHudApplication!.OnReady();
+        _hexPlanetHudApp!.OnReady();
     }
 
-    public override void _ExitTree() => _hexPlanetHudApplication!.OnExitTree();
-    public override void _Process(double delta) => _hexPlanetHudApplication!.OnProcess(delta);
+    public override void _ExitTree() => _hexPlanetHudApp!.OnExitTree();
+    public override void _Process(double delta) => _hexPlanetHudApp!.OnProcess(delta);
 }

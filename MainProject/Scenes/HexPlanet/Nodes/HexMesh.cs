@@ -1,4 +1,5 @@
 using System.Linq;
+using Apps.Nodes;
 using Domains.Models.Singletons.Planets;
 using Godot;
 using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
@@ -9,7 +10,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 /// Author: Zhu XH
 /// Date: 2025-02-21 16:57
 [Tool]
-public partial class HexMesh : MeshInstance3D
+public partial class HexMesh : MeshInstance3D, IHexMesh
 {
     public HexMesh() => InitServices();
     [Export] public bool UseCollider { get; set; }

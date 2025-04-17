@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
+using Apps.Contexts;
+using Apps.Nodes;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Domains.Repos.PlanetGenerates;
@@ -13,12 +15,13 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-03-09 14:19
-public partial class EditPreviewChunk : Node3D, IChunk
+public partial class EditPreviewChunk : Node3D, IChunk, IEditPreviewChunk
 {
     public EditPreviewChunk()
     {
         _chunkTriangulation = new ChunkTriangulation(this);
         InitServices();
+        NodeContext.Instance.RegisterSingleton<IEditPreviewChunk>(this);
     }
 
     [Export] public HexMesh? Terrain { get; set; }

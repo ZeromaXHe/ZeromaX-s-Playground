@@ -2,6 +2,7 @@ using Apps.Contexts;
 using Apps.Events;
 using Apps.Models.Responses;
 using Apps.Nodes;
+using Apps.Nodes.Planets;
 using Commons.Constants;
 using Commons.Utils;
 using Commons.Utils.HexSphereGrid;
@@ -16,40 +17,50 @@ namespace Apps.Applications.Uis.Impl;
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-04-13 13:00:56
-public class HexPlanetHudApplication(
+public class HexPlanetHudApp(
     IPlanetConfig planetConfig,
     IChunkRepo chunkRepo,
     ITileRepo tileRepo,
     IPointRepo pointRepo,
     IEditorService editorService,
     IMiniMapService miniMapService)
-    : IHexPlanetHudApplication
+    : IHexPlanetHudApp
 {
     #region 上下文节点
 
     private IHexPlanetHud? _hexPlanetHud;
     private IHexPlanetManager? _hexPlanetManager;
     private IMiniMapManager? _miniMapManager;
+    private ISelectTileViewer? _selectTileViewer;
+    private IUnitManager? _unitManager;
+    private IOrbitCamera? _orbitCamera;
+
+    public bool NodeReady { get; set; }
 
     public void OnReady()
     {
+        NodeReady = true;
+        // 初始化上下文节点
         _hexPlanetHud = NodeContext.Instance.GetSingleton<IHexPlanetHud>()!;
         _hexPlanetManager = NodeContext.Instance.GetSingleton<IHexPlanetManager>()!;
         _miniMapManager = NodeContext.Instance.GetSingleton<IMiniMapManager>()!;
+        _selectTileViewer = NodeContext.Instance.GetSingleton<ISelectTileViewer>();
+        _unitManager = NodeContext.Instance.GetSingleton<IUnitManager>();
+        _orbitCamera = NodeContext.Instance.GetSingleton<IOrbitCamera>()!;
 
         // 按照指定的高程分割数量确定 UI
         _hexPlanetHud.ElevationVSlider!.MaxValue = planetConfig.ElevationStep;
         _hexPlanetHud.ElevationVSlider.TickCount = planetConfig.ElevationStep + 1;
         _hexPlanetHud.WaterVSlider!.MaxValue = planetConfig.ElevationStep;
         _hexPlanetHud.WaterVSlider.TickCount = planetConfig.ElevationStep + 1;
-        // 信号绑定
+        // 绑定事件
         OrbitCameraEvent.Instance.Moved += OnCameraMoved;
         OrbitCameraEvent.Instance.Transformed += OnCameraTransformed;
         _hexPlanetManager.NewPlanetGenerated += UpdateNewPlanetInfo;
         _hexPlanetManager.NewPlanetGenerated += InitMiniMap;
 
         // 初始化相机位置相关功能
-        OnCameraMoved(_hexPlanetManager!.GetOrbitCameraFocusPos(), 0f);
+        OnCameraMoved(_orbitCamera!.GetFocusBasePos(), 0f);
         OnCameraTransformed(_hexPlanetManager.GetViewport().GetCamera3D().GetGlobalTransform(), 0f);
         SetEditMode(_hexPlanetHud.EditCheckButton!.ButtonPressed);
         editorService.SetLabelMode(_hexPlanetHud.ShowLableOptionButton!.Selected);
@@ -57,7 +68,7 @@ public class HexPlanetHudApplication(
         UpdateNewPlanetInfo();
         InitSignals();
 
-        _miniMapManager.Init(_hexPlanetManager.GetOrbitCameraFocusPos());
+        _miniMapManager.Init(_orbitCamera!.GetFocusBasePos());
     }
 
     private void InitSignals()
@@ -168,7 +179,7 @@ public class HexPlanetHudApplication(
         var angleToNorth = transform.Basis.Y.Slide(posNormal).SignedAngleTo(dirNorth, -posNormal);
         _hexPlanetHud!.CompassPanel!.Rotation = angleToNorth;
 
-        var posLocal = _hexPlanetManager!.ToPlanetLocal(_hexPlanetManager.GetOrbitCameraFocusPos());
+        var posLocal = _hexPlanetManager!.ToPlanetLocal(_orbitCamera!.GetFocusBasePos());
         var longLat = LongitudeLatitudeCoords.From(posLocal);
         var rectMapMaterial = _hexPlanetHud!.RectMap!.Material as ShaderMaterial;
         rectMapMaterial?.SetShaderParameter("lon", longLat.Longitude);
@@ -181,13 +192,18 @@ public class HexPlanetHudApplication(
 
     public void OnExitTree()
     {
+        NodeReady = false;
+        // 事件解绑
         OrbitCameraEvent.Instance.Moved -= OnCameraMoved;
         OrbitCameraEvent.Instance.Transformed -= OnCameraTransformed;
         _hexPlanetManager!.NewPlanetGenerated -= UpdateNewPlanetInfo;
         _hexPlanetManager.NewPlanetGenerated -= InitMiniMap;
-
+        // 上下文节点置空
         _hexPlanetManager = null;
         _hexPlanetHud = null;
+        _selectTileViewer = null;
+        _unitManager = null;
+        _orbitCamera = null;
     }
 
     public void OnProcess(double delta)
@@ -228,20 +244,20 @@ public class HexPlanetHudApplication(
                     _hexPlanetHud.PreviousTile, _hexPlanetHud.DragTile);
                 _hexPlanetHud.ChosenTile = _hexPlanetHud.ChosenTile; // 刷新 GUI 地块信息
                 // 编辑模式下绘制选择地块框
-                _hexPlanetManager.SelectEditingTile(_hexPlanetHud.ChosenTile);
+                _selectTileViewer!.SelectEditingTile(_hexPlanetHud.ChosenTile);
             }
             else if (Input.IsActionJustPressed("choose_unit"))
-                _hexPlanetManager.FindPath(_hexPlanetHud.ChosenTile);
+                _unitManager!.FindPath(_hexPlanetHud.ChosenTile);
 
             _hexPlanetHud.PreviousTile = _hexPlanetHud.ChosenTile;
         }
         else
         {
             if (!editorService.TileOverrider.EditMode)
-                _hexPlanetManager.FindPath(null);
+                _unitManager!.FindPath(null);
             else
                 // 清理选择地块框
-                _hexPlanetManager.CleanEditingTile();
+                _selectTileViewer!.CleanEditingTile();
             _hexPlanetHud.PreviousTile = null;
         }
     }

@@ -1,3 +1,5 @@
+using Apps.Contexts;
+using Apps.Nodes.Planets;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Repos.Civs;
 using Domains.Repos.PlanetGenerates;
@@ -11,9 +13,13 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.Planets;
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-03-27 10:39:20
-public partial class UnitManager : Node3D
+public partial class UnitManager : Node3D, IUnitManager
 {
-    public UnitManager() => InitServices();
+    public UnitManager()
+    {
+        InitServices();
+        NodeContext.Instance.RegisterSingleton<IUnitManager>(this);
+    }
 
     [Export] private PackedScene? _unitScene;
 

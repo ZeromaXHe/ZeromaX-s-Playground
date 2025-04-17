@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Apps.Contexts;
+using Apps.Nodes.ChunkManagers;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Godot;
 
@@ -10,8 +12,10 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.ChunkManagers;
 /// Author: Zhu XH
 /// Date: 2025-03-26 21:28:04
 [Tool]
-public partial class FeaturePreviewManager : Node3D
+public partial class FeaturePreviewManager : Node3D, IFeaturePreviewManager
 {
+    public FeaturePreviewManager() => NodeContext.Instance.RegisterSingleton<IFeaturePreviewManager>(this);
+
     [Export] private Material? _urbanPreviewOverrideMaterial;
     [Export] private Material? _plantPreviewOverrideMaterial;
     [Export] private Material? _farmPreviewOverrideMaterial;

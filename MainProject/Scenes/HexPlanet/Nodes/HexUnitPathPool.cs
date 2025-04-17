@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Apps.Nodes;
 using Domains.Models.Entities.PlanetGenerates;
 using Godot;
 
@@ -7,7 +8,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-03-02 12:48
-public partial class HexUnitPathPool : Node3D
+public partial class HexUnitPathPool : Node3D, IHexUnitPathPool
 {
     [Export] private PackedScene? _pathScene;
 

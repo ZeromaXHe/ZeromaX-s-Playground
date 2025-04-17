@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Apps.Nodes;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.Singletons.Planets;
 using Domains.Repos.PlanetGenerates;
@@ -12,7 +13,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-03-02 12:48
-public partial class HexUnitPath : Path3D
+public partial class HexUnitPath : Path3D, IHexUnitPath
 {
     public HexUnitPath() => InitServices();
     public bool Working { get; set; }

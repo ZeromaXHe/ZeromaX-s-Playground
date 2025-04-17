@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Apps.Contexts;
+using Apps.Nodes;
 using Commons.Utils;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.Singletons.Planets;
@@ -28,9 +30,13 @@ public class MapRegion
 /// Author: Zhu XH
 /// Date: 2025-03-04 12:03
 [Tool]
-public partial class HexMapGenerator : Node
+public partial class HexMapGenerator : Node, IHexMapGenerator
 {
-    public HexMapGenerator() => InitServices();
+    public HexMapGenerator()
+    {
+        InitServices();
+        NodeContext.Instance.RegisterSingleton<IHexMapGenerator>(this);
+    }
 
     [Export(PropertyHint.Range, "1, 5")]
     public int DefaultWaterLevel
