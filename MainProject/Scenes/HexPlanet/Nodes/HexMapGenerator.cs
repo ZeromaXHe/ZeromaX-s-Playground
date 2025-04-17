@@ -159,10 +159,8 @@ public partial class HexMapGenerator : Node, IHexMapGenerator
 
     #endregion
 
-    public override void _Ready()
-    {
-        InitOnReadyNodes();
-    }
+    public override void _Ready() => InitOnReadyNodes();
+    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<IHexMapGenerator>();
 
     public void GenerateMap()
     {

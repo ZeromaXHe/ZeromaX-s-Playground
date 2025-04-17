@@ -202,6 +202,11 @@ public partial class HexPlanetHud : Control, IHexPlanetHud
         _hexPlanetHudApp!.OnReady();
     }
 
-    public override void _ExitTree() => _hexPlanetHudApp!.OnExitTree();
+    public override void _ExitTree()
+    {
+        _hexPlanetHudApp!.OnExitTree();
+        NodeContext.Instance.DestroySingleton<IHexPlanetHud>();
+    }
+
     public override void _Process(double delta) => _hexPlanetHudApp!.OnProcess(delta);
 }

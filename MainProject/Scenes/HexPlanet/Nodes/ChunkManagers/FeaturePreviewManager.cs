@@ -20,6 +20,8 @@ public partial class FeaturePreviewManager : Node3D, IFeaturePreviewManager
     [Export] private Material? _plantPreviewOverrideMaterial;
     [Export] private Material? _farmPreviewOverrideMaterial;
 
+    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<IFeaturePreviewManager>();
+
     private Material? GetPreviewOverrideMaterial(FeatureType type) => type switch
     {
         // 城市（红色）

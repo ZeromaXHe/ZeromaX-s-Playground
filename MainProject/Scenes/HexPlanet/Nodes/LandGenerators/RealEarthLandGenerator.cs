@@ -40,6 +40,8 @@ public partial class RealEarthLandGenerator : Node, IRealEarthLandGenerator
 
     #endregion
 
+    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<IRealEarthLandGenerator>();
+
     public int CreateLand()
     {
         var water = _planetConfig!.DefaultWaterLevel;

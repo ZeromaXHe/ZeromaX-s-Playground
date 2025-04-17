@@ -105,6 +105,7 @@ public partial class LongitudeLatitude : Node3D, ILongitudeLatitude
     {
         if (!Engine.IsEditorHint())
             OrbitCameraEvent.Instance.Moved -= OnCameraMoved;
+        NodeContext.Instance.DestroySingleton<ILongitudeLatitude>();
     }
 
     public override void _Process(double delta)

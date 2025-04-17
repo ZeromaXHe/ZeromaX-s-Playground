@@ -16,10 +16,16 @@ public class NodeContext
     public void RegisterSingleton<T>(T bean) where T : class
     {
         if (Engine.IsEditorHint())
-            // Godot C# 编辑器工具编译后第一次运行会调两次构造函数、_EnterTree()、_Ready()，2020 年 7 月至今一直没修，文档也不写！好蠢！
+        {
+            // Godot C# 编辑器工具编译后第一次运行会调两次构造函数、_EnterTree()、_Ready()
+            // 2020 年 7 月至今一直没修，文档也不写！好蠢！
             // https://github.com/godotengine/godot-docs/issues/2930#issuecomment-662407208
             // https://github.com/godotengine/godot/issues/40970
-            _singletons[typeof(T).Name] = bean;
+            if (_singletons.TryAdd(typeof(T).Name, bean)) return;
+            if (_singletons[typeof(T).Name] == bean) return;
+            GD.Print($"{typeof(T).Name} 单例之前已存在不同的实例，正在覆盖！");
+            _singletons[typeof(T).Name] = bean; // 事实证明第二次才是真正的实例
+        }
         else
             _singletons.Add(typeof(T).Name, bean);
     }

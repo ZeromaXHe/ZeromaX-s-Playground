@@ -236,6 +236,7 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
         // 【切记】所以这里需要在退出场景树时清理事件监听！！！
         NodeReady = false;
         _hexPlanetManagerApplication!.OnExitTree();
+        NodeContext.Instance.DestroySingleton<IHexPlanetManager>();
     }
 
     public override void _Process(double delta) => _hexPlanetManagerApplication!.OnProcess(delta);

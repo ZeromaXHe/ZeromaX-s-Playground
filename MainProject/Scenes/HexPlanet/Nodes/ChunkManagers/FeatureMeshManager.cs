@@ -40,10 +40,8 @@ public partial class FeatureMeshManager : Node3D, IFeatureMeshManager
 
     #endregion
 
-    public override void _Ready()
-    {
-        InitOnReadyNodes();
-    }
+    public override void _Ready() => InitOnReadyNodes();
+    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<IFeatureMeshManager>();
 
     private MultiMeshInstance3D[]? _multiUrbans;
     private MultiMeshInstance3D[]? _multiFarms;

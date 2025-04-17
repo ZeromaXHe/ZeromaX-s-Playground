@@ -50,6 +50,8 @@ public partial class EditPreviewChunk : Node3D, IChunk, IEditPreviewChunk
     public HexTileDataOverrider TileDataOverrider { get; set; } = new();
     private int _terrainMaterialIdx;
 
+    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<IEditPreviewChunk>();
+
     public override void _Process(double delta)
     {
         if (TileDataOverrider.OverrideTiles.Count > 0)

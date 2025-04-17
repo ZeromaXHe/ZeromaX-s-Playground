@@ -253,6 +253,8 @@ public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
         _ready = true;
     }
 
+    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<ICelestialMotionManager>();
+
     public override void _Process(double delta)
     {
         if (!_ready) return;
@@ -263,7 +265,9 @@ public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
         _lunarOrbitPlane!.RotationDegrees = Vector3.Right * SatelliteOrbitInclination;
 
     private void UpdateEclipticPlaneRotation() => _eclipticPlane!.RotationDegrees = Vector3.Right * PlanetObliquity;
-    private void UpdateLunarObliquityRotation() => _lunarObliquity!.RotationDegrees = Vector3.Right * SatelliteObliquity;
+
+    private void UpdateLunarObliquityRotation() =>
+        _lunarObliquity!.RotationDegrees = Vector3.Right * SatelliteObliquity;
 
     public void UpdateLunarDist() => _lunarDist!.Position =
         Vector3.Back * Mathf.Clamp(_planetConfig!.Radius * SatelliteDistRatio,

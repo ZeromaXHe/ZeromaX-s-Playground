@@ -31,6 +31,8 @@ public partial class SelectTileViewer : MeshInstance3D, ISelectTileViewer
 
     #endregion
 
+    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<ISelectTileViewer>();
+
     private bool EditMode => _editorService!.TileOverrider.EditMode;
     private int EditingTileId { get; set; }
     public void SelectEditingTile(Tile tile) => EditingTileId = tile.Id;

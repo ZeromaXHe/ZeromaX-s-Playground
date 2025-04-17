@@ -120,7 +120,11 @@ public partial class ChunkLoader : Node3D, IChunkLoader
         _ready = true;
     }
 
-    public override void _ExitTree() => CleanEventListeners();
+    public override void _ExitTree()
+    {
+        CleanEventListeners();
+        NodeContext.Instance.DestroySingleton<IChunkLoader>();
+    }
 
     private readonly Stopwatch _stopwatch = new();
 

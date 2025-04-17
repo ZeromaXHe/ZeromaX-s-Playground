@@ -54,7 +54,11 @@ public partial class MiniMapManager : Node2D, IMiniMapManager
         GD.Print("MiniMapManager _Ready");
     }
 
-    public override void _ExitTree() => _miniMapManagerApp!.OnExitTree();
+    public override void _ExitTree()
+    {
+        _miniMapManagerApp!.OnExitTree();
+        NodeContext.Instance.DestroySingleton<IMiniMapManager>();
+    }
 
     public void ClickOnMiniMap()
     {

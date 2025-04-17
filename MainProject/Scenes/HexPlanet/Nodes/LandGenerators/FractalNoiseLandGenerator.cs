@@ -36,6 +36,8 @@ public partial class FractalNoiseLandGenerator : Node, IFractalNoiseLandGenerato
 
     #endregion
 
+    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<IFractalNoiseLandGenerator>();
+
     public int CreateLand(RandomNumberGenerator random)
     {
         var origin = new Vector3(random.Randf(), random.Randf(), random.Randf()) * _planetConfig!.Radius;

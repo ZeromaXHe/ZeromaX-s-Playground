@@ -13,10 +13,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 [Tool]
 public partial class ChunkManager : Node3D, IChunkManager
 {
-    public ChunkManager()
-    {
-        NodeContext.Instance.RegisterSingleton<IChunkManager>(this);
-    }
+    public ChunkManager() => NodeContext.Instance.RegisterSingleton<IChunkManager>(this);
 
     #region on-ready 节点
 
@@ -59,7 +56,11 @@ public partial class ChunkManager : Node3D, IChunkManager
         _ready = true;
     }
 
-    public override void _ExitTree() => CleanEventListeners();
+    public override void _ExitTree()
+    {
+        CleanEventListeners();
+        NodeContext.Instance.DestroySingleton<IChunkManager>();
+    }
 
     private void CleanEventListeners()
     {

@@ -155,6 +155,7 @@ public partial class OrbitCamera : Node3D, IOrbitCamera
     {
         if (!Engine.IsEditorHint())
             OrbitCameraEvent.Instance.NewDestination -= SetAutoPilot;
+        NodeContext.Instance.DestroySingleton<IOrbitCamera>();
     }
 
     public Vector3 GetFocusBasePos() => _focusBase!.GlobalPosition;

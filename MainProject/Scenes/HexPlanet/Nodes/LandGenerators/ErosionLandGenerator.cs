@@ -55,6 +55,8 @@ public partial class ErosionLandGenerator : Node, IErosionLandGenerator
 
     #endregion
 
+    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<IErosionLandGenerator>();
+
     public int CreateLand(RandomNumberGenerator random, List<MapRegion> regions)
     {
         var landTileCount = Mathf.RoundToInt(_tileRepo!.GetCount() * _landPercentage * 0.01f);

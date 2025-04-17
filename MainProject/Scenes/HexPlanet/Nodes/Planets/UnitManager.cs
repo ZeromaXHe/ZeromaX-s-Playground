@@ -77,7 +77,12 @@ public partial class UnitManager : Node3D, IUnitManager
     }
 
     public override void _Ready() => InitOnReadyNodes();
-    public override void _ExitTree() => CleanEventListeners();
+
+    public override void _ExitTree()
+    {
+        CleanEventListeners();
+        NodeContext.Instance.DestroySingleton<IUnitManager>();
+    }
 
     public void AddUnit(int tileId, float orientation)
     {
