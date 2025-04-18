@@ -1,0 +1,19 @@
+﻿<Project Sdk="Godot.NET.Sdk/4.4.1">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <EnableDynamicLoading>true</EnableDynamicLoading>
+        <RootNamespace>Infras.Readers.Abstractions</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Code.Domains.Models\Code.Domains.Models.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Caches\Impl\" />
+    </ItemGroup>
+
+</Project>

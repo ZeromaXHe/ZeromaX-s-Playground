@@ -1,12 +1,12 @@
-using Apps.Applications.Tiles;
-using Apps.Nodes;
+using Apps.Queries.Abstractions.Tiles;
 using Commons.Utils;
+using Contexts;
 using Domains.Models.Entities.Civs;
 using Domains.Models.Singletons.Planets;
-using Domains.Repos.Civs;
-using Domains.Repos.PlanetGenerates;
 using Godot;
-using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
+using Infras.Writers.Abstractions.Civs;
+using Infras.Writers.Abstractions.PlanetGenerates;
+using Nodes.Abstractions;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 

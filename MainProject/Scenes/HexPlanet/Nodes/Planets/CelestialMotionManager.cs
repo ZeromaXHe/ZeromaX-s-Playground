@@ -1,9 +1,9 @@
-using Apps.Contexts;
-using Apps.Nodes.Planets;
+using Apps.Queries.Contexts;
 using Commons.Constants;
+using Contexts;
 using Domains.Models.Singletons.Planets;
 using Godot;
-using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
+using Nodes.Abstractions.Planets;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.Planets;
 

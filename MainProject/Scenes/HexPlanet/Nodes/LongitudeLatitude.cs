@@ -1,7 +1,7 @@
-using Apps.Contexts;
-using Apps.Events;
-using Apps.Nodes;
+using Apps.Queries.Contexts;
+using Apps.Queries.Events;
 using Godot;
+using Nodes.Abstractions;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 

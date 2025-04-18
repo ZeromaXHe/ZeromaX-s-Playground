@@ -7,5 +7,6 @@ namespace GodotNodes.Abstractions;
 /// Date: 2025-04-16 16:49:16
 public interface INode
 {
+    event Action Ready;
     Viewport GetViewport();
 }

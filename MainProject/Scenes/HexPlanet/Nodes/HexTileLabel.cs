@@ -1,5 +1,5 @@
-using Apps.Nodes;
 using Godot;
+using Nodes.Abstractions;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 

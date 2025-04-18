@@ -1,8 +1,8 @@
-using Apps.Contexts;
-using Apps.Events;
-using Apps.Nodes;
+using Apps.Queries.Contexts;
+using Apps.Queries.Events;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Godot;
+using Nodes.Abstractions;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.ChunkManagers;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;

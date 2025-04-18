@@ -1,7 +1,7 @@
 using System.Collections.Generic;
-using Apps.Nodes;
 using Domains.Models.Entities.PlanetGenerates;
 using Godot;
+using Nodes.Abstractions;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 

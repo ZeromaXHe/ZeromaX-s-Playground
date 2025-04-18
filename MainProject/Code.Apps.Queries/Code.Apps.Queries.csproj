@@ -1,0 +1,18 @@
+﻿<Project Sdk="Godot.NET.Sdk/4.4.1">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <EnableDynamicLoading>true</EnableDynamicLoading>
+        <RootNamespace>Apps.Queries</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Code.Apps.Queries.Abstractions\Code.Apps.Queries.Abstractions.csproj" />
+      <ProjectReference Include="..\Code.Domains.Services.Abstractions\Code.Domains.Services.Abstractions.csproj" />
+      <ProjectReference Include="..\Code.Nodes.Abstractions\Code.Nodes.Abstractions.csproj" />
+      <ProjectReference Include="..\GodotNodes.Abstractions\GodotNodes.Abstractions.csproj" />
+    </ItemGroup>
+
+</Project>

@@ -1,10 +1,10 @@
-using Apps.Applications.Uis;
-using Apps.Contexts;
-using Apps.Events;
-using Apps.Nodes;
+using Apps.Queries.Applications.Uis;
+using Apps.Queries.Contexts;
+using Apps.Queries.Events;
 using Commons.Utils.HexSphereGrid;
+using Contexts;
 using Godot;
-using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
+using Nodes.Abstractions;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 

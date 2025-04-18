@@ -1,0 +1,16 @@
+﻿<Project Sdk="Godot.NET.Sdk/4.4.1">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <EnableDynamicLoading>true</EnableDynamicLoading>
+        <RootNamespace>Domains.Models</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Code.Commons\Code.Commons.csproj" />
+      <ProjectReference Include="..\Code.Contexts.Abstractions\Code.Contexts.Abstractions.csproj" />
+    </ItemGroup>
+
+</Project>

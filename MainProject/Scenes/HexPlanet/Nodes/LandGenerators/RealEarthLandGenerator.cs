@@ -1,9 +1,9 @@
-using Apps.Contexts;
-using Apps.Nodes.LandGenerators;
+using Apps.Queries.Contexts;
+using Contexts;
 using Domains.Models.Singletons.Planets;
-using Domains.Repos.PlanetGenerates;
 using Godot;
-using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
+using Infras.Writers.Abstractions.PlanetGenerates;
+using Nodes.Abstractions.LandGenerators;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.LandGenerators;
 

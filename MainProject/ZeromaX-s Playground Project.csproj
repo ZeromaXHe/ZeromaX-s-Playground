@@ -6,20 +6,18 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
     <ItemGroup>
-        <Compile Remove="UnitTest\**"/>
+        <Compile Remove="Tests.*\**"/>
         <Compile Remove="Code.*\**"/>
         <Compile Remove="GodotNodes.Abstractions\**"/>
     </ItemGroup>
     <ItemGroup>
-        <EmbeddedResource Remove="UnitTest\**"/>
+        <EmbeddedResource Remove="Tests.*\**"/>
         <EmbeddedResource Remove="Code.*\**"/>
         <EmbeddedResource Remove="GodotNodes.Abstractions\**"/>
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="Code.Apps\Code.Apps.csproj"/>
-        <ProjectReference Include="Code.Infras\Code.Infras.csproj"/>
-    </ItemGroup>
-    <ItemGroup>
-        <PackageReference Include="Autofac" Version="8.2.1"/>
+        <ProjectReference Include="Code.Apps.Queries\Code.Apps.Queries.csproj" />
+        <ProjectReference Include="Code.Contexts\Code.Contexts.csproj" />
+        <ProjectReference Include="Code.Nodes.Abstractions\Code.Nodes.Abstractions.csproj" />
     </ItemGroup>
 </Project>

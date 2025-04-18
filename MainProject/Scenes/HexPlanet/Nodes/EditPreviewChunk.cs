@@ -1,13 +1,13 @@
 using System.Collections.Generic;
 using System.Linq;
-using Apps.Contexts;
-using Apps.Nodes;
+using Apps.Queries.Contexts;
+using Contexts;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.ValueObjects.PlanetGenerates;
-using Domains.Repos.PlanetGenerates;
-using Domains.Services.Uis;
+using Domains.Services.Abstractions.Uis;
 using Godot;
-using ZeromaXsPlaygroundProject.Scenes.Framework.Dependency;
+using Infras.Writers.Abstractions.PlanetGenerates;
+using Nodes.Abstractions;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
