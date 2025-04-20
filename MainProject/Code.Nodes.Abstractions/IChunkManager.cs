@@ -1,4 +1,5 @@
 using GodotNodes.Abstractions;
+using GodotNodes.Abstractions.Addition;
 
 namespace Nodes.Abstractions;
 
@@ -7,6 +8,4 @@ namespace Nodes.Abstractions;
 /// Date: 2025-04-17 10:31:17
 public interface IChunkManager : INode3D
 {
-    void InitChunkNodes();
-    void ClearOldData();
 }

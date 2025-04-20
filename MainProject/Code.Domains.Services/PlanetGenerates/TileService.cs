@@ -1,8 +1,9 @@
 using Commons.Utils;
 using Domains.Models.Entities.PlanetGenerates;
-using Domains.Models.Singletons.Planets;
+using Domains.Models.ValueObjects.PlanetGenerates;
 using Domains.Services.Abstractions.PlanetGenerates;
 using Godot;
+using Infras.Readers.Abstractions.Nodes.Singletons;
 using Infras.Writers.Abstractions.PlanetGenerates;
 
 namespace Domains.Services.PlanetGenerates;
@@ -15,7 +16,7 @@ public class TileService(
     IFaceRepo faceRepo,
     IPointService pointService,
     IPointRepo pointRepo,
-    IPlanetConfig planetConfig,
+    IHexPlanetManagerRepo hexPlanetManagerRepo,
     ITileRepo tileRepo) : ITileService
 {
     private readonly VpTree<Vector3> _tilePointVpTree = new();
@@ -32,7 +33,7 @@ public class TileService(
     public void InitTiles()
     {
         var time = Time.GetTicksMsec();
-        pointService.InitPointsAndFaces(false, planetConfig.Divisions);
+        pointService.InitPointsAndFaces(false, hexPlanetManagerRepo.Divisions);
         foreach (var point in pointRepo.GetAllByChunky(false)) // 虽然没有排序，但好像默认也有顺序？不过不能依赖这一点
         {
             var hexFaces = faceRepo.GetOrderedFaces(point);
@@ -71,4 +72,41 @@ public class TileService(
         hexFaceIds
             .Select(faceId => faceRepo.GetById(faceId)!.Center)
             .ToList();
+    
+    public void EditTiles(Tile tile, HexTileDataOverrider tileOverrider, bool isDrag, Tile? previousTile, Tile? dragTile)
+    {
+        foreach (var t in tileRepo.GetTilesInDistance(tile, tileOverrider.BrushSize))
+            EditTile(t, tileOverrider, isDrag, previousTile, dragTile);
+    }
+
+    private void EditTile(Tile tile, HexTileDataOverrider tileOverrider, bool isDrag, Tile? previousTile, Tile? dragTile)
+    {
+        if (tileOverrider.ApplyTerrain)
+            tileRepo.SetTerrainTypeIndex(tile, tileOverrider.ActiveTerrain);
+        if (tileOverrider.ApplyElevation)
+            tileRepo.SetElevation(tile, tileOverrider.ActiveElevation);
+        if (tileOverrider.ApplyWaterLevel)
+            tileRepo.SetWaterLevel(tile, tileOverrider.ActiveWaterLevel);
+        if (tileOverrider.ApplySpecialIndex)
+            tileRepo.SetSpecialIndex(tile, tileOverrider.ActiveSpecialIndex);
+        if (tileOverrider.ApplyUrbanLevel)
+            tileRepo.SetUrbanLevel(tile, tileOverrider.ActiveUrbanLevel);
+        if (tileOverrider.ApplyFarmLevel)
+            tileRepo.SetFarmLevel(tile, tileOverrider.ActiveFarmLevel);
+        if (tileOverrider.ApplyPlantLevel)
+            tileRepo.SetPlantLevel(tile, tileOverrider.ActivePlantLevel);
+        if (tileOverrider.RiverMode == OptionalToggle.No)
+            tileRepo.RemoveRiver(tile);
+        if (tileOverrider.RoadMode == OptionalToggle.No)
+            tileRepo.RemoveRoads(tile);
+        if (tileOverrider.WalledMode != OptionalToggle.Ignore)
+            tileRepo.SetWalled(tile, tileOverrider.WalledMode == OptionalToggle.Yes);
+        if (isDrag)
+        {
+            if (tileOverrider.RiverMode == OptionalToggle.Yes)
+                tileRepo.SetOutgoingRiver(previousTile!, dragTile!);
+            if (tileOverrider.RoadMode == OptionalToggle.Yes)
+                tileRepo.AddRoad(previousTile!, dragTile!);
+        }
+    }
 }

@@ -2,10 +2,10 @@ using Commons.Enums;
 using Commons.Utils;
 using Contexts;
 using Domains.Models.Entities.PlanetGenerates;
-using Domains.Models.Singletons.Planets;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Domains.Services.Abstractions.PlanetGenerates;
 using Godot;
+using Infras.Readers.Abstractions.Nodes.Singletons;
 using Infras.Writers.Abstractions.PlanetGenerates;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 
@@ -41,8 +41,7 @@ public class ChunkTriangulation
     private static IChunkService? _chunkService;
     private static IChunkRepo? _chunkRepo;
     private static IFaceRepo? _faceRepo;
-    private static IPlanetConfig? _planetConfig;
-    private static INoiseConfig? _noiseConfig;
+    private static IHexPlanetManagerRepo? _hexPlanetManagerRepo;
 
     private static void InitServices()
     {
@@ -51,8 +50,7 @@ public class ChunkTriangulation
         _chunkService ??= Context.GetBeanFromHolder<IChunkService>();
         _chunkRepo ??= Context.GetBeanFromHolder<IChunkRepo>();
         _faceRepo ??= Context.GetBeanFromHolder<IFaceRepo>();
-        _planetConfig ??= Context.GetBeanFromHolder<IPlanetConfig>();
-        _noiseConfig ??= Context.GetBeanFromHolder<INoiseConfig>();
+        _hexPlanetManagerRepo ??= Context.GetBeanFromHolder<IHexPlanetManagerRepo>();
     }
 
     #endregion
@@ -64,8 +62,8 @@ public class ChunkTriangulation
 
     private float GetOverrideHeight(Tile tile) =>
         Overrider.IsOverrideTile(tile)
-            ? _tileRepo!.GetOverrideHeight(tile, Overrider)
-            : _tileRepo!.GetHeight(tile);
+            ? _hexPlanetManagerRepo!.GetOverrideHeight(tile, Overrider)
+            : _hexPlanetManagerRepo!.GetHeight(tile);
 
     public void Triangulate(Tile tile)
     {
@@ -87,10 +85,10 @@ public class ChunkTriangulation
         {
             if (!Overrider.HasRiver(tile) && !Overrider.HasRoads(tile))
                 _chunk.Features!.AddFeature(tile,
-                    tile.GetCentroid(_planetConfig!.Radius + GetOverrideHeight(tile)), Overrider);
+                    tile.GetCentroid(_hexPlanetManagerRepo!.Radius + GetOverrideHeight(tile)), Overrider);
             if (Overrider.IsSpecial(tile))
                 _chunk.Features!.AddSpecialFeature(tile,
-                    tile.GetCentroid(_planetConfig!.Radius + GetOverrideHeight(tile)), Overrider);
+                    tile.GetCentroid(_hexPlanetManagerRepo!.Radius + GetOverrideHeight(tile)), Overrider);
         }
     }
 
@@ -99,7 +97,7 @@ public class ChunkTriangulation
     {
         var ids = Vector3.One * tile.Id;
         var height = GetOverrideHeight(tile);
-        var waterHeight = Overrider.WaterSurfaceY(tile);
+        var waterHeight = Overrider.WaterSurfaceY(tile, _hexPlanetManagerRepo!.UnitHeight);
         var preNeighbor = _tileRepo!.GetNeighborByIdx(tile, tile.PreviousIdx(0))!;
         var neighbor = _tileRepo.GetNeighborByIdx(tile, 0)!;
         var nextNeighbor = _tileRepo.GetNeighborByIdx(tile, tile.NextIdx(0))!;
@@ -108,22 +106,22 @@ public class ChunkTriangulation
         for (var i = 0; i < tile.HexFaceIds.Count; i++)
         {
             var neighborHeight = GetOverrideHeight(neighbor);
-            var neighborWaterHeight = Overrider.WaterSurfaceY(neighbor);
+            var neighborWaterHeight = Overrider.WaterSurfaceY(neighbor, _hexPlanetManagerRepo.UnitHeight);
             var preHeight = GetOverrideHeight(preNeighbor);
-            var preWaterHeight = Overrider.WaterSurfaceY(preNeighbor);
+            var preWaterHeight = Overrider.WaterSurfaceY(preNeighbor, _hexPlanetManagerRepo.UnitHeight);
             var nextHeight = GetOverrideHeight(nextNeighbor);
-            var nextWaterHeight = Overrider.WaterSurfaceY(nextNeighbor);
+            var nextWaterHeight = Overrider.WaterSurfaceY(nextNeighbor, _hexPlanetManagerRepo.UnitHeight);
             var avgHeight1 = (preHeight + neighborHeight + height) / 3f;
             var avgHeight2 = (neighborHeight + nextHeight + height) / 3f;
             var avgWaterHeight1 = (preWaterHeight + neighborWaterHeight + waterHeight) / 3f;
             var avgWaterHeight2 = (neighborWaterHeight + nextWaterHeight + waterHeight) / 3f;
 
-            var v1 = tile.GetFirstCorner(i, _planetConfig!.Radius + avgHeight1);
+            var v1 = tile.GetFirstCorner(i, _hexPlanetManagerRepo.Radius + avgHeight1);
             if (i == 0) v0 = v1;
-            var v2 = tile.GetSecondCorner(i, _planetConfig.Radius + avgHeight2);
-            var vw1 = tile.GetFirstCorner(i, _planetConfig.Radius + avgWaterHeight1);
+            var v2 = tile.GetSecondCorner(i, _hexPlanetManagerRepo.Radius + avgHeight2);
+            var vw1 = tile.GetFirstCorner(i, _hexPlanetManagerRepo.Radius + avgWaterHeight1);
             if (i == 0) vw0 = vw1;
-            var vw2 = tile.GetSecondCorner(i, _planetConfig.Radius + avgWaterHeight2);
+            var vw2 = tile.GetSecondCorner(i, _hexPlanetManagerRepo.Radius + avgWaterHeight2);
 
             if (i > 0 && i < tile.HexFaceIds.Count - 1)
             {
@@ -146,24 +144,24 @@ public class ChunkTriangulation
     {
         var ids = Vector3.One * tile.Id;
         var height = GetOverrideHeight(tile);
-        var waterSurfaceHeight = Overrider.WaterSurfaceY(tile);
-        var v0 = tile.GetFirstCorner(0, _planetConfig!.Radius + height);
+        var waterSurfaceHeight = Overrider.WaterSurfaceY(tile, _hexPlanetManagerRepo!.UnitHeight);
+        var v0 = tile.GetFirstCorner(0, _hexPlanetManagerRepo!.Radius + height);
         var v1 = v0;
-        var vw0 = tile.GetFirstCorner(0, _planetConfig.Radius + waterSurfaceHeight);
+        var vw0 = tile.GetFirstCorner(0, _hexPlanetManagerRepo.Radius + waterSurfaceHeight);
         var vw1 = vw0;
         for (var i = 0; i < tile.HexFaceIds.Count; i++)
         {
-            var v2 = tile.GetSecondCorner(i, _planetConfig.Radius + height);
-            var vw2 = tile.GetSecondCorner(i, _planetConfig.Radius + waterSurfaceHeight);
+            var v2 = tile.GetSecondCorner(i, _hexPlanetManagerRepo.Radius + height);
+            var vw2 = tile.GetSecondCorner(i, _hexPlanetManagerRepo.Radius + waterSurfaceHeight);
             var neighbor = _tileRepo!.GetNeighborByIdx(tile, i)!;
             var nIds = new Vector3(tile.Id, neighbor.Id, tile.Id);
             var neighborHeight = GetOverrideHeight(neighbor);
-            var neighborWaterSurfaceHeight = Overrider.WaterSurfaceY(neighbor);
+            var neighborWaterSurfaceHeight = Overrider.WaterSurfaceY(neighbor, _hexPlanetManagerRepo.UnitHeight);
             // 绘制陆地立面（由高的地块绘制）
             if (neighborHeight < height)
             {
-                var vn1 = Math3dUtil.ProjectToSphere(v1, _planetConfig.Radius + neighborHeight);
-                var vn2 = Math3dUtil.ProjectToSphere(v2, _planetConfig.Radius + neighborHeight);
+                var vn1 = Math3dUtil.ProjectToSphere(v1, _hexPlanetManagerRepo.Radius + neighborHeight);
+                var vn2 = Math3dUtil.ProjectToSphere(v2, _hexPlanetManagerRepo.Radius + neighborHeight);
                 _chunk.Terrain!.AddQuad([v1, v2, vn1, vn2],
                     HexMesh.QuadArr(HexMesh.Weights1, HexMesh.Weights2), tis: nIds);
             }
@@ -172,9 +170,9 @@ public class ChunkTriangulation
             if (Overrider.IsUnderwater(tile) && neighborWaterSurfaceHeight < waterSurfaceHeight)
             {
                 var vnw1 = Math3dUtil.ProjectToSphere(vw1,
-                    _planetConfig.Radius + neighborWaterSurfaceHeight);
+                    _hexPlanetManagerRepo.Radius + neighborWaterSurfaceHeight);
                 var vnw2 = Math3dUtil.ProjectToSphere(vw2,
-                    _planetConfig.Radius + neighborWaterSurfaceHeight);
+                    _hexPlanetManagerRepo.Radius + neighborWaterSurfaceHeight);
                 _chunk.Water!.AddQuad([vw1, vw2, vnw1, vnw2],
                     HexMesh.QuadArr(HexMesh.Weights1, HexMesh.Weights2), tis: nIds);
             }
@@ -184,17 +182,17 @@ public class ChunkTriangulation
                 && _chunkRepo!.GetById(neighbor.ChunkId)!.Lod >= ChunkLod.SimpleHex)
             {
                 var vn1 = _faceRepo!.GetCornerByFaceId(neighbor, tile.HexFaceIds[i],
-                    _planetConfig.Radius + neighborHeight, HexMetrics.SolidFactor);
+                    _hexPlanetManagerRepo.Radius + neighborHeight, HexMetrics.SolidFactor);
                 var vn2 = _faceRepo.GetCornerByFaceId(neighbor, tile.HexFaceIds[tile.NextIdx(i)],
-                    _planetConfig.Radius + neighborHeight, HexMetrics.SolidFactor);
+                    _hexPlanetManagerRepo.Radius + neighborHeight, HexMetrics.SolidFactor);
                 _chunk.Terrain!.AddQuad([v1, v2, vn1, vn2],
                     HexMesh.QuadArr(HexMesh.Weights1, HexMesh.Weights2), tis: nIds);
                 if (Overrider.IsUnderwater(tile))
                 {
                     var vnw1 = _faceRepo.GetCornerByFaceId(neighbor, tile.HexFaceIds[i],
-                        _planetConfig.Radius + neighborWaterSurfaceHeight, HexMetrics.WaterFactor);
+                        _hexPlanetManagerRepo.Radius + neighborWaterSurfaceHeight, HexMetrics.WaterFactor);
                     var vnw2 = _faceRepo.GetCornerByFaceId(neighbor, tile.HexFaceIds[tile.NextIdx(i)],
-                        _planetConfig.Radius + neighborWaterSurfaceHeight, HexMetrics.WaterFactor);
+                        _hexPlanetManagerRepo.Radius + neighborWaterSurfaceHeight, HexMetrics.WaterFactor);
                     _chunk.Water!.AddQuad([vw1, vw2, vnw1, vnw2],
                         HexMesh.QuadArr(HexMesh.Weights1, HexMesh.Weights2), tis: nIds);
                 }
@@ -219,16 +217,17 @@ public class ChunkTriangulation
     private void Triangulate(Tile tile, int idx)
     {
         var height = GetOverrideHeight(tile);
-        var v1 = tile.GetFirstSolidCorner(idx, _planetConfig!.Radius + height);
-        var v2 = tile.GetSecondSolidCorner(idx, _planetConfig.Radius + height);
+        var v1 = tile.GetFirstSolidCorner(idx, _hexPlanetManagerRepo!.Radius + height);
+        var v2 = tile.GetSecondSolidCorner(idx, _hexPlanetManagerRepo.Radius + height);
         var e = new EdgeVertices(v1, v2);
-        var centroid = tile.GetCentroid(_planetConfig.Radius + height);
+        var centroid = tile.GetCentroid(_hexPlanetManagerRepo.Radius + height);
         var simple = IsSimple();
         if (Overrider.HasRiver(tile))
         {
             if (Overrider.HasRiverThroughEdge(tile, idx))
             {
-                e.V3 = Math3dUtil.ProjectToSphere(e.V3, _planetConfig.Radius + Overrider.StreamBedY(tile));
+                e.V3 = Math3dUtil.ProjectToSphere(e.V3,
+                    _hexPlanetManagerRepo.Radius + Overrider.StreamBedY(tile, _hexPlanetManagerRepo.UnitHeight));
                 if (Overrider.HasRiverBeginOrEnd(tile))
                     TriangulateWithRiverBeginOrEnd(tile, centroid, e);
                 else TriangulateWithRiver(tile, idx, centroid, e);
@@ -261,8 +260,8 @@ public class ChunkTriangulation
 
     private void TriangulateWater(Tile tile, int idx, Vector3 centroid, bool simple)
     {
-        var waterSurfaceHeight = Overrider.WaterSurfaceY(tile);
-        centroid = Math3dUtil.ProjectToSphere(centroid, _planetConfig!.Radius + waterSurfaceHeight);
+        var waterSurfaceHeight = Overrider.WaterSurfaceY(tile, _hexPlanetManagerRepo!.UnitHeight);
+        centroid = Math3dUtil.ProjectToSphere(centroid, _hexPlanetManagerRepo.Radius + waterSurfaceHeight);
         var neighbor = _tileRepo!.GetNeighborByIdx(tile, idx)!;
         if (!Overrider.IsUnderwater(neighbor))
             TriangulateWaterShore(tile, idx, waterSurfaceHeight, neighbor, centroid, simple);
@@ -274,8 +273,8 @@ public class ChunkTriangulation
         Tile neighbor, Vector3 centroid, bool simple)
     {
         var e1 = new EdgeVertices(
-            tile.GetFirstWaterCorner(idx, _planetConfig!.Radius + waterSurfaceHeight),
-            tile.GetSecondWaterCorner(idx, _planetConfig.Radius + waterSurfaceHeight));
+            tile.GetFirstWaterCorner(idx, _hexPlanetManagerRepo!.Radius + waterSurfaceHeight),
+            tile.GetSecondWaterCorner(idx, _hexPlanetManagerRepo.Radius + waterSurfaceHeight));
         var ids = new Vector3(tile.Id, neighbor.Id, tile.Id);
         if (simple)
             _chunk.Water!.AddTriangle([centroid, e1.V1, e1.V5], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
@@ -288,11 +287,11 @@ public class ChunkTriangulation
         }
 
         // 使用邻居的水表面高度的话，就是希望考虑岸边地块的实际水位。(不然强行拉平岸边的话，角落两个水面不一样高时太多复杂逻辑，bug 太多)
-        var neighborWaterSurfaceHeight = Overrider.WaterSurfaceY(neighbor);
+        var neighborWaterSurfaceHeight = Overrider.WaterSurfaceY(neighbor, _hexPlanetManagerRepo.UnitHeight);
         var cn1 = _faceRepo!.GetCornerByFaceId(neighbor, tile.HexFaceIds[idx],
-            _planetConfig.Radius + neighborWaterSurfaceHeight, HexMetrics.SolidFactor);
+            _hexPlanetManagerRepo.Radius + neighborWaterSurfaceHeight, HexMetrics.SolidFactor);
         var cn2 = _faceRepo.GetCornerByFaceId(neighbor, tile.HexFaceIds[tile.NextIdx(idx)],
-            _planetConfig.Radius + neighborWaterSurfaceHeight, HexMetrics.SolidFactor);
+            _hexPlanetManagerRepo.Radius + neighborWaterSurfaceHeight, HexMetrics.SolidFactor);
         var e2 = new EdgeVertices(cn1, cn2);
         var neighborIdx = tile.GetNeighborIdx(neighbor);
         if (simple)
@@ -318,9 +317,9 @@ public class ChunkTriangulation
         }
 
         var nextNeighbor = _tileRepo!.GetNeighborByIdx(tile, tile.NextIdx(idx))!;
-        var nextNeighborWaterSurfaceHeight = Overrider.WaterSurfaceY(nextNeighbor);
+        var nextNeighborWaterSurfaceHeight = Overrider.WaterSurfaceY(nextNeighbor, _hexPlanetManagerRepo.UnitHeight);
         var cnn = _faceRepo.GetCornerByFaceId(nextNeighbor, tile.HexFaceIds[tile.NextIdx(idx)],
-            _planetConfig.Radius + nextNeighborWaterSurfaceHeight,
+            _hexPlanetManagerRepo.Radius + nextNeighborWaterSurfaceHeight,
             Overrider.IsUnderwater(nextNeighbor) ? HexMetrics.WaterFactor : HexMetrics.SolidFactor);
         ids.Z = nextNeighbor.Id;
         _chunk.WaterShore!.AddTriangle([e1.V5, e2.V5, cnn], [HexMesh.Weights1, HexMesh.Weights2, HexMesh.Weights3],
@@ -360,18 +359,18 @@ public class ChunkTriangulation
 
     private void TriangulateOpenWater(Tile tile, int idx, float waterSurfaceHeight, Tile neighbor, Vector3 centroid)
     {
-        var c1 = tile.GetFirstWaterCorner(idx, _planetConfig!.Radius + waterSurfaceHeight);
-        var c2 = tile.GetSecondWaterCorner(idx, _planetConfig.Radius + waterSurfaceHeight);
+        var c1 = tile.GetFirstWaterCorner(idx, _hexPlanetManagerRepo!.Radius + waterSurfaceHeight);
+        var c2 = tile.GetSecondWaterCorner(idx, _hexPlanetManagerRepo.Radius + waterSurfaceHeight);
         var ids = Vector3.One * tile.Id;
         _chunk.Water!.AddTriangle([centroid, c1, c2], HexMesh.TriArr(HexMesh.Weights1), tis: ids);
         // 由更大 Id 的地块绘制水域连接，或者是由编辑地块绘制和不编辑的邻接地块间的连接
         if (tile.Id <= neighbor.Id && !Overrider.IsOverridingTileConnection(tile, neighbor))
             return;
-        var neighborWaterSurfaceHeight = Overrider.WaterSurfaceY(neighbor);
+        var neighborWaterSurfaceHeight = Overrider.WaterSurfaceY(neighbor, _hexPlanetManagerRepo.UnitHeight);
         var cn1 = _faceRepo!.GetCornerByFaceId(neighbor, tile.HexFaceIds[idx],
-            _planetConfig.Radius + neighborWaterSurfaceHeight, HexMetrics.WaterFactor);
+            _hexPlanetManagerRepo.Radius + neighborWaterSurfaceHeight, HexMetrics.WaterFactor);
         var cn2 = _faceRepo.GetCornerByFaceId(neighbor, tile.HexFaceIds[tile.NextIdx(idx)],
-            _planetConfig.Radius + neighborWaterSurfaceHeight, HexMetrics.WaterFactor);
+            _hexPlanetManagerRepo.Radius + neighborWaterSurfaceHeight, HexMetrics.WaterFactor);
         ids.Y = neighbor.Id;
         _chunk.Water.AddQuad([c1, c2, cn1, cn2], HexMesh.QuadArr(HexMesh.Weights1, HexMesh.Weights2), tis: ids);
 
@@ -382,7 +381,8 @@ public class ChunkTriangulation
         if (!Overrider.IsUnderwater(nextNeighbor))
             return;
         var cnn = _faceRepo.GetCornerByFaceId(nextNeighbor, tile.HexFaceIds[tile.NextIdx(idx)],
-            _planetConfig.Radius + Overrider.WaterSurfaceY(nextNeighbor), HexMetrics.WaterFactor);
+            _hexPlanetManagerRepo.Radius + Overrider.WaterSurfaceY(nextNeighbor, _hexPlanetManagerRepo.UnitHeight),
+            HexMetrics.WaterFactor);
         ids.Z = nextNeighbor.Id;
         _chunk.Water.AddTriangle([c2, cn2, cnn], [HexMesh.Weights1, HexMesh.Weights2, HexMesh.Weights3], tis: ids);
     }
@@ -395,12 +395,12 @@ public class ChunkTriangulation
         {
             if (Overrider.HasRiverThroughEdge(tile, tile.PreviousIdx(idx)))
                 centroid = tile.GetSolidEdgeMiddle(idx,
-                    _planetConfig!.Radius + GetOverrideHeight(tile),
+                    _hexPlanetManagerRepo!.Radius + GetOverrideHeight(tile),
                     0.5f * HexMetrics.InnerToOuter);
             else if (!tile.IsPentagon() && Overrider.HasRiverThroughEdge(tile, tile.Previous2Idx(idx)))
                 // 注意五边形没有直线河流，一边临河另一边隔一个方向临河的情况是对应钝角河的外河岸，依然在 centroid
                 centroid = tile.GetFirstSolidCorner(idx,
-                    _planetConfig!.Radius + GetOverrideHeight(tile),
+                    _hexPlanetManagerRepo!.Radius + GetOverrideHeight(tile),
                     0.25f);
         }
         else if (!tile.IsPentagon()
@@ -408,7 +408,7 @@ public class ChunkTriangulation
                  && Overrider.HasRiverThroughEdge(tile, tile.Next2Idx(idx)))
             // 注意五边形没有直线河流，一边临河另一边隔一个方向临河的情况是对应钝角河的外河岸，依然在 centroid
             centroid = tile.GetSecondSolidCorner(idx,
-                _planetConfig!.Radius + GetOverrideHeight(tile),
+                _hexPlanetManagerRepo!.Radius + GetOverrideHeight(tile),
                 0.25f);
 
         var m = new EdgeVertices(centroid.Lerp(e.V1, 0.5f), centroid.Lerp(e.V5, 0.5f));
@@ -433,10 +433,10 @@ public class ChunkTriangulation
             var riverBeginOrEndIdx = Overrider.HasIncomingRiver(tile) ? incomingRiverIdx : outgoingRiverIdx;
             if (tile.IsPentagon())
                 roadCenter += tile.GetFirstSolidCorner(tile.OppositeIdx(riverBeginOrEndIdx),
-                    _planetConfig!.Radius + GetOverrideHeight(tile), HexMetrics.OuterToInner / 3f) - centroid;
+                    _hexPlanetManagerRepo!.Radius + GetOverrideHeight(tile), HexMetrics.OuterToInner / 3f) - centroid;
             else
                 roadCenter += tile.GetSolidEdgeMiddle(tile.OppositeIdx(riverBeginOrEndIdx),
-                    _planetConfig!.Radius + GetOverrideHeight(tile), 1f / 3f) - centroid;
+                    _hexPlanetManagerRepo!.Radius + GetOverrideHeight(tile), 1f / 3f) - centroid;
         }
         else
         {
@@ -448,13 +448,13 @@ public class ChunkTriangulation
                 {
                     if (!hasRoadThroughEdge && !Overrider.HasRoadThroughEdge(tile, tile.NextIdx(idx))) return;
                     corner = tile.GetSecondSolidCorner(idx,
-                        _planetConfig!.Radius + GetOverrideHeight(tile));
+                        _hexPlanetManagerRepo!.Radius + GetOverrideHeight(tile));
                 }
                 else
                 {
                     if (!hasRoadThroughEdge && !Overrider.HasRoadThroughEdge(tile, tile.PreviousIdx(idx))) return;
                     corner = tile.GetFirstSolidCorner(idx,
-                        _planetConfig!.Radius + GetOverrideHeight(tile));
+                        _hexPlanetManagerRepo!.Radius + GetOverrideHeight(tile));
                 }
 
                 roadCenter += (corner - centroid) * 0.5f;
@@ -468,20 +468,20 @@ public class ChunkTriangulation
             {
                 // 河流走势是逆时针锐角的情况
                 roadCenter -= tile.GetSecondCorner(incomingRiverIdx,
-                    _planetConfig!.Radius + GetOverrideHeight(tile), 0.2f) - centroid;
+                    _hexPlanetManagerRepo!.Radius + GetOverrideHeight(tile), 0.2f) - centroid;
             }
             else if (incomingRiverIdx == tile.NextIdx(outgoingRiverIdx))
             {
                 // 河流走势是顺时针锐角的情况
                 roadCenter -= tile.GetFirstCorner(incomingRiverIdx,
-                    _planetConfig!.Radius + GetOverrideHeight(tile), 0.2f) - centroid;
+                    _hexPlanetManagerRepo!.Radius + GetOverrideHeight(tile), 0.2f) - centroid;
             }
             else if (previousHasRiver && nextHasRiver)
             {
                 // 河流走势是钝角的情况，且当前方向被夹在河流出入角中间
                 if (!hasRoadThroughEdge) return;
                 var offset = tile.GetSolidEdgeMiddle(idx,
-                    _planetConfig!.Radius + GetOverrideHeight(tile),
+                    _hexPlanetManagerRepo!.Radius + GetOverrideHeight(tile),
                     HexMetrics.InnerToOuter);
                 roadCenter += (offset - centroid) * 0.7f;
                 centroid += (offset - centroid) * 0.5f;
@@ -493,7 +493,7 @@ public class ChunkTriangulation
                 if (!Overrider.HasRoadThroughEdge(tile, firstIdx) &&
                     !Overrider.HasRoadThroughEdge(tile, tile.NextIdx(firstIdx))) return;
                 var offset = tile.GetSecondSolidCorner(firstIdx,
-                    _planetConfig!.Radius + GetOverrideHeight(tile));
+                    _hexPlanetManagerRepo!.Radius + GetOverrideHeight(tile));
                 roadCenter += (offset - centroid) * 0.25f * HexMetrics.OuterToInner;
                 if (idx == firstIdx && Overrider.HasRoadThroughEdge(tile, tile.Previous2Idx(firstIdx)))
                     _chunk.Features!.AddBridge(tile, roadCenter,
@@ -514,7 +514,7 @@ public class ChunkTriangulation
                     && !Overrider.HasRoadThroughEdge(tile, tile.NextIdx(middleIdx)))
                     return;
                 var offset = tile.GetSolidEdgeMiddle(middleIdx,
-                    _planetConfig!.Radius + GetOverrideHeight(tile));
+                    _hexPlanetManagerRepo!.Radius + GetOverrideHeight(tile));
                 roadCenter += (offset - centroid) * 0.25f;
                 if (idx == middleIdx && Overrider.HasRoadThroughEdge(tile, tile.OppositeIdx(idx)))
                     _chunk.Features!.AddBridge(tile, roadCenter,
@@ -542,7 +542,8 @@ public class ChunkTriangulation
         {
             var reversed = Overrider.HasIncomingRiver(tile);
             var ids = Vector3.One * tile.Id;
-            var riverSurfaceHeight = _planetConfig!.Radius + Overrider.RiverSurfaceY(tile);
+            var riverSurfaceHeight = _hexPlanetManagerRepo!.Radius +
+                                     Overrider.RiverSurfaceY(tile, _hexPlanetManagerRepo.UnitHeight);
             TriangulateRiverQuad(m.V2, m.V4, e.V2, e.V4, riverSurfaceHeight, 0.6f, reversed, ids);
             centroid = Math3dUtil.ProjectToSphere(centroid, riverSurfaceHeight);
             m.V2 = Math3dUtil.ProjectToSphere(m.V2, riverSurfaceHeight);
@@ -564,8 +565,8 @@ public class ChunkTriangulation
         {
             // 直线河流
             centerL = tile.GetFirstSolidCorner(tile.PreviousIdx(idx),
-                _planetConfig!.Radius + height, 0.25f);
-            centerR = tile.GetSecondSolidCorner(tile.NextIdx(idx), _planetConfig.Radius + height,
+                _hexPlanetManagerRepo!.Radius + height, 0.25f);
+            centerR = tile.GetSecondSolidCorner(tile.NextIdx(idx), _hexPlanetManagerRepo.Radius + height,
                 0.25f);
         }
         else if (Overrider.HasRiverThroughEdge(tile, tile.NextIdx(idx)))
@@ -585,13 +586,13 @@ public class ChunkTriangulation
             // 钝角弯
             centerL = centroid;
             centerR = tile.GetSolidEdgeMiddle(tile.NextIdx(idx),
-                _planetConfig!.Radius + height, 0.5f * HexMetrics.InnerToOuter);
+                _hexPlanetManagerRepo!.Radius + height, 0.5f * HexMetrics.InnerToOuter);
         }
         else if (Overrider.HasRiverThroughEdge(tile, tile.Previous2Idx(idx)))
         {
             // 钝角弯
             centerL = tile.GetSolidEdgeMiddle(tile.PreviousIdx(idx),
-                _planetConfig!.Radius + height, 0.5f * HexMetrics.InnerToOuter);
+                _hexPlanetManagerRepo!.Radius + height, 0.5f * HexMetrics.InnerToOuter);
             centerR = centroid;
         }
         else
@@ -614,11 +615,11 @@ public class ChunkTriangulation
         if (!Overrider.IsUnderwater(tile))
         {
             var reversed = Overrider.HasIncomingRiverThroughEdge(tile, idx);
-            var riverSurfaceHeight = Overrider.RiverSurfaceY(tile);
+            var riverSurfaceHeight = Overrider.RiverSurfaceY(tile, _hexPlanetManagerRepo!.UnitHeight);
             TriangulateRiverQuad(centerL, centerR, m.V2, m.V4,
-                _planetConfig!.Radius + riverSurfaceHeight, 0.4f, reversed, ids);
+                _hexPlanetManagerRepo!.Radius + riverSurfaceHeight, 0.4f, reversed, ids);
             TriangulateRiverQuad(m.V2, m.V4, e.V2, e.V4,
-                _planetConfig.Radius + riverSurfaceHeight, 0.6f, reversed, ids);
+                _hexPlanetManagerRepo.Radius + riverSurfaceHeight, 0.6f, reversed, ids);
         }
     }
 
@@ -738,10 +739,10 @@ public class ChunkTriangulation
         v2 = Math3dUtil.ProjectToSphere(v2, height1);
         v3 = Math3dUtil.ProjectToSphere(v3, height2);
         v4 = Math3dUtil.ProjectToSphere(v4, height2);
-        v1 = _noiseConfig!.Perturb(v1);
-        v2 = _noiseConfig.Perturb(v2);
-        v3 = _noiseConfig.Perturb(v3);
-        v4 = _noiseConfig.Perturb(v4);
+        v1 = _hexPlanetManagerRepo!.Perturb(v1);
+        v2 = _hexPlanetManagerRepo.Perturb(v2);
+        v3 = _hexPlanetManagerRepo.Perturb(v3);
+        v4 = _hexPlanetManagerRepo.Perturb(v4);
         var t = (waterHeight - height2) / (height1 - height2);
         v3 = v3.Lerp(v1, t);
         v4 = v4.Lerp(v2, t);
@@ -756,38 +757,43 @@ public class ChunkTriangulation
         var neighborHeight = GetOverrideHeight(neighbor);
         // 连接将由更低的地块或相同高度时 Id 更大的地块生成，或者是编辑地块与非编辑地块间的连接
         if ((tileHeight > neighborHeight
-             || (Mathf.Abs(tileHeight - neighborHeight) < 0.0001f * _planetConfig!.StandardScale
+             || (Mathf.Abs(tileHeight - neighborHeight) < 0.0001f * _hexPlanetManagerRepo!.StandardScale
                  && tile.Id < neighbor.Id))
             && !Overrider.IsOverridingTileConnection(tile, neighbor)) return;
         var vn1 = _faceRepo!.GetCornerByFaceId(neighbor, tile.HexFaceIds[idx],
-            _planetConfig!.Radius + neighborHeight, HexMetrics.SolidFactor);
+            _hexPlanetManagerRepo!.Radius + neighborHeight, HexMetrics.SolidFactor);
         var vn2 = _faceRepo.GetCornerByFaceId(neighbor, tile.HexFaceIds[tile.NextIdx(idx)],
-            _planetConfig.Radius + neighborHeight, HexMetrics.SolidFactor);
+            _hexPlanetManagerRepo.Radius + neighborHeight, HexMetrics.SolidFactor);
         var en = new EdgeVertices(vn1, vn2);
         var hasRiver = Overrider.HasRiverThroughEdge(tile, idx);
         var hasRoad = Overrider.HasRoadThroughEdge(tile, idx);
         if (hasRiver)
         {
-            en.V3 = Math3dUtil.ProjectToSphere(en.V3, _planetConfig.Radius + Overrider.StreamBedY(neighbor));
+            en.V3 = Math3dUtil.ProjectToSphere(en.V3,
+                _hexPlanetManagerRepo.Radius + Overrider.StreamBedY(neighbor, _hexPlanetManagerRepo.UnitHeight));
             var ids = new Vector3(tile.Id, neighbor.Id, tile.Id);
             if (!Overrider.IsUnderwater(tile))
             {
                 if (!Overrider.IsUnderwater(neighbor))
                     TriangulateRiverQuad(e.V2, e.V4, en.V2, en.V4,
-                        _planetConfig.Radius + Overrider.RiverSurfaceY(tile),
-                        _planetConfig.Radius + Overrider.RiverSurfaceY(neighbor), 0.8f,
+                        _hexPlanetManagerRepo.Radius + Overrider.RiverSurfaceY(tile, _hexPlanetManagerRepo.UnitHeight),
+                        _hexPlanetManagerRepo.Radius +
+                        Overrider.RiverSurfaceY(neighbor, _hexPlanetManagerRepo.UnitHeight), 0.8f,
                         Overrider.HasIncomingRiver(tile) && Overrider.HasIncomingRiverThroughEdge(tile, idx), ids);
                 else if (Overrider.Elevation(tile) > Overrider.Elevation(neighbor))
                     TriangulateWaterfallInWater(e.V2, e.V4, en.V2, en.V4,
-                        _planetConfig.Radius + Overrider.RiverSurfaceY(tile),
-                        _planetConfig.Radius + Overrider.RiverSurfaceY(neighbor),
-                        _planetConfig.Radius + Overrider.WaterSurfaceY(neighbor), ids);
+                        _hexPlanetManagerRepo.Radius + Overrider.RiverSurfaceY(tile, _hexPlanetManagerRepo.UnitHeight),
+                        _hexPlanetManagerRepo.Radius +
+                        Overrider.RiverSurfaceY(neighbor, _hexPlanetManagerRepo.UnitHeight),
+                        _hexPlanetManagerRepo.Radius +
+                        Overrider.WaterSurfaceY(neighbor, _hexPlanetManagerRepo.UnitHeight), ids);
             }
             else if (!Overrider.IsUnderwater(neighbor) && Overrider.Elevation(neighbor) > Overrider.Elevation(tile))
                 TriangulateWaterfallInWater(en.V4, en.V2, e.V4, e.V2,
-                    _planetConfig.Radius + Overrider.RiverSurfaceY(neighbor),
-                    _planetConfig.Radius + Overrider.RiverSurfaceY(tile),
-                    _planetConfig.Radius + Overrider.WaterSurfaceY(tile), ids);
+                    _hexPlanetManagerRepo.Radius + Overrider.RiverSurfaceY(neighbor, _hexPlanetManagerRepo.UnitHeight),
+                    _hexPlanetManagerRepo.Radius + Overrider.RiverSurfaceY(tile, _hexPlanetManagerRepo.UnitHeight),
+                    _hexPlanetManagerRepo.Radius + Overrider.WaterSurfaceY(tile, _hexPlanetManagerRepo.UnitHeight),
+                    ids);
         }
 
         if (Lod > ChunkLod.SimpleHex && Overrider.GetEdgeType(tile, neighbor) == HexEdgeType.Slope)
@@ -802,12 +808,12 @@ public class ChunkTriangulation
         var preNeighborHeight = GetOverrideHeight(preNeighbor);
         // 连接角落的三角形由周围 3 个地块中最低或者一样高时 Id 最大的生成，或者是编辑地块与非编辑地块间的连接三角形
         if (tileHeight < preNeighborHeight
-            || (Mathf.Abs(tileHeight - preNeighborHeight) < 0.0001f * _planetConfig.StandardScale
+            || (Mathf.Abs(tileHeight - preNeighborHeight) < 0.0001f * _hexPlanetManagerRepo.StandardScale
                 && tile.Id > preNeighbor.Id)
             || Overrider.IsOverridingTileConnection(tile, preNeighbor))
         {
             var vpn = _faceRepo.GetCornerByFaceId(preNeighbor, tile.HexFaceIds[idx],
-                _planetConfig.Radius + preNeighborHeight, HexMetrics.SolidFactor);
+                _hexPlanetManagerRepo.Radius + preNeighborHeight, HexMetrics.SolidFactor);
             TriangulateCorner(e.V1, tile, vpn, preNeighbor, vn1, neighbor);
         }
     }
@@ -861,7 +867,7 @@ public class ChunkTriangulation
         Vector3 left, Tile leftTile, Vector3 right, Tile rightTile)
     {
         var b = 1f / Mathf.Abs(Overrider.Elevation(rightTile) - Overrider.Elevation(beginTile));
-        var boundary = _noiseConfig!.Perturb(begin).Lerp(_noiseConfig.Perturb(right), b);
+        var boundary = _hexPlanetManagerRepo!.Perturb(begin).Lerp(_hexPlanetManagerRepo.Perturb(right), b);
         var boundaryWeights = HexMesh.Weights1.Lerp(HexMesh.Weights3, b);
         var ids = new Vector3(beginTile.Id, leftTile.Id, rightTile.Id);
         TriangulateBoundaryTriangle(begin, HexMesh.Weights1, left, HexMesh.Weights2, boundary, boundaryWeights, ids);
@@ -869,7 +875,8 @@ public class ChunkTriangulation
             TriangulateBoundaryTriangle(left, HexMesh.Weights2, right, HexMesh.Weights3,
                 boundary, boundaryWeights, ids);
         else
-            _chunk.Terrain!.AddTriangleUnperturbed([_noiseConfig.Perturb(left), _noiseConfig.Perturb(right), boundary],
+            _chunk.Terrain!.AddTriangleUnperturbed(
+                [_hexPlanetManagerRepo.Perturb(left), _hexPlanetManagerRepo.Perturb(right), boundary],
                 [HexMesh.Weights2, HexMesh.Weights3, boundaryWeights], tis: ids);
     }
 
@@ -878,7 +885,7 @@ public class ChunkTriangulation
         Vector3 left, Tile leftTile, Vector3 right, Tile rightTile)
     {
         var b = 1f / Mathf.Abs(Overrider.Elevation(leftTile) - Overrider.Elevation(beginTile));
-        var boundary = _noiseConfig!.Perturb(begin).Lerp(_noiseConfig.Perturb(left), b);
+        var boundary = _hexPlanetManagerRepo!.Perturb(begin).Lerp(_hexPlanetManagerRepo.Perturb(left), b);
         var boundaryWeights = HexMesh.Weights1.Lerp(HexMesh.Weights2, b);
         var ids = new Vector3(beginTile.Id, leftTile.Id, rightTile.Id);
         TriangulateBoundaryTriangle(right, HexMesh.Weights3, begin, HexMesh.Weights1, boundary, boundaryWeights, ids);
@@ -886,7 +893,8 @@ public class ChunkTriangulation
             TriangulateBoundaryTriangle(left, HexMesh.Weights2, right, HexMesh.Weights3,
                 boundary, boundaryWeights, ids);
         else
-            _chunk.Terrain!.AddTriangleUnperturbed([_noiseConfig.Perturb(left), _noiseConfig.Perturb(right), boundary],
+            _chunk.Terrain!.AddTriangleUnperturbed(
+                [_hexPlanetManagerRepo.Perturb(left), _hexPlanetManagerRepo.Perturb(right), boundary],
                 [HexMesh.Weights2, HexMesh.Weights3, boundaryWeights], tis: ids);
     }
 
@@ -894,20 +902,20 @@ public class ChunkTriangulation
     private void TriangulateBoundaryTriangle(Vector3 begin, Color beginWeight,
         Vector3 left, Color leftWeight, Vector3 boundary, Color boundaryWeight, Vector3 ids)
     {
-        var v2 = _noiseConfig!.Perturb(HexMetrics.TerraceLerp(begin, left, 1));
+        var v2 = _hexPlanetManagerRepo!.Perturb(HexMetrics.TerraceLerp(begin, left, 1));
         var w2 = HexMetrics.TerraceLerp(beginWeight, leftWeight, 1);
-        _chunk.Terrain!.AddTriangleUnperturbed([_noiseConfig.Perturb(begin), v2, boundary],
+        _chunk.Terrain!.AddTriangleUnperturbed([_hexPlanetManagerRepo.Perturb(begin), v2, boundary],
             [beginWeight, w2, boundaryWeight], tis: ids);
         for (var i = 2; i < HexMetrics.TerraceSteps; i++)
         {
             var v1 = v2;
             var w1 = w2;
-            v2 = _noiseConfig.Perturb(HexMetrics.TerraceLerp(begin, left, i));
+            v2 = _hexPlanetManagerRepo.Perturb(HexMetrics.TerraceLerp(begin, left, i));
             w2 = HexMetrics.TerraceLerp(beginWeight, leftWeight, i);
             _chunk.Terrain.AddTriangleUnperturbed([v1, v2, boundary], [w1, w2, boundaryWeight], tis: ids);
         }
 
-        _chunk.Terrain.AddTriangleUnperturbed([v2, _noiseConfig.Perturb(left), boundary],
+        _chunk.Terrain.AddTriangleUnperturbed([v2, _hexPlanetManagerRepo.Perturb(left), boundary],
             [w2, leftWeight, boundaryWeight], tis: ids);
     }
 

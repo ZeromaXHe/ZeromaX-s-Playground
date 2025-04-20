@@ -1,8 +1,8 @@
 using Apps.Queries.Contexts;
-using Apps.Queries.Events;
 using Contexts;
-using Domains.Models.Singletons.Planets;
 using Godot;
+using GodotNodes.Abstractions.Addition;
+using Infras.Readers.Abstractions.Nodes.Singletons;
 using Nodes.Abstractions;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
@@ -13,10 +13,14 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 [Tool]
 public partial class OrbitCamera : Node3D, IOrbitCamera
 {
+    public event IOrbitCamera.MovedEvent? Moved;
+    public event IOrbitCamera.TransformedEvent? Transformed;
+    
     public OrbitCamera()
     {
         InitService();
         NodeContext.Instance.RegisterSingleton<IOrbitCamera>(this);
+        Context.RegisterSingletonToHolder<IOrbitCamera>(this);
     }
 
     [Export] private Camera3D? _camera; // 设置摄像机节点
@@ -30,9 +34,9 @@ public partial class OrbitCamera : Node3D, IOrbitCamera
         {
             _radius = value;
             if (!_ready) return;
-            _focusBase!.Position = Vector3.Forward * value * (1 + _planetConfig!.MaxHeightRatio);
-            _focusBox!.Size = Vector3.One * value * _boxSizeMultiplier * _planetConfig.StandardScale;
-            _backBox!.Size = Vector3.One * value * _boxSizeMultiplier * _planetConfig.StandardScale;
+            _focusBase!.Position = Vector3.Forward * value * (1 + _hexPlanetManagerRepo!.MaxHeightRatio);
+            _focusBox!.Size = Vector3.One * value * _boxSizeMultiplier * _hexPlanetManagerRepo.StandardScale;
+            _backBox!.Size = Vector3.One * value * _boxSizeMultiplier * _hexPlanetManagerRepo.StandardScale;
             _light!.SpotRange = value * _lightRangeMultiplier;
             _light.Position = Vector3.Up * value * _lightRangeMultiplier * 0.5f;
         }
@@ -74,11 +78,13 @@ public partial class OrbitCamera : Node3D, IOrbitCamera
 
     #region 服务
 
-    private IPlanetConfig? _planetConfig;
+    private IHexPlanetManagerRepo? _hexPlanetManagerRepo;
+    private IMiniMapManagerRepo? _miniMapManagerRepo;
 
     private void InitService()
     {
-        _planetConfig = Context.GetBeanFromHolder<IPlanetConfig>();
+        _hexPlanetManagerRepo = Context.GetBeanFromHolder<IHexPlanetManagerRepo>();
+        _miniMapManagerRepo = Context.GetBeanFromHolder<IMiniMapManagerRepo>();
     }
 
     #endregion
@@ -122,9 +128,9 @@ public partial class OrbitCamera : Node3D, IOrbitCamera
             if (!_ready) return;
             _focusBackStick!.Position =
                 _focusBackStick.Basis * Vector3.Back * Mathf.Lerp(0f,
-                    _focusBackZoom * Radius * _planetConfig!.StandardScale, value);
+                    _focusBackZoom * Radius * _hexPlanetManagerRepo!.StandardScale, value);
             var distance = Mathf.Lerp(_stickMinZoom,
-                _stickMaxZoom * _planetConfig.StandardScale * 2f,
+                _stickMaxZoom * _hexPlanetManagerRepo.StandardScale * 2f,
                 value) * Radius;
             _stick!.Position = Vector3.Back * distance;
             var angle = Mathf.Lerp(_swivelMinZoom, _swivelMaxZoom, value);
@@ -143,7 +149,7 @@ public partial class OrbitCamera : Node3D, IOrbitCamera
         InitOnReadyNodes();
         if (!Engine.IsEditorHint())
         {
-            OrbitCameraEvent.Instance.NewDestination += SetAutoPilot;
+            _miniMapManagerRepo!.Clicked += SetAutoPilot;
             // 必须在 _ready = true 后面，触发各数据 setter 的初始化
             Reset();
         }
@@ -154,7 +160,7 @@ public partial class OrbitCamera : Node3D, IOrbitCamera
     public override void _ExitTree()
     {
         if (!Engine.IsEditorHint())
-            OrbitCameraEvent.Instance.NewDestination -= SetAutoPilot;
+            _miniMapManagerRepo!.Clicked -= SetAutoPilot;
         NodeContext.Instance.DestroySingleton<IOrbitCamera>();
     }
 
@@ -186,6 +192,8 @@ public partial class OrbitCamera : Node3D, IOrbitCamera
 
     private const float MouseMoveSensitivity = 0.01f;
 
+    public NodeEvent NodeEvent { get; } = new(process: true);
+
     public override void _Process(double delta)
     {
         if (Engine.IsEditorHint())
@@ -215,7 +223,7 @@ public partial class OrbitCamera : Node3D, IOrbitCamera
             if (!lookDir.IsEqualApprox(GetFocusBasePos().Normalized()))
             {
                 LookAt(lookDir, _focusBase!.GlobalBasis.Z);
-                OrbitCameraEvent.EmitMoved(GetFocusBasePos(), floatDelta);
+                Moved?.Invoke(GetFocusBasePos(), floatDelta);
                 transformed = true;
             }
 
@@ -239,7 +247,7 @@ public partial class OrbitCamera : Node3D, IOrbitCamera
         }
 
         if (transformed)
-            OrbitCameraEvent.EmitTransformed(_camRig!.GlobalTransform, floatDelta);
+            Transformed?.Invoke(_camRig!.GlobalTransform, floatDelta);
 
         // 根据相对于全局太阳光的位置，控制灯光亮度
         if (_sun == null)
@@ -276,7 +284,7 @@ public partial class OrbitCamera : Node3D, IOrbitCamera
         _antiStuckSpeedMultiplier = prePos.IsEqualApprox(GetFocusBasePos())
             ? _antiStuckSpeedMultiplier * 1.5f
             : 1f;
-        OrbitCameraEvent.EmitMoved(GetFocusBasePos(), delta);
+        Moved?.Invoke(GetFocusBasePos(), delta);
         // 打断自动跳转
         CancelAutoPilot();
         return true;
@@ -290,13 +298,13 @@ public partial class OrbitCamera : Node3D, IOrbitCamera
         {
             var zoomDelta = 0.025f * e.Factor * (e.ButtonIndex == MouseButton.WheelUp ? 1f : -1f);
             Zoom = Mathf.Clamp(Zoom + zoomDelta, 0f, 1f);
-            OrbitCameraEvent.EmitTransformed(_camRig!.GlobalTransform, (float)GetProcessDeltaTime());
+            Transformed?.Invoke(_camRig!.GlobalTransform, (float)GetProcessDeltaTime());
         }
     }
 
     public void Reset()
     {
-        Radius = _planetConfig!.Radius;
+        Radius = _hexPlanetManagerRepo!.Radius;
         Zoom = 1f;
     }
 }

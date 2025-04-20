@@ -1,8 +1,6 @@
 using Commons.Enums;
 using Commons.Utils;
-using Contexts.Abstractions;
 using Domains.Models.Entities.PlanetGenerates;
-using Domains.Models.Singletons.Planets;
 
 namespace Domains.Models.ValueObjects.PlanetGenerates;
 
@@ -15,18 +13,9 @@ public enum OptionalToggle
 
 public struct HexTileDataOverrider
 {
-    public HexTileDataOverrider() => InitServices();
-
-    #region 服务
-
-    private static IPlanetConfig? _planetConfig;
-
-    private static void InitServices()
+    public HexTileDataOverrider()
     {
-        _planetConfig ??= ContextHolder.BeanContext?.GetBean<IPlanetConfig>();
     }
-
-    #endregion
 
     public bool EditMode;
     public bool ApplyTerrain;
@@ -66,20 +55,20 @@ public struct HexTileDataOverrider
     public bool IsUnderwater(Tile tile) =>
         IsOverrideTile(tile) ? WaterLevel(tile) > Elevation(tile) : tile.Data.IsUnderwater;
 
-    public float StreamBedY(Tile tile) =>
+    public float StreamBedY(Tile tile, float unitHeight) =>
         IsOverrideTile(tile)
-            ? (Elevation(tile) + HexMetrics.StreamBedElevationOffset) * _planetConfig!.UnitHeight
-            : tile.Data.StreamBedY;
+            ? (Elevation(tile) + HexMetrics.StreamBedElevationOffset) * unitHeight
+            : tile.Data.StreamBedY(unitHeight);
 
-    public float RiverSurfaceY(Tile tile) =>
+    public float RiverSurfaceY(Tile tile, float unitHeight) =>
         IsOverrideTile(tile)
-            ? (Elevation(tile) + HexMetrics.WaterElevationOffset) * _planetConfig!.UnitHeight
-            : tile.Data.RiverSurfaceY;
+            ? (Elevation(tile) + HexMetrics.WaterElevationOffset) * unitHeight
+            : tile.Data.RiverSurfaceY(unitHeight);
 
-    public float WaterSurfaceY(Tile tile) =>
+    public float WaterSurfaceY(Tile tile, float unitHeight) =>
         IsOverrideTile(tile)
-            ? (WaterLevel(tile) + HexMetrics.WaterElevationOffset) * _planetConfig!.UnitHeight
-            : tile.Data.WaterSurfaceY;
+            ? (WaterLevel(tile) + HexMetrics.WaterElevationOffset) * unitHeight
+            : tile.Data.WaterSurfaceY(unitHeight);
 
     public bool HasRiver(Tile tile) => !IsOverrideNoRiver(tile) && tile.Data.HasRiver;
     public bool HasIncomingRiver(Tile tile) => !IsOverrideNoRiver(tile) && tile.Data.HasIncomingRiver;

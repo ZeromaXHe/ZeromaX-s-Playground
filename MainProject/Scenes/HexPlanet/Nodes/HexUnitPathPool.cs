@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Domains.Models.Entities.PlanetGenerates;
 using Godot;
+using GodotNodes.Abstractions.Addition;
 using Nodes.Abstractions;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
@@ -10,6 +11,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 /// Date: 2025-03-02 12:48
 public partial class HexUnitPathPool : Node3D, IHexUnitPathPool
 {
+    public NodeEvent? NodeEvent => null;
     [Export] private PackedScene? _pathScene;
 
     private readonly List<HexUnitPath> _paths = [];

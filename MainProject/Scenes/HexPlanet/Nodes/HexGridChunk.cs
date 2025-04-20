@@ -4,12 +4,12 @@ using Apps.Queries.Abstractions.Features;
 using Commons.Utils;
 using Contexts;
 using Domains.Models.Entities.PlanetGenerates;
-using Domains.Models.Singletons.Planets;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Domains.Services.Abstractions.Shaders;
-using Domains.Services.Abstractions.Uis;
 using Godot;
+using GodotNodes.Abstractions.Addition;
 using Infras.Readers.Abstractions.Caches;
+using Infras.Readers.Abstractions.Nodes.Singletons;
 using Infras.Writers.Abstractions.PlanetGenerates;
 using Nodes.Abstractions;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
@@ -23,6 +23,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 public partial class HexGridChunk : Node3D, IChunk, IHexGridChunk
 {
     public HexGridChunk() => InitServices();
+    public NodeEvent? NodeEvent => null;
 
     [Export] public HexMesh? Terrain { get; set; }
     [Export] public HexMesh? Rivers { get; set; }
@@ -52,8 +53,8 @@ public partial class HexGridChunk : Node3D, IChunk, IHexGridChunk
     private static IChunkRepo? _chunkRepo;
     private static ITileRepo? _tileRepo;
     private static ITileShaderService? _tileShaderService;
-    private static IPlanetConfig? _planetConfig;
-    private static IEditorService? _editorService;
+    private static IHexPlanetManagerRepo? _hexPlanetManagerRepo;
+    private static IHexPlanetHudRepo? _hexPlanetHudRepo;
     private static IFeatureApplication? _featureApplication;
 
     private void InitServices()
@@ -63,24 +64,24 @@ public partial class HexGridChunk : Node3D, IChunk, IHexGridChunk
         _chunkRepo ??= Context.GetBeanFromHolder<IChunkRepo>();
         _tileRepo ??= Context.GetBeanFromHolder<ITileRepo>();
         _tileShaderService ??= Context.GetBeanFromHolder<ITileShaderService>();
-        _planetConfig ??= Context.GetBeanFromHolder<IPlanetConfig>();
-        _editorService ??= Context.GetBeanFromHolder<IEditorService>();
+        _hexPlanetManagerRepo ??= Context.GetBeanFromHolder<IHexPlanetManagerRepo>();
+        _hexPlanetHudRepo ??= Context.GetBeanFromHolder<IHexPlanetHudRepo>();
         _featureApplication ??= Context.GetBeanFromHolder<IFeatureApplication>();
     }
 
     private void OnEditorEditModeChanged(bool mode) =>
-        RefreshTilesLabelMode(mode ? _editorService!.LabelMode : 0);
+        RefreshTilesLabelMode(mode ? _hexPlanetHudRepo!.GetLabelMode() : 0);
 
     private void CleanEventListeners()
     {
-        _editorService!.LabelModeChanged -= RefreshTilesLabelMode;
-        _editorService.EditModeChanged -= OnEditorEditModeChanged;
+        _hexPlanetHudRepo!.LabelModeChanged -= RefreshTilesLabelMode;
+        _hexPlanetHudRepo.EditModeChanged -= OnEditorEditModeChanged;
     }
 
     #endregion
 
-    private static bool EditMode => _editorService!.TileOverrider.EditMode;
-    private static int LabelMode => _editorService!.LabelMode;
+    private static bool EditMode => _hexPlanetHudRepo!.GetEditMode();
+    private static int LabelMode => _hexPlanetHudRepo!.GetLabelMode();
 
     private int _id;
     private readonly Dictionary<int, HexTileLabel> _usingTileUis = new();
@@ -107,8 +108,8 @@ public partial class HexGridChunk : Node3D, IChunk, IHexGridChunk
             label = _unusedTileUis.Dequeue();
 
         var tile = _tileRepo!.GetById(tileId)!;
-        var position = 1.01f * tile.GetCentroid(_planetConfig!.Radius + _tileRepo.GetHeight(tile));
-        var scale = _planetConfig.StandardScale;
+        var position = 1.01f * tile.GetCentroid(_hexPlanetManagerRepo!.Radius + _hexPlanetManagerRepo.GetHeight(tile));
+        var scale = _hexPlanetManagerRepo.StandardScale;
         label.Scale = Vector3.One * scale;
         label.Position = position;
         Node3dUtil.AlignYAxisToDirection(label, position, Vector3.Up);
@@ -142,7 +143,7 @@ public partial class HexGridChunk : Node3D, IChunk, IHexGridChunk
     }
 
     public void RefreshTileLabel(int tileId, string text) =>
-        _usingTileUis[tileId].Label.Text = text;
+        _usingTileUis[tileId].Label!.Text = text;
 
     public void RefreshTilesLabelMode(int mode)
     {
@@ -152,7 +153,7 @@ public partial class HexGridChunk : Node3D, IChunk, IHexGridChunk
                 // 不显示
                 foreach (var (_, label) in _usingTileUis)
                 {
-                    label.Label.Text = "";
+                    label.Label!.Text = "";
                     label.Label.FontSize = 64;
                     label.Hide();
                 }
@@ -206,7 +207,7 @@ public partial class HexGridChunk : Node3D, IChunk, IHexGridChunk
                 if (tileUi != null)
                 {
                     tileUi.Position =
-                        1.01f * tile.GetCentroid(_planetConfig!.Radius + _tileRepo!.GetHeight(tile));
+                        1.01f * tile.GetCentroid(_hexPlanetManagerRepo!.Radius + _hexPlanetManagerRepo.GetHeight(tile));
                 }
                 else GD.PrintErr($"Tile {tile.Id} UI not found");
             }
@@ -308,8 +309,8 @@ public partial class HexGridChunk : Node3D, IChunk, IHexGridChunk
         Features!.ShowFeatures(!EditMode); // 编辑模式下全部显示，游戏模式下仅显示探索过的
 #endif
         OnEditorEditModeChanged(EditMode);
-        _editorService!.LabelModeChanged += RefreshTilesLabelMode;
-        _editorService.EditModeChanged += OnEditorEditModeChanged;
+        _hexPlanetHudRepo!.LabelModeChanged += RefreshTilesLabelMode;
+        _hexPlanetHudRepo.EditModeChanged += OnEditorEditModeChanged;
     }
 
     public void HideOutOfSight()
@@ -327,7 +328,7 @@ public partial class HexGridChunk : Node3D, IChunk, IHexGridChunk
         Features!.Clear();
 #endif
         _id = 0; // 重置 id，归还给池子
-        _editorService!.LabelModeChanged -= RefreshTilesLabelMode;
-        _editorService.EditModeChanged -= OnEditorEditModeChanged;
+        _hexPlanetHudRepo!.LabelModeChanged -= RefreshTilesLabelMode;
+        _hexPlanetHudRepo.EditModeChanged -= OnEditorEditModeChanged;
     }
 }

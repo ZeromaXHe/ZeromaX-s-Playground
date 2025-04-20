@@ -1,7 +1,5 @@
 using Commons.Enums;
 using Commons.Utils;
-using Contexts.Abstractions;
-using Domains.Models.Singletons.Planets;
 
 namespace Domains.Models.ValueObjects.PlanetGenerates;
 
@@ -13,19 +11,10 @@ namespace Domains.Models.ValueObjects.PlanetGenerates;
 /// </summary>
 public struct HexTileData
 {
-    public HexTileData() => InitServices();
-
-    #region 服务
-
-    private static IPlanetConfig? _planetConfig;
-
-    private static void InitServices()
+    public HexTileData()
     {
-        _planetConfig ??= ContextHolder.BeanContext?.GetBean<IPlanetConfig>();
     }
-
-    #endregion
-
+    
     /// <summary>
     /// Cell flags.
     /// </summary>
@@ -136,23 +125,20 @@ public struct HexTileData
     /// <summary>
     /// Vertical positions the the stream bed, if applicable.
     /// </summary>
-    public readonly float StreamBedY =>
-        (Values.Elevation + HexMetrics.StreamBedElevationOffset) *
-        _planetConfig!.UnitHeight;
+    public float StreamBedY(float unitHeight) =>
+        (Values.Elevation + HexMetrics.StreamBedElevationOffset) * unitHeight;
 
     /// <summary>
     /// Vertical position of the river's surface, if applicable.
     /// </summary>
-    public readonly float RiverSurfaceY =>
-        (Values.Elevation + HexMetrics.WaterElevationOffset) *
-        _planetConfig!.UnitHeight;
+    public float RiverSurfaceY(float unitHeight) =>
+        (Values.Elevation + HexMetrics.WaterElevationOffset) * unitHeight;
 
     /// <summary>
     /// Vertical position of the water surface, if applicable.
     /// </summary>
-    public readonly float WaterSurfaceY =>
-        (Values.WaterLevel + HexMetrics.WaterElevationOffset) *
-        _planetConfig!.UnitHeight;
+    public float WaterSurfaceY(float unitHeight) =>
+        (Values.WaterLevel + HexMetrics.WaterElevationOffset) * unitHeight;
 
     /// <summary>
     /// Elevation at which the cell is visible.

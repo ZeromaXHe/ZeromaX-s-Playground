@@ -8,4 +8,8 @@
         <RootNamespace>Contexts.Abstractions</RootNamespace>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\GodotNodes.Abstractions\GodotNodes.Abstractions.csproj" />
+    </ItemGroup>
+
 </Project>

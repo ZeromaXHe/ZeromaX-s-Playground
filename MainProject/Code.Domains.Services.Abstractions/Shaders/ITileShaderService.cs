@@ -7,6 +7,14 @@ namespace Domains.Services.Abstractions.Shaders;
 /// Date: 2025-03-03 09:14
 public interface ITileShaderService
 {
+    delegate void RangeVisibilityIncreasedEvent(Tile tile, int range);
+
+    event RangeVisibilityIncreasedEvent? RangeVisibilityIncreased;
+
+    // 对应第一次增加可视度（Visibility）
+    delegate void TileExploredEvent(Tile tile);
+
+    event TileExploredEvent? TileExplored;
     void Initialize();
     void RefreshCiv(int tileId);
     void RefreshTerrain(int tileId);

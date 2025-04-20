@@ -27,9 +27,10 @@ public interface ITileRepo : IRepository<Tile>
 
     #endregion
 
-    Tile Add(int centerId, int chunkId, Vector3 unitCentroid, List<Vector3> unitCorners, List<int> hexFaceIds, List<int> neighborCenterIds);
-    Tile? GetByCenterId(int centerId);
+    Tile Add(int centerId, int chunkId, Vector3 unitCentroid, List<Vector3> unitCorners,
+        List<int> hexFaceIds, List<int> neighborCenterIds);
 
+    Tile? GetByCenterId(int centerId);
 
     #region 修改 Tile 属性的方法（相当于 Update）
 
@@ -42,14 +43,6 @@ public interface ITileRepo : IRepository<Tile>
     void SetWalled(Tile tile, bool walled);
     void SetSpecialIndex(Tile tile, int specialIndex);
     void SetUnitId(Tile tile, int unitId);
-
-    #endregion
-
-    #region 高度
-
-    float GetHeight(Tile tile);
-    float GetOverrideHeight(Tile tile, HexTileDataOverrider tileDataOverrider);
-    float GetHeightById(int id);
 
     #endregion
 

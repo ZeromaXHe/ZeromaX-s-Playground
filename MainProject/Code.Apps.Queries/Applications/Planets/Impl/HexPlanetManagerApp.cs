@@ -1,13 +1,16 @@
 using Apps.Queries.Contexts;
 using Domains.Models.Entities.Civs;
 using Domains.Models.Entities.PlanetGenerates;
-using Domains.Models.Singletons.Planets;
+using Domains.Services.Abstractions.Nodes;
+using Domains.Services.Abstractions.Nodes.ChunkManagers;
 using Domains.Services.Abstractions.PlanetGenerates;
 using Domains.Services.Abstractions.Searches;
 using Domains.Services.Abstractions.Shaders;
 using Domains.Services.Abstractions.Uis;
 using Godot;
 using Infras.Readers.Abstractions.Caches;
+using Infras.Readers.Abstractions.Nodes.Singletons;
+using Infras.Readers.Abstractions.Nodes.Singletons.ChunkManagers;
 using Infras.Writers.Abstractions.Civs;
 using Infras.Writers.Abstractions.PlanetGenerates;
 using Nodes.Abstractions;
@@ -20,18 +23,23 @@ namespace Apps.Queries.Applications.Planets.Impl;
 /// Date: 2025-04-14 16:00:57
 public class HexPlanetManagerApp(
     ILodMeshCache lodMeshCache,
-    INoiseConfig noiseConfig,
     IChunkRepo chunkRepo,
     ITileRepo tileRepo,
     IPointRepo pointRepo,
     IFaceRepo faceRepo,
     ICivRepo civRepo,
+    IHexPlanetHudRepo hexPlanetHudRepo,
+    IHexPlanetManagerRepo hexPlanetManagerRepo,
+    IChunkLoaderRepo chunkLoaderRepo,
+    IFeatureMeshManagerRepo featureMeshManagerRepo,
+    IFeaturePreviewManagerRepo featurePreviewManagerRepo,
+    IHexMapGeneratorService hexMapGeneratorService,
+    IChunkLoaderService chunkLoaderService,
     ITileSearchService tileSearchService,
     ITileShaderService tileShaderService,
     ISelectViewService selectViewService,
     IChunkService chunkService,
-    ITileService tileService,
-    IEditorService editorService) : IHexPlanetManagerApp
+    ITileService tileService) : IHexPlanetManagerApp
 {
     #region 上下文节点
 
@@ -43,7 +51,7 @@ public class HexPlanetManagerApp(
     private IHexMapGenerator? _hexMapGenerator;
 
     public bool NodeReady { get; set; }
-    
+
     public void OnReady()
     {
         NodeReady = true;
@@ -57,13 +65,13 @@ public class HexPlanetManagerApp(
             _editPreviewChunk = NodeContext.Instance.GetSingleton<IEditPreviewChunk>()!;
         }
 
-        editorService.EditModeChanged += OnEditorEditModeChanged;
+        hexPlanetHudRepo.EditModeChanged += OnEditorEditModeChanged;
         // 在 _ready = true 后初始化相关数据。手动赋值调用 setter 一下
         _hexPlanetManager.Radius = _hexPlanetManager.Radius;
         _hexPlanetManager.Divisions = _hexPlanetManager.Divisions;
 
-        noiseConfig.NoiseSource = _hexPlanetManager.NoiseSource!.GetImage();
-        noiseConfig.InitializeHashGrid(_hexPlanetManager.Seed);
+        _hexPlanetManager.NoiseSourceImage = _hexPlanetManager.NoiseSource!.GetImage();
+        hexPlanetManagerRepo.InitializeHashGrid(_hexPlanetManager.Seed);
         DrawHexSphereMesh();
     }
 
@@ -110,7 +118,7 @@ public class HexPlanetManagerApp(
     public void OnExitTree()
     {
         NodeReady = false;
-        editorService.EditModeChanged -= OnEditorEditModeChanged;
+        hexPlanetHudRepo.EditModeChanged -= OnEditorEditModeChanged;
 
         _hexPlanetManager = null;
         _chunkManager = null;
@@ -153,11 +161,14 @@ public class HexPlanetManagerApp(
         tileService.InitTiles();
         tileShaderService.Initialize();
         tileSearchService.InitSearchData();
-        _hexMapGenerator!.GenerateMap();
-        _chunkManager!.InitChunkNodes();
+        hexMapGeneratorService.GenerateMap();
+
+        var time = Time.GetTicksMsec();
+        chunkLoaderService.InitChunkNodes();
+        GD.Print($"InitChunkNodes cost: {Time.GetTicksMsec() - time} ms");
     }
 
-    public void ClearOldData()
+    private void ClearOldData()
     {
         // 必须先清理单位，否则相关可见度事件会查询地块，放最后会空引用异常
         _unitManager?.ClearAllUnits(); // unitManager 不是 [Tool]，在编辑器时会是 null
@@ -167,7 +178,10 @@ public class HexPlanetManagerApp(
         faceRepo.Truncate();
         civRepo.Truncate();
         selectViewService.ClearPath();
-        _chunkManager!.ClearOldData();
+        // 清空分块
+        chunkLoaderRepo.Singleton!.ClearOldData();
+        featurePreviewManagerRepo.Singleton!.ClearForData();
+        featureMeshManagerRepo.Singleton!.ClearOldData();
         lodMeshCache.RemoveAllLodMeshes();
     }
 
@@ -224,7 +238,7 @@ public class HexPlanetManagerApp(
 
     public bool UpdateUiInEditMode()
     {
-        if (!editorService.TileOverrider.EditMode) return false;
+        if (!hexPlanetHudRepo.GetTileOverrider().EditMode) return false;
         // 编辑模式下更新预览网格
         UpdateEditPreviewChunk();
         if (Input.IsActionJustPressed("destroy_unit"))

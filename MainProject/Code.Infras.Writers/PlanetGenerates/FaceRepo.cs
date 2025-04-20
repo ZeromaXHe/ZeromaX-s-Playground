@@ -16,18 +16,6 @@ public class FaceRepo : Repository<Face>, IFaceRepo
         });
 
     public IEnumerable<Face> GetAllByChunky(bool chunky) => GetAll().Where(x => x.Chunky == chunky);
-
-    protected override void AddHook(Face entity)
-    {
-    }
-
-    protected override void DeleteHook(Face entity)
-    {
-    }
-
-    protected override void TruncateHook()
-    {
-    }
     
     public List<Face> GetOrderedFaces(Point center)
     {

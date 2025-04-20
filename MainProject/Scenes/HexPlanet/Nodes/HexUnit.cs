@@ -2,8 +2,9 @@ using Apps.Queries.Abstractions.Tiles;
 using Commons.Utils;
 using Contexts;
 using Domains.Models.Entities.Civs;
-using Domains.Models.Singletons.Planets;
 using Godot;
+using GodotNodes.Abstractions.Addition;
+using Infras.Readers.Abstractions.Nodes.Singletons;
 using Infras.Writers.Abstractions.Civs;
 using Infras.Writers.Abstractions.PlanetGenerates;
 using Nodes.Abstractions;
@@ -22,19 +23,21 @@ public partial class HexUnit : CsgBox3D, IHexUnit
         Id = unit.Id;
     }
 
+    public NodeEvent? NodeEvent => null;
+
     #region 服务与存储
 
     private static ITileRepo? _tileRepo;
     private static ITileShaderApplication? _tileShaderApplication;
     private static IUnitRepo? _unitRepo;
-    private static IPlanetConfig? _planetConfig;
+    private static IHexPlanetManagerRepo? _hexPlanetManagerRepo;
 
     private static void InitServices()
     {
         _tileRepo ??= Context.GetBeanFromHolder<ITileRepo>();
         _tileShaderApplication ??= Context.GetBeanFromHolder<ITileShaderApplication>();
         _unitRepo ??= Context.GetBeanFromHolder<IUnitRepo>();
-        _planetConfig ??= Context.GetBeanFromHolder<IPlanetConfig>();
+        _hexPlanetManagerRepo ??= Context.GetBeanFromHolder<IHexPlanetManagerRepo>();
     }
 
     #endregion
@@ -87,7 +90,7 @@ public partial class HexUnit : CsgBox3D, IHexUnit
     public override void _Process(double delta)
     {
         if (_path == null) return;
-        var deltaProgress = (float)delta * _planetConfig!.StandardScale * PathMoveSpeed;
+        var deltaProgress = (float)delta * _hexPlanetManagerRepo!.StandardScale * PathMoveSpeed;
         if (_pathOriented)
         {
             var prePathTileIdx = _pathTileIdx;
@@ -141,8 +144,8 @@ public partial class HexUnit : CsgBox3D, IHexUnit
     public void ValidateLocation()
     {
         var tile = _tileRepo!.GetById(_tileId)!;
-        var position = tile.GetCentroid(_planetConfig!.Radius + _tileRepo.GetHeight(tile));
-        Node3dUtil.PlaceOnSphere(this, position, _planetConfig.StandardScale,
+        var position = tile.GetCentroid(_hexPlanetManagerRepo!.Radius + _hexPlanetManagerRepo.GetHeight(tile));
+        Node3dUtil.PlaceOnSphere(this, position, _hexPlanetManagerRepo.StandardScale,
             alignForward: Vector3.Up); // 单位不需要抬高，场景里已经设置好了
         _beginRotation = Rotation;
     }

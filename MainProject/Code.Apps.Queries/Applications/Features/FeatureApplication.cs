@@ -1,6 +1,7 @@
 using Apps.Queries.Abstractions.Features;
-using Apps.Queries.Events;
 using Domains.Models.Entities.PlanetGenerates;
+using Domains.Services.Abstractions.Events.Events;
+using Domains.Services.Abstractions.Shaders;
 using Infras.Writers.Abstractions.PlanetGenerates;
 
 namespace Apps.Queries.Applications.Features;
@@ -14,7 +15,10 @@ public class FeatureApplication(IFeatureRepo featureRepo) : IFeatureApplication
     {
         foreach (var feature in featureRepo.GetByTileId(tile.Id).Where(f => f.MeshId > -1))
         {
-            FeatureEvent.EmitHidden(feature.MeshId, feature.Type, preview);
+            if (preview)
+                FeatureEvent.EmitPreviewHidden(feature.MeshId, feature.Type);
+            else
+                FeatureEvent.EmitMeshHidden(feature.MeshId, feature.Type);
             feature.MeshId = -1;
         }
     }
@@ -29,7 +33,9 @@ public class FeatureApplication(IFeatureRepo featureRepo) : IFeatureApplication
     {
         foreach (var feature in featureRepo.GetByTileId(tile.Id)
                      .Where(f => f.MeshId == -1 && (!onlyExplored || tile.Data.IsExplored)))
-            feature.MeshId = FeatureEvent.EmitShown(feature.Transform, feature.Type, preview);
+            feature.MeshId = preview
+                ? FeatureEvent.EmitPreviewShown(feature.Transform, feature.Type)
+                : FeatureEvent.EmitMeshShown(feature.Transform, feature.Type);
     }
 
     public void ExploreFeatures(Tile tile) => ShowFeatures(tile, true, false);

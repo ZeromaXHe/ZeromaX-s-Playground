@@ -1,6 +1,8 @@
 using Domains.Models.Entities.PlanetGenerates;
+using Domains.Models.ValueObjects.PlanetGenerates;
 using Godot;
 using GodotNodes.Abstractions;
+using GodotNodes.Abstractions.Addition;
 
 namespace Nodes.Abstractions;
 
@@ -48,6 +50,23 @@ public interface IHexPlanetManager : INode3D
     Node3D? PlanetAtmosphere { get; }
     MeshInstance3D? GroundPlaceHolder { get; }
     Camera3D? PlanetCamera { get; }
+
+    #endregion
+
+    #region 噪声相关
+
+    Image? NoiseSourceImage { get; set; }
+
+    #endregion
+
+    #region 星球设置
+
+    float UnitHeight { get; }
+    float MaxHeight { get; }
+    float MaxHeightRatio { get; }
+    int ElevationStep { get; set; } // 对应高程最大值
+    float StandardScale { get; }
+    int DefaultWaterLevel { get; set; }
 
     #endregion
 

@@ -1,3 +1,4 @@
+using Godot;
 using GodotNodes.Abstractions;
 
 namespace Nodes.Abstractions.LandGenerators;
@@ -7,4 +8,5 @@ namespace Nodes.Abstractions.LandGenerators;
 /// Date: 2025-04-17 10:30:17
 public interface IRealEarthLandGenerator : INode
 {
+    Texture2D? WorldMap { get; }
 }

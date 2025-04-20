@@ -1,5 +1,6 @@
 using System;
 using Godot;
+using Nodes.Abstractions.Resources.LandGenerators;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Resources.LandGenerators;
 
@@ -8,7 +9,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Resources.LandGenerators;
 /// Date: 2025-03-20 20:03:35
 [Tool]
 [GlobalClass]
-public partial class LayeredFastNoise : Resource
+public partial class LayeredFastNoise : Resource, ILayeredFastNoise
 {
     [Export] public NoiseSettings[]? NoiseLayers { get; set; }
 

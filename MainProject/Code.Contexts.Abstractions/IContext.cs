@@ -1,3 +1,6 @@
+using GodotNodes.Abstractions;
+using GodotNodes.Abstractions.Addition;
+
 namespace Contexts.Abstractions;
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
@@ -8,4 +11,5 @@ public interface IContext
     // 仿 setter 注入写法：
     // private readonly Lazy<ITileRepo> _tileRepo = new(() => Context.GetSingleton<ITileRepo>());
     T? GetBean<T>() where T : class;
+    bool RegisterSingletonNode<T>(T singleton) where T : INode;
 }

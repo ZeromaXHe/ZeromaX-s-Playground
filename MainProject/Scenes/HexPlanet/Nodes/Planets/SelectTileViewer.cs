@@ -3,6 +3,8 @@ using Contexts;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Services.Abstractions.Uis;
 using Godot;
+using GodotNodes.Abstractions.Addition;
+using Infras.Readers.Abstractions.Nodes.Singletons;
 using Nodes.Abstractions.Planets;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.Planets;
@@ -16,24 +18,26 @@ public partial class SelectTileViewer : MeshInstance3D, ISelectTileViewer
     {
         InitServices();
         NodeContext.Instance.RegisterSingleton<ISelectTileViewer>(this);
+        Context.RegisterSingletonToHolder<ISelectTileViewer>(this);
     }
 
     #region 服务
 
     private ISelectViewService? _selectViewService;
-    private IEditorService? _editorService;
+    private IHexPlanetHudRepo? _hexPlanetHudRepo;
 
     private void InitServices()
     {
         _selectViewService = Context.GetBeanFromHolder<ISelectViewService>();
-        _editorService = Context.GetBeanFromHolder<IEditorService>();
+        _hexPlanetHudRepo = Context.GetBeanFromHolder<IHexPlanetHudRepo>();
     }
 
     #endregion
 
     public override void _ExitTree() => NodeContext.Instance.DestroySingleton<ISelectTileViewer>();
+    public NodeEvent? NodeEvent => null;
 
-    private bool EditMode => _editorService!.TileOverrider.EditMode;
+    private bool EditMode => _hexPlanetHudRepo!.GetTileOverrider().EditMode;
     private int EditingTileId { get; set; }
     public void SelectEditingTile(Tile tile) => EditingTileId = tile.Id;
     public void CleanEditingTile() => EditingTileId = 0;

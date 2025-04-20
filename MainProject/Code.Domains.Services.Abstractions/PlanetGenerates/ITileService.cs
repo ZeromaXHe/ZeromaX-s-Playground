@@ -1,3 +1,5 @@
+using Domains.Models.Entities.PlanetGenerates;
+using Domains.Models.ValueObjects.PlanetGenerates;
 using Godot;
 
 namespace Domains.Services.Abstractions.PlanetGenerates;
@@ -12,4 +14,5 @@ public interface ITileService
 
     // 初始化地块
     void InitTiles();
+    void EditTiles(Tile tile, HexTileDataOverrider tileOverrider, bool isDrag, Tile? previousTile, Tile? dragTile);
 }

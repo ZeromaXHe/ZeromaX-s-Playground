@@ -10,6 +10,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Code.Domains.Services.Abstractions\Code.Domains.Services.Abstractions.csproj" />
+      <ProjectReference Include="..\Code.Infras.Readers.Abstractions\Code.Infras.Readers.Abstractions.csproj" />
       <ProjectReference Include="..\Code.Infras.Writers.Abstractions\Code.Infras.Writers.Abstractions.csproj" />
     </ItemGroup>
 

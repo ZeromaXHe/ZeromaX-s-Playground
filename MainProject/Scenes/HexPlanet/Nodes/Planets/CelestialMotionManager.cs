@@ -1,8 +1,9 @@
 using Apps.Queries.Contexts;
 using Commons.Constants;
 using Contexts;
-using Domains.Models.Singletons.Planets;
 using Godot;
+using GodotNodes.Abstractions.Addition;
+using Infras.Readers.Abstractions.Nodes.Singletons;
 using Nodes.Abstractions.Planets;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.Planets;
@@ -17,6 +18,7 @@ public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
     {
         InitServices();
         NodeContext.Instance.RegisterSingleton<ICelestialMotionManager>(this);
+        Context.RegisterSingletonToHolder<ICelestialMotionManager>(this);
     }
 
     [Export(PropertyHint.Range, "-100.0, 100.0")]
@@ -195,11 +197,11 @@ public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
 
     #region services
 
-    private IPlanetConfig? _planetConfig;
+    private IHexPlanetManagerRepo? _hexPlanetManagerRepo;
 
     private void InitServices()
     {
-        _planetConfig = Context.GetBeanFromHolder<IPlanetConfig>();
+        _hexPlanetManagerRepo = Context.GetBeanFromHolder<IHexPlanetManagerRepo>();
     }
 
     #endregion
@@ -254,6 +256,7 @@ public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
     }
 
     public override void _ExitTree() => NodeContext.Instance.DestroySingleton<ICelestialMotionManager>();
+    public NodeEvent NodeEvent { get; } = new(process: true);
 
     public override void _Process(double delta)
     {
@@ -270,8 +273,8 @@ public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
         _lunarObliquity!.RotationDegrees = Vector3.Right * SatelliteObliquity;
 
     public void UpdateLunarDist() => _lunarDist!.Position =
-        Vector3.Back * Mathf.Clamp(_planetConfig!.Radius * SatelliteDistRatio,
-            _planetConfig.Radius * (1 + _satelliteRadiusRatio), 800f);
+        Vector3.Back * Mathf.Clamp(_hexPlanetManagerRepo!.Radius * SatelliteDistRatio,
+            _hexPlanetManagerRepo.Radius * (1 + _satelliteRadiusRatio), 800f);
 
     private void UpdateGalaxySkyRotation() =>
         _worldEnvironment!.Environment.SkyRotation =
@@ -280,8 +283,8 @@ public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
     public void UpdateMoonMeshRadius()
     {
         var moonMesh = _moonMesh!.Mesh as SphereMesh;
-        moonMesh?.SetRadius(_planetConfig!.Radius * SatelliteRadiusRatio);
-        moonMesh?.SetHeight(_planetConfig!.Radius * SatelliteRadiusRatio * 2);
+        moonMesh?.SetRadius(_hexPlanetManagerRepo!.Radius * SatelliteRadiusRatio);
+        moonMesh?.SetHeight(_hexPlanetManagerRepo!.Radius * SatelliteRadiusRatio * 2);
     }
 
     // 更新天体旋转

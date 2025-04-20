@@ -7,4 +7,8 @@
         <EnableDynamicLoading>true</EnableDynamicLoading>
     </PropertyGroup>
 
+    <ItemGroup>
+      <Folder Include="Addition\" />
+    </ItemGroup>
+
 </Project>

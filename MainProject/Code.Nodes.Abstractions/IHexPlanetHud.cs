@@ -1,4 +1,5 @@
 using Domains.Models.Entities.PlanetGenerates;
+using Domains.Models.ValueObjects.PlanetGenerates;
 using Godot;
 using GodotNodes.Abstractions;
 
@@ -80,4 +81,7 @@ public interface IHexPlanetHud: IControl
     bool IsDrag { get; set; }
     Tile? DragTile {get; set; }
     Tile? PreviousTile {get; set; }
+    
+    int LabelMode { get; set; }
+    HexTileDataOverrider TileOverrider { get; set; }
 }

@@ -8,4 +8,6 @@ namespace GodotNodes.Abstractions;
 public interface INode3D: INode
 {
     World3D GetWorld3D();
+    Vector3 ToLocal(Vector3 globalPoint);
+    Vector3 ToGlobal(Vector3 localPoint);
 }

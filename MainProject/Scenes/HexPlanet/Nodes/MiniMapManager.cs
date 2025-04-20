@@ -1,9 +1,9 @@
 using Apps.Queries.Applications.Uis;
 using Apps.Queries.Contexts;
-using Apps.Queries.Events;
 using Commons.Utils.HexSphereGrid;
 using Contexts;
 using Godot;
+using GodotNodes.Abstractions.Addition;
 using Nodes.Abstractions;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
@@ -13,10 +13,13 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 /// Date: 2025-03-05 12:21
 public partial class MiniMapManager : Node2D, IMiniMapManager
 {
+    public event IMiniMapManager.ClickedEvent? Clicked;
+
     public MiniMapManager()
     {
         InitApps();
         NodeContext.Instance.RegisterSingleton<IMiniMapManager>(this);
+        Context.RegisterSingletonToHolder<IMiniMapManager>(this);
     }
 
     #region on-ready 节点
@@ -60,13 +63,15 @@ public partial class MiniMapManager : Node2D, IMiniMapManager
         NodeContext.Instance.DestroySingleton<IMiniMapManager>();
     }
 
+    public NodeEvent? NodeEvent => null;
+
     public void ClickOnMiniMap()
     {
         var mousePos = TerrainLayer!.GetLocalMousePosition();
         var mapVec = TerrainLayer.LocalToMap(mousePos);
         var sa = new SphereAxial(mapVec.X, mapVec.Y);
         if (!sa.IsValid()) return;
-        OrbitCameraEvent.EmitNewDestination(sa.ToLongitudeAndLatitude().ToDirectionVector3());
+        Clicked?.Invoke(sa.ToLongitudeAndLatitude().ToDirectionVector3());
     }
 
     public void Init(Vector3 orbitCamPos) => _miniMapManagerApp!.Init(orbitCamPos);

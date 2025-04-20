@@ -1,10 +1,10 @@
 using Commons.Utils;
 using Domains.Models.Entities.PlanetGenerates;
-using Domains.Models.Singletons.Planets;
 using Domains.Services.Abstractions.PlanetGenerates;
 using Domains.Services.Abstractions.Searches;
 using Domains.Services.Abstractions.Uis;
 using Godot;
+using Infras.Readers.Abstractions.Nodes.Singletons;
 using Infras.Writers.Abstractions.PlanetGenerates;
 
 namespace Domains.Services.Uis;
@@ -17,8 +17,8 @@ public class SelectViewService(
     ITileService tileService,
     ITileRepo tileRepo,
     ITileSearchService tileSearchService,
-    IPlanetConfig planetConfig,
-    IEditorService editorService) : ISelectViewService
+    IHexPlanetManagerRepo hexPlanetManagerRepo,
+    IHexPlanetHudRepo hexPlanetHudRepo) : ISelectViewService
 {
     private int? _hoverTileId;
     private int _selectedTileId;
@@ -46,7 +46,7 @@ public class SelectViewService(
             {
                 var selectedTile = tileRepo.GetById(_selectedTileId)!;
                 vi += AddHexFrame(selectedTile, Colors.Aquamarine,
-                    1.01f * (planetConfig.Radius + tileRepo.GetHeight(selectedTile)),
+                    1.01f * (hexPlanetManagerRepo.Radius + hexPlanetManagerRepo.GetHeight(selectedTile)),
                     surfaceTool, vi); // 选择地块为蓝色框
             }
 
@@ -55,8 +55,9 @@ public class SelectViewService(
                 var hoverTile = tileRepo.GetById((int)_hoverTileId)!;
 
                 var color = Colors.DarkGreen with { A = 0.8f };
-                var tiles = tileRepo.GetTilesInDistance(hoverTile, editorService.TileOverrider.BrushSize);
-                var viewRadius = planetConfig.Radius + planetConfig.MaxHeight;
+                var tiles = tileRepo.GetTilesInDistance(hoverTile,
+                    hexPlanetHudRepo.GetTileOverrider().BrushSize);
+                var viewRadius = hexPlanetManagerRepo.Radius + hexPlanetManagerRepo.MaxHeight;
                 foreach (var t in tiles)
                     vi += AddHexFrame(t, color, viewRadius, surfaceTool, vi);
             }
@@ -89,10 +90,10 @@ public class SelectViewService(
                 surfaceTool.SetSmoothGroup(uint.MaxValue);
                 var vi = 0;
                 vi += AddHexFrame(fromTile, Colors.Blue,
-                    1.01f * (planetConfig.Radius + tileRepo.GetHeight(fromTile)),
+                    1.01f * (hexPlanetManagerRepo.Radius + hexPlanetManagerRepo.GetHeight(fromTile)),
                     surfaceTool, vi); // 出发点为蓝色框
                 vi += AddHexFrame(toTile, Colors.Red,
-                    1.01f * (planetConfig.Radius + tileRepo.GetHeight(toTile)),
+                    1.01f * (hexPlanetManagerRepo.Radius + hexPlanetManagerRepo.GetHeight(toTile)),
                     surfaceTool, vi); // 目标点为红色框
                 var tiles = tileSearchService.FindPath(fromTile, toTile);
                 if (tiles.Count > 0)
@@ -104,7 +105,7 @@ public class SelectViewService(
                         var nextTile = tiles[i];
                         if (i != tiles.Count - 1)
                             vi += AddHexFrame(nextTile, Colors.White,
-                                1.01f * (planetConfig.Radius + tileRepo.GetHeight(nextTile)),
+                                1.01f * (hexPlanetManagerRepo.Radius + hexPlanetManagerRepo.GetHeight(nextTile)),
                                 surfaceTool, vi); // 路径点为白色框
                         cost += tileSearchService.GetMoveCost(preTile, nextTile);
                         chunkRepo.RefreshTileLabel(nextTile, cost.ToString());
@@ -127,7 +128,7 @@ public class SelectViewService(
         var surfaceTool2 = new SurfaceTool();
         surfaceTool2.Begin(Mesh.PrimitiveType.Triangles);
         surfaceTool2.SetSmoothGroup(uint.MaxValue);
-        var viewRadius2 = planetConfig.MaxHeight;
+        var viewRadius2 = hexPlanetManagerRepo.MaxHeight;
         AddHexFrame(tile, Colors.Blue, viewRadius2, surfaceTool2, 0);
         return surfaceTool2.Commit();
     }

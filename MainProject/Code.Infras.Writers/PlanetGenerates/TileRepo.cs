@@ -1,6 +1,5 @@
 using Commons.Utils;
 using Domains.Models.Entities.PlanetGenerates;
-using Domains.Models.Singletons.Planets;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Godot;
 using Infras.Writers.Abstractions.PlanetGenerates;
@@ -8,7 +7,7 @@ using Infras.Writers.Base;
 
 namespace Infras.Writers.PlanetGenerates;
 
-public class TileRepo(IPlanetConfig planetConfig, INoiseConfig noiseConfig) : Repository<Tile>, ITileRepo
+public class TileRepo : Repository<Tile>, ITileRepo
 {
     #region 事件
 
@@ -132,22 +131,6 @@ public class TileRepo(IPlanetConfig planetConfig, INoiseConfig noiseConfig) : Re
         if (tile.UnitId == unitId) return;
         tile.UnitId = unitId;
     }
-
-    #endregion
-
-    #region 高度
-
-    public float GetHeight(Tile tile) =>
-        (tile.Data.Elevation + GetPerturbHeight(tile)) * planetConfig.UnitHeight;
-
-    public float GetOverrideHeight(Tile tile, HexTileDataOverrider tileDataOverrider) =>
-        (tileDataOverrider.Elevation(tile) + GetPerturbHeight(tile) + 0.05f) * planetConfig.UnitHeight;
-
-    public float GetHeightById(int id) => GetHeight(GetById(id)!);
-
-    private float GetPerturbHeight(Tile tile) =>
-        (noiseConfig.SampleNoise(tile.GetCentroid(HexMetrics.StandardRadius)).Y * 2f - 1f)
-        * noiseConfig.ElevationPerturbStrength * planetConfig.UnitHeight;
 
     #endregion
 

@@ -1,13 +1,13 @@
 using Apps.Models.Responses;
 using Apps.Queries.Contexts;
-using Apps.Queries.Events;
-using Commons.Constants;
 using Commons.Utils;
 using Commons.Utils.HexSphereGrid;
 using Domains.Models.Entities.PlanetGenerates;
-using Domains.Models.Singletons.Planets;
+using Domains.Services.Abstractions.Nodes;
+using Domains.Services.Abstractions.PlanetGenerates;
 using Domains.Services.Abstractions.Uis;
 using Godot;
+using Infras.Readers.Abstractions.Nodes.Singletons;
 using Infras.Writers.Abstractions.PlanetGenerates;
 using Nodes.Abstractions;
 using Nodes.Abstractions.Planets;
@@ -18,11 +18,14 @@ namespace Apps.Queries.Applications.Uis.Impl;
 /// Author: Zhu XH
 /// Date: 2025-04-13 13:00:56
 public class HexPlanetHudApp(
-    IPlanetConfig planetConfig,
     IChunkRepo chunkRepo,
     ITileRepo tileRepo,
     IPointRepo pointRepo,
-    IEditorService editorService,
+    IHexPlanetHudRepo hexPlanetHudRepo,
+    IHexPlanetManagerRepo hexPlanetManagerRepo,
+    IOrbitCameraRepo orbitCameraRepo,
+    IHexPlanetHudService hexPlanetHudService,
+    ITileService tileService,
     IMiniMapService miniMapService)
     : IHexPlanetHudApp
 {
@@ -49,22 +52,19 @@ public class HexPlanetHudApp(
         _orbitCamera = NodeContext.Instance.GetSingleton<IOrbitCamera>()!;
 
         // 按照指定的高程分割数量确定 UI
-        _hexPlanetHud.ElevationVSlider!.MaxValue = planetConfig.ElevationStep;
-        _hexPlanetHud.ElevationVSlider.TickCount = planetConfig.ElevationStep + 1;
-        _hexPlanetHud.WaterVSlider!.MaxValue = planetConfig.ElevationStep;
-        _hexPlanetHud.WaterVSlider.TickCount = planetConfig.ElevationStep + 1;
+        hexPlanetHudService.InitElevationAndWaterVSlider();
         // 绑定事件
-        OrbitCameraEvent.Instance.Moved += OnCameraMoved;
-        OrbitCameraEvent.Instance.Transformed += OnCameraTransformed;
+        orbitCameraRepo.Moved += OnCameraMoved;
+        orbitCameraRepo.Transformed += OnCameraTransformed;
         _hexPlanetManager.NewPlanetGenerated += UpdateNewPlanetInfo;
         _hexPlanetManager.NewPlanetGenerated += InitMiniMap;
 
         // 初始化相机位置相关功能
         OnCameraMoved(_orbitCamera!.GetFocusBasePos(), 0f);
         OnCameraTransformed(_hexPlanetManager.GetViewport().GetCamera3D().GetGlobalTransform(), 0f);
-        SetEditMode(_hexPlanetHud.EditCheckButton!.ButtonPressed);
-        editorService.SetLabelMode(_hexPlanetHud.ShowLableOptionButton!.Selected);
-        editorService.SetTerrain(0);
+        hexPlanetHudRepo.SetEditMode(_hexPlanetHud.EditCheckButton!.ButtonPressed);
+        hexPlanetHudRepo.SetLabelMode(_hexPlanetHud.ShowLableOptionButton!.Selected);
+        hexPlanetHudRepo.SetTerrain(0);
         UpdateNewPlanetInfo();
         InitSignals();
 
@@ -121,35 +121,35 @@ public class HexPlanetHudApp(
             _hexPlanetHud!.EditGrid.Visible = vis;
             if (vis)
             {
-                editorService.SetTerrain(_hexPlanetHud!.TerrainOptionButton!.Selected);
-                SetElevation(_hexPlanetHud!.ElevationVSlider!.Value);
+                hexPlanetHudRepo.SetTerrain(_hexPlanetHud!.TerrainOptionButton!.Selected);
+                hexPlanetHudRepo.SetElevation(_hexPlanetHud!.ElevationVSlider!.Value);
             }
             else
             {
-                editorService.SetApplyTerrain(false);
-                editorService.SetApplyElevation(false);
+                hexPlanetHudRepo.SetApplyTerrain(false);
+                hexPlanetHudRepo.SetApplyElevation(false);
             }
         };
 
-        _hexPlanetHud!.EditCheckButton!.Toggled += SetEditMode;
-        _hexPlanetHud!.ShowLableOptionButton!.ItemSelected += editorService.SetLabelMode;
-        _hexPlanetHud!.TerrainOptionButton!.ItemSelected += editorService.SetTerrain;
-        _hexPlanetHud!.ElevationVSlider!.ValueChanged += SetElevation;
-        _hexPlanetHud!.ElevationCheckButton!.Toggled += editorService.SetApplyElevation;
-        _hexPlanetHud!.WaterVSlider!.ValueChanged += SetWaterLevel;
-        _hexPlanetHud!.WaterCheckButton!.Toggled += editorService.SetApplyWaterLevel;
-        _hexPlanetHud!.BrushHSlider!.ValueChanged += SetBrushSize;
-        _hexPlanetHud!.RiverOptionButton!.ItemSelected += editorService.SetRiverMode;
-        _hexPlanetHud!.RoadOptionButton!.ItemSelected += editorService.SetRoadMode;
-        _hexPlanetHud!.UrbanCheckButton!.Toggled += editorService.SetApplyUrbanLevel;
-        _hexPlanetHud!.UrbanHSlider!.ValueChanged += editorService.SetUrbanLevel;
-        _hexPlanetHud!.FarmCheckButton!.Toggled += editorService.SetApplyFarmLevel;
-        _hexPlanetHud!.FarmHSlider!.ValueChanged += editorService.SetFarmLevel;
-        _hexPlanetHud!.PlantCheckButton!.Toggled += editorService.SetApplyPlantLevel;
-        _hexPlanetHud!.PlantHSlider!.ValueChanged += editorService.SetPlantLevel;
-        _hexPlanetHud!.WallOptionButton!.ItemSelected += editorService.SetWalledMode;
-        _hexPlanetHud!.SpecialFeatureCheckButton!.Toggled += editorService.SetApplySpecialIndex;
-        _hexPlanetHud!.SpecialFeatureOptionButton!.ItemSelected += editorService.SetSpecialIndex;
+        _hexPlanetHud!.EditCheckButton!.Toggled += hexPlanetHudRepo.SetEditMode;
+        _hexPlanetHud!.ShowLableOptionButton!.ItemSelected += hexPlanetHudRepo.SetLabelMode;
+        _hexPlanetHud!.TerrainOptionButton!.ItemSelected += hexPlanetHudRepo.SetTerrain;
+        _hexPlanetHud!.ElevationVSlider!.ValueChanged += hexPlanetHudRepo.SetElevation;
+        _hexPlanetHud!.ElevationCheckButton!.Toggled += hexPlanetHudRepo.SetApplyElevation;
+        _hexPlanetHud!.WaterVSlider!.ValueChanged += hexPlanetHudRepo.SetWaterLevel;
+        _hexPlanetHud!.WaterCheckButton!.Toggled += hexPlanetHudRepo.SetApplyWaterLevel;
+        _hexPlanetHud!.BrushHSlider!.ValueChanged += hexPlanetHudRepo.SetBrushSize;
+        _hexPlanetHud!.RiverOptionButton!.ItemSelected += hexPlanetHudRepo.SetRiverMode;
+        _hexPlanetHud!.RoadOptionButton!.ItemSelected += hexPlanetHudRepo.SetRoadMode;
+        _hexPlanetHud!.UrbanCheckButton!.Toggled += hexPlanetHudRepo.SetApplyUrbanLevel;
+        _hexPlanetHud!.UrbanHSlider!.ValueChanged += hexPlanetHudRepo.SetUrbanLevel;
+        _hexPlanetHud!.FarmCheckButton!.Toggled += hexPlanetHudRepo.SetApplyFarmLevel;
+        _hexPlanetHud!.FarmHSlider!.ValueChanged += hexPlanetHudRepo.SetFarmLevel;
+        _hexPlanetHud!.PlantCheckButton!.Toggled += hexPlanetHudRepo.SetApplyPlantLevel;
+        _hexPlanetHud!.PlantHSlider!.ValueChanged += hexPlanetHudRepo.SetPlantLevel;
+        _hexPlanetHud!.WallOptionButton!.ItemSelected += hexPlanetHudRepo.SetWalledMode;
+        _hexPlanetHud!.SpecialFeatureCheckButton!.Toggled += hexPlanetHudRepo.SetApplySpecialIndex;
+        _hexPlanetHud!.SpecialFeatureOptionButton!.ItemSelected += hexPlanetHudRepo.SetSpecialIndex;
     }
 
     private void InitMiniMap() =>
@@ -157,9 +157,9 @@ public class HexPlanetHudApp(
 
     private void UpdateNewPlanetInfo()
     {
-        _hexPlanetHud!.RadiusLineEdit!.Text = $"{planetConfig.Radius:F2}";
-        _hexPlanetHud.DivisionLineEdit!.Text = $"{planetConfig.Divisions}";
-        _hexPlanetHud.ChunkDivisionLineEdit!.Text = $"{planetConfig.ChunkDivisions}";
+        _hexPlanetHud!.RadiusLineEdit!.Text = $"{hexPlanetManagerRepo.Radius:F2}";
+        _hexPlanetHud.DivisionLineEdit!.Text = $"{hexPlanetManagerRepo.Divisions}";
+        _hexPlanetHud.ChunkDivisionLineEdit!.Text = $"{hexPlanetManagerRepo.ChunkDivisions}";
         _hexPlanetHud.ChunkCountLabel!.Text = $"分块总数：{chunkRepo.GetCount()}";
         _hexPlanetHud.TileCountLabel!.Text = $"地块总数：{tileRepo.GetCount()}";
         _hexPlanetHud.ChosenTile = null;
@@ -194,8 +194,8 @@ public class HexPlanetHudApp(
     {
         NodeReady = false;
         // 事件解绑
-        OrbitCameraEvent.Instance.Moved -= OnCameraMoved;
-        OrbitCameraEvent.Instance.Transformed -= OnCameraTransformed;
+        orbitCameraRepo.Moved -= OnCameraMoved;
+        orbitCameraRepo.Transformed -= OnCameraTransformed;
         _hexPlanetManager!.NewPlanetGenerated -= UpdateNewPlanetInfo;
         _hexPlanetManager.NewPlanetGenerated -= InitMiniMap;
         // 上下文节点置空
@@ -238,9 +238,9 @@ public class HexPlanetHudApp(
                 ValidateDrag(_hexPlanetHud.ChosenTile);
             else
                 _hexPlanetHud.IsDrag = false;
-            if (editorService.TileOverrider.EditMode)
+            if (_hexPlanetHud.TileOverrider.EditMode)
             {
-                editorService.EditTiles(_hexPlanetHud.ChosenTile, _hexPlanetHud.IsDrag,
+                tileService.EditTiles(_hexPlanetHud.ChosenTile, _hexPlanetHud.TileOverrider, _hexPlanetHud.IsDrag,
                     _hexPlanetHud.PreviousTile, _hexPlanetHud.DragTile);
                 _hexPlanetHud.ChosenTile = _hexPlanetHud.ChosenTile; // 刷新 GUI 地块信息
                 // 编辑模式下绘制选择地块框
@@ -253,7 +253,7 @@ public class HexPlanetHudApp(
         }
         else
         {
-            if (!editorService.TileOverrider.EditMode)
+            if (!_hexPlanetHud.TileOverrider.EditMode)
                 _unitManager!.FindPath(null);
             else
                 // 清理选择地块框
@@ -270,35 +270,7 @@ public class HexPlanetHudApp(
 
     #endregion
 
-    public TileInfoRespDto GetTileInfo(Tile tile) => new(pointRepo.GetSphereAxial(tile), tileRepo.GetHeight(tile));
+    public TileInfoRespDto GetTileInfo(Tile tile) => new(pointRepo.GetSphereAxial(tile), hexPlanetManagerRepo.GetHeight(tile));
 
     public ImageTexture GenerateRectMap() => miniMapService.GenerateRectMap();
-
-    #region 编辑功能
-
-    private void SetElevation(double elevation)
-    {
-        editorService.SetElevation(elevation);
-        _hexPlanetHud!.ElevationValueLabel!.Text = editorService.TileOverrider.ActiveElevation.ToString();
-    }
-
-    private void SetBrushSize(double brushSize)
-    {
-        editorService.SetBrushSize(brushSize);
-        _hexPlanetHud!.BrushLabel!.Text = $"笔刷大小：{editorService.TileOverrider.BrushSize}";
-    }
-
-    private void SetWaterLevel(double level)
-    {
-        editorService.SetWaterLevel(level);
-        _hexPlanetHud!.WaterValueLabel!.Text = editorService.TileOverrider.ActiveWaterLevel.ToString();
-    }
-
-    public void SetEditMode(bool toggle)
-    {
-        editorService.SetEditMode(toggle);
-        RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.HexMapEditMode, toggle);
-    }
-
-    #endregion
 }

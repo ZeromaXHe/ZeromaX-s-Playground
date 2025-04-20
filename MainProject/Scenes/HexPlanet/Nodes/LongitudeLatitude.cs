@@ -1,6 +1,8 @@
 using Apps.Queries.Contexts;
-using Apps.Queries.Events;
+using Contexts;
 using Godot;
+using GodotNodes.Abstractions.Addition;
+using Infras.Readers.Abstractions.Nodes.Singletons;
 using Nodes.Abstractions;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
@@ -13,9 +15,11 @@ public partial class LongitudeLatitude : Node3D, ILongitudeLatitude
 {
     public LongitudeLatitude()
     {
+        InitService();
         NodeContext.Instance.RegisterSingleton<ILongitudeLatitude>(this);
+        Context.RegisterSingletonToHolder<ILongitudeLatitude>(this);
     }
-    
+
     [ExportToolButton("手动触发重绘经纬线", Icon = "WorldEnvironment")]
     public Callable Redraw => Callable.From(DoDraw);
 
@@ -58,12 +62,12 @@ public partial class LongitudeLatitude : Node3D, ILongitudeLatitude
                 _fadeVisibility = false;
                 Show();
                 if (_ready)
-                    OrbitCameraEvent.Instance.Moved -= OnCameraMoved;
+                    _orbitCameraRepo!.Moved -= OnCameraMoved;
             }
             else
             {
                 if (_ready)
-                    OrbitCameraEvent.Instance.Moved += OnCameraMoved;
+                    _orbitCameraRepo!.Moved += OnCameraMoved;
                 SetProcess(true);
             }
         }
@@ -90,12 +94,23 @@ public partial class LongitudeLatitude : Node3D, ILongitudeLatitude
 
     private bool _ready;
 
+    #region 服务和存储
+
+    private IOrbitCameraRepo? _orbitCameraRepo;
+
+    private void InitService()
+    {
+        _orbitCameraRepo = Context.GetBeanFromHolder<IOrbitCameraRepo>();
+    }
+
+    #endregion
+
     public override void _Ready()
     {
         _meshIns = new MeshInstance3D();
         AddChild(_meshIns);
         if (!Engine.IsEditorHint())
-            OrbitCameraEvent.Instance.Moved += OnCameraMoved;
+            _orbitCameraRepo!.Moved += OnCameraMoved;
         _ready = true;
         // 在 _ready = true 后面，触发 setter 的着色器参数初始化
         Visibility = FullVisibility;
@@ -104,9 +119,11 @@ public partial class LongitudeLatitude : Node3D, ILongitudeLatitude
     public override void _ExitTree()
     {
         if (!Engine.IsEditorHint())
-            OrbitCameraEvent.Instance.Moved -= OnCameraMoved;
+            _orbitCameraRepo!.Moved -= OnCameraMoved;
         NodeContext.Instance.DestroySingleton<ILongitudeLatitude>();
     }
+
+    public NodeEvent NodeEvent { get; } = new(process: true);
 
     public override void _Process(double delta)
     {

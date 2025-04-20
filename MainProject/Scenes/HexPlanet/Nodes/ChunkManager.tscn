@@ -38,12 +38,12 @@ script = ExtResource("1_8slb6")
 [node name="FeatureMeshManager" type="Node3D" parent="."]
 unique_name_in_owner = true
 script = ExtResource("28_82gfc")
-_urbanScenes = [ExtResource("3_20ayw"), ExtResource("4_8vur2"), ExtResource("5_017qo"), ExtResource("6_dvghv"), ExtResource("7_v8tdp"), ExtResource("8_a7t72")]
-_farmScenes = [ExtResource("9_6klph"), ExtResource("10_7mloi"), ExtResource("11_2iash"), ExtResource("12_v7jj5"), ExtResource("13_1niqe"), ExtResource("14_sq26b")]
-_plantScenes = [ExtResource("15_camxy"), ExtResource("16_gfk00"), ExtResource("17_qv27t"), ExtResource("18_dfao1"), ExtResource("19_0vmme"), ExtResource("20_61afp")]
-_wallTowerScene = ExtResource("21_h0p05")
-_bridgeScene = ExtResource("22_qffwe")
-_specialScenes = [ExtResource("23_7wv6h"), ExtResource("24_sm8rd"), ExtResource("25_3fj4h")]
+UrbanScenes = [ExtResource("3_20ayw"), ExtResource("4_8vur2"), ExtResource("5_017qo"), ExtResource("6_dvghv"), ExtResource("7_v8tdp"), ExtResource("8_a7t72")]
+FarmScenes = [ExtResource("9_6klph"), ExtResource("10_7mloi"), ExtResource("11_2iash"), ExtResource("12_v7jj5"), ExtResource("13_1niqe"), ExtResource("14_sq26b")]
+PlantScenes = [ExtResource("15_camxy"), ExtResource("16_gfk00"), ExtResource("17_qv27t"), ExtResource("18_dfao1"), ExtResource("19_0vmme"), ExtResource("20_61afp")]
+WallTowerScene = ExtResource("21_h0p05")
+BridgeScene = ExtResource("22_qffwe")
+SpecialScenes = [ExtResource("23_7wv6h"), ExtResource("24_sm8rd"), ExtResource("25_3fj4h")]
 
 [node name="Urbans" type="Node3D" parent="FeatureMeshManager"]
 unique_name_in_owner = true
@@ -60,9 +60,9 @@ unique_name_in_owner = true
 [node name="FeaturePreviewManager" type="Node3D" parent="."]
 unique_name_in_owner = true
 script = ExtResource("29_li5fi")
-_urbanPreviewOverrideMaterial = ExtResource("26_dvghv")
-_plantPreviewOverrideMaterial = ExtResource("27_v8tdp")
-_farmPreviewOverrideMaterial = ExtResource("28_a7t72")
+UrbanPreviewOverrideMaterial = ExtResource("26_dvghv")
+PlantPreviewOverrideMaterial = ExtResource("27_v8tdp")
+FarmPreviewOverrideMaterial = ExtResource("28_a7t72")
 
 [node name="ChunkLoader" type="Node3D" parent="."]
 unique_name_in_owner = true

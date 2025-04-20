@@ -6,6 +6,8 @@ using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Domains.Services.Abstractions.Uis;
 using Godot;
+using GodotNodes.Abstractions.Addition;
+using Infras.Readers.Abstractions.Nodes.Singletons;
 using Infras.Writers.Abstractions.PlanetGenerates;
 using Nodes.Abstractions;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
@@ -22,6 +24,7 @@ public partial class EditPreviewChunk : Node3D, IChunk, IEditPreviewChunk
         _chunkTriangulation = new ChunkTriangulation(this);
         InitServices();
         NodeContext.Instance.RegisterSingleton<IEditPreviewChunk>(this);
+        Context.RegisterSingletonToHolder<IEditPreviewChunk>(this);
     }
 
     [Export] public HexMesh? Terrain { get; set; }
@@ -36,21 +39,22 @@ public partial class EditPreviewChunk : Node3D, IChunk, IEditPreviewChunk
     #region 服务与存储
 
     private ITileRepo? _tileRepo;
-    private IEditorService? _editorService;
+    private IHexPlanetHudRepo? _hexPlanetHudRepo;
 
     private void InitServices()
     {
         _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
-        _editorService = Context.GetBeanFromHolder<IEditorService>();
+        _hexPlanetHudRepo = Context.GetBeanFromHolder<IHexPlanetHudRepo>();
     }
 
     #endregion
 
     private readonly ChunkTriangulation _chunkTriangulation;
-    public HexTileDataOverrider TileDataOverrider { get; set; } = new();
+    public HexTileDataOverrider TileDataOverrider { get; private set; } = new();
     private int _terrainMaterialIdx;
 
     public override void _ExitTree() => NodeContext.Instance.DestroySingleton<IEditPreviewChunk>();
+    public NodeEvent NodeEvent { get; } = new(process: true);
 
     public override void _Process(double delta)
     {
@@ -102,8 +106,8 @@ public partial class EditPreviewChunk : Node3D, IChunk, IEditPreviewChunk
         if (tile != null)
         {
             // 更新地块预览
-            Refresh(_editorService!.TileOverrider,
-                _tileRepo!.GetTilesInDistance(tile, _editorService.TileOverrider.BrushSize));
+            Refresh(_hexPlanetHudRepo!.GetTileOverrider(),
+                _tileRepo!.GetTilesInDistance(tile, _hexPlanetHudRepo.GetTileOverrider().BrushSize));
             Show();
         }
         else Hide();

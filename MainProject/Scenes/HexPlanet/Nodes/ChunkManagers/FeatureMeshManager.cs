@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Apps.Queries.Contexts;
+using Contexts;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Godot;
+using GodotNodes.Abstractions.Addition;
 using Nodes.Abstractions.ChunkManagers;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.ChunkManagers;
@@ -14,57 +16,71 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.ChunkManagers;
 [Tool]
 public partial class FeatureMeshManager : Node3D, IFeatureMeshManager
 {
-    public FeatureMeshManager() => NodeContext.Instance.RegisterSingleton<IFeatureMeshManager>(this);
+    public FeatureMeshManager()
+    {
+        NodeContext.Instance.RegisterSingleton<IFeatureMeshManager>(this);
+        Context.RegisterSingletonToHolder<IFeatureMeshManager>(this);
+    }
 
-    [Export] private PackedScene[]? _urbanScenes;
-    [Export] private PackedScene[]? _farmScenes;
-    [Export] private PackedScene[]? _plantScenes;
-    [Export] private PackedScene? _wallTowerScene;
-    [Export] private PackedScene? _bridgeScene;
-    [Export] private PackedScene[]? _specialScenes;
+    public NodeEvent? NodeEvent => null;
+
+    public override void _Ready()
+    {
+        InitOnReadyNodes();
+    }
+
+    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<IFeatureMeshManager>();
+
+    #region export 变量
+
+    [Export] private PackedScene[]? UrbanScenes { get; set; }
+    [Export] private PackedScene[]? FarmScenes { get; set; }
+    [Export] private PackedScene[]? PlantScenes { get; set; }
+    [Export] private PackedScene? WallTowerScene { get; set; }
+    [Export] private PackedScene? BridgeScene { get; set; }
+    [Export] private PackedScene[]? SpecialScenes { get; set; }
+
+    #endregion
 
     #region on-ready 节点
 
-    private Node3D? _urbans;
-    private Node3D? _farms;
-    private Node3D? _plants;
-    private Node3D? _others;
+    private Node3D? Urbans { get; set; }
+    private Node3D? Farms { get; set; }
+    private Node3D? Plants { get; set; }
+    private Node3D? Others { get; set; }
 
     private void InitOnReadyNodes()
     {
-        _urbans = GetNode<Node3D>("%Urbans");
-        _farms = GetNode<Node3D>("%Farms");
-        _plants = GetNode<Node3D>("%Plants");
-        _others = GetNode<Node3D>("%Others");
+        Urbans = GetNode<Node3D>("%Urbans");
+        Farms = GetNode<Node3D>("%Farms");
+        Plants = GetNode<Node3D>("%Plants");
+        Others = GetNode<Node3D>("%Others");
     }
 
     #endregion
 
-    public override void _Ready() => InitOnReadyNodes();
-    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<IFeatureMeshManager>();
-
-    private MultiMeshInstance3D[]? _multiUrbans;
-    private MultiMeshInstance3D[]? _multiFarms;
-    private MultiMeshInstance3D[]? _multiPlants;
-    private MultiMeshInstance3D? _multiTowers;
-    private MultiMeshInstance3D? _multiBridges;
-    private MultiMeshInstance3D[]? _multiSpecials;
+    public MultiMeshInstance3D[]? MultiUrbans { get; private set; }
+    public MultiMeshInstance3D[]? MultiFarms { get; private set; }
+    public MultiMeshInstance3D[]? MultiPlants { get; private set; }
+    public MultiMeshInstance3D? MultiTowers { get; private set; }
+    public MultiMeshInstance3D? MultiBridges { get; private set; }
+    public MultiMeshInstance3D[]? MultiSpecials { get; private set; }
 
     public void InitMultiMeshInstances()
     {
-        _multiUrbans = new MultiMeshInstance3D[_urbanScenes!.Length];
-        InitMultiMeshInstancesForCsgBox("Urbans", _multiUrbans, _urbans!, _urbanScenes, 10000);
-        _multiFarms = new MultiMeshInstance3D[_farmScenes!.Length];
-        InitMultiMeshInstancesForCsgBox("Farms", _multiFarms, _farms!, _farmScenes, 10000);
-        _multiPlants = new MultiMeshInstance3D[_plantScenes!.Length];
-        InitMultiMeshInstancesForCsgBox("Plants", _multiPlants, _plants!, _plantScenes, 10000);
-        _multiSpecials = new MultiMeshInstance3D[_specialScenes!.Length];
-        InitMultiMeshInstancesForCsgBox("Specials", _multiSpecials, _others!, _specialScenes, 1000);
+        MultiUrbans = new MultiMeshInstance3D[UrbanScenes!.Length];
+        InitMultiMeshInstancesForCsgBox("Urbans", MultiUrbans, Urbans!, UrbanScenes, 10000);
+        MultiFarms = new MultiMeshInstance3D[FarmScenes!.Length];
+        InitMultiMeshInstancesForCsgBox("Farms", MultiFarms, Farms!, FarmScenes, 10000);
+        MultiPlants = new MultiMeshInstance3D[PlantScenes!.Length];
+        InitMultiMeshInstancesForCsgBox("Plants", MultiPlants, Plants!, PlantScenes, 10000);
+        MultiSpecials = new MultiMeshInstance3D[SpecialScenes!.Length];
+        InitMultiMeshInstancesForCsgBox("Specials", MultiSpecials, Others!, SpecialScenes, 1000);
 
-        _multiTowers = InitMultiMeshIns("Towers", _wallTowerScene!, 10000);
-        _others!.AddChild(_multiTowers);
-        _multiBridges = InitMultiMeshIns("Bridges", _bridgeScene!, 3000);
-        _others.AddChild(_multiBridges);
+        MultiTowers = InitMultiMeshIns("Towers", WallTowerScene!, 10000);
+        Others!.AddChild(MultiTowers);
+        MultiBridges = InitMultiMeshIns("Bridges", BridgeScene!, 3000);
+        Others.AddChild(MultiBridges);
 
         // 初始化 _hidingIds
         InitHidingIds();
@@ -102,109 +118,36 @@ public partial class FeatureMeshManager : Node3D, IFeatureMeshManager
     public void ClearOldData()
     {
         // 刷新 MultiMesh
-        foreach (var multi in _multiUrbans!.Concat(_multiFarms!).Concat(_multiPlants!))
+        foreach (var multi in MultiUrbans!.Concat(MultiFarms!).Concat(MultiPlants!))
         {
             multi.Multimesh.InstanceCount = 10000;
             multi.Multimesh.VisibleInstanceCount = 0;
         }
 
-        foreach (var multi in _multiSpecials!)
+        foreach (var multi in MultiSpecials!)
         {
             multi.Multimesh.InstanceCount = 1000;
             multi.Multimesh.VisibleInstanceCount = 0;
         }
 
-        _multiBridges!.Multimesh.InstanceCount = 3000;
-        _multiBridges.Multimesh.VisibleInstanceCount = 0;
-        _multiTowers!.Multimesh.InstanceCount = 10000;
-        _multiTowers.Multimesh.VisibleInstanceCount = 0;
+        MultiBridges!.Multimesh.InstanceCount = 3000;
+        MultiBridges.Multimesh.VisibleInstanceCount = 0;
+        MultiTowers!.Multimesh.InstanceCount = 10000;
+        MultiTowers.Multimesh.VisibleInstanceCount = 0;
         // 清理 _hidingIds
-        foreach (var (_, set) in _hidingIds)
+        foreach (var (_, set) in HidingIds)
             set.Clear();
     }
 
-    public MultiMesh GetMultiMesh(FeatureType type) => type switch
-    {
-        // 城市
-        FeatureType.UrbanHigh1 or FeatureType.UrbanHigh2
-            or FeatureType.UrbanMid1 or FeatureType.UrbanMid2
-            or FeatureType.UrbanLow1 or FeatureType.UrbanLow2 =>
-            _multiUrbans![type - FeatureType.UrbanHigh1].Multimesh,
-        // 农田
-        FeatureType.FarmHigh1 or FeatureType.FarmHigh2
-            or FeatureType.FarmMid1 or FeatureType.FarmMid2
-            or FeatureType.FarmLow1 or FeatureType.FarmLow2 =>
-            _multiFarms![type - FeatureType.FarmHigh1].Multimesh,
-
-        // 植被
-        FeatureType.PlantHigh1 or FeatureType.PlantHigh2
-            or FeatureType.PlantMid1 or FeatureType.PlantMid2
-            or FeatureType.PlantLow1 or FeatureType.PlantLow2 =>
-            _multiPlants![type - FeatureType.PlantHigh1].Multimesh,
-
-        // 特殊
-        FeatureType.Tower => _multiTowers!.Multimesh,
-        FeatureType.Bridge => _multiBridges!.Multimesh,
-        FeatureType.Castle or FeatureType.Ziggurat or FeatureType.MegaFlora =>
-            _multiSpecials![type - FeatureType.Castle].Multimesh,
-        _ => throw new ArgumentOutOfRangeException(nameof(type), type, "new type no deal")
-    };
-
     #region 动态加载特征
 
-    private readonly Dictionary<FeatureType, HashSet<int>> _hidingIds = new();
+    public Dictionary<FeatureType, HashSet<int>> HidingIds { get; } = new();
 
     private void InitHidingIds()
     {
         foreach (var type in Enum.GetValues<FeatureType>())
-            _hidingIds[type] = [];
-    }
-
-    // 将特征缩小并放到球心，表示不可见
-    private static readonly Transform3D HideTransform3D = Transform3D.Identity.Scaled(Vector3.One * 0.0001f);
-
-    public void OnHideFeature(int id, FeatureType type)
-    {
-        var mesh = GetMultiMesh(type);
-        mesh.SetInstanceTransform(id, HideTransform3D);
-        if (mesh.VisibleInstanceCount - 1 == id) // 如果是最后一个，则可以考虑缩小可见实例数
-        {
-            var popId = id - 1;
-            while (_hidingIds[type].Contains(id - 1))
-            {
-                _hidingIds[type].Remove(popId);
-                popId--;
-            }
-
-            mesh.VisibleInstanceCount = popId + 1;
-        }
-        else
-            _hidingIds[type].Add(id);
+            HidingIds[type] = [];
     }
 
     #endregion
-
-    public int OnShowFeature(Transform3D transform, FeatureType type)
-    {
-        var mesh = GetMultiMesh(type);
-        if (_hidingIds[type].Count > 0)
-        {
-            // 如果有隐藏的实例，则可以考虑复用
-            var popId = _hidingIds[type].First();
-            mesh.SetInstanceTransform(popId, transform);
-            _hidingIds[type].Remove(popId);
-            return popId;
-        }
-
-        if (mesh.VisibleInstanceCount == mesh.InstanceCount)
-        {
-            GD.PrintErr($"MultiMesh is full of {mesh.InstanceCount} {type}");
-            return -1;
-        }
-
-        var id = mesh.VisibleInstanceCount;
-        mesh.SetInstanceTransform(id, transform);
-        mesh.VisibleInstanceCount++;
-        return id;
-    }
 }

@@ -1,7 +1,8 @@
 using System.Linq;
 using Contexts;
-using Domains.Models.Singletons.Planets;
 using Godot;
+using GodotNodes.Abstractions.Addition;
+using Infras.Readers.Abstractions.Nodes.Singletons;
 using Nodes.Abstractions;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
@@ -13,6 +14,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 public partial class HexMesh : MeshInstance3D, IHexMesh
 {
     public HexMesh() => InitServices();
+    public NodeEvent? NodeEvent => null;
     [Export] public bool UseCollider { get; set; }
     [Export] public bool UseCellData { get; set; }
     [Export] public bool UseUvCoordinates { get; set; }
@@ -21,11 +23,11 @@ public partial class HexMesh : MeshInstance3D, IHexMesh
 
     #region 服务
 
-    private static INoiseConfig? _noiseConfig;
+    private static IHexPlanetManagerRepo? _hexPlanetManagerRepo;
 
     private static void InitServices()
     {
-        _noiseConfig ??= Context.GetBeanFromHolder<INoiseConfig>();
+        _hexPlanetManagerRepo ??= Context.GetBeanFromHolder<IHexPlanetManagerRepo>();
     }
 
     #endregion
@@ -96,7 +98,7 @@ public partial class HexMesh : MeshInstance3D, IHexMesh
     /// <param name="tis">地块ID tileIds</param>
     public void AddTriangle(Vector3[] vs, Color[]? tws = null,
         Vector2[]? uvs = null, Vector2[]? uvs2 = null, Vector3 tis = default) =>
-        AddTriangleUnperturbed(vs.Select(_noiseConfig!.Perturb).ToArray(), tws, uvs, uvs2, tis);
+        AddTriangleUnperturbed(vs.Select(_hexPlanetManagerRepo!.Perturb).ToArray(), tws, uvs, uvs2, tis);
 
     public void AddTriangleUnperturbed(Vector3[] vs, Color[]? tws = null,
         Vector2[]? uvs = null, Vector2[]? uvs2 = null, Vector3 tis = default)
@@ -124,7 +126,7 @@ public partial class HexMesh : MeshInstance3D, IHexMesh
 
     public void AddQuad(Vector3[] vs, Color[]? tws = null,
         Vector2[]? uvs = null, Vector2[]? uvs2 = null, Vector3 tis = default) =>
-        AddQuadUnperturbed(vs.Select(_noiseConfig!.Perturb).ToArray(), tws, uvs, uvs2, tis);
+        AddQuadUnperturbed(vs.Select(_hexPlanetManagerRepo!.Perturb).ToArray(), tws, uvs, uvs2, tis);
 
     public void AddQuadUnperturbed(Vector3[] vs, Color[]? tws = null,
         Vector2[]? uvs = null, Vector2[]? uvs2 = null, Vector3 tis = default)

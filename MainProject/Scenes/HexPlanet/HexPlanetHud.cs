@@ -2,7 +2,9 @@ using Apps.Queries.Applications.Uis;
 using Apps.Queries.Contexts;
 using Contexts;
 using Domains.Models.Entities.PlanetGenerates;
+using Domains.Models.ValueObjects.PlanetGenerates;
 using Godot;
+using GodotNodes.Abstractions.Addition;
 using Nodes.Abstractions;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
@@ -16,6 +18,7 @@ public partial class HexPlanetHud : Control, IHexPlanetHud
     {
         InitApps();
         NodeContext.Instance.RegisterSingleton<IHexPlanetHud>(this);
+        Context.RegisterSingletonToHolder<IHexPlanetHud>(this);
     }
 
     #region 应用服务
@@ -196,6 +199,12 @@ public partial class HexPlanetHud : Control, IHexPlanetHud
     public Tile? DragTile { get; set; }
     public Tile? PreviousTile { get; set; }
 
+    private int _labelMode;
+
+    public int LabelMode { get; set; }
+    public HexTileDataOverrider TileOverrider { get; set; }
+
+
     public override void _Ready()
     {
         InitOnReadyNodes();
@@ -208,5 +217,8 @@ public partial class HexPlanetHud : Control, IHexPlanetHud
         NodeContext.Instance.DestroySingleton<IHexPlanetHud>();
     }
 
-    public override void _Process(double delta) => _hexPlanetHudApp!.OnProcess(delta);
+    public NodeEvent NodeEvent { get; } = new(process: true);
+
+    public override void _Process(double delta) => //NodeEvent.EmitProcessed(delta);
+        _hexPlanetHudApp!.OnProcess(delta);
 }

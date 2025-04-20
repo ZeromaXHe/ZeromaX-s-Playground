@@ -4,6 +4,7 @@ using Domains.Models.Entities.PlanetGenerates;
 using Domains.Services.Abstractions.Searches;
 using Domains.Services.Abstractions.Uis;
 using Godot;
+using GodotNodes.Abstractions.Addition;
 using Infras.Writers.Abstractions.Civs;
 using Infras.Writers.Abstractions.PlanetGenerates;
 using Nodes.Abstractions.Planets;
@@ -19,6 +20,7 @@ public partial class UnitManager : Node3D, IUnitManager
     {
         InitServices();
         NodeContext.Instance.RegisterSingleton<IUnitManager>(this);
+        Context.RegisterSingletonToHolder<IUnitManager>(this);
     }
 
     [Export] private PackedScene? _unitScene;
@@ -83,6 +85,7 @@ public partial class UnitManager : Node3D, IUnitManager
         CleanEventListeners();
         NodeContext.Instance.DestroySingleton<IUnitManager>();
     }
+    public NodeEvent? NodeEvent => null;
 
     public void AddUnit(int tileId, float orientation)
     {

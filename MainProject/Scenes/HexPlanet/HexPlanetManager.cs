@@ -1,9 +1,13 @@
 using Apps.Queries.Applications.Planets;
 using Apps.Queries.Contexts;
+using Commons.Constants;
+using Commons.Utils;
+using Commons.Utils.HexSphereGrid;
 using Contexts;
 using Domains.Models.Entities.PlanetGenerates;
-using Domains.Models.Singletons.Planets;
+using Domains.Models.ValueObjects.PlanetGenerates;
 using Godot;
+using GodotNodes.Abstractions.Addition;
 using Nodes.Abstractions;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.Planets;
@@ -28,6 +32,7 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
     {
         InitApps(); // 现在 4.4 甚至构造函数会执行两次！奇了怪了，不知道之前 4.3 是不是也是这样
         NodeContext.Instance.RegisterSingleton<IHexPlanetManager>(this);
+        Context.RegisterSingletonToHolder<IHexPlanetManager>(this);
     }
     // 调用两次构造函数（_EnterTree()、_Ready() 也一样）居然是好久以前（2020 年 7 月 3.2.2）以来一直的问题：
     // https://github.com/godotengine/godot-docs/issues/2930#issuecomment-662407208
@@ -46,7 +51,8 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
             _radius = value;
             if (NodeReady)
             {
-                _planetConfig!.Radius = _radius;
+                RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.Radius, _radius);
+                CalcUnitHeight();
                 var camAttr = PlanetCamera!.Attributes as CameraAttributesPractical;
                 camAttr?.SetDofBlurFarDistance(_radius);
                 camAttr?.SetDofBlurFarTransition(_radius / 2);
@@ -58,7 +64,7 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
                 groundSphere?.SetHeight(_radius * 1.98f);
                 PlanetAtmosphere!.Set("planet_radius", _radius);
                 PlanetAtmosphere.Set("atmosphere_height", _radius * 0.25f);
-                _longitudeLatitude!.Draw(_radius + _planetConfig.MaxHeight * 1.25f);
+                _longitudeLatitude!.Draw(_radius + MaxHeight * 1.25f);
 
                 _celestialMotionManager!.UpdateMoonMeshRadius(); // 卫星半径
                 _celestialMotionManager.UpdateLunarDist(); // 卫星轨道半径
@@ -78,8 +84,9 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
             _chunkDivisions = Mathf.Min(Mathf.Max(1, _divisions / 10), _chunkDivisions);
             if (NodeReady)
             {
-                _planetConfig!.Divisions = _divisions;
-                _planetConfig.ChunkDivisions = _chunkDivisions;
+                RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.Divisions, _divisions);
+                SphereAxial.Div = _divisions; // TODO：后续修改这个逻辑，临时在这里处理以方便测试 SphereAxial
+                CalcUnitHeight();
                 _orbitCamera!.Reset();
             }
         }
@@ -97,8 +104,9 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
             _divisions = Mathf.Max(Mathf.Min(200, _chunkDivisions * 10), _divisions);
             if (NodeReady)
             {
-                _planetConfig!.ChunkDivisions = _chunkDivisions;
-                _planetConfig.Divisions = _divisions;
+                RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.Divisions, _divisions);
+                SphereAxial.Div = _divisions; // TODO：后续修改这个逻辑，临时在这里处理以方便测试 SphereAxial
+                CalcUnitHeight();
                 _orbitCamera!.Reset();
             }
         }
@@ -178,12 +186,10 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
 
     #region 应用服务
 
-    private IPlanetConfig? _planetConfig;
     private IHexPlanetManagerApp? _hexPlanetManagerApplication;
 
     private void InitApps()
     {
-        _planetConfig = Context.GetBeanFromHolder<IPlanetConfig>();
         _hexPlanetManagerApplication = Context.GetBeanFromHolder<IHexPlanetManagerApp>();
     }
 
@@ -239,7 +245,42 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
         NodeContext.Instance.DestroySingleton<IHexPlanetManager>();
     }
 
-    public override void _Process(double delta) => _hexPlanetManagerApplication!.OnProcess(delta);
+    public NodeEvent NodeEvent { get; } = new();
+
+    public override void _Process(double delta) => //NodeEvent.EmitProcessed(delta);
+        _hexPlanetManagerApplication!.OnProcess(delta);
+
+    #region 噪声扰动
+
+    public Image? NoiseSourceImage { get; set; }
+
+    #endregion
+
+    #region 星球设置
+
+    // 单位高度
+    public float UnitHeight { get; private set; } = 1.5f;
+    public float MaxHeight { get; private set; } = 15f;
+    public float MaxHeightRatio { get; private set; } = 0.1f;
+    private const float MaxHeightRadiusRatio = 0.2f;
+
+    // [Export(PropertyHint.Range, "10, 15")]
+    public int ElevationStep { get; set; } = 10; // 这里对应含义是 Elevation 分为几级
+
+    private void CalcUnitHeight()
+    {
+        MaxHeightRatio = StandardScale * MaxHeightRadiusRatio;
+        MaxHeight = Radius * MaxHeightRatio;
+        RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.MaxHeight, MaxHeight);
+        UnitHeight = MaxHeight / ElevationStep;
+    }
+
+    public float StandardScale => Radius / HexMetrics.StandardRadius * HexMetrics.StandardDivisions / Divisions;
+
+    // 默认水面高度 [Export(PropertyHint.Range, "1, 5")]
+    public int DefaultWaterLevel { get; set; } = 5;
+
+    #endregion
 
     private Godot.Collections.Dictionary GetTileCollisionResult()
     {

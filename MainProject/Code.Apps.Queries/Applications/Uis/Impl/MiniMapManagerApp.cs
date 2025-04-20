@@ -1,10 +1,9 @@
 using Apps.Queries.Contexts;
-using Apps.Queries.Events;
 using Commons.Utils.HexSphereGrid;
 using Domains.Models.Entities.PlanetGenerates;
-using Domains.Models.Singletons.Planets;
 using Domains.Services.Abstractions.PlanetGenerates;
 using Godot;
+using Infras.Readers.Abstractions.Nodes.Singletons;
 using Infras.Writers.Abstractions.PlanetGenerates;
 using Nodes.Abstractions;
 
@@ -14,7 +13,8 @@ namespace Apps.Queries.Applications.Uis.Impl;
 /// Author: Zhu XH
 /// Date: 2025-04-16 20:45:21
 public class MiniMapManagerApp(
-    IPlanetConfig planetConfig,
+    IHexPlanetManagerRepo hexPlanetManagerRepo,
+    IOrbitCameraRepo orbitCameraRepo,
     ITileRepo tileRepo,
     IPointRepo pointRepo,
     ITileService tileService
@@ -37,7 +37,7 @@ public class MiniMapManagerApp(
         // 绑定事件
         _hexPlanetManager.NewPlanetGenerated += InitMiniMap;
         tileRepo.RefreshTerrainShader += RefreshTile;
-        OrbitCameraEvent.Instance.Moved += SyncCameraIconPos;
+        orbitCameraRepo.Moved += SyncCameraIconPos;
     }
 
     private void InitMiniMap() => _miniMapManager!.Init(_orbitCamera!.GetFocusBasePos());
@@ -91,7 +91,7 @@ public class MiniMapManagerApp(
         // 解绑事件
         _hexPlanetManager!.NewPlanetGenerated -= InitMiniMap;
         tileRepo.RefreshTerrainShader -= RefreshTile;
-        OrbitCameraEvent.Instance.Moved -= SyncCameraIconPos;
+        orbitCameraRepo.Moved -= SyncCameraIconPos;
         // 上下文节点置空
         _hexPlanetManager = null;
         _miniMapManager = null;
@@ -106,8 +106,8 @@ public class MiniMapManagerApp(
 
     public void UpdateCamera()
     {
-        _miniMapManager!.Camera!.Position = StandardCamPos / 10 * planetConfig.Divisions;
-        _miniMapManager.Camera.Zoom = StandardCamZoom * 10 / planetConfig.Divisions;
+        _miniMapManager!.Camera!.Position = StandardCamPos / 10 * hexPlanetManagerRepo.Divisions;
+        _miniMapManager.Camera.Zoom = StandardCamZoom * 10 / hexPlanetManagerRepo.Divisions;
     }
 
     public void Init(Vector3 orbitCamPos)
