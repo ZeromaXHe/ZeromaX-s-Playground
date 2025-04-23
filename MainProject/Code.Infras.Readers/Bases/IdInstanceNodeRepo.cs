@@ -43,6 +43,12 @@ public abstract class IdInstanceNodeRepo<T> : IIdInstanceNodeRepo<T> where T : I
         RegisterHook(instance);
     }
 
+    public void UnregisterAll()
+    {
+        foreach (var (_, unregister) in _unregisters)
+            unregister.Invoke();
+    }
+
     private Action Unregister(T instance, Action emitReady, Action emitTreeExiting, Action<double> emitProcessed,
         Action<double> emitPhysicsProcessed, Action<InputEvent> emitInputted) => () =>
     {

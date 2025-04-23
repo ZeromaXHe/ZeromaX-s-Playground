@@ -42,7 +42,7 @@ public abstract class SingletonNodeRepo<T> : ISingletonNodeRepo<T> where T : INo
     {
     }
 
-    private void Unregister()
+    public void Unregister()
     {
         if (Singleton == null)
         {

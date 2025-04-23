@@ -1,9 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
 using Apps.Commands;
-using Apps.Commands.ChunkManagers;
-using Apps.Commands.IdInstances;
-using Apps.Commands.LandGenerators;
-using Apps.Commands.Planets;
+using Apps.Commands.Nodes.IdInstances;
+using Apps.Commands.Nodes.Singletons;
+using Apps.Commands.Nodes.Singletons.ChunkManagers;
+using Apps.Commands.Nodes.Singletons.LandGenerators;
+using Apps.Commands.Nodes.Singletons.Planets;
 using Apps.Queries.Abstractions.Features;
 using Apps.Queries.Abstractions.Tiles;
 using Apps.Queries.Applications.Features;
@@ -15,19 +16,21 @@ using Apps.Queries.Applications.Uis.Impl;
 using Autofac;
 using Contexts.Abstractions;
 using Domains.Services.Abstractions.Nodes;
-using Domains.Services.Abstractions.Nodes.ChunkManagers;
 using Domains.Services.Abstractions.Nodes.IdInstances;
-using Domains.Services.Abstractions.Nodes.LandGenerators;
-using Domains.Services.Abstractions.Nodes.Planets;
+using Domains.Services.Abstractions.Nodes.Singletons;
+using Domains.Services.Abstractions.Nodes.Singletons.ChunkManagers;
+using Domains.Services.Abstractions.Nodes.Singletons.LandGenerators;
+using Domains.Services.Abstractions.Nodes.Singletons.Planets;
 using Domains.Services.Abstractions.PlanetGenerates;
 using Domains.Services.Abstractions.Searches;
 using Domains.Services.Abstractions.Shaders;
 using Domains.Services.Abstractions.Uis;
 using Domains.Services.Nodes;
-using Domains.Services.Nodes.ChunkManagers;
 using Domains.Services.Nodes.IdInstances;
-using Domains.Services.Nodes.LandGenerators;
-using Domains.Services.Nodes.Planets;
+using Domains.Services.Nodes.Singletons;
+using Domains.Services.Nodes.Singletons.ChunkManagers;
+using Domains.Services.Nodes.Singletons.LandGenerators;
+using Domains.Services.Nodes.Singletons.Planets;
 using Domains.Services.PlanetGenerates;
 using Domains.Services.Searches;
 using Domains.Services.Shaders;
@@ -110,25 +113,43 @@ public class Context : IContext
         // 节点存储
         builder.RegisterType<NodeRegister>().SingleInstance();
         // 单例存储
-        builder.RegisterType<ChunkLoaderRepo>().As<IChunkLoaderRepo>().SingleInstance();
-        builder.RegisterType<FeatureMeshManagerRepo>().As<IFeatureMeshManagerRepo>().SingleInstance();
-        builder.RegisterType<FeaturePreviewManagerRepo>().As<IFeaturePreviewManagerRepo>().SingleInstance();
-        builder.RegisterType<ErosionLandGeneratorRepo>().As<IErosionLandGeneratorRepo>().SingleInstance();
-        builder.RegisterType<FractalNoiseLandGeneratorRepo>().As<IFractalNoiseLandGeneratorRepo>().SingleInstance();
-        builder.RegisterType<RealEarthLandGeneratorRepo>().As<IRealEarthLandGeneratorRepo>().SingleInstance();
-        builder.RegisterType<CelestialMotionManagerRepo>().As<ICelestialMotionManagerRepo>().SingleInstance();
-        builder.RegisterType<SelectTileViewerRepo>().As<ISelectTileViewerRepo>().SingleInstance();
-        builder.RegisterType<UnitManagerRepo>().As<IUnitManagerRepo>().SingleInstance();
-        builder.RegisterType<ChunkManagerRepo>().As<IChunkManagerRepo>().SingleInstance();
-        builder.RegisterType<EditPreviewChunkRepo>().As<IEditPreviewChunkRepo>().SingleInstance();
-        builder.RegisterType<HexMapGeneratorRepo>().As<IHexMapGeneratorRepo>().SingleInstance();
-        builder.RegisterType<HexPlanetHudRepo>().As<IHexPlanetHudRepo>().SingleInstance();
-        builder.RegisterType<HexPlanetManagerRepo>().As<IHexPlanetManagerRepo>().SingleInstance();
-        builder.RegisterType<LongitudeLatitudeRepo>().As<ILongitudeLatitudeRepo>().SingleInstance();
-        builder.RegisterType<MiniMapManagerRepo>().As<IMiniMapManagerRepo>().SingleInstance();
-        builder.RegisterType<OrbitCameraRepo>().As<IOrbitCameraRepo>().SingleInstance();
+        builder.RegisterType<ChunkLoaderRepo>().As<IChunkLoaderRepo>().SingleInstance()
+            .OnRelease(repo => repo.Unregister());
+        builder.RegisterType<FeatureMeshManagerRepo>().As<IFeatureMeshManagerRepo>().SingleInstance()
+            .OnRelease(repo => repo.Unregister());
+        builder.RegisterType<FeaturePreviewManagerRepo>().As<IFeaturePreviewManagerRepo>().SingleInstance()
+            .OnRelease(repo => repo.Unregister());
+        builder.RegisterType<ErosionLandGeneratorRepo>().As<IErosionLandGeneratorRepo>().SingleInstance()
+            .OnRelease(repo => repo.Unregister());
+        builder.RegisterType<FractalNoiseLandGeneratorRepo>().As<IFractalNoiseLandGeneratorRepo>().SingleInstance()
+            .OnRelease(repo => repo.Unregister());
+        builder.RegisterType<RealEarthLandGeneratorRepo>().As<IRealEarthLandGeneratorRepo>().SingleInstance()
+            .OnRelease(repo => repo.Unregister());
+        builder.RegisterType<CelestialMotionManagerRepo>().As<ICelestialMotionManagerRepo>().SingleInstance()
+            .OnRelease(repo => repo.Unregister());
+        builder.RegisterType<SelectTileViewerRepo>().As<ISelectTileViewerRepo>().SingleInstance()
+            .OnRelease(repo => repo.Unregister());
+        builder.RegisterType<UnitManagerRepo>().As<IUnitManagerRepo>().SingleInstance()
+            .OnRelease(repo => repo.Unregister());
+        builder.RegisterType<ChunkManagerRepo>().As<IChunkManagerRepo>().SingleInstance()
+            .OnRelease(repo => repo.Unregister());
+        builder.RegisterType<EditPreviewChunkRepo>().As<IEditPreviewChunkRepo>().SingleInstance()
+            .OnRelease(repo => repo.Unregister());
+        builder.RegisterType<HexMapGeneratorRepo>().As<IHexMapGeneratorRepo>().SingleInstance()
+            .OnRelease(repo => repo.Unregister());
+        builder.RegisterType<HexPlanetHudRepo>().As<IHexPlanetHudRepo>().SingleInstance()
+            .OnRelease(repo => repo.Unregister());
+        builder.RegisterType<HexPlanetManagerRepo>().As<IHexPlanetManagerRepo>().SingleInstance()
+            .OnRelease(repo => repo.Unregister());
+        builder.RegisterType<LongitudeLatitudeRepo>().As<ILongitudeLatitudeRepo>().SingleInstance()
+            .OnRelease(repo => repo.Unregister());
+        builder.RegisterType<MiniMapManagerRepo>().As<IMiniMapManagerRepo>().SingleInstance()
+            .OnRelease(repo => repo.Unregister());
+        builder.RegisterType<OrbitCameraRepo>().As<IOrbitCameraRepo>().SingleInstance()
+            .OnRelease(repo => repo.Unregister());
         // 多例存储
-        builder.RegisterType<HexGridChunkRepo>().As<IHexGridChunkRepo>().SingleInstance();
+        builder.RegisterType<HexGridChunkRepo>().As<IHexGridChunkRepo>().SingleInstance()
+            .OnRelease(repo => repo.UnregisterAll());
         // ===== 领域层 =====
         // 领域服务
         builder.RegisterType<PointService>().As<IPointService>().SingleInstance();
@@ -167,24 +188,34 @@ public class Context : IContext
         builder.RegisterType<HexPlanetManagerApp>().As<IHexPlanetManagerApp>().SingleInstance();
         builder.RegisterType<MiniMapManagerApp>().As<IMiniMapManagerApp>().SingleInstance();
         // 单例节点命令
-        builder.RegisterType<ChunkLoaderCommander>().SingleInstance();
-        builder.RegisterType<FeatureMeshManagerCommander>().SingleInstance();
-        builder.RegisterType<FeaturePreviewManagerCommander>().SingleInstance();
-        builder.RegisterType<ErosionLandGeneratorCommander>().SingleInstance();
-        builder.RegisterType<FractalNoiseLandGeneratorCommander>().SingleInstance();
-        builder.RegisterType<RealEarthLandGeneratorCommander>().SingleInstance();
+        builder.RegisterType<ChunkLoaderCommander>().SingleInstance()
+            .OnRelease(cmd => cmd.ReleaseEvents());
+        builder.RegisterType<FeatureMeshManagerCommander>().SingleInstance()
+            .OnRelease(cmd => cmd.ReleaseEvents());
+        builder.RegisterType<FeaturePreviewManagerCommander>().SingleInstance()
+            .OnRelease(cmd => cmd.ReleaseEvents());
+        builder.RegisterType<ErosionLandGeneratorCommander>().SingleInstance()
+            .OnRelease(cmd => cmd.ReleaseEvents());
+        builder.RegisterType<FractalNoiseLandGeneratorCommander>().SingleInstance()
+            .OnRelease(cmd => cmd.ReleaseEvents());
+        builder.RegisterType<RealEarthLandGeneratorCommander>().SingleInstance()
+            .OnRelease(cmd => cmd.ReleaseEvents());
         builder.RegisterType<CelestialMotionManagerCommander>().SingleInstance();
-        builder.RegisterType<SelectTileViewerCommander>().SingleInstance();
+        builder.RegisterType<SelectTileViewerCommander>().SingleInstance()
+            .OnRelease(cmd => cmd.ReleaseEvents());
         builder.RegisterType<ChunkManagerCommander>().SingleInstance();
-        builder.RegisterType<EditPreviewChunkCommander>().SingleInstance();
+        builder.RegisterType<EditPreviewChunkCommander>().SingleInstance()
+            .OnRelease(cmd => cmd.ReleaseEvents());
         builder.RegisterType<HexMapGeneratorCommander>().SingleInstance();
         builder.RegisterType<HexPlanetHudCommander>().SingleInstance();
-        builder.RegisterType<HexPlanetManagerCommander>().SingleInstance();
+        builder.RegisterType<HexPlanetManagerCommander>().SingleInstance()
+            .OnRelease(cmd => cmd.ReleaseEvents());
         builder.RegisterType<LongitudeLatitudeCommander>().SingleInstance();
         builder.RegisterType<MiniMapManagerCommander>().SingleInstance();
         builder.RegisterType<OrbitCameraCommander>().SingleInstance();
         // 多例节点命令
-        builder.RegisterType<HexGridChunkCommander>().SingleInstance();
+        builder.RegisterType<HexGridChunkCommander>().SingleInstance()
+            .OnRelease(cmd => cmd.ReleaseEvents());
         _container = builder.Build();
         _nodeRegister = _container.Resolve<NodeRegister>();
         // 这种构造函数有初始化逻辑的，必须先 Resolve()，否则构造函数并没有被调用
