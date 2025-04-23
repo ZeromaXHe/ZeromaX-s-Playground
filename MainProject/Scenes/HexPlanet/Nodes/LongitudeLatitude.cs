@@ -17,7 +17,7 @@ public partial class LongitudeLatitude : Node3D, ILongitudeLatitude
     {
         InitService();
         NodeContext.Instance.RegisterSingleton<ILongitudeLatitude>(this);
-        Context.RegisterSingletonToHolder<ILongitudeLatitude>(this);
+        Context.RegisterToHolder<ILongitudeLatitude>(this);
     }
 
     [ExportToolButton("手动触发重绘经纬线", Icon = "WorldEnvironment")]

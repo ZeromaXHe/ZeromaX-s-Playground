@@ -16,7 +16,7 @@ public partial class FeaturePreviewManager : Node3D, IFeaturePreviewManager
     public FeaturePreviewManager()
     {
         NodeContext.Instance.RegisterSingleton<IFeaturePreviewManager>(this);
-        Context.RegisterSingletonToHolder<IFeaturePreviewManager>(this);
+        Context.RegisterToHolder<IFeaturePreviewManager>(this);
     }
 
     public NodeEvent? NodeEvent => null;

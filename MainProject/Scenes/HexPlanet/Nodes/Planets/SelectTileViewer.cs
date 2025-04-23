@@ -18,7 +18,7 @@ public partial class SelectTileViewer : MeshInstance3D, ISelectTileViewer
     {
         InitServices();
         NodeContext.Instance.RegisterSingleton<ISelectTileViewer>(this);
-        Context.RegisterSingletonToHolder<ISelectTileViewer>(this);
+        Context.RegisterToHolder<ISelectTileViewer>(this);
     }
 
     #region 服务

@@ -1,4 +1,5 @@
 using Godot;
+using GodotNodes.Abstractions;
 
 namespace Commons.Utils;
 
@@ -7,7 +8,7 @@ namespace Commons.Utils;
 /// Date: 2025-02-25 23:58
 public static class Node3dUtil
 {
-    public static void PlaceOnSphere(Node3D node, Vector3 position, float scale, float addHeight = 0, Vector3 alignForward = default)
+    public static void PlaceOnSphere(INode3D node, Vector3 position, float scale, float addHeight = 0, Vector3 alignForward = default)
     {
         // 暂时不知道如何整合 Node3dUtil 和 Math3dUtil 的类似方法
         // node.Transform = Math3dUtil.PlaceOnSphere(node.Basis, position, Vector3.One * scale, addHeight, alignForward);
@@ -23,7 +24,7 @@ public static class Node3dUtil
     /// <param name="direction">目标方向向量</param>
     /// <param name="alignForward">希望对齐向前的方向（不传则默认不调整）</param>
     /// <param name="global">Y 轴是否使用全局基（注意：全局基模式未经测试）</param>
-    public static void AlignYAxisToDirection(Node3D node, Vector3 direction, Vector3 alignForward = default,
+    public static void AlignYAxisToDirection(INode3D node, Vector3 direction, Vector3 alignForward = default,
         bool global = false)
     {
         // 暂时不知道如何整合 Node3dUtil 和 Math3dUtil 的类似方法

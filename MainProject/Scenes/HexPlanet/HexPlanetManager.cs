@@ -32,7 +32,7 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
     {
         InitApps(); // 现在 4.4 甚至构造函数会执行两次！奇了怪了，不知道之前 4.3 是不是也是这样
         NodeContext.Instance.RegisterSingleton<IHexPlanetManager>(this);
-        Context.RegisterSingletonToHolder<IHexPlanetManager>(this);
+        Context.RegisterToHolder<IHexPlanetManager>(this);
     }
     // 调用两次构造函数（_EnterTree()、_Ready() 也一样）居然是好久以前（2020 年 7 月 3.2.2）以来一直的问题：
     // https://github.com/godotengine/godot-docs/issues/2930#issuecomment-662407208
@@ -245,7 +245,7 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
         NodeContext.Instance.DestroySingleton<IHexPlanetManager>();
     }
 
-    public NodeEvent NodeEvent { get; } = new();
+    public NodeEvent NodeEvent { get; } = new(process: true);
 
     public override void _Process(double delta) => //NodeEvent.EmitProcessed(delta);
         _hexPlanetManagerApplication!.OnProcess(delta);

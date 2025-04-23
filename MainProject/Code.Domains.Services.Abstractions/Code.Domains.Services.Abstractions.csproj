@@ -10,6 +10,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Code.Domains.Models\Code.Domains.Models.csproj" />
+      <ProjectReference Include="..\Code.Nodes.Abstractions\Code.Nodes.Abstractions.csproj" />
     </ItemGroup>
 
 </Project>

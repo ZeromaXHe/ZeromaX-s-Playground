@@ -19,7 +19,7 @@ public partial class FeatureMeshManager : Node3D, IFeatureMeshManager
     public FeatureMeshManager()
     {
         NodeContext.Instance.RegisterSingleton<IFeatureMeshManager>(this);
-        Context.RegisterSingletonToHolder<IFeatureMeshManager>(this);
+        Context.RegisterToHolder<IFeatureMeshManager>(this);
     }
 
     public NodeEvent? NodeEvent => null;

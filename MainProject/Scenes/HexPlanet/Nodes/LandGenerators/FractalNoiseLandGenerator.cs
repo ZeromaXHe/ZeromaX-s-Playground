@@ -20,7 +20,7 @@ public partial class FractalNoiseLandGenerator : Node, IFractalNoiseLandGenerato
     public FractalNoiseLandGenerator()
     {
         NodeContext.Instance.RegisterSingleton<IFractalNoiseLandGenerator>(this);
-        Context.RegisterSingletonToHolder<IFractalNoiseLandGenerator>(this);
+        Context.RegisterToHolder<IFractalNoiseLandGenerator>(this);
     }
 
     public override void _ExitTree() => NodeContext.Instance.DestroySingleton<IFractalNoiseLandGenerator>();

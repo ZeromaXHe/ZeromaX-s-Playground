@@ -20,7 +20,7 @@ public partial class OrbitCamera : Node3D, IOrbitCamera
     {
         InitService();
         NodeContext.Instance.RegisterSingleton<IOrbitCamera>(this);
-        Context.RegisterSingletonToHolder<IOrbitCamera>(this);
+        Context.RegisterToHolder<IOrbitCamera>(this);
     }
 
     [Export] private Camera3D? _camera; // 设置摄像机节点

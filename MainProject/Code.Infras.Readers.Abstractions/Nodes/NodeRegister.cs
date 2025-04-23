@@ -1,4 +1,5 @@
 using GodotNodes.Abstractions;
+using Infras.Readers.Abstractions.Nodes.IdInstances;
 using Infras.Readers.Abstractions.Nodes.Singletons;
 using Infras.Readers.Abstractions.Nodes.Singletons.ChunkManagers;
 using Infras.Readers.Abstractions.Nodes.Singletons.LandGenerators;
@@ -14,6 +15,7 @@ namespace Infras.Readers.Abstractions.Nodes;
 /// Author: Zhu XH
 /// Date: 2025-04-18 11:19:56
 public class NodeRegister(
+    // 单例
     IChunkLoaderRepo chunkLoaderRepo,
     IFeatureMeshManagerRepo featureMeshManagerRepo,
     IFeaturePreviewManagerRepo featurePreviewManagerRepo,
@@ -30,12 +32,15 @@ public class NodeRegister(
     IHexPlanetManagerRepo hexPlanetManagerRepo,
     ILongitudeLatitudeRepo longitudeLatitudeRepo,
     IMiniMapManagerRepo miniMapManagerRepo,
-    IOrbitCameraRepo orbitCameraRepo)
+    IOrbitCameraRepo orbitCameraRepo,
+    // 多例
+    IHexGridChunkRepo hexGridChunkRepo)
 {
-    public bool RegisterSingleton<T>(T node) where T : INode
+    public bool Register<T>(T node) where T : INode
     {
         return node switch
         {
+            // 单例
             IChunkLoader chunkLoader => chunkLoaderRepo.Register(chunkLoader),
             IFeatureMeshManager featureMeshManager => featureMeshManagerRepo.Register(featureMeshManager),
             IFeaturePreviewManager featurePreviewManager => featurePreviewManagerRepo.Register(featurePreviewManager),
@@ -56,7 +61,15 @@ public class NodeRegister(
             ILongitudeLatitude longitudeLatitude => longitudeLatitudeRepo.Register(longitudeLatitude),
             IMiniMapManager miniMapManager => miniMapManagerRepo.Register(miniMapManager),
             IOrbitCamera orbitCamera => orbitCameraRepo.Register(orbitCamera),
+            // 多例
+            IHexGridChunk hexGridChunk => RegisterIdInstance(hexGridChunk, hexGridChunkRepo.Register),
             _ => throw new ArgumentException($"暂不支持的单例节点：{typeof(T).Name}")
         };
+    }
+
+    private static bool RegisterIdInstance<T>(T instance, Action<T> register) where T : INode
+    {
+        register.Invoke(instance);
+        return false; // 多例永远不会发生覆盖
     }
 }

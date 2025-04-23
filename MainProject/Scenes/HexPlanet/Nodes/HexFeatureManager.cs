@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Apps.Queries.Abstractions.Features;
+using Commons.Constants;
 using Commons.Enums;
 using Commons.Utils;
 using Contexts;
@@ -350,7 +351,7 @@ public partial class HexFeatureManager : Node3D, IHexFeatureManager
         v2 = v4 = _hexPlanetManagerRepo.WallThicknessOffset(nearRight, farRight, true, thickness);
         v3 = Math3dUtil.ProjectToSphere(v3, leftTop);
         v4 = Math3dUtil.ProjectToSphere(v4, rightTop);
-        _walls!.AddQuadUnperturbed([v1, v2, v3, v4], HexMesh.QuadArr(HexMesh.Weights1), tis: ids);
+        _walls!.AddQuadUnperturbed([v1, v2, v3, v4], HexMeshConstant.QuadArr(HexMeshConstant.Weights1), tis: ids);
         Vector3 t1 = v3, t2 = v4;
         v1 = v3 = _hexPlanetManagerRepo.WallThicknessOffset(nearLeft, farLeft, false, thickness);
         v2 = v4 = _hexPlanetManagerRepo.WallThicknessOffset(nearRight, farRight, false, thickness);
@@ -358,11 +359,12 @@ public partial class HexFeatureManager : Node3D, IHexFeatureManager
         {
             v3 = Math3dUtil.ProjectToSphere(v3, leftTop);
             v4 = Math3dUtil.ProjectToSphere(v4, rightTop);
-            _walls.AddQuadUnperturbed([v2, v1, v4, v3], HexMesh.QuadArr(HexMesh.Weights2), tis: ids);
-            _walls.AddQuadUnperturbed([t1, t2, v3, v4], HexMesh.QuadArr(HexMesh.Weights1, HexMesh.Weights2), tis: ids);
+            _walls.AddQuadUnperturbed([v2, v1, v4, v3], HexMeshConstant.QuadArr(HexMeshConstant.Weights2), tis: ids);
+            _walls.AddQuadUnperturbed([t1, t2, v3, v4],
+                HexMeshConstant.QuadArr(HexMeshConstant.Weights1, HexMeshConstant.Weights2), tis: ids);
         }
         else
-            _walls.AddQuadUnperturbed([v2, v1, t2, t1], HexMesh.QuadArr(HexMesh.Weights2), tis: ids);
+            _walls.AddQuadUnperturbed([v2, v1, t2, t1], HexMeshConstant.QuadArr(HexMeshConstant.Weights2), tis: ids);
 
         if (addTower)
             AddTower(nearTile, left, right);
@@ -419,7 +421,7 @@ public partial class HexFeatureManager : Node3D, IHexFeatureManager
         v3 = Math3dUtil.ProjectToSphere(v3, centerTop);
         v4 = Math3dUtil.ProjectToSphere(v4, centerTop);
         _walls!.AddQuadUnperturbed([v1, v2, v3, v4],
-            [HexMesh.Weights1, HexMesh.Weights2, HexMesh.Weights1, HexMesh.Weights2],
+            [HexMeshConstant.Weights1, HexMeshConstant.Weights2, HexMeshConstant.Weights1, HexMeshConstant.Weights2],
             tis: new Vector3(nearTile.Id, farTile.Id, nearTile.Id));
     }
 
@@ -441,10 +443,12 @@ public partial class HexFeatureManager : Node3D, IHexFeatureManager
         v4 = Math3dUtil.ProjectToSphere(v4, centerTop);
         var ids = new Vector3(nearTile.Id, farTile.Id, pointTile.Id);
         _walls!.AddQuadUnperturbed([v1, point, v3, pointTop],
-            [HexMesh.Weights1, HexMesh.Weights3, HexMesh.Weights1, HexMesh.Weights3], tis: ids);
+            [HexMeshConstant.Weights1, HexMeshConstant.Weights3, HexMeshConstant.Weights1, HexMeshConstant.Weights3],
+            tis: ids);
         _walls.AddQuadUnperturbed([point, v2, pointTop, v4],
-            [HexMesh.Weights2, HexMesh.Weights3, HexMesh.Weights2, HexMesh.Weights3], tis: ids);
+            [HexMeshConstant.Weights2, HexMeshConstant.Weights3, HexMeshConstant.Weights2, HexMeshConstant.Weights3],
+            tis: ids);
         _walls.AddTriangleUnperturbed([pointTop, v3, v4],
-            [HexMesh.Weights3, HexMesh.Weights1, HexMesh.Weights2], tis: ids);
+            [HexMeshConstant.Weights3, HexMeshConstant.Weights1, HexMeshConstant.Weights2], tis: ids);
     }
 }

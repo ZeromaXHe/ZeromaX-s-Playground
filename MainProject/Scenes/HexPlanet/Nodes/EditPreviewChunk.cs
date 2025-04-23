@@ -4,116 +4,48 @@ using Apps.Queries.Contexts;
 using Contexts;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.ValueObjects.PlanetGenerates;
-using Domains.Services.Abstractions.Uis;
 using Godot;
 using GodotNodes.Abstractions.Addition;
-using Infras.Readers.Abstractions.Nodes.Singletons;
-using Infras.Writers.Abstractions.PlanetGenerates;
 using Nodes.Abstractions;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Utils;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-03-09 14:19
-public partial class EditPreviewChunk : Node3D, IChunk, IEditPreviewChunk
+public partial class EditPreviewChunk : Node3D, IEditPreviewChunk
 {
     public EditPreviewChunk()
     {
-        _chunkTriangulation = new ChunkTriangulation(this);
-        InitServices();
         NodeContext.Instance.RegisterSingleton<IEditPreviewChunk>(this);
-        Context.RegisterSingletonToHolder<IEditPreviewChunk>(this);
+        Context.RegisterToHolder<IEditPreviewChunk>(this);
     }
+
+    public NodeEvent NodeEvent { get; } = new(process: true);
+    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<IEditPreviewChunk>();
+    public override void _Process(double delta) => NodeEvent.EmitProcessed(delta);
 
     [Export] public HexMesh? Terrain { get; set; }
+    public IHexMesh? GetTerrain() => Terrain;
     [Export] public ShaderMaterial[]? TerrainMaterials { get; set; }
     [Export] public HexMesh? Rivers { get; set; }
+    public IHexMesh? GetRivers() => Rivers;
     [Export] public HexMesh? Roads { get; set; }
+    public IHexMesh? GetRoads() => Roads;
     [Export] public HexMesh? Water { get; set; }
+    public IHexMesh? GetWater() => Water;
     [Export] public HexMesh? WaterShore { get; set; }
+    public IHexMesh? GetWaterShore() => WaterShore;
     [Export] public HexMesh? Estuary { get; set; }
+    public IHexMesh? GetEstuary() => Estuary;
     [Export] public HexFeatureManager? Features { get; set; }
+    public IHexFeatureManager? GetFeatures() => Features;
 
-    #region 服务与存储
-
-    private ITileRepo? _tileRepo;
-    private IHexPlanetHudRepo? _hexPlanetHudRepo;
-
-    private void InitServices()
-    {
-        _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
-        _hexPlanetHudRepo = Context.GetBeanFromHolder<IHexPlanetHudRepo>();
-    }
-
-    #endregion
-
-    private readonly ChunkTriangulation _chunkTriangulation;
-    public HexTileDataOverrider TileDataOverrider { get; private set; } = new();
+    public HexTileDataOverrider TileDataOverrider { get; set; } = new();
+    public ChunkLod Lod { get; set; } = ChunkLod.Full; // 默认值是给预览用的
     private int _terrainMaterialIdx;
 
-    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<IEditPreviewChunk>();
-    public NodeEvent NodeEvent { get; } = new(process: true);
-
-    public override void _Process(double delta)
-    {
-        if (TileDataOverrider.OverrideTiles.Count > 0)
-        {
-            // var time = Time.GetTicksMsec();
-            Terrain!.Clear();
-            Rivers!.Clear();
-            Roads!.Clear();
-            Water!.Clear();
-            WaterShore!.Clear();
-            Estuary!.Clear();
-#if FEATURE_NEW
-            Features.Clear(true, false);
-            foreach (var tile in TileDataOverrider.OverrideTiles)
-                _featureApplication.HideFeatures(tile, true);
-#else
-            Features!.Clear();
-#endif
-            foreach (var tile in TileDataOverrider.OverrideTiles)
-                _chunkTriangulation.Triangulate(tile);
-            Terrain.Apply();
-            Rivers.Apply();
-            Roads.Apply();
-            Water.Apply();
-            WaterShore.Apply();
-            Estuary.Apply();
-            Features.Apply();
-#if FEATURE_NEW
-            foreach (var tile in TileDataOverrider.OverrideTiles)
-                if (Visible)
-                    _featureApplication.ShowFeatures(tile, false, true);
-                else
-                    _featureApplication.HideFeatures(tile, true);
-#else
-            if (Visible)
-                Features.ShowFeatures(false);
-            else
-                Features.HideFeatures(false);
-#endif
-            // GD.Print($"EditPreviewChunk BuildMesh cost: {Time.GetTicksMsec() - time} ms");
-        }
-
-        SetProcess(false);
-    }
-
-    public void Update(Tile? tile)
-    {
-        if (tile != null)
-        {
-            // 更新地块预览
-            Refresh(_hexPlanetHudRepo!.GetTileOverrider(),
-                _tileRepo!.GetTilesInDistance(tile, _hexPlanetHudRepo.GetTileOverrider().BrushSize));
-            Show();
-        }
-        else Hide();
-    }
-
-    private void Refresh(HexTileDataOverrider tileDataOverrider, IEnumerable<Tile> tiles)
+    public void Refresh(HexTileDataOverrider tileDataOverrider, IEnumerable<Tile> tiles)
     {
         TileDataOverrider = tileDataOverrider with { OverrideTiles = tiles.ToHashSet() };
         var newMaterialIdx = GetTerrainMaterialIdx();

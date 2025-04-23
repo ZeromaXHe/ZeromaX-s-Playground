@@ -18,7 +18,7 @@ public partial class ChunkManager : Node3D, IChunkManager
     public ChunkManager()
     {
         NodeContext.Instance.RegisterSingleton<IChunkManager>(this);
-        Context.RegisterSingletonToHolder<IChunkManager>(this);
+        Context.RegisterToHolder<IChunkManager>(this);
     }
 
     private bool _ready;

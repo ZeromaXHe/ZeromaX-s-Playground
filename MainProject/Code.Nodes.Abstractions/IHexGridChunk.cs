@@ -1,18 +1,19 @@
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.ValueObjects.PlanetGenerates;
-using GodotNodes.Abstractions;
+using Nodes.Abstractions.ChunkManagers;
 
 namespace Nodes.Abstractions;
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-04-17 10:33:17
-public interface IHexGridChunk : INode3D
+public interface IHexGridChunk : IChunk
 {
-    void Refresh();
+    int Id { get; set; }
+    Dictionary<int, IHexTileLabel> UsingTileUis { get; }
+    Queue<IHexTileLabel> UnusedTileUis { get; }
+
+    IHexTileLabel InstantiateHexTileLabel();
     void ExploreFeatures(int tileId);
     void RefreshTileLabel(int tileId, string text);
-    void UpdateLod(ChunkLod lod, bool idChanged = true);
-    void UsedBy(Chunk chunk);
-    void HideOutOfSight();
 }

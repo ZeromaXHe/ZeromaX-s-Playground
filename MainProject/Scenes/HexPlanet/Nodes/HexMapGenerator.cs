@@ -1,15 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using Apps.Queries.Contexts;
 using Contexts;
 using Godot;
 using GodotNodes.Abstractions.Addition;
-using Infras.Readers.Abstractions.Nodes.Singletons;
-using Infras.Readers.Abstractions.Nodes.Singletons.LandGenerators;
-using Infras.Writers.Abstractions.PlanetGenerates;
 using Nodes.Abstractions;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.LandGenerators;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
 
@@ -22,10 +17,9 @@ public partial class HexMapGenerator : Node, IHexMapGenerator
     public HexMapGenerator()
     {
         NodeContext.Instance.RegisterSingleton<IHexMapGenerator>(this);
-        Context.RegisterSingletonToHolder<IHexMapGenerator>(this);
+        Context.RegisterToHolder<IHexMapGenerator>(this);
     }
 
-    public override void _Ready() => InitOnReadyNodes();
     public override void _ExitTree() => NodeContext.Instance.DestroySingleton<IHexMapGenerator>();
     public NodeEvent? NodeEvent => null;
     public event IHexMapGenerator.CreatingErosionLandEvent? CreatingErosionLand;
@@ -85,19 +79,4 @@ public partial class HexMapGenerator : Node, IHexMapGenerator
 
     [Export(PropertyHint.Range, "0, 2147483647")]
     public int Seed { get; set; }
-
-    #region on-ready 节点
-
-    private ErosionLandGenerator? _erosionLandGenerator;
-    private FractalNoiseLandGenerator? _fractalNoiseLandGenerator;
-    private RealEarthLandGenerator? _realEarthLandGenerator;
-
-    private void InitOnReadyNodes()
-    {
-        _erosionLandGenerator = GetNode<ErosionLandGenerator>("%ErosionLandGenerator");
-        _fractalNoiseLandGenerator = GetNode<FractalNoiseLandGenerator>("%FractalNoiseLandGenerator");
-        _realEarthLandGenerator = GetNode<RealEarthLandGenerator>("%RealEarthLandGenerator");
-    }
-
-    #endregion
 }

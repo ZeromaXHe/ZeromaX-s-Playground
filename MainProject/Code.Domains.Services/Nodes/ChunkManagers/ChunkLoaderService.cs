@@ -3,6 +3,7 @@ using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Domains.Services.Abstractions.Nodes.ChunkManagers;
 using Godot;
+using Infras.Readers.Abstractions.Nodes.IdInstances;
 using Infras.Readers.Abstractions.Nodes.Singletons;
 using Infras.Readers.Abstractions.Nodes.Singletons.ChunkManagers;
 using Infras.Writers.Abstractions.PlanetGenerates;
@@ -16,101 +17,19 @@ namespace Domains.Services.Nodes.ChunkManagers;
 public class ChunkLoaderService(
     IChunkLoaderRepo chunkLoaderRepo,
     IHexPlanetManagerRepo hexPlanetManagerRepo,
+    IHexGridChunkRepo hexGridChunkRepo,
     IChunkRepo chunkRepo,
     ITileRepo tileRepo)
     : IChunkLoaderService
 {
     private IChunkLoader Self => chunkLoaderRepo.Singleton!;
-    private readonly Stopwatch _stopwatch = new();
-
-    public void OnProcessed(double delta)
-    {
-        _stopwatch.Restart();
-        var allClear = true;
-        var limitCount = Mathf.Min(20, Self.LoadSet.Count);
-#if MY_DEBUG
-        var loadCount = 0;
-#endif
-        // 限制加载耗时（但加载优先级最高）
-        while (limitCount > 0 && _stopwatch.ElapsedMilliseconds <= 14)
-        {
-            var chunkId = Self.LoadSet.First();
-            Self.LoadSet.Remove(chunkId);
-            Self.ShowChunk(chunkRepo.GetById(chunkId)!);
-            limitCount--;
-#if MY_DEBUG
-            loadCount++;
-#endif
-        }
-
-        if (Self.LoadSet.Count > 0)
-            allClear = false;
-        var loadTime = _stopwatch.ElapsedMilliseconds;
-        var totalTime = loadTime;
-        _stopwatch.Restart();
-
-        limitCount = Math.Min(20, Self.RefreshSet.Count);
-#if MY_DEBUG
-        var refreshCount = 0;
-#endif
-        // 限制刷新耗时（刷新优先级其次）
-        while (limitCount > 0 && totalTime + _stopwatch.ElapsedMilliseconds <= 14)
-        {
-            var chunkId = Self.RefreshSet.First();
-            Self.RefreshSet.Remove(chunkId);
-            Self.ShowChunk(chunkRepo.GetById(chunkId)!);
-            limitCount--;
-#if MY_DEBUG
-            refreshCount++;
-#endif
-        }
-
-        if (Self.RefreshSet.Count > 0)
-            allClear = false;
-        var refreshTime = _stopwatch.ElapsedMilliseconds;
-        totalTime += refreshTime;
-        _stopwatch.Restart();
-
-        limitCount = Math.Min(100, Self.UnloadSet.Count);
-#if MY_DEBUG
-        var unloadCount = 0;
-#endif
-        // 限制卸载耗时（卸载优先级最低）
-        while (limitCount > 0 && totalTime + _stopwatch.ElapsedMilliseconds <= 14)
-        {
-            var chunkId = Self.UnloadSet.First();
-            Self.UnloadSet.Remove(chunkId);
-            Self.HideChunk(chunkId);
-            limitCount--;
-#if MY_DEBUG
-            unloadCount++;
-#endif
-        }
-
-        if (Self.UnloadSet.Count > 0)
-            allClear = false;
-
-#if MY_DEBUG // 好像 C# 默认 define 了 DEBUG，所以这里写 MY_DEBUG。（可以通过字体是否为灰色，判断）
-        var unloadTime = _stopwatch.ElapsedMilliseconds;
-        totalTime += unloadTime;
-        var log = $"ChunkLoader _Process {totalTime} ms | load {loadCount}: {loadTime} ms, unload {
-            unloadCount}: {unloadTime} ms, refresh {refreshCount}: {refreshTime} ms";
-        if (totalTime <= 16)
-            GD.Print(log);
-        else
-            GD.PrintErr(log);
-#endif
-
-        _stopwatch.Stop();
-        if (allClear) Self.SetProcess(false);
-    }
 
 #if !FEATURE_NEW
     public void ExploreFeatures(Tile tile)
     {
         var tileId = tile.Id;
         var chunkId = tileRepo.GetById(tileId)!.ChunkId;
-        Self.ExploreChunkFeatures(chunkId, tileId);
+        hexGridChunkRepo.ExploreChunkFeatures(chunkId, tileId);
     }
 #endif
 
@@ -130,7 +49,7 @@ public class ChunkLoaderService(
     {
         // var time = Time.GetTicksMsec();
         // 未能卸载的分块，说明本轮依然是在显示的分块
-        foreach (var unloadId in Self.UnloadSet.Where(id => Self.UsingChunks.ContainsKey(id)))
+        foreach (var unloadId in Self.UnloadSet.Where(hexGridChunkRepo.IsChunkUsing))
             Self.InsightChunkIdsNow.Add(unloadId);
         Self.UnloadSet.Clear();
         Self.RefreshSet.Clear(); // 刷新分块一定在 _rimChunkIds 或 InsightChunkIdsNow 中，直接丢弃
@@ -138,7 +57,7 @@ public class ChunkLoaderService(
 
         var camera = Self.GetViewport().GetCamera3D();
         // 隐藏边缘分块
-        foreach (var chunkId in Self.RimChunkIds.Where(id => Self.UsingChunks.ContainsKey(id)))
+        foreach (var chunkId in Self.RimChunkIds.Where(hexGridChunkRepo.IsChunkUsing))
         {
             Self.UnloadSet.Add(chunkId);
             UpdateChunkInsightAndLod(chunkRepo.GetById(chunkId)!, camera, false);
@@ -160,7 +79,7 @@ public class ChunkLoaderService(
             Self.InsightChunkIdsNext.Add(preInsightChunkId);
             UpdateChunkInsightAndLod(preInsightChunk, camera, true);
             // 刷新 Lod
-            if (Self.UsingChunks.ContainsKey(preInsightChunkId))
+            if (hexGridChunkRepo.IsChunkUsing(preInsightChunkId))
                 Self.RefreshSet.Add(preInsightChunkId);
             else
                 Self.LoadSet.Add(preInsightChunkId);
@@ -174,7 +93,7 @@ public class ChunkLoaderService(
         // （因为我们认为新位置还是会具有空间上的相近性，BFS 应该会比随便找可见分块更好）
         if (Self.InsightChunkIdsNext.Count == 0)
         {
-            foreach (var chunk in Self.InsightChunkIdsNow.Select(chunkRepo!.GetById))
+            foreach (var chunk in Self.InsightChunkIdsNow.Select(chunkRepo.GetById))
                 SearchNeighbor(chunk!, Self.VisitedChunkIds); // 搜索所有外缘邻居
 
             while (Self.ChunkQueryQueue.Count > 0)

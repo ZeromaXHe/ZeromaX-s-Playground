@@ -13,8 +13,4 @@
       <ProjectReference Include="..\Code.Nodes.Abstractions\Code.Nodes.Abstractions.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Nodes\IdInstances\" />
-    </ItemGroup>
-
 </Project>

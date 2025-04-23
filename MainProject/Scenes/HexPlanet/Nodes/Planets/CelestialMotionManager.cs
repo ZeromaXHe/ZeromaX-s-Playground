@@ -18,7 +18,7 @@ public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
     {
         InitServices();
         NodeContext.Instance.RegisterSingleton<ICelestialMotionManager>(this);
-        Context.RegisterSingletonToHolder<ICelestialMotionManager>(this);
+        Context.RegisterToHolder<ICelestialMotionManager>(this);
     }
 
     [Export(PropertyHint.Range, "-100.0, 100.0")]

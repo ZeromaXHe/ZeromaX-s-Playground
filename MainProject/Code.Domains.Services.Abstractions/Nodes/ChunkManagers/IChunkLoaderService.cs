@@ -8,7 +8,6 @@ namespace Domains.Services.Abstractions.Nodes.ChunkManagers;
 /// Date: 2025-04-18 20:05:18
 public interface IChunkLoaderService
 {
-    void OnProcessed(double delta);
 #if !FEATURE_NEW
     void ExploreFeatures(Tile tile);
 #endif

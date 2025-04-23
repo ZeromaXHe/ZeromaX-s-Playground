@@ -18,7 +18,7 @@ public partial class HexPlanetHud : Control, IHexPlanetHud
     {
         InitApps();
         NodeContext.Instance.RegisterSingleton<IHexPlanetHud>(this);
-        Context.RegisterSingletonToHolder<IHexPlanetHud>(this);
+        Context.RegisterToHolder<IHexPlanetHud>(this);
     }
 
     #region 应用服务

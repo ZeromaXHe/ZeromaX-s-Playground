@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using Apps.Queries.Contexts;
 using Contexts;
 using Domains.Models.Entities.PlanetGenerates;
@@ -18,7 +21,7 @@ public partial class ChunkLoader : Node3D, IChunkLoader
     public ChunkLoader()
     {
         NodeContext.Instance.RegisterSingleton<IChunkLoader>(this);
-        Context.RegisterSingletonToHolder<IChunkLoader>(this);
+        Context.RegisterToHolder<IChunkLoader>(this);
     }
 
     private bool _ready;
@@ -33,9 +36,6 @@ public partial class ChunkLoader : Node3D, IChunkLoader
     }
 
     [Export] private PackedScene? _gridChunkScene;
-
-    public Dictionary<int, IHexGridChunk> UsingChunks { get; } = new();
-    public Queue<IHexGridChunk> UnusedChunks { get; } = [];
 
     // 表示当前可视分块 Set 的 _insightChunkIds 索引
     private int _insightSetIdx;
@@ -58,63 +58,17 @@ public partial class ChunkLoader : Node3D, IChunkLoader
     // 待加载的分块 Id 集合（新显示分块）
     public HashSet<int> LoadSet { get; } = [];
 
-#if !FEATURE_NEW
-    public void ExploreChunkFeatures(int chunkId, int tileId)
+    public IHexGridChunk InstantiateHexGridChunk()
     {
-        if (UsingChunks.TryGetValue(chunkId, out var chunk))
-            chunk.ExploreFeatures(tileId);
-    }
-#endif
-
-    public void OnChunkServiceRefreshChunk(int id)
-    {
-        // 现在地图生成器也会调用，这时候分块还没创建。
-        // _ready 不可或缺，否则启动失败
-        if (_ready && UsingChunks.TryGetValue(id, out var chunk))
-            chunk.Refresh();
-    }
-
-    public void OnChunkServiceRefreshChunkTileLabel(int chunkId, int tileId, string text)
-    {
-        if (UsingChunks.TryGetValue(chunkId, out var chunk))
-            chunk.RefreshTileLabel(tileId, text);
-    }
-
-    public void ShowChunk(Chunk chunk)
-    {
-        if (UsingChunks.TryGetValue(chunk.Id, out var usingChunk))
-            usingChunk.UpdateLod(chunk.Lod, false);
-        else
-        {
-            IHexGridChunk hexGridChunk;
-            if (UnusedChunks.Count == 0)
-            {
-                // 没有空闲分块的话，初始化新的
-                hexGridChunk = _gridChunkScene!.Instantiate<HexGridChunk>();
-                hexGridChunk.Name = $"HexGridChunk{GetChildCount()}";
-                AddChild(hexGridChunk as HexGridChunk); // 必须先加入场景树，让 _Ready() 先于 Init() 执行
-            }
-            else
-                hexGridChunk = UnusedChunks.Dequeue();
-
-            hexGridChunk.UsedBy(chunk);
-            UsingChunks.Add(chunk.Id, hexGridChunk);
-        }
-    }
-
-    // 将之前显示的分块隐藏掉（归还到分块池中）
-    public void HideChunk(int chunkId)
-    {
-        var usingChunk = UsingChunks[chunkId];
-        usingChunk.HideOutOfSight();
-        UsingChunks.Remove(chunkId);
-        UnusedChunks.Enqueue(usingChunk);
+        // 没有空闲分块的话，初始化新的
+        var hexGridChunk = _gridChunkScene!.Instantiate<HexGridChunk>();
+        hexGridChunk.Name = $"HexGridChunk{GetChildCount()}";
+        AddChild(hexGridChunk); // 必须先加入场景树，让 _Ready() 先于 Init() 执行
+        return hexGridChunk;
     }
 
     public void ClearOldData()
     {
-        UsingChunks.Clear();
-        UnusedChunks.Clear();
         // 清空分块
         foreach (var child in GetChildren())
             child.QueueFree();
@@ -124,5 +78,88 @@ public partial class ChunkLoader : Node3D, IChunkLoader
         RimChunkIds.Clear();
         InsightChunkIdsNow.Clear();
         ReSetInsightSetIdx();
+    }
+    
+    private readonly Stopwatch _stopwatch = new();
+    public void OnProcessed(double delta, Action<int> showChunk, Action<int> hideChunk)
+    {
+        _stopwatch.Restart();
+        var allClear = true;
+        var limitCount = Mathf.Min(20, LoadSet.Count);
+#if MY_DEBUG
+        var loadCount = 0;
+#endif
+        // 限制加载耗时（但加载优先级最高）
+        while (limitCount > 0 && _stopwatch.ElapsedMilliseconds <= 14)
+        {
+            var chunkId = LoadSet.First();
+            LoadSet.Remove(chunkId);
+            showChunk.Invoke(chunkId);
+            limitCount--;
+#if MY_DEBUG
+            loadCount++;
+#endif
+        }
+
+        if (LoadSet.Count > 0)
+            allClear = false;
+        var loadTime = _stopwatch.ElapsedMilliseconds;
+        var totalTime = loadTime;
+        _stopwatch.Restart();
+
+        limitCount = Math.Min(20, RefreshSet.Count);
+#if MY_DEBUG
+        var refreshCount = 0;
+#endif
+        // 限制刷新耗时（刷新优先级其次）
+        while (limitCount > 0 && totalTime + _stopwatch.ElapsedMilliseconds <= 14)
+        {
+            var chunkId = RefreshSet.First();
+            RefreshSet.Remove(chunkId);
+            showChunk.Invoke(chunkId);
+            limitCount--;
+#if MY_DEBUG
+            refreshCount++;
+#endif
+        }
+
+        if (RefreshSet.Count > 0)
+            allClear = false;
+        var refreshTime = _stopwatch.ElapsedMilliseconds;
+        totalTime += refreshTime;
+        _stopwatch.Restart();
+
+        limitCount = Math.Min(100, UnloadSet.Count);
+#if MY_DEBUG
+        var unloadCount = 0;
+#endif
+        // 限制卸载耗时（卸载优先级最低）
+        while (limitCount > 0 && totalTime + _stopwatch.ElapsedMilliseconds <= 14)
+        {
+            var chunkId = UnloadSet.First();
+            UnloadSet.Remove(chunkId);
+            hideChunk.Invoke(chunkId);
+            limitCount--;
+#if MY_DEBUG
+            unloadCount++;
+#endif
+        }
+
+        if (UnloadSet.Count > 0)
+            allClear = false;
+
+#if MY_DEBUG // 好像 C# 默认 define 了 DEBUG，所以这里写 MY_DEBUG。（可以通过字体是否为灰色，判断）
+        var unloadTime = _stopwatch.ElapsedMilliseconds;
+        totalTime += unloadTime;
+        var log = $"ChunkLoader _Process {totalTime} ms | load {loadCount}: {loadTime} ms, unload {
+            unloadCount}: {unloadTime} ms, refresh {refreshCount}: {refreshTime} ms";
+        if (totalTime <= 16)
+            GD.Print(log);
+        else
+            GD.PrintErr(log);
+#endif
+
+        _stopwatch.Stop();
+        if (allClear) SetProcess(false);
     }
 }

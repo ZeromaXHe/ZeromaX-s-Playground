@@ -1,10 +1,9 @@
-using System.Diagnostics;
 using Domains.Services.Abstractions.Nodes.ChunkManagers;
+using Domains.Services.Abstractions.Nodes.IdInstances;
 using Domains.Services.Abstractions.Shaders;
 using Godot;
 using Infras.Readers.Abstractions.Nodes.Singletons;
 using Infras.Readers.Abstractions.Nodes.Singletons.ChunkManagers;
-using Infras.Writers.Abstractions.PlanetGenerates;
 using Nodes.Abstractions.ChunkManagers;
 
 namespace Apps.Commands.ChunkManagers;
@@ -18,12 +17,11 @@ public class ChunkLoaderCommander
     private readonly IChunkLoaderService _chunkLoaderService;
 
     private readonly ITileShaderService _tileShaderService;
-    private readonly IChunkRepo _chunkRepo;
-    private readonly ITileRepo _tileRepo;
+    private readonly IHexGridChunkService _hexGridChunkService;
     private readonly IOrbitCameraRepo _orbitCameraRepo;
 
     public ChunkLoaderCommander(IChunkLoaderRepo chunkLoaderRepo, IChunkLoaderService chunkLoaderService,
-        ITileShaderService tileShaderService, IChunkRepo chunkRepo, ITileRepo tileRepo,
+        ITileShaderService tileShaderService, IHexGridChunkService hexGridChunkService,
         IOrbitCameraRepo orbitCameraRepo)
     {
         _chunkLoaderRepo = chunkLoaderRepo;
@@ -33,8 +31,7 @@ public class ChunkLoaderCommander
         _chunkLoaderService = chunkLoaderService;
 
         _tileShaderService = tileShaderService;
-        _chunkRepo = chunkRepo;
-        _tileRepo = tileRepo;
+        _hexGridChunkService = hexGridChunkService;
         _orbitCameraRepo = orbitCameraRepo;
     }
 
@@ -46,19 +43,14 @@ public class ChunkLoaderCommander
 #if !FEATURE_NEW
         _tileShaderService.TileExplored += _chunkLoaderService.ExploreFeatures;
 #endif
-        _chunkRepo.RefreshChunkTileLabel += _self.OnChunkServiceRefreshChunkTileLabel;
-        _tileRepo.RefreshChunk += _self.OnChunkServiceRefreshChunk;
         if (!Engine.IsEditorHint())
         {
             _orbitCameraRepo.Transformed += _chunkLoaderService.UpdateInsightChunks;
         }
     }
 
-    private void OnProcessed(double delta)
-    {
-        if (_self == null) return;
-        _chunkLoaderService.OnProcessed(delta);
-    }
+    private void OnProcessed(double delta) =>
+        _self?.OnProcessed(delta, _hexGridChunkService.ShowChunk, _hexGridChunkService.HideChunk);
 
     private void OnTreeExiting()
     {
@@ -72,12 +64,11 @@ public class ChunkLoaderCommander
 #if !FEATURE_NEW
         _tileShaderService.TileExplored -= _chunkLoaderService.ExploreFeatures;
 #endif
-        _chunkRepo.RefreshChunkTileLabel -= _self!.OnChunkServiceRefreshChunkTileLabel;
-        _tileRepo.RefreshChunk -= _self.OnChunkServiceRefreshChunk;
         if (!Engine.IsEditorHint())
         {
-            _orbitCameraRepo!.Transformed -= _chunkLoaderService.UpdateInsightChunks;
+            _orbitCameraRepo.Transformed -= _chunkLoaderService.UpdateInsightChunks;
         }
+
         _self = null;
     }
 }

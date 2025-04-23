@@ -9,6 +9,7 @@ using Domains.Services.Abstractions.Shaders;
 using Domains.Services.Abstractions.Uis;
 using Godot;
 using Infras.Readers.Abstractions.Caches;
+using Infras.Readers.Abstractions.Nodes.IdInstances;
 using Infras.Readers.Abstractions.Nodes.Singletons;
 using Infras.Readers.Abstractions.Nodes.Singletons.ChunkManagers;
 using Infras.Writers.Abstractions.Civs;
@@ -30,10 +31,12 @@ public class HexPlanetManagerApp(
     ICivRepo civRepo,
     IHexPlanetHudRepo hexPlanetHudRepo,
     IHexPlanetManagerRepo hexPlanetManagerRepo,
+    IHexGridChunkRepo hexGridChunkRepo,
     IChunkLoaderRepo chunkLoaderRepo,
     IFeatureMeshManagerRepo featureMeshManagerRepo,
     IFeaturePreviewManagerRepo featurePreviewManagerRepo,
     IHexMapGeneratorService hexMapGeneratorService,
+    IEditPreviewChunkService editPreviewChunkService,
     IChunkLoaderService chunkLoaderService,
     ITileSearchService tileSearchService,
     ITileShaderService tileShaderService,
@@ -179,6 +182,7 @@ public class HexPlanetManagerApp(
         civRepo.Truncate();
         selectViewService.ClearPath();
         // 清空分块
+        hexGridChunkRepo.ClearOldData();
         chunkLoaderRepo.Singleton!.ClearOldData();
         featurePreviewManagerRepo.Singleton!.ClearForData();
         featureMeshManagerRepo.Singleton!.ClearOldData();
@@ -260,7 +264,7 @@ public class HexPlanetManagerApp(
     {
         var tile = GetTileUnderCursor();
         // 更新地块预览
-        _editPreviewChunk!.Update(tile);
+        editPreviewChunkService.Update(tile);
     }
 
     private void CreateUnit()

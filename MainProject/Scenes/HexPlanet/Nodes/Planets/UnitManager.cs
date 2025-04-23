@@ -20,7 +20,7 @@ public partial class UnitManager : Node3D, IUnitManager
     {
         InitServices();
         NodeContext.Instance.RegisterSingleton<IUnitManager>(this);
-        Context.RegisterSingletonToHolder<IUnitManager>(this);
+        Context.RegisterToHolder<IUnitManager>(this);
     }
 
     [Export] private PackedScene? _unitScene;

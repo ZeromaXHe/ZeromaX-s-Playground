@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Apps.Commands;
 using Apps.Commands.ChunkManagers;
+using Apps.Commands.IdInstances;
 using Apps.Commands.LandGenerators;
 using Apps.Commands.Planets;
 using Apps.Queries.Abstractions.Features;
@@ -15,6 +16,7 @@ using Autofac;
 using Contexts.Abstractions;
 using Domains.Services.Abstractions.Nodes;
 using Domains.Services.Abstractions.Nodes.ChunkManagers;
+using Domains.Services.Abstractions.Nodes.IdInstances;
 using Domains.Services.Abstractions.Nodes.LandGenerators;
 using Domains.Services.Abstractions.Nodes.Planets;
 using Domains.Services.Abstractions.PlanetGenerates;
@@ -23,6 +25,7 @@ using Domains.Services.Abstractions.Shaders;
 using Domains.Services.Abstractions.Uis;
 using Domains.Services.Nodes;
 using Domains.Services.Nodes.ChunkManagers;
+using Domains.Services.Nodes.IdInstances;
 using Domains.Services.Nodes.LandGenerators;
 using Domains.Services.Nodes.Planets;
 using Domains.Services.PlanetGenerates;
@@ -32,11 +35,13 @@ using Domains.Services.Uis;
 using GodotNodes.Abstractions;
 using Infras.Readers.Abstractions.Caches;
 using Infras.Readers.Abstractions.Nodes;
+using Infras.Readers.Abstractions.Nodes.IdInstances;
 using Infras.Readers.Abstractions.Nodes.Singletons;
 using Infras.Readers.Abstractions.Nodes.Singletons.ChunkManagers;
 using Infras.Readers.Abstractions.Nodes.Singletons.LandGenerators;
 using Infras.Readers.Abstractions.Nodes.Singletons.Planets;
 using Infras.Readers.Caches;
+using Infras.Readers.Nodes.IdInstances;
 using Infras.Readers.Nodes.Singletons;
 using Infras.Readers.Nodes.Singletons.ChunkManagers;
 using Infras.Readers.Nodes.Singletons.LandGenerators;
@@ -59,10 +64,10 @@ public class Context : IContext
         return ContextHolder.BeanContext.GetBean<T>()!;
     }
 
-    public static bool RegisterSingletonToHolder<T>(T singleton) where T : INode
+    public static bool RegisterToHolder<T>(T singleton) where T : INode
     {
         ContextHolder.BeanContext ??= new Context();
-        return ContextHolder.BeanContext.RegisterSingletonNode(singleton);
+        return ContextHolder.BeanContext.RegisterNode(singleton);
     }
 
     private IContainer? _container;
@@ -77,10 +82,10 @@ public class Context : IContext
 
     private NodeRegister? _nodeRegister;
 
-    public bool RegisterSingletonNode<T>(T singleton) where T : INode
+    public bool RegisterNode<T>(T singleton) where T : INode
     {
         if (_nodeRegister == null) Init();
-        return _nodeRegister.RegisterSingleton(singleton);
+        return _nodeRegister.Register(singleton);
     }
 
     [MemberNotNull(nameof(_nodeRegister), nameof(_container))]
@@ -104,6 +109,7 @@ public class Context : IContext
         builder.RegisterType<LodMeshCache>().As<ILodMeshCache>().SingleInstance();
         // 节点存储
         builder.RegisterType<NodeRegister>().SingleInstance();
+        // 单例存储
         builder.RegisterType<ChunkLoaderRepo>().As<IChunkLoaderRepo>().SingleInstance();
         builder.RegisterType<FeatureMeshManagerRepo>().As<IFeatureMeshManagerRepo>().SingleInstance();
         builder.RegisterType<FeaturePreviewManagerRepo>().As<IFeaturePreviewManagerRepo>().SingleInstance();
@@ -121,6 +127,8 @@ public class Context : IContext
         builder.RegisterType<LongitudeLatitudeRepo>().As<ILongitudeLatitudeRepo>().SingleInstance();
         builder.RegisterType<MiniMapManagerRepo>().As<IMiniMapManagerRepo>().SingleInstance();
         builder.RegisterType<OrbitCameraRepo>().As<IOrbitCameraRepo>().SingleInstance();
+        // 多例存储
+        builder.RegisterType<HexGridChunkRepo>().As<IHexGridChunkRepo>().SingleInstance();
         // ===== 领域层 =====
         // 领域服务
         builder.RegisterType<PointService>().As<IPointService>().SingleInstance();
@@ -130,8 +138,9 @@ public class Context : IContext
         builder.RegisterType<TileShaderService>().As<ITileShaderService>().SingleInstance();
         builder.RegisterType<MiniMapService>().As<IMiniMapService>().SingleInstance();
         builder.RegisterType<SelectViewService>().As<ISelectViewService>().SingleInstance();
-        // 节点服务
+        // 单例节点服务
         builder.RegisterType<ChunkLoaderService>().As<IChunkLoaderService>().SingleInstance();
+        builder.RegisterType<ChunkTriangulationService>().As<IChunkTriangulationService>().SingleInstance();
         builder.RegisterType<FeatureMeshManagerService>().As<IFeatureMeshManagerService>().SingleInstance();
         builder.RegisterType<FeaturePreviewManagerService>().As<IFeaturePreviewManagerService>().SingleInstance();
         builder.RegisterType<ErosionLandGeneratorService>().As<IErosionLandGeneratorService>().SingleInstance();
@@ -148,6 +157,8 @@ public class Context : IContext
         builder.RegisterType<LongitudeLatitudeService>().As<ILongitudeLatitudeService>().SingleInstance();
         builder.RegisterType<MiniMapManagerService>().As<IMiniMapManagerService>().SingleInstance();
         builder.RegisterType<OrbitCameraService>().As<IOrbitCameraService>().SingleInstance();
+        // 多例节点服务
+        builder.RegisterType<HexGridChunkService>().As<IHexGridChunkService>().SingleInstance();
         // ===== 应用层 =====
         // 查询
         builder.RegisterType<FeatureApplication>().As<IFeatureApplication>().SingleInstance();
@@ -155,7 +166,7 @@ public class Context : IContext
         builder.RegisterType<HexPlanetHudApp>().As<IHexPlanetHudApp>().SingleInstance();
         builder.RegisterType<HexPlanetManagerApp>().As<IHexPlanetManagerApp>().SingleInstance();
         builder.RegisterType<MiniMapManagerApp>().As<IMiniMapManagerApp>().SingleInstance();
-        // 命令
+        // 单例节点命令
         builder.RegisterType<ChunkLoaderCommander>().SingleInstance();
         builder.RegisterType<FeatureMeshManagerCommander>().SingleInstance();
         builder.RegisterType<FeaturePreviewManagerCommander>().SingleInstance();
@@ -172,6 +183,8 @@ public class Context : IContext
         builder.RegisterType<LongitudeLatitudeCommander>().SingleInstance();
         builder.RegisterType<MiniMapManagerCommander>().SingleInstance();
         builder.RegisterType<OrbitCameraCommander>().SingleInstance();
+        // 多例节点命令
+        builder.RegisterType<HexGridChunkCommander>().SingleInstance();
         _container = builder.Build();
         _nodeRegister = _container.Resolve<NodeRegister>();
         // 这种构造函数有初始化逻辑的，必须先 Resolve()，否则构造函数并没有被调用
@@ -181,6 +194,9 @@ public class Context : IContext
         _container.Resolve<ErosionLandGeneratorCommander>();
         _container.Resolve<FractalNoiseLandGeneratorCommander>();
         _container.Resolve<RealEarthLandGeneratorCommander>();
+        _container.Resolve<EditPreviewChunkCommander>();
+
+        _container.Resolve<HexGridChunkCommander>();
 
         var tileShaderService = _container.Resolve<ITileShaderService>();
 #if FEATURE_NEW

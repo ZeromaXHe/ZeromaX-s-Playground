@@ -1,3 +1,5 @@
+using Domains.Models.Entities.PlanetGenerates;
+
 namespace Domains.Services.Abstractions.Nodes;
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
@@ -5,4 +7,5 @@ namespace Domains.Services.Abstractions.Nodes;
 /// Date: 2025-04-18 19:56:18
 public interface IEditPreviewChunkService
 {
+    void Update(Tile? tile);
 }

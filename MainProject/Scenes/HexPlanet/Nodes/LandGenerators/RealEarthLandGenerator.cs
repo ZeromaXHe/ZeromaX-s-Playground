@@ -16,7 +16,7 @@ public partial class RealEarthLandGenerator : Node, IRealEarthLandGenerator
     public RealEarthLandGenerator()
     {
         NodeContext.Instance.RegisterSingleton<IRealEarthLandGenerator>(this);
-        Context.RegisterSingletonToHolder<IRealEarthLandGenerator>(this);
+        Context.RegisterToHolder<IRealEarthLandGenerator>(this);
     }
 
     // 其实这里可以直接导入 Image, 在导入界面选择导入类型。但是导入 Image 的场景 tscn 文件会大得吓人……（等于直接按像素写一遍）

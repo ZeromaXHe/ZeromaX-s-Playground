@@ -19,7 +19,7 @@ public partial class MiniMapManager : Node2D, IMiniMapManager
     {
         InitApps();
         NodeContext.Instance.RegisterSingleton<IMiniMapManager>(this);
-        Context.RegisterSingletonToHolder<IMiniMapManager>(this);
+        Context.RegisterToHolder<IMiniMapManager>(this);
     }
 
     #region on-ready 节点

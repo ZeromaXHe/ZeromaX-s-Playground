@@ -17,7 +17,7 @@ public partial class ErosionLandGenerator : Node, IErosionLandGenerator
     public ErosionLandGenerator()
     {
         NodeContext.Instance.RegisterSingleton<IErosionLandGenerator>(this);
-        Context.RegisterSingletonToHolder<IErosionLandGenerator>(this);
+        Context.RegisterToHolder<IErosionLandGenerator>(this);
     }
 
     public NodeEvent? NodeEvent => null;

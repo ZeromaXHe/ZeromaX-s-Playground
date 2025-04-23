@@ -1,3 +1,4 @@
+using Godot;
 using GodotNodes.Abstractions;
 
 namespace Nodes.Abstractions;
@@ -7,4 +8,5 @@ namespace Nodes.Abstractions;
 /// Date: 2025-04-17 10:34:17
 public interface IHexTileLabel : INode3D
 {
+    Label3D? Label { get;}
 }
