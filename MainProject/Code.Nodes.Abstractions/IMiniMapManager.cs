@@ -21,6 +21,5 @@ public interface IMiniMapManager : INode2D
 
     #endregion
 
-    void Init(Vector3 orbitCamPos);
     void ClickOnMiniMap();
 }

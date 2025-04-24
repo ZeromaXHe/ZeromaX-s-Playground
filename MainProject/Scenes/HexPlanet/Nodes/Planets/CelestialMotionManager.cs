@@ -1,9 +1,9 @@
+using System;
 using Apps.Queries.Contexts;
 using Commons.Constants;
 using Contexts;
 using Godot;
 using GodotNodes.Abstractions.Addition;
-using Infras.Readers.Abstractions.Nodes.Singletons;
 using Nodes.Abstractions.Planets;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.Planets;
@@ -16,10 +16,30 @@ public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
 {
     public CelestialMotionManager()
     {
-        InitServices();
         NodeContext.Instance.RegisterSingleton<ICelestialMotionManager>(this);
         Context.RegisterToHolder<ICelestialMotionManager>(this);
     }
+
+    public NodeEvent NodeEvent { get; } = new(process: true);
+
+    private bool _ready;
+
+    public override void _Ready()
+    {
+        InitOnReadyNodes();
+        _ready = true;
+    }
+
+    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<ICelestialMotionManager>();
+
+    public override void _Process(double delta)
+    {
+        if (!_ready) return;
+        UpdateStellarRotation((float)delta);
+    }
+
+    public event Action<float>? SatelliteRadiusRatioChanged;
+    public event Action<float>? SatelliteDistRatioChanged;
 
     [Export(PropertyHint.Range, "-100.0, 100.0")]
     public float RotationTimeFactor = 1f;
@@ -130,7 +150,7 @@ public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
         {
             _satelliteRadiusRatio = value;
             if (_ready)
-                UpdateMoonMeshRadius();
+                SatelliteRadiusRatioChanged?.Invoke(value);
         }
     }
 
@@ -147,7 +167,7 @@ public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
         {
             _satelliteDistRatio = value;
             if (_ready)
-                UpdateLunarDist();
+                SatelliteDistRatioChanged?.Invoke(value);
         }
     }
 
@@ -195,17 +215,6 @@ public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
     [Export(PropertyHint.Range, "-360, 360, degrees")]
     public float SatelliteRotationSpeed { get; set; } // 卫星自转速度（每秒转的度数）
 
-    #region services
-
-    private IHexPlanetManagerRepo? _hexPlanetManagerRepo;
-
-    private void InitServices()
-    {
-        _hexPlanetManagerRepo = Context.GetBeanFromHolder<IHexPlanetManagerRepo>();
-    }
-
-    #endregion
-
     #region on-ready 节点
 
     private WorldEnvironment? _worldEnvironment;
@@ -216,10 +225,10 @@ public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
     private Node3D? _planetAxis;
     private Node3D? _lunarOrbitPlane;
     private Node3D? _lunarRevolution;
-    private Node3D? _lunarDist;
+    public Node3D? LunarDist { get; private set; }
     private Node3D? _lunarObliquity;
     private Node3D? _moonAxis;
-    private MeshInstance3D? _moonMesh;
+    public MeshInstance3D? MoonMesh { get; private set; }
     private MeshInstance3D? _sunMesh;
 
     private void InitOnReadyNodes()
@@ -234,35 +243,16 @@ public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
         _lunarOrbitPlane = GetNode<Node3D>("%LunarOrbitPlane");
         UpdateLunarOrbitPlaneRotation();
         _lunarRevolution = GetNode<Node3D>("%LunarRevolution");
-        _lunarDist = GetNode<Node3D>("%LunarDist");
-        UpdateLunarDist();
+        LunarDist = GetNode<Node3D>("%LunarDist");
         _lunarObliquity = GetNode<Node3D>("%LunarObliquity");
         UpdateLunarObliquityRotation();
         _moonAxis = GetNode<Node3D>("%MoonAxis");
-        _moonMesh = GetNode<MeshInstance3D>("%MoonMesh");
-        UpdateMoonMeshRadius();
+        MoonMesh = GetNode<MeshInstance3D>("%MoonMesh");
         _sunMesh = GetNode<MeshInstance3D>("%SunMesh");
         RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.DirToSun, _sunMesh.GlobalPosition.Normalized());
     }
 
     #endregion
-
-    private bool _ready;
-
-    public override void _Ready()
-    {
-        InitOnReadyNodes();
-        _ready = true;
-    }
-
-    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<ICelestialMotionManager>();
-    public NodeEvent NodeEvent { get; } = new(process: true);
-
-    public override void _Process(double delta)
-    {
-        if (!_ready) return;
-        UpdateStellarRotation((float)delta);
-    }
 
     private void UpdateLunarOrbitPlaneRotation() =>
         _lunarOrbitPlane!.RotationDegrees = Vector3.Right * SatelliteOrbitInclination;
@@ -272,20 +262,9 @@ public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
     private void UpdateLunarObliquityRotation() =>
         _lunarObliquity!.RotationDegrees = Vector3.Right * SatelliteObliquity;
 
-    public void UpdateLunarDist() => _lunarDist!.Position =
-        Vector3.Back * Mathf.Clamp(_hexPlanetManagerRepo!.Radius * SatelliteDistRatio,
-            _hexPlanetManagerRepo.Radius * (1 + _satelliteRadiusRatio), 800f);
-
     private void UpdateGalaxySkyRotation() =>
         _worldEnvironment!.Environment.SkyRotation =
             Vector3.Right * Mathf.DegToRad(PlanetObliquity - EclipticInclinationToGalactic);
-
-    public void UpdateMoonMeshRadius()
-    {
-        var moonMesh = _moonMesh!.Mesh as SphereMesh;
-        moonMesh?.SetRadius(_hexPlanetManagerRepo!.Radius * SatelliteRadiusRatio);
-        moonMesh?.SetHeight(_hexPlanetManagerRepo!.Radius * SatelliteRadiusRatio * 2);
-    }
 
     // 更新天体旋转
     private void UpdateStellarRotation(float delta)

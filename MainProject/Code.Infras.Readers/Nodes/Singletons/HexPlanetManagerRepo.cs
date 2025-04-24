@@ -13,6 +13,19 @@ namespace Infras.Readers.Nodes.Singletons;
 /// Date: 2025-04-18 10:45:38
 public class HexPlanetManagerRepo : SingletonNodeRepo<IHexPlanetManager>, IHexPlanetManagerRepo
 {
+    public event Action? NewPlanetGenerated;
+    private void OnNewPlanetGenerated() => NewPlanetGenerated?.Invoke();
+
+    protected override void ConnectNodeEvents()
+    {
+        Singleton!.NewPlanetGenerated += OnNewPlanetGenerated;
+    }
+
+    protected override void DisconnectNodeEvents()
+    {
+        Singleton!.NewPlanetGenerated -= OnNewPlanetGenerated;
+    }
+
     public float Radius
     {
         get => IsRegistered() ? Singleton!.Radius : 100f;

@@ -1,4 +1,3 @@
-using Domains.Models.Entities.PlanetGenerates;
 using GodotNodes.Abstractions;
 
 namespace Nodes.Abstractions.Planets;
@@ -8,9 +7,10 @@ namespace Nodes.Abstractions.Planets;
 /// Date: 2025-04-17 10:25:17
 public interface IUnitManager : INode3D
 {
+    event Action? PathFromTileIdSetZero;
     int PathFromTileId { get; set; }
-    void ClearAllUnits();
+    Dictionary<int, IHexUnit> Units { get; }
+    IHexUnitPathPool? GetHexUnitPathPool();
     void AddUnit(int tileId, float orientation);
     void RemoveUnit(int unitId);
-    void FindPath(Tile? tile);
 }

@@ -17,9 +17,21 @@ public partial class MiniMapManager : Node2D, IMiniMapManager
 
     public MiniMapManager()
     {
-        InitApps();
         NodeContext.Instance.RegisterSingleton<IMiniMapManager>(this);
         Context.RegisterToHolder<IMiniMapManager>(this);
+    }
+
+    public NodeEvent? NodeEvent => null;
+
+    public override void _Ready()
+    {
+        InitOnReadyNodes();
+        GD.Print("MiniMapManager _Ready");
+    }
+
+    public override void _ExitTree()
+    {
+        NodeContext.Instance.DestroySingleton<IMiniMapManager>();
     }
 
     #region on-ready 节点
@@ -39,32 +51,6 @@ public partial class MiniMapManager : Node2D, IMiniMapManager
 
     #endregion
 
-    #region 应用服务
-
-    private IMiniMapManagerApp? _miniMapManagerApp;
-
-    private void InitApps()
-    {
-        _miniMapManagerApp = Context.GetBeanFromHolder<IMiniMapManagerApp>();
-    }
-
-    #endregion
-
-    public override void _Ready()
-    {
-        InitOnReadyNodes();
-        _miniMapManagerApp!.OnReady();
-        GD.Print("MiniMapManager _Ready");
-    }
-
-    public override void _ExitTree()
-    {
-        _miniMapManagerApp!.OnExitTree();
-        NodeContext.Instance.DestroySingleton<IMiniMapManager>();
-    }
-
-    public NodeEvent? NodeEvent => null;
-
     public void ClickOnMiniMap()
     {
         var mousePos = TerrainLayer!.GetLocalMousePosition();
@@ -73,6 +59,4 @@ public partial class MiniMapManager : Node2D, IMiniMapManager
         if (!sa.IsValid()) return;
         Clicked?.Invoke(sa.ToLongitudeAndLatitude().ToDirectionVector3());
     }
-
-    public void Init(Vector3 orbitCamPos) => _miniMapManagerApp!.Init(orbitCamPos);
 }

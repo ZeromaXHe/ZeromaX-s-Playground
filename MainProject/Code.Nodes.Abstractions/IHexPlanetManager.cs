@@ -11,9 +11,7 @@ namespace Nodes.Abstractions;
 /// Date: 2025-04-16 15:34:16
 public interface IHexPlanetManager : INode3D
 {
-    delegate void NewPlanetGeneratedEvent();
-
-    event NewPlanetGeneratedEvent NewPlanetGenerated;
+    event Action? NewPlanetGenerated;
 
     void EmitNewPlanetGenerated();
 

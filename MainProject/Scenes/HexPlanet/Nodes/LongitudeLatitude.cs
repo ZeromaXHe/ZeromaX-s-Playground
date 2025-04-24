@@ -1,8 +1,8 @@
+using System;
 using Apps.Queries.Contexts;
 using Contexts;
 using Godot;
 using GodotNodes.Abstractions.Addition;
-using Infras.Readers.Abstractions.Nodes.Singletons;
 using Nodes.Abstractions;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
@@ -15,9 +15,43 @@ public partial class LongitudeLatitude : Node3D, ILongitudeLatitude
 {
     public LongitudeLatitude()
     {
-        InitService();
         NodeContext.Instance.RegisterSingleton<ILongitudeLatitude>(this);
         Context.RegisterToHolder<ILongitudeLatitude>(this);
+    }
+
+    public event Action<bool>? FixFullVisibilityChanged;
+    public NodeEvent NodeEvent { get; } = new(process: true);
+    private bool _ready;
+
+    public override void _Ready()
+    {
+        _meshIns = new MeshInstance3D();
+        AddChild(_meshIns);
+        _ready = true;
+        // 在 _ready = true 后面，触发 setter 的着色器参数初始化
+        Visibility = FullVisibility;
+    }
+
+    public override void _ExitTree()
+    {
+        NodeContext.Instance.DestroySingleton<ILongitudeLatitude>();
+    }
+
+    public override void _Process(double delta)
+    {
+        if (Engine.IsEditorHint() || FixFullVisibility)
+        {
+            SetProcess(false); // 编辑器下以及锁定显示时，无需处理显隐
+            return;
+        }
+
+        if (_fadeVisibility)
+            Visibility -= (float)delta / FullVisibilityTime;
+        _fadeVisibility = true;
+
+        if (Visibility > 0) return;
+        Hide();
+        SetProcess(false);
     }
 
     [ExportToolButton("手动触发重绘经纬线", Icon = "WorldEnvironment")]
@@ -61,15 +95,12 @@ public partial class LongitudeLatitude : Node3D, ILongitudeLatitude
                 Visibility = FullVisibility;
                 _fadeVisibility = false;
                 Show();
-                if (_ready)
-                    _orbitCameraRepo!.Moved -= OnCameraMoved;
             }
             else
-            {
-                if (_ready)
-                    _orbitCameraRepo!.Moved += OnCameraMoved;
                 SetProcess(true);
-            }
+
+            if (_ready)
+                FixFullVisibilityChanged?.Invoke(value);
         }
     }
 
@@ -92,57 +123,7 @@ public partial class LongitudeLatitude : Node3D, ILongitudeLatitude
     private float _radius = 110;
     private MeshInstance3D? _meshIns;
 
-    private bool _ready;
-
-    #region 服务和存储
-
-    private IOrbitCameraRepo? _orbitCameraRepo;
-
-    private void InitService()
-    {
-        _orbitCameraRepo = Context.GetBeanFromHolder<IOrbitCameraRepo>();
-    }
-
-    #endregion
-
-    public override void _Ready()
-    {
-        _meshIns = new MeshInstance3D();
-        AddChild(_meshIns);
-        if (!Engine.IsEditorHint())
-            _orbitCameraRepo!.Moved += OnCameraMoved;
-        _ready = true;
-        // 在 _ready = true 后面，触发 setter 的着色器参数初始化
-        Visibility = FullVisibility;
-    }
-
-    public override void _ExitTree()
-    {
-        if (!Engine.IsEditorHint())
-            _orbitCameraRepo!.Moved -= OnCameraMoved;
-        NodeContext.Instance.DestroySingleton<ILongitudeLatitude>();
-    }
-
-    public NodeEvent NodeEvent { get; } = new(process: true);
-
-    public override void _Process(double delta)
-    {
-        if (Engine.IsEditorHint() || FixFullVisibility)
-        {
-            SetProcess(false); // 编辑器下以及锁定显示时，无需处理显隐
-            return;
-        }
-
-        if (_fadeVisibility)
-            Visibility -= (float)delta / FullVisibilityTime;
-        _fadeVisibility = true;
-
-        if (Visibility > 0) return;
-        Hide();
-        SetProcess(false);
-    }
-
-    private void OnCameraMoved(Vector3 pos, float delta)
+    public void OnCameraMoved(Vector3 pos, float delta)
     {
         if (FixFullVisibility) return; // 锁定显示时不处理事件
         Show();

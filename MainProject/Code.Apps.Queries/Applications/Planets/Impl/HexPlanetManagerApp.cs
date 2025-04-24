@@ -1,18 +1,18 @@
 using Apps.Queries.Contexts;
 using Domains.Models.Entities.Civs;
 using Domains.Models.Entities.PlanetGenerates;
-using Domains.Services.Abstractions.Nodes;
 using Domains.Services.Abstractions.Nodes.Singletons;
 using Domains.Services.Abstractions.Nodes.Singletons.ChunkManagers;
+using Domains.Services.Abstractions.Nodes.Singletons.Planets;
 using Domains.Services.Abstractions.PlanetGenerates;
 using Domains.Services.Abstractions.Searches;
 using Domains.Services.Abstractions.Shaders;
-using Domains.Services.Abstractions.Uis;
 using Godot;
 using Infras.Readers.Abstractions.Caches;
 using Infras.Readers.Abstractions.Nodes.IdInstances;
 using Infras.Readers.Abstractions.Nodes.Singletons;
 using Infras.Readers.Abstractions.Nodes.Singletons.ChunkManagers;
+using Infras.Readers.Abstractions.Nodes.Singletons.Planets;
 using Infras.Writers.Abstractions.Civs;
 using Infras.Writers.Abstractions.PlanetGenerates;
 using Nodes.Abstractions;
@@ -33,26 +33,25 @@ public class HexPlanetManagerApp(
     IHexPlanetHudRepo hexPlanetHudRepo,
     IHexPlanetManagerRepo hexPlanetManagerRepo,
     IHexGridChunkRepo hexGridChunkRepo,
+    ISelectTileViewerRepo selectTileViewerRepo,
     IChunkLoaderRepo chunkLoaderRepo,
     IFeatureMeshManagerRepo featureMeshManagerRepo,
     IFeaturePreviewManagerRepo featurePreviewManagerRepo,
     IHexMapGeneratorService hexMapGeneratorService,
     IEditPreviewChunkService editPreviewChunkService,
+    ISelectTileViewerService selectTileViewerService,
+    IUnitManagerService unitManagerService,
     IChunkLoaderService chunkLoaderService,
     ITileSearchService tileSearchService,
     ITileShaderService tileShaderService,
-    ISelectViewService selectViewService,
     IChunkService chunkService,
     ITileService tileService) : IHexPlanetManagerApp
 {
     #region 上下文节点
 
     private IHexPlanetManager? _hexPlanetManager;
-    private IChunkManager? _chunkManager;
     private IUnitManager? _unitManager; // 单位管理节点
-    private ISelectTileViewer? _selectTileViewer;
     private IEditPreviewChunk? _editPreviewChunk;
-    private IHexMapGenerator? _hexMapGenerator;
 
     public bool NodeReady { get; set; }
 
@@ -60,12 +59,9 @@ public class HexPlanetManagerApp(
     {
         NodeReady = true;
         _hexPlanetManager = NodeContext.Instance.GetSingleton<IHexPlanetManager>()!;
-        _chunkManager = NodeContext.Instance.GetSingleton<IChunkManager>()!;
-        _hexMapGenerator = NodeContext.Instance.GetSingleton<IHexMapGenerator>()!;
         if (!Engine.IsEditorHint())
         {
             _unitManager = NodeContext.Instance.GetSingleton<IUnitManager>()!;
-            _selectTileViewer = NodeContext.Instance.GetSingleton<ISelectTileViewer>()!;
             _editPreviewChunk = NodeContext.Instance.GetSingleton<IEditPreviewChunk>()!;
         }
 
@@ -88,7 +84,7 @@ public class HexPlanetManagerApp(
         {
             // 游戏模式下永远不显示编辑预览网格
             _editPreviewChunk!.Hide();
-            _selectTileViewer!.CleanEditingTile();
+            selectTileViewerRepo.Singleton!.CleanEditingTile();
         }
     }
 
@@ -116,7 +112,7 @@ public class HexPlanetManagerApp(
     private void UpdateSelectTileViewer()
     {
         var position = _hexPlanetManager!.GetTileCollisionPositionUnderCursor();
-        _selectTileViewer!.Update(_unitManager!.PathFromTileId, position);
+        selectTileViewerService.Update(_unitManager!.PathFromTileId, position);
     }
 
     public void OnExitTree()
@@ -125,11 +121,8 @@ public class HexPlanetManagerApp(
         hexPlanetHudRepo.EditModeChanged -= OnEditorEditModeChanged;
 
         _hexPlanetManager = null;
-        _chunkManager = null;
         _unitManager = null;
-        _selectTileViewer = null;
         _editPreviewChunk = null;
-        _hexMapGenerator = null;
     }
 
     #endregion
@@ -175,13 +168,13 @@ public class HexPlanetManagerApp(
     private void ClearOldData()
     {
         // 必须先清理单位，否则相关可见度事件会查询地块，放最后会空引用异常
-        _unitManager?.ClearAllUnits(); // unitManager 不是 [Tool]，在编辑器时会是 null
+        unitManagerService.ClearAllUnits(); // unitManager 不是 [Tool]，在编辑器时会是 null
         chunkRepo.Truncate();
         tileRepo.Truncate();
         pointRepo.Truncate();
         faceRepo.Truncate();
         civRepo.Truncate();
-        selectViewService.ClearPath();
+        selectTileViewerService.ClearPath();
         // 清空分块
         hexGridChunkRepo.ClearOldData();
         chunkLoaderRepo.Singleton!.ClearOldData();
@@ -190,7 +183,7 @@ public class HexPlanetManagerApp(
         lodMeshCache.RemoveAllLodMeshes();
     }
 
-    public void RefreshAllTiles()
+    private void RefreshAllTiles()
     {
         foreach (var tile in tileRepo.GetAll())
         {
@@ -200,7 +193,7 @@ public class HexPlanetManagerApp(
         }
     }
 
-    public void InitCivilization()
+    private void InitCivilization()
     {
         // 在可见分块的陆地分块中随机
         var tiles = chunkRepo.GetAll()
@@ -209,6 +202,7 @@ public class HexPlanetManagerApp(
             .Select(id => tileRepo.GetById(id)!)
             .Where(t => !t.Data.IsUnderwater)
             .ToList();
+        if (tiles.Count == 0) return;
         for (var i = 0; i < 8; i++)
         {
             var idx = GD.RandRange(0, tiles.Count - 1);
@@ -223,7 +217,7 @@ public class HexPlanetManagerApp(
         }
     }
 
-    public void UpdateCivTerritory()
+    private void UpdateCivTerritory()
     {
         foreach (var civ in civRepo.GetAll())
         {

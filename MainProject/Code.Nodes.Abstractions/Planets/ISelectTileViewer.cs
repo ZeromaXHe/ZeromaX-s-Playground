@@ -9,7 +9,7 @@ namespace Nodes.Abstractions.Planets;
 /// Date: 2025-04-17 10:25:17
 public interface ISelectTileViewer : IMeshInstance3D
 {
-    void Update(int pathFromTileId, Vector3 position);
+    int EditingTileId { get; }
     void CleanEditingTile();
     void SelectEditingTile(Tile chosenTile);
 }

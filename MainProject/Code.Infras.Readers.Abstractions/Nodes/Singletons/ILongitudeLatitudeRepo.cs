@@ -8,4 +8,5 @@ namespace Infras.Readers.Abstractions.Nodes.Singletons;
 /// Date: 2025-04-18 19:20:18
 public interface ILongitudeLatitudeRepo : ISingletonNodeRepo<ILongitudeLatitude>
 {
+    event Action<bool>? FixFullVisibilityChanged;
 }

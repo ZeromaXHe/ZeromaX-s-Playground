@@ -8,4 +8,6 @@ namespace Infras.Readers.Abstractions.Nodes.Singletons.Planets;
 /// Date: 2025-04-18 19:39:18
 public interface ICelestialMotionManagerRepo : ISingletonNodeRepo<ICelestialMotionManager>
 {
+    event Action<float>? SatelliteDistRatioChanged;
+    event Action<float>? SatelliteRadiusRatioChanged;
 }

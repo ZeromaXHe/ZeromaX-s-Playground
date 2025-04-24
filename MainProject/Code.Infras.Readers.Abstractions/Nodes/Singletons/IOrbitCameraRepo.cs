@@ -17,4 +17,6 @@ public interface IOrbitCameraRepo : ISingletonNodeRepo<IOrbitCamera>
     delegate void TransformedEvent(Transform3D transform, float delta);
 
     event TransformedEvent? Transformed;
+    event Action<float>? RadiusChanged;
+    event Action<float>? ZoomChanged;
 }

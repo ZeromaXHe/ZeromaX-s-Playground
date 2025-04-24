@@ -8,4 +8,5 @@ namespace Infras.Readers.Abstractions.Nodes.Singletons.Planets;
 /// Date: 2025-04-18 19:40:18
 public interface IUnitManagerRepo : ISingletonNodeRepo<IUnitManager>
 {
+    event Action? PathFromTileIdSetZero;
 }

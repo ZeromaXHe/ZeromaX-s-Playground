@@ -158,7 +158,6 @@ public class Context : IContext
         builder.RegisterType<TileSearchService>().As<ITileSearchService>().SingleInstance();
         builder.RegisterType<TileShaderService>().As<ITileShaderService>().SingleInstance();
         builder.RegisterType<MiniMapService>().As<IMiniMapService>().SingleInstance();
-        builder.RegisterType<SelectViewService>().As<ISelectViewService>().SingleInstance();
         // 单例节点服务
         builder.RegisterType<ChunkLoaderService>().As<IChunkLoaderService>().SingleInstance();
         builder.RegisterType<ChunkTriangulationService>().As<IChunkTriangulationService>().SingleInstance();
@@ -170,6 +169,7 @@ public class Context : IContext
         builder.RegisterType<RealEarthLandGeneratorService>().As<IRealEarthLandGeneratorService>().SingleInstance();
         builder.RegisterType<CelestialMotionManagerService>().As<ICelestialMotionManagerService>().SingleInstance();
         builder.RegisterType<SelectTileViewerService>().As<ISelectTileViewerService>().SingleInstance();
+        builder.RegisterType<UnitManagerService>().As<IUnitManagerService>().SingleInstance();
         builder.RegisterType<ChunkManagerService>().As<IChunkManagerService>().SingleInstance();
         builder.RegisterType<EditPreviewChunkService>().As<IEditPreviewChunkService>().SingleInstance();
         builder.RegisterType<HexMapGeneratorService>().As<IHexMapGeneratorService>().SingleInstance();
@@ -186,7 +186,6 @@ public class Context : IContext
         builder.RegisterType<TileShaderApplication>().As<ITileShaderApplication>().SingleInstance();
         builder.RegisterType<HexPlanetHudApp>().As<IHexPlanetHudApp>().SingleInstance();
         builder.RegisterType<HexPlanetManagerApp>().As<IHexPlanetManagerApp>().SingleInstance();
-        builder.RegisterType<MiniMapManagerApp>().As<IMiniMapManagerApp>().SingleInstance();
         // 单例节点命令
         builder.RegisterType<ChunkLoaderCommander>().SingleInstance()
             .OnRelease(cmd => cmd.ReleaseEvents());
@@ -200,8 +199,11 @@ public class Context : IContext
             .OnRelease(cmd => cmd.ReleaseEvents());
         builder.RegisterType<RealEarthLandGeneratorCommander>().SingleInstance()
             .OnRelease(cmd => cmd.ReleaseEvents());
-        builder.RegisterType<CelestialMotionManagerCommander>().SingleInstance();
+        builder.RegisterType<CelestialMotionManagerCommander>().SingleInstance()
+            .OnRelease(cmd => cmd.ReleaseEvents());
         builder.RegisterType<SelectTileViewerCommander>().SingleInstance()
+            .OnRelease(cmd => cmd.ReleaseEvents());
+        builder.RegisterType<UnitManagerCommander>().SingleInstance()
             .OnRelease(cmd => cmd.ReleaseEvents());
         builder.RegisterType<ChunkManagerCommander>().SingleInstance();
         builder.RegisterType<EditPreviewChunkCommander>().SingleInstance()
@@ -210,15 +212,19 @@ public class Context : IContext
         builder.RegisterType<HexPlanetHudCommander>().SingleInstance();
         builder.RegisterType<HexPlanetManagerCommander>().SingleInstance()
             .OnRelease(cmd => cmd.ReleaseEvents());
-        builder.RegisterType<LongitudeLatitudeCommander>().SingleInstance();
-        builder.RegisterType<MiniMapManagerCommander>().SingleInstance();
-        builder.RegisterType<OrbitCameraCommander>().SingleInstance();
+        builder.RegisterType<LongitudeLatitudeCommander>().SingleInstance()
+            .OnRelease(cmd => cmd.ReleaseEvents());
+        builder.RegisterType<MiniMapManagerCommander>().SingleInstance()
+            .OnRelease(cmd => cmd.ReleaseEvents());
+        builder.RegisterType<OrbitCameraCommander>().SingleInstance()
+            .OnRelease(cmd => cmd.ReleaseEvents());
         // 多例节点命令
         builder.RegisterType<HexGridChunkCommander>().SingleInstance()
             .OnRelease(cmd => cmd.ReleaseEvents());
         _container = builder.Build();
         _nodeRegister = _container.Resolve<NodeRegister>();
         // 这种构造函数有初始化逻辑的，必须先 Resolve()，否则构造函数并没有被调用
+        // 单例
         _container.Resolve<ChunkLoaderCommander>();
         _container.Resolve<FeatureMeshManagerCommander>();
         _container.Resolve<FeaturePreviewManagerCommander>();
@@ -226,7 +232,13 @@ public class Context : IContext
         _container.Resolve<FractalNoiseLandGeneratorCommander>();
         _container.Resolve<RealEarthLandGeneratorCommander>();
         _container.Resolve<EditPreviewChunkCommander>();
-
+        _container.Resolve<CelestialMotionManagerCommander>();
+        _container.Resolve<SelectTileViewerCommander>();
+        _container.Resolve<UnitManagerCommander>();
+        _container.Resolve<LongitudeLatitudeCommander>();
+        _container.Resolve<MiniMapManagerCommander>();
+        _container.Resolve<OrbitCameraCommander>();
+        // 多例
         _container.Resolve<HexGridChunkCommander>();
 
         var tileShaderService = _container.Resolve<ITileShaderService>();

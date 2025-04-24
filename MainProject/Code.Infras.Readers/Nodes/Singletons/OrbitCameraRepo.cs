@@ -11,20 +11,27 @@ namespace Infras.Readers.Nodes.Singletons;
 public class OrbitCameraRepo : SingletonNodeRepo<IOrbitCamera>, IOrbitCameraRepo
 {
     public event IOrbitCameraRepo.MovedEvent? Moved;
+    private void OnMoved(Vector3 posDir, float delta) => Moved?.Invoke(posDir, delta);
     public event IOrbitCameraRepo.TransformedEvent? Transformed;
+    private void OnTransformed(Transform3D transform, float delta) => Transformed?.Invoke(transform, delta);
+    public event Action<float>? RadiusChanged;
+    private void OnRadiusChanged(float radius) => RadiusChanged?.Invoke(radius);
+    public event Action<float>? ZoomChanged;
+    private void OnZoomChanged(float zoom) => ZoomChanged?.Invoke(zoom);
 
     protected override void ConnectNodeEvents()
     {
         Singleton!.Moved += OnMoved;
         Singleton.Transformed += OnTransformed;
+        Singleton.RadiusChanged += OnRadiusChanged;
+        Singleton.ZoomChanged += OnZoomChanged;
     }
 
     protected override void DisconnectNodeEvents()
     {
         Singleton!.Moved -= OnMoved;
         Singleton.Transformed -= OnTransformed;
+        Singleton.RadiusChanged -= OnRadiusChanged;
+        Singleton.ZoomChanged -= OnZoomChanged;
     }
-
-    private void OnMoved(Vector3 posDir, float delta) => Moved?.Invoke(posDir, delta);
-    private void OnTransformed(Transform3D transform, float delta) => Transformed?.Invoke(transform, delta);
 }

@@ -126,7 +126,7 @@ public partial class HexUnitPath : Path3D, IHexUnitPath
 
     private const float MoveSpeedByTile = 3; // 每 1s 走的地块格数
 
-    public void StartMove(HexUnit unit)
+    public void StartMove(IHexUnit unit)
     {
         _pathFollow!.ProgressRatio = 0;
         _remoteTransform!.SetRemoteNode(unit.GetPath());

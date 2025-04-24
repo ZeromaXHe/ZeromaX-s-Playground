@@ -9,4 +9,16 @@ namespace Infras.Readers.Nodes.Singletons;
 /// Date: 2025-04-18 19:21:29
 public class LongitudeLatitudeRepo : SingletonNodeRepo<ILongitudeLatitude>, ILongitudeLatitudeRepo
 {
+    public event Action<bool>? FixFullVisibilityChanged;
+    private void OnFixFullVisibilityChanged(bool value) => FixFullVisibilityChanged?.Invoke(value);
+
+    protected override void ConnectNodeEvents()
+    {
+        Singleton!.FixFullVisibilityChanged += OnFixFullVisibilityChanged;
+    }
+
+    protected override void DisconnectNodeEvents()
+    {
+        Singleton!.FixFullVisibilityChanged -= OnFixFullVisibilityChanged;
+    }
 }

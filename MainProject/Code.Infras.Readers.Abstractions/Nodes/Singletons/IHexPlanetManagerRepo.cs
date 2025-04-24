@@ -11,6 +11,7 @@ namespace Infras.Readers.Abstractions.Nodes.Singletons;
 /// Date: 2025-04-18 10:27:18
 public interface IHexPlanetManagerRepo : ISingletonNodeRepo<IHexPlanetManager>
 {
+    event Action? NewPlanetGenerated;
     float Radius { get; set; }
     int Divisions { get; set; }
     int ChunkDivisions { get; set; }

@@ -9,4 +9,20 @@ namespace Infras.Readers.Nodes.Singletons.Planets;
 /// Date: 2025-04-18 19:41:11
 public class CelestialMotionManagerRepo : SingletonNodeRepo<ICelestialMotionManager>, ICelestialMotionManagerRepo
 {
+    public event Action<float>? SatelliteDistRatioChanged;
+    private void OnSatelliteDistRatioChanged(float value) => SatelliteDistRatioChanged?.Invoke(value);
+    public event Action<float>? SatelliteRadiusRatioChanged;
+    private void OnSatelliteRadiusRatioChanged(float value) => SatelliteRadiusRatioChanged?.Invoke(value);
+
+    protected override void ConnectNodeEvents()
+    {
+        Singleton!.SatelliteDistRatioChanged += OnSatelliteDistRatioChanged;
+        Singleton.SatelliteRadiusRatioChanged += OnSatelliteRadiusRatioChanged;
+    }
+
+    protected override void DisconnectNodeEvents()
+    {
+        Singleton!.SatelliteDistRatioChanged -= OnSatelliteDistRatioChanged;
+        Singleton.SatelliteRadiusRatioChanged -= OnSatelliteRadiusRatioChanged;
+    }
 }

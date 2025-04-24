@@ -81,7 +81,7 @@ public partial class HexUnit : CsgBox3D, IHexUnit
         }
     }
 
-    private HexUnitPath? _path;
+    private IHexUnitPath? _path;
     private int _pathTileIdx;
     private bool _pathOriented;
     private const float PathRotationSpeed = Mathf.Pi;
@@ -95,7 +95,7 @@ public partial class HexUnit : CsgBox3D, IHexUnit
         {
             var prePathTileIdx = _pathTileIdx;
             var progress = _path.GetProgress();
-            while (_pathTileIdx < _path.Progresses.Count && _path.Progresses[_pathTileIdx] < progress)
+            while (_pathTileIdx < _path.Progresses!.Count && _path.Progresses[_pathTileIdx] < progress)
                 _pathTileIdx++;
             if (prePathTileIdx != _pathTileIdx)
             {
@@ -122,7 +122,7 @@ public partial class HexUnit : CsgBox3D, IHexUnit
         }
     }
 
-    public void Travel(HexUnitPath path)
+    public void Travel(IHexUnitPath path)
     {
         _path = path;
         _pathOriented = false;

@@ -3,8 +3,8 @@ using Apps.Queries.Contexts;
 using Commons.Utils;
 using Commons.Utils.HexSphereGrid;
 using Domains.Models.Entities.PlanetGenerates;
-using Domains.Services.Abstractions.Nodes;
 using Domains.Services.Abstractions.Nodes.Singletons;
+using Domains.Services.Abstractions.Nodes.Singletons.Planets;
 using Domains.Services.Abstractions.PlanetGenerates;
 using Domains.Services.Abstractions.Uis;
 using Godot;
@@ -27,6 +27,8 @@ public class HexPlanetHudApp(
     IOrbitCameraRepo orbitCameraRepo,
     IHexPlanetHudService hexPlanetHudService,
     ITileService tileService,
+    IUnitManagerService unitManagerService,
+    IMiniMapManagerService miniMapManagerService,
     IMiniMapService miniMapService)
     : IHexPlanetHudApp
 {
@@ -36,7 +38,6 @@ public class HexPlanetHudApp(
     private IHexPlanetManager? _hexPlanetManager;
     private IMiniMapManager? _miniMapManager;
     private ISelectTileViewer? _selectTileViewer;
-    private IUnitManager? _unitManager;
     private IOrbitCamera? _orbitCamera;
 
     public bool NodeReady { get; set; }
@@ -49,7 +50,6 @@ public class HexPlanetHudApp(
         _hexPlanetManager = NodeContext.Instance.GetSingleton<IHexPlanetManager>()!;
         _miniMapManager = NodeContext.Instance.GetSingleton<IMiniMapManager>()!;
         _selectTileViewer = NodeContext.Instance.GetSingleton<ISelectTileViewer>();
-        _unitManager = NodeContext.Instance.GetSingleton<IUnitManager>();
         _orbitCamera = NodeContext.Instance.GetSingleton<IOrbitCamera>()!;
 
         // 按照指定的高程分割数量确定 UI
@@ -69,7 +69,7 @@ public class HexPlanetHudApp(
         UpdateNewPlanetInfo();
         InitSignals();
 
-        _miniMapManager.Init(_orbitCamera!.GetFocusBasePos());
+        miniMapManagerService.Init(_orbitCamera!.GetFocusBasePos());
     }
 
     private void InitSignals()
@@ -203,7 +203,6 @@ public class HexPlanetHudApp(
         _hexPlanetManager = null;
         _hexPlanetHud = null;
         _selectTileViewer = null;
-        _unitManager = null;
         _orbitCamera = null;
     }
 
@@ -248,14 +247,14 @@ public class HexPlanetHudApp(
                 _selectTileViewer!.SelectEditingTile(_hexPlanetHud.ChosenTile);
             }
             else if (Input.IsActionJustPressed("choose_unit"))
-                _unitManager!.FindPath(_hexPlanetHud.ChosenTile);
+                unitManagerService.FindPath(_hexPlanetHud.ChosenTile);
 
             _hexPlanetHud.PreviousTile = _hexPlanetHud.ChosenTile;
         }
         else
         {
             if (!_hexPlanetHud.TileOverrider.EditMode)
-                _unitManager!.FindPath(null);
+                unitManagerService.FindPath(null);
             else
                 // 清理选择地块框
                 _selectTileViewer!.CleanEditingTile();

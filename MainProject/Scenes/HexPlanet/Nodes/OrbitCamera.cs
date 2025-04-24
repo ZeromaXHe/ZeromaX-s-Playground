@@ -1,3 +1,4 @@
+using System;
 using Apps.Queries.Contexts;
 using Contexts;
 using Godot;
@@ -15,10 +16,11 @@ public partial class OrbitCamera : Node3D, IOrbitCamera
 {
     public event IOrbitCamera.MovedEvent? Moved;
     public event IOrbitCamera.TransformedEvent? Transformed;
+    public event Action<float>? RadiusChanged;
+    public event Action<float>? ZoomChanged; 
     
     public OrbitCamera()
     {
-        InitService();
         NodeContext.Instance.RegisterSingleton<IOrbitCamera>(this);
         Context.RegisterToHolder<IOrbitCamera>(this);
     }
@@ -34,12 +36,17 @@ public partial class OrbitCamera : Node3D, IOrbitCamera
         {
             _radius = value;
             if (!_ready) return;
-            _focusBase!.Position = Vector3.Forward * value * (1 + _hexPlanetManagerRepo!.MaxHeightRatio);
-            _focusBox!.Size = Vector3.One * value * _boxSizeMultiplier * _hexPlanetManagerRepo.StandardScale;
-            _backBox!.Size = Vector3.One * value * _boxSizeMultiplier * _hexPlanetManagerRepo.StandardScale;
-            _light!.SpotRange = value * _lightRangeMultiplier;
-            _light.Position = Vector3.Up * value * _lightRangeMultiplier * 0.5f;
+            RadiusChanged?.Invoke(value);
         }
+    }
+
+    public void SetRadius(float value, float maxHeightRatio, float standardScale)
+    {
+        _focusBase!.Position = Vector3.Forward * value * (1 + maxHeightRatio);
+        _focusBox!.Size = Vector3.One * value * _boxSizeMultiplier * standardScale;
+        _backBox!.Size = Vector3.One * value * _boxSizeMultiplier * standardScale;
+        _light!.SpotRange = value * _lightRangeMultiplier;
+        _light.Position = Vector3.Up * value * _lightRangeMultiplier * 0.5f;
     }
 
     private float _boxSizeMultiplier = 0.01f;
@@ -75,19 +82,6 @@ public partial class OrbitCamera : Node3D, IOrbitCamera
     // 自动导航速度。该值的倒数，对应自动移动时间：比如 2f 对应 0.5s 抵达
     [Export(PropertyHint.Range, "0.01, 10")]
     public float AutoPilotSpeed { get; set; } = 1f;
-
-    #region 服务
-
-    private IHexPlanetManagerRepo? _hexPlanetManagerRepo;
-    private IMiniMapManagerRepo? _miniMapManagerRepo;
-
-    private void InitService()
-    {
-        _hexPlanetManagerRepo = Context.GetBeanFromHolder<IHexPlanetManagerRepo>();
-        _miniMapManagerRepo = Context.GetBeanFromHolder<IMiniMapManagerRepo>();
-    }
-
-    #endregion
 
     #region on-ready 节点
 
@@ -126,16 +120,21 @@ public partial class OrbitCamera : Node3D, IOrbitCamera
         {
             _zoom = value;
             if (!_ready) return;
-            _focusBackStick!.Position =
-                _focusBackStick.Basis * Vector3.Back * Mathf.Lerp(0f,
-                    _focusBackZoom * Radius * _hexPlanetManagerRepo!.StandardScale, value);
-            var distance = Mathf.Lerp(_stickMinZoom,
-                _stickMaxZoom * _hexPlanetManagerRepo.StandardScale * 2f,
-                value) * Radius;
-            _stick!.Position = Vector3.Back * distance;
-            var angle = Mathf.Lerp(_swivelMinZoom, _swivelMaxZoom, value);
-            _swivel!.RotationDegrees = Vector3.Right * angle;
+            ZoomChanged?.Invoke(value);
         }
+    }
+
+    public void SetZoom(float value, float standardScale)
+    {
+        _focusBackStick!.Position =
+            _focusBackStick.Basis * Vector3.Back * Mathf.Lerp(0f,
+                _focusBackZoom * Radius * standardScale, value);
+        var distance = Mathf.Lerp(_stickMinZoom,
+            _stickMaxZoom * standardScale * 2f,
+            value) * Radius;
+        _stick!.Position = Vector3.Back * distance;
+        var angle = Mathf.Lerp(_swivelMinZoom, _swivelMaxZoom, value);
+        _swivel!.RotationDegrees = Vector3.Right * angle;
     }
 
     private Vector3 _fromDirection = Vector3.Zero;
@@ -147,26 +146,17 @@ public partial class OrbitCamera : Node3D, IOrbitCamera
     public override void _Ready()
     {
         InitOnReadyNodes();
-        if (!Engine.IsEditorHint())
-        {
-            _miniMapManagerRepo!.Clicked += SetAutoPilot;
-            // 必须在 _ready = true 后面，触发各数据 setter 的初始化
-            Reset();
-        }
-
         GD.Print("OrbitCamera _Ready");
     }
 
     public override void _ExitTree()
     {
-        if (!Engine.IsEditorHint())
-            _miniMapManagerRepo!.Clicked -= SetAutoPilot;
         NodeContext.Instance.DestroySingleton<IOrbitCamera>();
     }
 
     public Vector3 GetFocusBasePos() => _focusBase!.GlobalPosition;
 
-    private void SetAutoPilot(Vector3 destinationDirection)
+    public void SetAutoPilot(Vector3 destinationDirection)
     {
         var fromDirection = GetFocusBasePos().Normalized();
         if (fromDirection.IsEqualApprox(destinationDirection))
@@ -302,9 +292,10 @@ public partial class OrbitCamera : Node3D, IOrbitCamera
         }
     }
 
-    public void Reset()
+    public void Reset(float radius)
     {
-        Radius = _hexPlanetManagerRepo!.Radius;
+        // 必须在 _ready = true 后面，触发各数据 setter 的初始化
+        Radius = radius;
         Zoom = 1f;
     }
 }

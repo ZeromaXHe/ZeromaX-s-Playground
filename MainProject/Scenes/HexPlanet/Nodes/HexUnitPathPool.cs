@@ -16,7 +16,7 @@ public partial class HexUnitPathPool : Node3D, IHexUnitPathPool
 
     private readonly List<HexUnitPath> _paths = [];
 
-    public void NewTask(HexUnit unit, List<Tile> pathTiles)
+    public void NewTask(IHexUnit unit, List<Tile> pathTiles)
     {
         var path = FetchPath();
         path.TaskStart(pathTiles);

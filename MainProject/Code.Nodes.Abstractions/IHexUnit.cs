@@ -7,4 +7,8 @@ namespace Nodes.Abstractions;
 /// Date: 2025-04-17 10:35:17
 public interface IHexUnit : ICsgBox3D
 {
+    void ValidateLocation();
+    void Travel(IHexUnitPath path);
+    void FinishPath();
+    void Die();
 }

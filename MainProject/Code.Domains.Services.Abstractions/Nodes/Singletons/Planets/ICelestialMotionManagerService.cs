@@ -5,4 +5,6 @@ namespace Domains.Services.Abstractions.Nodes.Singletons.Planets;
 /// Date: 2025-04-18 20:10:18
 public interface ICelestialMotionManagerService
 {
+    void UpdateLunarDist();
+    void UpdateMoonMeshRadius();
 }

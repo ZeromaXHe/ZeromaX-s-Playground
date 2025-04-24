@@ -1,3 +1,5 @@
+using System;
+using System.Diagnostics.CodeAnalysis;
 using Apps.Queries.Applications.Planets;
 using Apps.Queries.Contexts;
 using Commons.Constants;
@@ -6,6 +8,7 @@ using Commons.Utils.HexSphereGrid;
 using Contexts;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.ValueObjects.PlanetGenerates;
+using Domains.Services.Abstractions.Nodes.Singletons.Planets;
 using Godot;
 using GodotNodes.Abstractions.Addition;
 using Nodes.Abstractions;
@@ -38,7 +41,7 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
     // https://github.com/godotengine/godot-docs/issues/2930#issuecomment-662407208
     // https://github.com/godotengine/godot/issues/40970
 
-    public event IHexPlanetManager.NewPlanetGeneratedEvent? NewPlanetGenerated;
+    public event Action? NewPlanetGenerated;
 
     private float _radius = 100f;
 
@@ -58,7 +61,7 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
                 camAttr?.SetDofBlurFarTransition(_radius / 2);
                 camAttr?.SetDofBlurNearDistance(_radius / 10);
                 camAttr?.SetDofBlurNearTransition(_radius / 20);
-                _orbitCamera!.Reset();
+                _orbitCamera!.Reset(value);
                 var groundSphere = GroundPlaceHolder!.Mesh as SphereMesh;
                 groundSphere?.SetRadius(_radius * 0.99f);
                 groundSphere?.SetHeight(_radius * 1.98f);
@@ -66,8 +69,8 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
                 PlanetAtmosphere.Set("atmosphere_height", _radius * 0.25f);
                 _longitudeLatitude!.Draw(_radius + MaxHeight * 1.25f);
 
-                _celestialMotionManager!.UpdateMoonMeshRadius(); // 卫星半径
-                _celestialMotionManager.UpdateLunarDist(); // 卫星轨道半径
+                _celestialMotionManagerService.UpdateMoonMeshRadius(); // 卫星半径
+                _celestialMotionManagerService.UpdateLunarDist(); // 卫星轨道半径
             }
         }
     }
@@ -87,7 +90,7 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
                 RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.Divisions, _divisions);
                 SphereAxial.Div = _divisions; // TODO：后续修改这个逻辑，临时在这里处理以方便测试 SphereAxial
                 CalcUnitHeight();
-                _orbitCamera!.Reset();
+                _orbitCamera!.Reset(_radius);
             }
         }
     }
@@ -107,7 +110,7 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
                 RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.Divisions, _divisions);
                 SphereAxial.Div = _divisions; // TODO：后续修改这个逻辑，临时在这里处理以方便测试 SphereAxial
                 CalcUnitHeight();
-                _orbitCamera!.Reset();
+                _orbitCamera!.Reset(_radius);
             }
         }
     }
@@ -186,11 +189,14 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
 
     #region 应用服务
 
-    private IHexPlanetManagerApp? _hexPlanetManagerApplication;
+    private IHexPlanetManagerApp _hexPlanetManagerApplication;
+    private ICelestialMotionManagerService _celestialMotionManagerService;
 
+    [MemberNotNull(nameof(_hexPlanetManagerApplication), nameof(_celestialMotionManagerService))]
     private void InitApps()
     {
         _hexPlanetManagerApplication = Context.GetBeanFromHolder<IHexPlanetManagerApp>();
+        _celestialMotionManagerService = Context.GetBeanFromHolder<ICelestialMotionManagerService>();
     }
 
     #endregion
@@ -232,7 +238,7 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
     {
         GD.Print("HexPlanetManager _Ready start");
         InitOnReadyNodes();
-        _hexPlanetManagerApplication!.OnReady();
+        _hexPlanetManagerApplication.OnReady();
         GD.Print("HexPlanetManager _Ready end");
     }
 
@@ -241,7 +247,7 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
         // 不小心忽视了事件的解绑，会在编辑器下"重载已保存场景"时出问题报错！
         // 【切记】所以这里需要在退出场景树时清理事件监听！！！
         NodeReady = false;
-        _hexPlanetManagerApplication!.OnExitTree();
+        _hexPlanetManagerApplication.OnExitTree();
         NodeContext.Instance.DestroySingleton<IHexPlanetManager>();
     }
 

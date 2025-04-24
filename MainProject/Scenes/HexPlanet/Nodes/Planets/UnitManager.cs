@@ -1,12 +1,10 @@
+using System;
+using System.Collections.Generic;
 using Apps.Queries.Contexts;
 using Contexts;
-using Domains.Models.Entities.PlanetGenerates;
-using Domains.Services.Abstractions.Searches;
-using Domains.Services.Abstractions.Uis;
 using Godot;
 using GodotNodes.Abstractions.Addition;
-using Infras.Writers.Abstractions.Civs;
-using Infras.Writers.Abstractions.PlanetGenerates;
+using Nodes.Abstractions;
 using Nodes.Abstractions.Planets;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.Planets;
@@ -18,49 +16,31 @@ public partial class UnitManager : Node3D, IUnitManager
 {
     public UnitManager()
     {
-        InitServices();
         NodeContext.Instance.RegisterSingleton<IUnitManager>(this);
         Context.RegisterToHolder<IUnitManager>(this);
+    }
+    public event Action? PathFromTileIdSetZero;
+    public NodeEvent? NodeEvent => null;
+
+    public override void _Ready() => InitOnReadyNodes();
+
+    public override void _ExitTree()
+    {
+        NodeContext.Instance.DestroySingleton<IUnitManager>();
     }
 
     [Export] private PackedScene? _unitScene;
 
-    private readonly System.Collections.Generic.Dictionary<int, HexUnit> _units = new();
-
-    #region 服务和存储
-
-    private IUnitRepo? _unitRepo;
-    private ITileRepo? _tileRepo;
-    private ITileSearchService? _tileSearchService;
-    private ISelectViewService? _selectViewService;
-
-    private void InitServices()
-    {
-        _unitRepo = Context.GetBeanFromHolder<IUnitRepo>();
-        _tileRepo = Context.GetBeanFromHolder<ITileRepo>();
-        _tileRepo.UnitValidateLocation += OnTileServiceUnitValidateLocation;
-        _tileSearchService = Context.GetBeanFromHolder<ITileSearchService>();
-        _selectViewService = Context.GetBeanFromHolder<ISelectViewService>();
-    }
-
-    private void OnTileServiceUnitValidateLocation(int unitId) => _units[unitId].ValidateLocation();
-
-    private void CleanEventListeners()
-    {
-        // 不小心忽视了事件的解绑，会在编辑器下"重载已保存场景"时出问题报错！
-        // 【切记】所以这里需要在退出场景树时清理事件监听！！！
-        _tileRepo!.UnitValidateLocation -= OnTileServiceUnitValidateLocation;
-    }
-
-    #endregion
+    public Dictionary<int, IHexUnit> Units { get; } = new();
 
     #region on-ready 节点
 
-    private HexUnitPathPool? _hexUnitPathPool;
+    private HexUnitPathPool? HexUnitPathPool { get; set; }
+    public IHexUnitPathPool? GetHexUnitPathPool() => HexUnitPathPool;
 
     private void InitOnReadyNodes()
     {
-        _hexUnitPathPool = GetNode<HexUnitPathPool>("%HexUnitPathPool");
+        HexUnitPathPool = GetNode<HexUnitPathPool>("%HexUnitPathPool");
     }
 
     #endregion
@@ -74,69 +54,22 @@ public partial class UnitManager : Node3D, IUnitManager
         {
             _pathFromTileId = value;
             if (_pathFromTileId == 0)
-                _selectViewService!.ClearPath();
+                PathFromTileIdSetZero?.Invoke();
         }
     }
-
-    public override void _Ready() => InitOnReadyNodes();
-
-    public override void _ExitTree()
-    {
-        CleanEventListeners();
-        NodeContext.Instance.DestroySingleton<IUnitManager>();
-    }
-    public NodeEvent? NodeEvent => null;
 
     public void AddUnit(int tileId, float orientation)
     {
         var unit = _unitScene!.Instantiate<HexUnit>();
         AddChild(unit);
-        _units[unit.Id] = unit;
+        Units[unit.Id] = unit;
         unit.TileId = tileId;
         unit.Orientation = orientation;
     }
 
     public void RemoveUnit(int unitId)
     {
-        _units[unitId].Die();
-        _units.Remove(unitId);
-    }
-
-    public void ClearAllUnits()
-    {
-        foreach (var unit in _units.Values)
-            unit.Die();
-        _units.Clear();
-        _unitRepo!.Truncate();
-    }
-
-    public void FindPath(Tile? tile)
-    {
-        if (PathFromTileId != 0)
-        {
-            if (tile == null || tile.Id == PathFromTileId)
-            {
-                // 重复点选同一地块，则取消选择
-                PathFromTileId = 0;
-            }
-            else MoveUnit(tile);
-        }
-        else
-            // 当前没有选择地块（即没有选中单位）的话，则在有单位时选择该地块
-            PathFromTileId = tile == null || tile.UnitId == 0 ? 0 : tile.Id;
-    }
-
-    private void MoveUnit(Tile toTile)
-    {
-        var fromTile = _tileRepo!.GetById(PathFromTileId)!;
-        var path = _tileSearchService!.FindPath(fromTile, toTile, true);
-        if (path is { Count: > 1 })
-        {
-            // 确实有找到从出发点到 tile 的路径
-            var unit = _units[fromTile.UnitId];
-            _hexUnitPathPool!.NewTask(unit, path);
-        }
-
-        PathFromTileId = 0;
+        Units[unitId].Die();
+        Units.Remove(unitId);
     }
 }

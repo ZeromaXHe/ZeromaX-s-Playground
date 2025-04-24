@@ -1,3 +1,4 @@
+using Domains.Models.Entities.PlanetGenerates;
 using GodotNodes.Abstractions;
 
 namespace Nodes.Abstractions;
@@ -7,4 +8,5 @@ namespace Nodes.Abstractions;
 /// Date: 2025-04-17 10:36:17
 public interface IHexUnitPathPool : INode3D
 {
+    void NewTask(IHexUnit unit, List<Tile> pathTiles);
 }
