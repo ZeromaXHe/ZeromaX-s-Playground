@@ -1,5 +1,4 @@
 using System;
-using Apps.Queries.Contexts;
 using Commons.Constants;
 using Contexts;
 using Godot;
@@ -16,7 +15,6 @@ public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
 {
     public CelestialMotionManager()
     {
-        NodeContext.Instance.RegisterSingleton<ICelestialMotionManager>(this);
         Context.RegisterToHolder<ICelestialMotionManager>(this);
     }
 
@@ -29,8 +27,6 @@ public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
         InitOnReadyNodes();
         _ready = true;
     }
-
-    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<ICelestialMotionManager>();
 
     public override void _Process(double delta)
     {

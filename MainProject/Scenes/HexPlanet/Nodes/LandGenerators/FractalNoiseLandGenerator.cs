@@ -1,9 +1,6 @@
-using Apps.Queries.Contexts;
 using Contexts;
 using Godot;
 using GodotNodes.Abstractions.Addition;
-using Infras.Readers.Abstractions.Nodes.Singletons;
-using Infras.Writers.Abstractions.PlanetGenerates;
 using Nodes.Abstractions.LandGenerators;
 using Nodes.Abstractions.Resources.LandGenerators;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Resources.LandGenerators;
@@ -19,13 +16,11 @@ public partial class FractalNoiseLandGenerator : Node, IFractalNoiseLandGenerato
 {
     public FractalNoiseLandGenerator()
     {
-        NodeContext.Instance.RegisterSingleton<IFractalNoiseLandGenerator>(this);
         Context.RegisterToHolder<IFractalNoiseLandGenerator>(this);
     }
 
-    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<IFractalNoiseLandGenerator>();
     public NodeEvent? NodeEvent => null;
 
     [Export] public LayeredFastNoise LayeredNoises { get; set; } = new();
-    public ILayeredFastNoise GetLayeredNoises() => LayeredNoises; 
+    public ILayeredFastNoise GetLayeredNoises() => LayeredNoises;
 }

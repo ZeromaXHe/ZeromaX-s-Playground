@@ -15,15 +15,19 @@ public class HexPlanetManagerRepo : SingletonNodeRepo<IHexPlanetManager>, IHexPl
 {
     public event Action? NewPlanetGenerated;
     private void OnNewPlanetGenerated() => NewPlanetGenerated?.Invoke();
+    public event Action<float>? RadiusChanged;
+    private void OnRadiusChanged(float radius) => RadiusChanged?.Invoke(radius);
 
     protected override void ConnectNodeEvents()
     {
         Singleton!.NewPlanetGenerated += OnNewPlanetGenerated;
+        Singleton.RadiusChanged += OnRadiusChanged;
     }
 
     protected override void DisconnectNodeEvents()
     {
         Singleton!.NewPlanetGenerated -= OnNewPlanetGenerated;
+        Singleton.RadiusChanged -= OnRadiusChanged;
     }
 
     public float Radius

@@ -1,4 +1,5 @@
 using Commons.Constants;
+using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Godot;
 using Infras.Readers.Abstractions.Nodes.Singletons;
@@ -14,6 +15,18 @@ public class HexPlanetHudRepo : SingletonNodeRepo<IHexPlanetHud>, IHexPlanetHudR
 {
     public event IHexPlanetHudRepo.LabelModeChangedEvent? LabelModeChanged;
     public event IHexPlanetHudRepo.EditModeChangedEvent? EditModeChanged;
+    public event Action<Tile?>? ChosenTileChanged;
+    private void OnChosenTileChanged(Tile? tile) => ChosenTileChanged?.Invoke(tile);
+
+    protected override void ConnectNodeEvents()
+    {
+        Singleton!.ChosenTileChanged += OnChosenTileChanged;
+    }
+
+    protected override void DisconnectNodeEvents()
+    {
+        Singleton!.ChosenTileChanged -= OnChosenTileChanged;
+    }
 
     private IHexPlanetHud HexPlanetHud => Singleton!;
 

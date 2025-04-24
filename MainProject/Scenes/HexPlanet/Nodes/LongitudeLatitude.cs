@@ -1,5 +1,4 @@
 using System;
-using Apps.Queries.Contexts;
 using Contexts;
 using Godot;
 using GodotNodes.Abstractions.Addition;
@@ -15,7 +14,6 @@ public partial class LongitudeLatitude : Node3D, ILongitudeLatitude
 {
     public LongitudeLatitude()
     {
-        NodeContext.Instance.RegisterSingleton<ILongitudeLatitude>(this);
         Context.RegisterToHolder<ILongitudeLatitude>(this);
     }
 
@@ -30,11 +28,6 @@ public partial class LongitudeLatitude : Node3D, ILongitudeLatitude
         _ready = true;
         // 在 _ready = true 后面，触发 setter 的着色器参数初始化
         Visibility = FullVisibility;
-    }
-
-    public override void _ExitTree()
-    {
-        NodeContext.Instance.DestroySingleton<ILongitudeLatitude>();
     }
 
     public override void _Process(double delta)

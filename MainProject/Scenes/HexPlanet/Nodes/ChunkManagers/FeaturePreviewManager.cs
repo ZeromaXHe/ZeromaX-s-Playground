@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Apps.Queries.Contexts;
 using Contexts;
 using Godot;
 using GodotNodes.Abstractions.Addition;
@@ -15,13 +14,10 @@ public partial class FeaturePreviewManager : Node3D, IFeaturePreviewManager
 {
     public FeaturePreviewManager()
     {
-        NodeContext.Instance.RegisterSingleton<IFeaturePreviewManager>(this);
         Context.RegisterToHolder<IFeaturePreviewManager>(this);
     }
 
     public NodeEvent? NodeEvent => null;
-
-    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<IFeaturePreviewManager>();
 
     #region export 变量
 

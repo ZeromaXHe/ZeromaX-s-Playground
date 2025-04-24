@@ -1,4 +1,3 @@
-using Apps.Queries.Contexts;
 using Contexts;
 using Godot;
 using GodotNodes.Abstractions.Addition;
@@ -16,12 +15,10 @@ public partial class ErosionLandGenerator : Node, IErosionLandGenerator
 {
     public ErosionLandGenerator()
     {
-        NodeContext.Instance.RegisterSingleton<IErosionLandGenerator>(this);
         Context.RegisterToHolder<IErosionLandGenerator>(this);
     }
 
     public NodeEvent? NodeEvent => null;
-    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<IErosionLandGenerator>();
 
     [Export(PropertyHint.Range, "5, 95")] public int LandPercentage { get; set; } = 50;
 

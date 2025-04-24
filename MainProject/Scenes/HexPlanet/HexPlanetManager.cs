@@ -1,15 +1,10 @@
 using System;
-using System.Diagnostics.CodeAnalysis;
-using Apps.Queries.Applications.Planets;
-using Apps.Queries.Contexts;
 using Commons.Constants;
 using Commons.Utils;
 using Commons.Utils.HexSphereGrid;
 using Contexts;
-using Domains.Models.Entities.PlanetGenerates;
-using Domains.Models.ValueObjects.PlanetGenerates;
-using Domains.Services.Abstractions.Nodes.Singletons.Planets;
 using Godot;
+using Godot.Collections;
 using GodotNodes.Abstractions.Addition;
 using Nodes.Abstractions;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
@@ -33,15 +28,33 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
     // -> 子节点 _ExitTree()（从下到上） -> 父节点 _ExitTree() 【特别注意这里的顺序！！！】
     public HexPlanetManager()
     {
-        InitApps(); // 现在 4.4 甚至构造函数会执行两次！奇了怪了，不知道之前 4.3 是不是也是这样
-        NodeContext.Instance.RegisterSingleton<IHexPlanetManager>(this);
+        // 现在 4.4 甚至构造函数会执行两次！奇了怪了，不知道之前 4.3 是不是也是这样
+        // 调用两次构造函数（_EnterTree()、_Ready() 也一样）居然是好久以前（2020 年 7 月 3.2.2）以来一直的问题：
+        // https://github.com/godotengine/godot-docs/issues/2930#issuecomment-662407208
+        // https://github.com/godotengine/godot/issues/40970
         Context.RegisterToHolder<IHexPlanetManager>(this);
     }
-    // 调用两次构造函数（_EnterTree()、_Ready() 也一样）居然是好久以前（2020 年 7 月 3.2.2）以来一直的问题：
-    // https://github.com/godotengine/godot-docs/issues/2930#issuecomment-662407208
-    // https://github.com/godotengine/godot/issues/40970
 
     public event Action? NewPlanetGenerated;
+    public event Action<float>? RadiusChanged;
+
+    public NodeEvent NodeEvent { get; } = new(process: true);
+
+    private bool NodeReady { get; set; }
+
+    public override void _Ready()
+    {
+        GD.Print("HexPlanetManager _Ready start");
+        InitOnReadyNodes();
+        GD.Print("HexPlanetManager _Ready end");
+    }
+
+    public override void _ExitTree()
+    {
+        NodeReady = false;
+    }
+
+    public override void _Process(double delta) => NodeEvent.EmitProcessed(delta);
 
     private float _radius = 100f;
 
@@ -68,9 +81,7 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
                 PlanetAtmosphere!.Set("planet_radius", _radius);
                 PlanetAtmosphere.Set("atmosphere_height", _radius * 0.25f);
                 _longitudeLatitude!.Draw(_radius + MaxHeight * 1.25f);
-
-                _celestialMotionManagerService.UpdateMoonMeshRadius(); // 卫星半径
-                _celestialMotionManagerService.UpdateLunarDist(); // 卫星轨道半径
+                RadiusChanged?.Invoke(value);
             }
         }
     }
@@ -180,26 +191,10 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
         }
     }
 
-    public bool NodeReady { get; private set; }
-
     public float OldRadius { get; set; }
     public int OldDivisions { get; set; }
     public int OldChunkDivisions { get; set; }
     public float LastUpdated { get; set; }
-
-    #region 应用服务
-
-    private IHexPlanetManagerApp _hexPlanetManagerApplication;
-    private ICelestialMotionManagerService _celestialMotionManagerService;
-
-    [MemberNotNull(nameof(_hexPlanetManagerApplication), nameof(_celestialMotionManagerService))]
-    private void InitApps()
-    {
-        _hexPlanetManagerApplication = Context.GetBeanFromHolder<IHexPlanetManagerApp>();
-        _celestialMotionManagerService = Context.GetBeanFromHolder<ICelestialMotionManagerService>();
-    }
-
-    #endregion
 
     #region on-ready nodes
 
@@ -234,28 +229,6 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
 
     #endregion
 
-    public override void _Ready()
-    {
-        GD.Print("HexPlanetManager _Ready start");
-        InitOnReadyNodes();
-        _hexPlanetManagerApplication.OnReady();
-        GD.Print("HexPlanetManager _Ready end");
-    }
-
-    public override void _ExitTree()
-    {
-        // 不小心忽视了事件的解绑，会在编辑器下"重载已保存场景"时出问题报错！
-        // 【切记】所以这里需要在退出场景树时清理事件监听！！！
-        NodeReady = false;
-        _hexPlanetManagerApplication.OnExitTree();
-        NodeContext.Instance.DestroySingleton<IHexPlanetManager>();
-    }
-
-    public NodeEvent NodeEvent { get; } = new(process: true);
-
-    public override void _Process(double delta) => //NodeEvent.EmitProcessed(delta);
-        _hexPlanetManagerApplication!.OnProcess(delta);
-
     #region 噪声扰动
 
     public Image? NoiseSourceImage { get; set; }
@@ -288,7 +261,7 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
 
     #endregion
 
-    private Godot.Collections.Dictionary GetTileCollisionResult()
+    private Dictionary GetTileCollisionResult()
     {
         var spaceState = GetWorld3D().DirectSpaceState;
         var camera = GetViewport().GetCamera3D();
@@ -298,10 +271,6 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
         var query = PhysicsRayQueryParameters3D.Create(origin, end);
         return spaceState.IntersectRay(query);
     }
-
-    // TODO: 下面两个方法，相关逻辑在 APP 层和节点层上下翻飞，需要重构
-    public bool UpdateUiInEditMode() => _hexPlanetManagerApplication!.UpdateUiInEditMode();
-    public Tile? GetTileUnderCursor() => _hexPlanetManagerApplication!.GetTileUnderCursor();
 
     public Vector3 GetTileCollisionPositionUnderCursor()
     {

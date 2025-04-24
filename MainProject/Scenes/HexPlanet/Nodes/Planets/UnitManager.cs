@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Apps.Queries.Contexts;
 using Contexts;
 using Godot;
 using GodotNodes.Abstractions.Addition;
@@ -16,18 +15,12 @@ public partial class UnitManager : Node3D, IUnitManager
 {
     public UnitManager()
     {
-        NodeContext.Instance.RegisterSingleton<IUnitManager>(this);
         Context.RegisterToHolder<IUnitManager>(this);
     }
     public event Action? PathFromTileIdSetZero;
     public NodeEvent? NodeEvent => null;
 
     public override void _Ready() => InitOnReadyNodes();
-
-    public override void _ExitTree()
-    {
-        NodeContext.Instance.DestroySingleton<IUnitManager>();
-    }
 
     [Export] private PackedScene? _unitScene;
 

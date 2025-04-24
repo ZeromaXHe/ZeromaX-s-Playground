@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Apps.Queries.Contexts;
 using Contexts;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Godot;
@@ -18,7 +17,6 @@ public partial class FeatureMeshManager : Node3D, IFeatureMeshManager
 {
     public FeatureMeshManager()
     {
-        NodeContext.Instance.RegisterSingleton<IFeatureMeshManager>(this);
         Context.RegisterToHolder<IFeatureMeshManager>(this);
     }
 
@@ -28,8 +26,6 @@ public partial class FeatureMeshManager : Node3D, IFeatureMeshManager
     {
         InitOnReadyNodes();
     }
-
-    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<IFeatureMeshManager>();
 
     #region export 变量
 

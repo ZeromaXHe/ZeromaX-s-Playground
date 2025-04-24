@@ -1,9 +1,7 @@
 using System;
-using Apps.Queries.Contexts;
 using Contexts;
 using Godot;
 using GodotNodes.Abstractions.Addition;
-using Infras.Readers.Abstractions.Nodes.Singletons;
 using Nodes.Abstractions;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
@@ -17,11 +15,10 @@ public partial class OrbitCamera : Node3D, IOrbitCamera
     public event IOrbitCamera.MovedEvent? Moved;
     public event IOrbitCamera.TransformedEvent? Transformed;
     public event Action<float>? RadiusChanged;
-    public event Action<float>? ZoomChanged; 
-    
+    public event Action<float>? ZoomChanged;
+
     public OrbitCamera()
     {
-        NodeContext.Instance.RegisterSingleton<IOrbitCamera>(this);
         Context.RegisterToHolder<IOrbitCamera>(this);
     }
 
@@ -147,11 +144,6 @@ public partial class OrbitCamera : Node3D, IOrbitCamera
     {
         InitOnReadyNodes();
         GD.Print("OrbitCamera _Ready");
-    }
-
-    public override void _ExitTree()
-    {
-        NodeContext.Instance.DestroySingleton<IOrbitCamera>();
     }
 
     public Vector3 GetFocusBasePos() => _focusBase!.GlobalPosition;

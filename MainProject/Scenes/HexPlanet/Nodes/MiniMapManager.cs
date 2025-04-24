@@ -1,5 +1,3 @@
-using Apps.Queries.Applications.Uis;
-using Apps.Queries.Contexts;
 using Commons.Utils.HexSphereGrid;
 using Contexts;
 using Godot;
@@ -17,7 +15,6 @@ public partial class MiniMapManager : Node2D, IMiniMapManager
 
     public MiniMapManager()
     {
-        NodeContext.Instance.RegisterSingleton<IMiniMapManager>(this);
         Context.RegisterToHolder<IMiniMapManager>(this);
     }
 
@@ -27,11 +24,6 @@ public partial class MiniMapManager : Node2D, IMiniMapManager
     {
         InitOnReadyNodes();
         GD.Print("MiniMapManager _Ready");
-    }
-
-    public override void _ExitTree()
-    {
-        NodeContext.Instance.DestroySingleton<IMiniMapManager>();
     }
 
     #region on-ready 节点

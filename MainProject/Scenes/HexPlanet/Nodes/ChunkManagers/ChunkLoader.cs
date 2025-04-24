@@ -2,9 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using Apps.Queries.Contexts;
 using Contexts;
-using Domains.Models.Entities.PlanetGenerates;
 using Godot;
 using GodotNodes.Abstractions.Addition;
 using Nodes.Abstractions;
@@ -20,20 +18,10 @@ public partial class ChunkLoader : Node3D, IChunkLoader
 {
     public ChunkLoader()
     {
-        NodeContext.Instance.RegisterSingleton<IChunkLoader>(this);
         Context.RegisterToHolder<IChunkLoader>(this);
     }
-
-    private bool _ready;
     public NodeEvent NodeEvent { get; } = new(process: true);
-    public override void _Ready() => _ready = true;
     public override void _Process(double delta) => NodeEvent.EmitProcessed(delta);
-
-    public override void _ExitTree()
-    {
-        _ready = false;
-        NodeContext.Instance.DestroySingleton<IChunkLoader>();
-    }
 
     [Export] private PackedScene? _gridChunkScene;
 

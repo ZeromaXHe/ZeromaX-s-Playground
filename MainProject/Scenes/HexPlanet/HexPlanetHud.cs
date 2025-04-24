@@ -1,5 +1,4 @@
-using Apps.Queries.Applications.Uis;
-using Apps.Queries.Contexts;
+using System;
 using Contexts;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.ValueObjects.PlanetGenerates;
@@ -16,18 +15,19 @@ public partial class HexPlanetHud : Control, IHexPlanetHud
 {
     public HexPlanetHud()
     {
-        InitApps();
-        NodeContext.Instance.RegisterSingleton<IHexPlanetHud>(this);
         Context.RegisterToHolder<IHexPlanetHud>(this);
     }
 
-    #region 应用服务
+    public event Action<Tile?>? ChosenTileChanged;
 
-    private IHexPlanetHudApp? _hexPlanetHudApp;
+    public NodeEvent NodeEvent { get; } = new(process: true);
 
-    private void InitApps() => _hexPlanetHudApp = Context.GetBeanFromHolder<IHexPlanetHudApp>();
+    public override void _Ready()
+    {
+        InitOnReadyNodes();
+    }
 
-    #endregion
+    public override void _Process(double delta) => NodeEvent.EmitProcessed(delta);
 
     #region on-ready 节点
 
@@ -107,7 +107,6 @@ public partial class HexPlanetHud : Control, IHexPlanetHud
         CompassPanel = GetNode<PanelContainer>("%CompassPanel");
         // 矩形地图测试
         RectMap = GetNode<TextureRect>("%RectMap");
-        RectMap.Texture = _hexPlanetHudApp!.GenerateRectMap();
         // 星球信息
         PlanetTabBar = GetNode<TabBar>("%PlanetTabBar");
         PlanetGrid = GetNode<GridContainer>("%PlanetGrid");
@@ -164,34 +163,7 @@ public partial class HexPlanetHud : Control, IHexPlanetHud
         set
         {
             _chosenTile = value;
-            if (_chosenTile != null)
-            {
-                IdLineEdit!.Text = _chosenTile.Id.ToString();
-                ChunkLineEdit!.Text = _chosenTile.ChunkId.ToString();
-                var tileInfoResp = _hexPlanetHudApp!.GetTileInfo(_chosenTile);
-                CoordsLineEdit!.Text = tileInfoResp.SphereAxial.ToString();
-                CoordsLineEdit.TooltipText = CoordsLineEdit.Text;
-                HeightLineEdit!.Text = $"{tileInfoResp.Height:F4}";
-                ElevationLineEdit!.Text = _chosenTile.Data.Elevation.ToString();
-                var lonLat = tileInfoResp.SphereAxial.ToLongitudeAndLatitude();
-                LonLineEdit!.Text = lonLat.GetLongitudeString();
-                LonLineEdit.TooltipText = LonLineEdit.Text;
-                LatLineEdit!.Text = lonLat.GetLatitudeString();
-                LatLineEdit.TooltipText = LatLineEdit.Text;
-            }
-            else
-            {
-                IdLineEdit!.Text = "-";
-                ChunkLineEdit!.Text = "-";
-                CoordsLineEdit!.Text = "-";
-                CoordsLineEdit.TooltipText = null;
-                HeightLineEdit!.Text = "-";
-                ElevationLineEdit!.Text = "-";
-                LonLineEdit!.Text = "-";
-                LonLineEdit.TooltipText = ""; // 试了一下，null 和 "" 效果一样
-                LatLineEdit!.Text = "-";
-                LatLineEdit.TooltipText = null;
-            }
+            ChosenTileChanged?.Invoke(value);
         }
     }
 
@@ -203,22 +175,4 @@ public partial class HexPlanetHud : Control, IHexPlanetHud
 
     public int LabelMode { get; set; }
     public HexTileDataOverrider TileOverrider { get; set; }
-
-
-    public override void _Ready()
-    {
-        InitOnReadyNodes();
-        _hexPlanetHudApp!.OnReady();
-    }
-
-    public override void _ExitTree()
-    {
-        _hexPlanetHudApp!.OnExitTree();
-        NodeContext.Instance.DestroySingleton<IHexPlanetHud>();
-    }
-
-    public NodeEvent NodeEvent { get; } = new(process: true);
-
-    public override void _Process(double delta) => //NodeEvent.EmitProcessed(delta);
-        _hexPlanetHudApp!.OnProcess(delta);
 }

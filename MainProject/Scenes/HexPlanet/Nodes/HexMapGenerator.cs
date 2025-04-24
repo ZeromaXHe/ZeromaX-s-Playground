@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Apps.Queries.Contexts;
 using Contexts;
 using Godot;
 using GodotNodes.Abstractions.Addition;
@@ -16,12 +15,9 @@ public partial class HexMapGenerator : Node, IHexMapGenerator
 {
     public HexMapGenerator()
     {
-        NodeContext.Instance.RegisterSingleton<IHexMapGenerator>(this);
         Context.RegisterToHolder<IHexMapGenerator>(this);
     }
 
-    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<IHexMapGenerator>();
-    public NodeEvent? NodeEvent => null;
     public event IHexMapGenerator.CreatingErosionLandEvent? CreatingErosionLand;
 
     public int EmitCreatingErosionLand(RandomNumberGenerator rng, List<MapRegion> regions) =>
@@ -33,6 +29,7 @@ public partial class HexMapGenerator : Node, IHexMapGenerator
     public int EmitCreatingFractalNoiseLand(RandomNumberGenerator rng) => CreatingFractalNoiseLand?.Invoke(rng) ?? 0;
     public event IHexMapGenerator.CreatingRealEarthLandEvent? CreatingRealEarthLand;
     public int EmitCreatingRealEarthLand() => CreatingRealEarthLand?.Invoke() ?? 0;
+    public NodeEvent? NodeEvent => null;
 
     [Export(PropertyHint.Range, "0, 10")] public int MapBoardX { get; set; } = 5;
     [Export(PropertyHint.Range, "0, 10")] public int MapBoardZ { get; set; } = 5;

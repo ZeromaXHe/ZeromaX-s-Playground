@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using Apps.Commands;
 using Apps.Commands.Nodes.IdInstances;
 using Apps.Commands.Nodes.Singletons;
 using Apps.Commands.Nodes.Singletons.ChunkManagers;
@@ -8,14 +7,9 @@ using Apps.Commands.Nodes.Singletons.Planets;
 using Apps.Queries.Abstractions.Features;
 using Apps.Queries.Abstractions.Tiles;
 using Apps.Queries.Applications.Features;
-using Apps.Queries.Applications.Planets;
-using Apps.Queries.Applications.Planets.Impl;
 using Apps.Queries.Applications.Tiles;
-using Apps.Queries.Applications.Uis;
-using Apps.Queries.Applications.Uis.Impl;
 using Autofac;
 using Contexts.Abstractions;
-using Domains.Services.Abstractions.Nodes;
 using Domains.Services.Abstractions.Nodes.IdInstances;
 using Domains.Services.Abstractions.Nodes.Singletons;
 using Domains.Services.Abstractions.Nodes.Singletons.ChunkManagers;
@@ -25,7 +19,6 @@ using Domains.Services.Abstractions.PlanetGenerates;
 using Domains.Services.Abstractions.Searches;
 using Domains.Services.Abstractions.Shaders;
 using Domains.Services.Abstractions.Uis;
-using Domains.Services.Nodes;
 using Domains.Services.Nodes.IdInstances;
 using Domains.Services.Nodes.Singletons;
 using Domains.Services.Nodes.Singletons.ChunkManagers;
@@ -184,8 +177,6 @@ public class Context : IContext
         // 查询
         builder.RegisterType<FeatureApplication>().As<IFeatureApplication>().SingleInstance();
         builder.RegisterType<TileShaderApplication>().As<ITileShaderApplication>().SingleInstance();
-        builder.RegisterType<HexPlanetHudApp>().As<IHexPlanetHudApp>().SingleInstance();
-        builder.RegisterType<HexPlanetManagerApp>().As<IHexPlanetManagerApp>().SingleInstance();
         // 单例节点命令
         builder.RegisterType<ChunkLoaderCommander>().SingleInstance()
             .OnRelease(cmd => cmd.ReleaseEvents());
@@ -209,7 +200,8 @@ public class Context : IContext
         builder.RegisterType<EditPreviewChunkCommander>().SingleInstance()
             .OnRelease(cmd => cmd.ReleaseEvents());
         builder.RegisterType<HexMapGeneratorCommander>().SingleInstance();
-        builder.RegisterType<HexPlanetHudCommander>().SingleInstance();
+        builder.RegisterType<HexPlanetHudCommander>().SingleInstance()
+            .OnRelease(cmd => cmd.ReleaseEvents());
         builder.RegisterType<HexPlanetManagerCommander>().SingleInstance()
             .OnRelease(cmd => cmd.ReleaseEvents());
         builder.RegisterType<LongitudeLatitudeCommander>().SingleInstance()
@@ -235,6 +227,8 @@ public class Context : IContext
         _container.Resolve<CelestialMotionManagerCommander>();
         _container.Resolve<SelectTileViewerCommander>();
         _container.Resolve<UnitManagerCommander>();
+        _container.Resolve<HexPlanetHudCommander>();
+        _container.Resolve<HexPlanetManagerCommander>();
         _container.Resolve<LongitudeLatitudeCommander>();
         _container.Resolve<MiniMapManagerCommander>();
         _container.Resolve<OrbitCameraCommander>();

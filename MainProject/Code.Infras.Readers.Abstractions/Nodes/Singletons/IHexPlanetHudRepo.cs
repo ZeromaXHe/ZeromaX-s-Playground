@@ -1,3 +1,4 @@
+using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.ValueObjects.PlanetGenerates;
 using Infras.Readers.Abstractions.Bases;
 using Nodes.Abstractions;
@@ -16,6 +17,7 @@ public interface IHexPlanetHudRepo : ISingletonNodeRepo<IHexPlanetHud>
     delegate void EditModeChangedEvent(bool editMode);
 
     event EditModeChangedEvent EditModeChanged;
+    event Action<Tile?>? ChosenTileChanged;
 
     #region 编辑
 

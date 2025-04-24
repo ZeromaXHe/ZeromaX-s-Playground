@@ -8,8 +8,10 @@ namespace Nodes.Abstractions;
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH
 /// Date: 2025-04-16 15:28:16
-public interface IHexPlanetHud: IControl
+public interface IHexPlanetHud : IControl
 {
+    event Action<Tile?>? ChosenTileChanged;
+
     #region on-ready 节点
 
     SubViewportContainer? SubViewportContainer { get; }
@@ -79,9 +81,9 @@ public interface IHexPlanetHud: IControl
 
     Tile? ChosenTile { get; set; }
     bool IsDrag { get; set; }
-    Tile? DragTile {get; set; }
-    Tile? PreviousTile {get; set; }
-    
+    Tile? DragTile { get; set; }
+    Tile? PreviousTile { get; set; }
+
     int LabelMode { get; set; }
     HexTileDataOverrider TileOverrider { get; set; }
 }

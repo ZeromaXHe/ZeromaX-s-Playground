@@ -1,3 +1,5 @@
+using Domains.Models.Entities.PlanetGenerates;
+
 namespace Domains.Services.Abstractions.Nodes.Singletons;
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
@@ -5,4 +7,6 @@ namespace Domains.Services.Abstractions.Nodes.Singletons;
 /// Date: 2025-04-18 20:02:18
 public interface IHexPlanetManagerService
 {
+    Tile? GetTileUnderCursor();
+    bool UpdateUiInEditMode();
 }

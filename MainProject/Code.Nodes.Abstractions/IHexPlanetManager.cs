@@ -12,6 +12,7 @@ namespace Nodes.Abstractions;
 public interface IHexPlanetManager : INode3D
 {
     event Action? NewPlanetGenerated;
+    event Action<float>? RadiusChanged;
 
     void EmitNewPlanetGenerated();
 
@@ -68,9 +69,6 @@ public interface IHexPlanetManager : INode3D
 
     #endregion
 
-    // TODO: 下面两个方法，相关逻辑在 APP 层和节点层上下翻飞，需要重构
-    bool UpdateUiInEditMode();
-    Tile? GetTileUnderCursor();
     Vector3 GetTileCollisionPositionUnderCursor();
 
     // 锁定经纬网的显示

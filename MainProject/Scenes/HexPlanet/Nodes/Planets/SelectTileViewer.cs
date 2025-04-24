@@ -1,10 +1,7 @@
-using Apps.Queries.Contexts;
 using Contexts;
 using Domains.Models.Entities.PlanetGenerates;
-using Domains.Services.Abstractions.Uis;
 using Godot;
 using GodotNodes.Abstractions.Addition;
-using Infras.Readers.Abstractions.Nodes.Singletons;
 using Nodes.Abstractions.Planets;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.Planets;
@@ -16,12 +13,10 @@ public partial class SelectTileViewer : MeshInstance3D, ISelectTileViewer
 {
     public SelectTileViewer()
     {
-        NodeContext.Instance.RegisterSingleton<ISelectTileViewer>(this);
         Context.RegisterToHolder<ISelectTileViewer>(this);
     }
 
     public NodeEvent? NodeEvent => null;
-    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<ISelectTileViewer>();
 
     public int EditingTileId { get; private set; }
     public void SelectEditingTile(Tile tile) => EditingTileId = tile.Id;

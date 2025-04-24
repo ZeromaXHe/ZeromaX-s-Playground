@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using Apps.Queries.Contexts;
 using Contexts;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.ValueObjects.PlanetGenerates;
@@ -17,12 +16,10 @@ public partial class EditPreviewChunk : Node3D, IEditPreviewChunk
 {
     public EditPreviewChunk()
     {
-        NodeContext.Instance.RegisterSingleton<IEditPreviewChunk>(this);
         Context.RegisterToHolder<IEditPreviewChunk>(this);
     }
 
     public NodeEvent NodeEvent { get; } = new(process: true);
-    public override void _ExitTree() => NodeContext.Instance.DestroySingleton<IEditPreviewChunk>();
     public override void _Process(double delta) => NodeEvent.EmitProcessed(delta);
 
     [Export] public HexMesh? Terrain { get; set; }
