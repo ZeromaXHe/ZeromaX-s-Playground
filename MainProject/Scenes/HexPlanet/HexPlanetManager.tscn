@@ -146,7 +146,7 @@ SatelliteRotation = false
 [node name="HexMapGenerator" parent="." instance=ExtResource("9_nxupj")]
 unique_name_in_owner = true
 LandGeneratorType = 2
-Seed = -1273736605
+Seed = 2146161521
 
 [node name="LensFlare" type="Node" parent="."]
 script = ExtResource("16_das15")
@@ -233,10 +233,6 @@ unique_name_in_owner = true
 [node name="CelestialMotionManager" type="Node3D" parent="."]
 unique_name_in_owner = true
 script = ExtResource("15_vl1on")
-PlanetRevolution = false
-PlanetRotation = false
-SatelliteRevolution = false
-SatelliteRotation = false
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="CelestialMotionManager"]
 unique_name_in_owner = true

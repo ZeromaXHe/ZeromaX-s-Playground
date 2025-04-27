@@ -1,4 +1,5 @@
 using Domains.Models.Entities.PlanetGenerates;
+using Domains.Services.Abstractions.Nodes.IdInstances;
 using Domains.Services.Abstractions.Nodes.Singletons.Planets;
 using Domains.Services.Abstractions.Searches;
 using Infras.Readers.Abstractions.Nodes.Singletons.Planets;
@@ -15,7 +16,8 @@ public class UnitManagerService(
     IUnitManagerRepo unitManagerRepo,
     IUnitRepo unitRepo,
     ITileRepo tileRepo,
-    ITileSearchService tileSearchService) : IUnitManagerService
+    ITileSearchService tileSearchService,
+    IHexUnitService hexUnitService) : IUnitManagerService
 {
     private IUnitManager Self => unitManagerRepo.Singleton!;
 
@@ -35,6 +37,7 @@ public class UnitManagerService(
             Self.PathFromTileId = tile == null || tile.UnitId == 0 ? 0 : tile.Id;
     }
 
+    // TODO: 因为使用了平级 Service，后续需要重构！
     private void MoveUnit(Tile toTile)
     {
         var fromTile = tileRepo.GetById(Self.PathFromTileId)!;
@@ -43,7 +46,8 @@ public class UnitManagerService(
         {
             // 确实有找到从出发点到 tile 的路径
             var unit = Self.Units[fromTile.UnitId];
-            Self.GetHexUnitPathPool()!.NewTask(unit, path);
+            var hexUnitPath = Self.GetHexUnitPathPool()!.NewTask(unit, path);
+            hexUnitService.Travel(unit, hexUnitPath);
         }
 
         Self.PathFromTileId = 0;

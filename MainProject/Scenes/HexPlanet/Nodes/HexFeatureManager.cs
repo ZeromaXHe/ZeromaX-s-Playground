@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+#if FEATURE_NEW
 using Apps.Queries.Abstractions.Features;
+#endif
 using Commons.Constants;
 using Commons.Enums;
 using Commons.Utils;
@@ -32,13 +34,17 @@ public partial class HexFeatureManager : Node3D, IHexFeatureManager
     #region 服务
 
     private static IHexPlanetManagerRepo? _hexPlanetManagerRepo;
-    private static IFeatureApplication? _featureApplication;
     private static IFeatureRepo? _featureRepo;
+#if FEATURE_NEW
+    private static IFeatureApplication? _featureApplication;
+#endif
 
     private void InitServices()
     {
         _hexPlanetManagerRepo ??= Context.GetBeanFromHolder<IHexPlanetManagerRepo>();
+#if FEATURE_NEW
         _featureApplication ??= Context.GetBeanFromHolder<IFeatureApplication>();
+#endif
         _featureRepo ??= Context.GetBeanFromHolder<IFeatureRepo>();
     }
 

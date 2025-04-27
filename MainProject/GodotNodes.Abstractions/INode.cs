@@ -21,4 +21,5 @@ public interface INode
     Node GetChild(int idx, bool includeInternal = false);
     Godot.Collections.Array<Node> GetChildren(bool includeInternal = false);
     Viewport GetViewport();
+    void QueueFree();
 }

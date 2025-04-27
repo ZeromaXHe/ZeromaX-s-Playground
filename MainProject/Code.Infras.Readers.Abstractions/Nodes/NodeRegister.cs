@@ -34,7 +34,8 @@ public class NodeRegister(
     IMiniMapManagerRepo miniMapManagerRepo,
     IOrbitCameraRepo orbitCameraRepo,
     // 多例
-    IHexGridChunkRepo hexGridChunkRepo)
+    IHexGridChunkRepo hexGridChunkRepo,
+    IHexUnitRepo hexUnitRepo)
 {
     public bool Register<T>(T node) where T : INode
     {
@@ -63,6 +64,7 @@ public class NodeRegister(
             IOrbitCamera orbitCamera => orbitCameraRepo.Register(orbitCamera),
             // 多例
             IHexGridChunk hexGridChunk => RegisterIdInstance(hexGridChunk, hexGridChunkRepo.Register),
+            IHexUnit hexUnit => RegisterIdInstance(hexUnit, hexUnitRepo.Register),
             _ => throw new ArgumentException($"暂不支持的单例节点：{typeof(T).Name}")
         };
     }

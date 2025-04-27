@@ -8,5 +8,5 @@ namespace Nodes.Abstractions;
 /// Date: 2025-04-17 10:36:17
 public interface IHexUnitPathPool : INode3D
 {
-    void NewTask(IHexUnit unit, List<Tile> pathTiles);
+    IHexUnitPath NewTask(IHexUnit unit, List<Tile> pathTiles);
 }

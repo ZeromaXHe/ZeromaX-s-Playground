@@ -9,13 +9,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Code.Apps.Models\Code.Apps.Models.csproj" />
       <ProjectReference Include="..\Code.Infras.Readers.Abstractions\Code.Infras.Readers.Abstractions.csproj" />
       <ProjectReference Include="..\Code.Infras.Writers.Abstractions\Code.Infras.Writers.Abstractions.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Planets\" />
     </ItemGroup>
 
 </Project>

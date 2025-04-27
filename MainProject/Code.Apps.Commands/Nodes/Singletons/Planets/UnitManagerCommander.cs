@@ -1,3 +1,4 @@
+using Domains.Services.Abstractions.Nodes.IdInstances;
 using Domains.Services.Abstractions.Nodes.Singletons.Planets;
 using Infras.Readers.Abstractions.Nodes.Singletons.Planets;
 using Infras.Writers.Abstractions.PlanetGenerates;
@@ -12,15 +13,17 @@ public class UnitManagerCommander
     private readonly IUnitManagerRepo _unitManagerRepo;
 
     private readonly ISelectTileViewerService _selectTileViewerService;
+    private readonly IHexUnitService _hexUnitService;
     private readonly ITileRepo _tileRepo;
 
     public UnitManagerCommander(IUnitManagerRepo unitManagerRepo, ISelectTileViewerService selectTileViewerService,
-        ITileRepo tileRepo)
+        IHexUnitService hexUnitService, ITileRepo tileRepo)
     {
         _unitManagerRepo = unitManagerRepo;
         _unitManagerRepo.PathFromTileIdSetZero += OnPathFromTileIdSetZero;
 
         _selectTileViewerService = selectTileViewerService;
+        _hexUnitService = hexUnitService;
         _tileRepo = tileRepo;
         _tileRepo.UnitValidateLocation += OnTileServiceUnitValidateLocation;
     }
@@ -37,5 +40,5 @@ public class UnitManagerCommander
     }
 
     private void OnTileServiceUnitValidateLocation(int unitId) =>
-        _unitManagerRepo.Singleton?.Units[unitId].ValidateLocation();
+        _hexUnitService.ValidateLocation(_unitManagerRepo.Singleton?.Units[unitId]!);
 }

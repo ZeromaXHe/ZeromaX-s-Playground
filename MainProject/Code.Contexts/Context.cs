@@ -6,10 +6,10 @@ using Apps.Commands.Nodes.Singletons;
 using Apps.Commands.Nodes.Singletons.ChunkManagers;
 using Apps.Commands.Nodes.Singletons.LandGenerators;
 using Apps.Commands.Nodes.Singletons.Planets;
+#if FEATURE_NEW
 using Apps.Queries.Abstractions.Features;
-using Apps.Queries.Abstractions.Tiles;
 using Apps.Queries.Applications.Features;
-using Apps.Queries.Applications.Tiles;
+#endif
 using Autofac;
 using Contexts.Abstractions;
 using Domains.Services.Abstractions.Nodes.IdInstances;
@@ -145,6 +145,8 @@ public class Context : IContext
         // 多例存储
         builder.RegisterType<HexGridChunkRepo>().As<IHexGridChunkRepo>().SingleInstance()
             .OnRelease(repo => repo.UnregisterAll());
+        builder.RegisterType<HexUnitRepo>().As<IHexUnitRepo>().SingleInstance()
+            .OnRelease(repo => repo.UnregisterAll());
         // ===== 领域层 =====
         // 领域服务
         builder.RegisterType<PointService>().As<IPointService>().SingleInstance();
@@ -175,10 +177,12 @@ public class Context : IContext
         builder.RegisterType<OrbitCameraService>().As<IOrbitCameraService>().SingleInstance();
         // 多例节点服务
         builder.RegisterType<HexGridChunkService>().As<IHexGridChunkService>().SingleInstance();
+        builder.RegisterType<HexUnitService>().As<IHexUnitService>().SingleInstance();
         // ===== 应用层 =====
         // 查询
+#if FEATURE_NEW
         builder.RegisterType<FeatureApplication>().As<IFeatureApplication>().SingleInstance();
-        builder.RegisterType<TileShaderApplication>().As<ITileShaderApplication>().SingleInstance();
+#endif
         // 单例节点命令
         builder.RegisterType<ChunkLoaderCommander>().SingleInstance()
             .OnRelease(cmd => cmd.ReleaseEvents());
@@ -215,6 +219,8 @@ public class Context : IContext
         // 多例节点命令
         builder.RegisterType<HexGridChunkCommander>().SingleInstance()
             .OnRelease(cmd => cmd.ReleaseEvents());
+        builder.RegisterType<HexUnitCommander>().SingleInstance()
+            .OnRelease(cmd => cmd.ReleaseEvents());
         _container = builder.Build();
         _nodeRegister = _container.Resolve<NodeRegister>();
         // 这种构造函数有初始化逻辑的，必须先 Resolve()，否则构造函数并没有被调用
@@ -236,14 +242,13 @@ public class Context : IContext
         _container.Resolve<OrbitCameraCommander>();
         // 多例
         _container.Resolve<HexGridChunkCommander>();
+        _container.Resolve<HexUnitCommander>();
 
         var tileShaderService = _container.Resolve<ITileShaderService>();
 #if FEATURE_NEW
         var featureApplication = _container.Resolve<IFeatureApplication>();
         tileShaderService.TileExplored += featureApplication.ExploreFeatures;
 #endif
-        var tileShaderApplication = _container.Resolve<ITileShaderApplication>();
-        tileShaderService.RangeVisibilityIncreased += tileShaderApplication.IncreaseVisibility;
 
         var context = AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly())!;
         // 解决 .NET: Failed to unload assemblies. Please check <this issue> for more information. 问题
@@ -254,8 +259,30 @@ public class Context : IContext
 
     private void Unload(AssemblyLoadContext context)
     {
+        _container?.Dispose();
         _container = null;
         _nodeRegister = null;
         ContextHolder.BeanContext = null;
+        // trigger unload
+        // 卸载 Infras.Writers
+        AssemblyLoadContext.GetLoadContext(typeof(ChunkRepo).Assembly)?.Unload();
+        // 卸载 Infras.Writers.Abstractions
+        AssemblyLoadContext.GetLoadContext(typeof(IChunkRepo).Assembly)?.Unload();
+        // 卸载 Infras.Readers
+        AssemblyLoadContext.GetLoadContext(typeof(ChunkLoaderRepo).Assembly)?.Unload();
+        // 卸载 Infras.Readers.Abstractions
+        AssemblyLoadContext.GetLoadContext(typeof(IChunkLoaderRepo).Assembly)?.Unload();
+        // 卸载 Domains.Services
+        AssemblyLoadContext.GetLoadContext(typeof(ChunkService).Assembly)?.Unload();
+        // 卸载 Domains.Services.Abstractions
+        AssemblyLoadContext.GetLoadContext(typeof(IChunkService).Assembly)?.Unload();
+        // 卸载 Apps.Commands
+        AssemblyLoadContext.GetLoadContext(typeof(ChunkLoaderCommander).Assembly)?.Unload();
+        // 卸载当前程序集
+        AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly())?.Unload();
+#if FEATURE_NEW
+        AssemblyLoadContext.GetLoadContext(typeof(FeatureApplication).Assembly)?.Unload();
+        AssemblyLoadContext.GetLoadContext(typeof(IFeatureApplication).Assembly)?.Unload();
+#endif
     }
 }
