@@ -5,6 +5,6 @@ namespace Contexts.Abstractions;
 /// Date: 2025-04-11 17:42:35
 public static class ContextHolder
 {
-    // TODO: 一时权宜之计，放在最底层为了兼容 HexTileData、HexTileDataOverrider 里面的逻辑，后续重构掉
+    // 用来给 Mod 等获取想要的依赖？
     public static IContext? BeanContext { get; set; }
 }

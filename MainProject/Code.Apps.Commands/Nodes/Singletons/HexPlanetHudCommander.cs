@@ -26,6 +26,7 @@ public class HexPlanetHudCommander
     private readonly IHexPlanetManagerRepo _hexPlanetManagerRepo;
     private readonly ISelectTileViewerRepo _selectTileViewerRepo;
     private readonly IMiniMapManagerRepo _miniMapManagerRepo;
+    private readonly ILongitudeLatitudeRepo _longitudeLatitudeRepo;
     private readonly IOrbitCameraRepo _orbitCameraRepo;
     private readonly IHexPlanetManagerService _hexPlanetManagerService;
     private readonly IHexPlanetHudService _hexPlanetHudService;
@@ -36,10 +37,10 @@ public class HexPlanetHudCommander
 
     public HexPlanetHudCommander(IHexPlanetHudRepo hexPlanetHudRepo, IChunkRepo chunkRepo, ITileRepo tileRepo,
         IPointRepo pointRepo, IHexPlanetManagerRepo hexPlanetManagerRepo, ISelectTileViewerRepo selectTileViewerRepo,
-        IMiniMapManagerRepo miniMapManagerRepo, IOrbitCameraRepo orbitCameraRepo,
-        IHexPlanetManagerService hexPlanetManagerService, IHexPlanetHudService hexPlanetHudService,
-        ITileService tileService, IUnitManagerService unitManagerService, IMiniMapManagerService miniMapManagerService,
-        IMiniMapService miniMapService)
+        IMiniMapManagerRepo miniMapManagerRepo, ILongitudeLatitudeRepo longitudeLatitudeRepo,
+        IOrbitCameraRepo orbitCameraRepo, IHexPlanetManagerService hexPlanetManagerService,
+        IHexPlanetHudService hexPlanetHudService, ITileService tileService, IUnitManagerService unitManagerService,
+        IMiniMapManagerService miniMapManagerService, IMiniMapService miniMapService)
     {
         _hexPlanetHudRepo = hexPlanetHudRepo;
         _hexPlanetHudRepo.Ready += OnReady;
@@ -53,6 +54,7 @@ public class HexPlanetHudCommander
         _hexPlanetManagerRepo = hexPlanetManagerRepo;
         _selectTileViewerRepo = selectTileViewerRepo;
         _miniMapManagerRepo = miniMapManagerRepo;
+        _longitudeLatitudeRepo = longitudeLatitudeRepo;
         _orbitCameraRepo = orbitCameraRepo;
         _hexPlanetManagerService = hexPlanetManagerService;
         _hexPlanetHudService = hexPlanetHudService;
@@ -167,9 +169,8 @@ public class HexPlanetHudCommander
             _hexPlanetManagerRepo.Singleton!.PlanetRevolution = _hexPlanetManagerRepo.Singleton.PlanetRotation =
                 _hexPlanetManagerRepo.Singleton.SatelliteRevolution =
                     _hexPlanetManagerRepo.Singleton.SatelliteRotation = toggle;
-        Self.LatLonFixCheckButton!.Toggled += _hexPlanetManagerRepo.Singleton!.FixLatLon;
-        Self.PlanetTabBar!.TabClicked +=
-            _ => Self.PlanetGrid!.Visible = !Self.PlanetGrid.Visible;
+        Self.LatLonFixCheckButton!.Toggled += _longitudeLatitudeRepo.FixLatLon;
+        Self.PlanetTabBar!.TabClicked += _ => Self.PlanetGrid!.Visible = !Self.PlanetGrid.Visible;
 
         Self.RadiusLineEdit!.TextSubmitted += text =>
         {

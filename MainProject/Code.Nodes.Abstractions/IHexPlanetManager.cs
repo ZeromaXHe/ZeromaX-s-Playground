@@ -25,16 +25,16 @@ public interface IHexPlanetManager : INode3D
     ulong Seed { get; set; }
 
     // 行星公转
-    bool PlanetRevolution { set; }
+    bool PlanetRevolution { get; set; }
 
     // 行星自转
-    bool PlanetRotation { set; }
+    bool PlanetRotation { get; set; }
 
     // 卫星公转
-    bool SatelliteRevolution { set; }
+    bool SatelliteRevolution { get; set; }
 
     // 卫星自转
-    bool SatelliteRotation { set; }
+    bool SatelliteRotation { get; set; }
 
     #endregion
 
@@ -71,7 +71,5 @@ public interface IHexPlanetManager : INode3D
 
     Vector3 GetTileCollisionPositionUnderCursor();
 
-    // 锁定经纬网的显示
-    void FixLatLon(bool toggle);
     Vector3 ToPlanetLocal(Vector3 global);
 }

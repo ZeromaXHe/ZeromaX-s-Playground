@@ -1,4 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Runtime.Loader;
 using Apps.Commands.Nodes.IdInstances;
 using Apps.Commands.Nodes.Singletons;
 using Apps.Commands.Nodes.Singletons.ChunkManagers;
@@ -242,5 +244,18 @@ public class Context : IContext
 #endif
         var tileShaderApplication = _container.Resolve<ITileShaderApplication>();
         tileShaderService.RangeVisibilityIncreased += tileShaderApplication.IncreaseVisibility;
+
+        var context = AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly())!;
+        // 解决 .NET: Failed to unload assemblies. Please check <this issue> for more information. 问题
+        // GitHub issue 78513：https://github.com/godotengine/godot/issues/78513
+        // register cleanup code to prevent unloading issues
+        context.Unloading += Unload;
+    }
+
+    private void Unload(AssemblyLoadContext context)
+    {
+        _container = null;
+        _nodeRegister = null;
+        ContextHolder.BeanContext = null;
     }
 }

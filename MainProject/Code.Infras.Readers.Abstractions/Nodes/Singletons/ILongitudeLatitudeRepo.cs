@@ -9,4 +9,7 @@ namespace Infras.Readers.Abstractions.Nodes.Singletons;
 public interface ILongitudeLatitudeRepo : ISingletonNodeRepo<ILongitudeLatitude>
 {
     event Action<bool>? FixFullVisibilityChanged;
+
+    // 锁定经纬网的显示
+    void FixLatLon(bool toggle);
 }

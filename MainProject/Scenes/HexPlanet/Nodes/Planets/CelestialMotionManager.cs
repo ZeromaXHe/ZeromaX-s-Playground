@@ -28,47 +28,27 @@ public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
         _ready = true;
     }
 
-    public override void _Process(double delta)
-    {
-        if (!_ready) return;
-        UpdateStellarRotation((float)delta);
-    }
+    public override void _Process(double delta) => NodeEvent.EmitProcessed(delta);
 
     public event Action<float>? SatelliteRadiusRatioChanged;
     public event Action<float>? SatelliteDistRatioChanged;
+    public event Action? StarMoveStatusToggled;
+    public event Action? PlanetMoveStatusToggled;
+    public event Action? SatelliteMoveStatusToggled;
 
     [Export(PropertyHint.Range, "-100.0, 100.0")]
-    public float RotationTimeFactor = 1f;
+    public float RotationTimeFactor { get; set; } = 1f;
 
     [ExportGroup("行星恒星设置")]
     [ExportToolButton("切换恒星运行状态", Icon = "DirectionalLight3D")]
     public Callable StarMoveStatus => Callable.From(ToggleStarMoveStatus);
 
-    private void ToggleStarMoveStatus()
-    {
-        if (PlanetRevolution)
-        {
-            PlanetRevolution = false;
-            _sunRevolution!.RotationDegrees = Vector3.Up * 180f;
-            RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.DirToSun, _sunMesh!.GlobalPosition.Normalized());
-        }
-        else
-            PlanetRevolution = true;
-    }
+    private void ToggleStarMoveStatus() => StarMoveStatusToggled?.Invoke();
 
     [ExportToolButton("切换行星运行状态", Icon = "WorldEnvironment")]
     public Callable PlanetMoveStatus => Callable.From(TogglePlanetMoveStatus);
 
-    private void TogglePlanetMoveStatus()
-    {
-        if (PlanetRotation)
-        {
-            PlanetRotation = false;
-            _planetAxis!.Rotation = Vector3.Zero;
-        }
-        else
-            PlanetRotation = true;
-    }
+    private void TogglePlanetMoveStatus() => PlanetMoveStatusToggled?.Invoke();
 
     private float _eclipticInclinationToGalactic = 60f;
 
@@ -105,12 +85,8 @@ public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
         }
     }
 
-    [Export] public bool PlanetRevolution { get; set; } = true; // 行星公转
-
     [Export(PropertyHint.Range, "-360, 360, degrees")]
     public float PlanetRevolutionSpeed { get; set; } = 1f; // 行星公转速度（每秒转的度数）
-
-    [Export] public bool PlanetRotation { get; set; } = true; // 行星自转
 
     [Export(PropertyHint.Range, "-360, 360, degrees")]
     public float PlanetRotationSpeed { get; set; } = 10f; // 行星自转速度（每秒转的度数）
@@ -119,21 +95,7 @@ public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
     [ExportToolButton("切换卫星运行状态", Icon = "CSGSphere3D")]
     public Callable SatelliteMoveStatus => Callable.From(ToggleSatelliteMoveStatus);
 
-    private void ToggleSatelliteMoveStatus()
-    {
-        if (SatelliteRevolution || SatelliteRotation)
-        {
-            SatelliteRevolution = false;
-            SatelliteRotation = false;
-            _lunarRevolution!.RotationDegrees = Vector3.Up * 180f;
-            _moonAxis!.Rotation = Vector3.Zero;
-        }
-        else
-        {
-            SatelliteRevolution = true;
-            SatelliteRotation = true;
-        }
-    }
+    private void ToggleSatelliteMoveStatus() => SatelliteMoveStatusToggled?.Invoke();
 
     private float _satelliteRadiusRatio = 0.273f;
 
@@ -201,12 +163,8 @@ public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
         }
     }
 
-    [Export] public bool SatelliteRevolution { get; set; } = true; // 卫星公转
-
     [Export(PropertyHint.Range, "-360, 360, degrees")]
     public float SatelliteRevolutionSpeed { get; set; } = 30f; // 卫星公转速度（每秒转的度数）
-
-    [Export] public bool SatelliteRotation { get; set; } = true; // 卫星自转
 
     [Export(PropertyHint.Range, "-360, 360, degrees")]
     public float SatelliteRotationSpeed { get; set; } // 卫星自转速度（每秒转的度数）
@@ -216,80 +174,49 @@ public partial class CelestialMotionManager : Node3D, ICelestialMotionManager
     private WorldEnvironment? _worldEnvironment;
 
     // 天体公转自转
-    private Node3D? _eclipticPlane;
-    private Node3D? _sunRevolution;
-    private Node3D? _planetAxis;
-    private Node3D? _lunarOrbitPlane;
-    private Node3D? _lunarRevolution;
+    public Node3D? EclipticPlane { get; private set; }
+    public Node3D? SunRevolution { get; private set; }
+    public Node3D? PlanetAxis { get; private set; }
+    public Node3D? LunarOrbitPlane { get; private set; }
+    public Node3D? LunarRevolution { get; private set; }
     public Node3D? LunarDist { get; private set; }
-    private Node3D? _lunarObliquity;
-    private Node3D? _moonAxis;
+    public Node3D? LunarObliquity { get; private set; }
+    public Node3D? MoonAxis { get; private set; }
     public MeshInstance3D? MoonMesh { get; private set; }
-    private MeshInstance3D? _sunMesh;
+    public MeshInstance3D? SunMesh { get; private set; }
 
     private void InitOnReadyNodes()
     {
         _worldEnvironment = GetNode<WorldEnvironment>("%WorldEnvironment");
         UpdateGalaxySkyRotation();
         // 天体公转自转
-        _eclipticPlane = GetNode<Node3D>("%EclipticPlane");
+        EclipticPlane = GetNode<Node3D>("%EclipticPlane");
         UpdateEclipticPlaneRotation();
-        _sunRevolution = GetNode<Node3D>("%SunRevolution");
-        _planetAxis = GetNode<Node3D>("%PlanetAxis");
-        _lunarOrbitPlane = GetNode<Node3D>("%LunarOrbitPlane");
+        SunRevolution = GetNode<Node3D>("%SunRevolution");
+        PlanetAxis = GetNode<Node3D>("%PlanetAxis");
+        LunarOrbitPlane = GetNode<Node3D>("%LunarOrbitPlane");
         UpdateLunarOrbitPlaneRotation();
-        _lunarRevolution = GetNode<Node3D>("%LunarRevolution");
+        LunarRevolution = GetNode<Node3D>("%LunarRevolution");
         LunarDist = GetNode<Node3D>("%LunarDist");
-        _lunarObliquity = GetNode<Node3D>("%LunarObliquity");
+        LunarObliquity = GetNode<Node3D>("%LunarObliquity");
         UpdateLunarObliquityRotation();
-        _moonAxis = GetNode<Node3D>("%MoonAxis");
+        MoonAxis = GetNode<Node3D>("%MoonAxis");
         MoonMesh = GetNode<MeshInstance3D>("%MoonMesh");
-        _sunMesh = GetNode<MeshInstance3D>("%SunMesh");
-        RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.DirToSun, _sunMesh.GlobalPosition.Normalized());
+        SunMesh = GetNode<MeshInstance3D>("%SunMesh");
+        RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.DirToSun, SunMesh.GlobalPosition.Normalized());
     }
 
     #endregion
 
     private void UpdateLunarOrbitPlaneRotation() =>
-        _lunarOrbitPlane!.RotationDegrees = Vector3.Right * SatelliteOrbitInclination;
+        LunarOrbitPlane!.RotationDegrees = Vector3.Right * SatelliteOrbitInclination;
 
-    private void UpdateEclipticPlaneRotation() => _eclipticPlane!.RotationDegrees = Vector3.Right * PlanetObliquity;
+    private void UpdateEclipticPlaneRotation() => EclipticPlane!.RotationDegrees = Vector3.Right * PlanetObliquity;
 
     private void UpdateLunarObliquityRotation() =>
-        _lunarObliquity!.RotationDegrees = Vector3.Right * SatelliteObliquity;
+        LunarObliquity!.RotationDegrees = Vector3.Right * SatelliteObliquity;
 
     private void UpdateGalaxySkyRotation() =>
         _worldEnvironment!.Environment.SkyRotation =
             Vector3.Right * Mathf.DegToRad(PlanetObliquity - EclipticInclinationToGalactic);
-
-    // 更新天体旋转
-    private void UpdateStellarRotation(float delta)
-    {
-        if (PlanetRevolution || PlanetRotation)
-        {
-            RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.DirToSun,
-                _planetAxis!.ToLocal(_sunMesh!.GlobalPosition.Normalized()));
-            // 行星公转
-            if (PlanetRevolution)
-                _sunRevolution!.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
-                    _sunRevolution.RotationDegrees.Y + PlanetRevolutionSpeed * delta, 0f, 360f);
-            // 行星自转
-            if (PlanetRotation)
-            {
-                _planetAxis.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
-                    _planetAxis.RotationDegrees.Y + PlanetRotationSpeed * delta, 0f, 360f);
-                RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.InvPlanetMatrix,
-                    _planetAxis.Transform.Inverse());
-            }
-        }
-
-        // 卫星公转
-        if (SatelliteRevolution)
-            _lunarRevolution!.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
-                _lunarRevolution.RotationDegrees.Y + SatelliteRevolutionSpeed * delta, 0f, 360f);
-        // 卫星自转
-        if (SatelliteRotation)
-            _moonAxis!.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
-                _moonAxis.RotationDegrees.Y + SatelliteRotationSpeed * delta, 0f, 360f);
-    }
 }

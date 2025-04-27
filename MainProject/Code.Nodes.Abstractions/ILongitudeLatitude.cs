@@ -9,5 +9,6 @@ namespace Nodes.Abstractions;
 public interface ILongitudeLatitude : INode3D
 {
     event Action<bool>? FixFullVisibilityChanged;
+    bool FixFullVisibility { get; set; }
     void OnCameraMoved(Vector3 pos, float delta);
 }

@@ -7,4 +7,10 @@ public interface ICelestialMotionManagerService
 {
     void UpdateLunarDist();
     void UpdateMoonMeshRadius();
+
+    // 更新天体旋转
+    void UpdateStellarRotation(float delta);
+    void ToggleStarMoveStatus();
+    void TogglePlanetMoveStatus();
+    void ToggleSatelliteMoveStatus();
 }

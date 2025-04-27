@@ -10,6 +10,7 @@ namespace Infras.Readers.Nodes.Singletons;
 public class LongitudeLatitudeRepo : SingletonNodeRepo<ILongitudeLatitude>, ILongitudeLatitudeRepo
 {
     public event Action<bool>? FixFullVisibilityChanged;
+
     private void OnFixFullVisibilityChanged(bool value) => FixFullVisibilityChanged?.Invoke(value);
 
     protected override void ConnectNodeEvents()
@@ -21,4 +22,7 @@ public class LongitudeLatitudeRepo : SingletonNodeRepo<ILongitudeLatitude>, ILon
     {
         Singleton!.FixFullVisibilityChanged -= OnFixFullVisibilityChanged;
     }
+
+    // 锁定经纬网的显示
+    public void FixLatLon(bool toggle) => Singleton!.FixFullVisibility = toggle;
 }

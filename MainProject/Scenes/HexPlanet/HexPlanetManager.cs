@@ -130,66 +130,17 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
     [Export] public Texture2D? NoiseSource { get; set; }
     [Export] public ulong Seed { get; set; } = 1234;
 
-    private bool _planetRevolution = true;
-
     // 行星公转
-    [ExportGroup("天体运动")]
-    [Export]
-    public bool PlanetRevolution
-    {
-        get => _planetRevolution;
-        set
-        {
-            _planetRevolution = value;
-            if (NodeReady)
-                _celestialMotionManager!.PlanetRevolution = value;
-        }
-    }
-
-    private bool _planetRotation = true;
+    [ExportGroup("天体运动")] [Export] public bool PlanetRevolution { get; set; } = true;
 
     // 行星自转
-    [Export]
-    public bool PlanetRotation
-    {
-        get => _planetRotation;
-        set
-        {
-            _planetRotation = value;
-            if (NodeReady)
-                _celestialMotionManager!.PlanetRotation = value;
-        }
-    }
-
-    private bool _satelliteRevolution = true;
+    [Export] public bool PlanetRotation { get; set; } = true;
 
     // 卫星公转
-    [Export]
-    public bool SatelliteRevolution
-    {
-        get => _satelliteRevolution;
-        set
-        {
-            _satelliteRevolution = value;
-            if (NodeReady)
-                _celestialMotionManager!.SatelliteRevolution = value;
-        }
-    }
-
-    private bool _satelliteRotation = true;
+    [Export] public bool SatelliteRevolution { get; set; } = true;
 
     // 卫星自转
-    [Export]
-    public bool SatelliteRotation
-    {
-        get => _satelliteRotation;
-        set
-        {
-            _satelliteRotation = value;
-            if (NodeReady)
-                _celestialMotionManager!.SatelliteRotation = value;
-        }
-    }
+    [Export] public bool SatelliteRotation { get; set; } = true;
 
     public float OldRadius { get; set; }
     public int OldDivisions { get; set; }
@@ -197,8 +148,6 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
     public float LastUpdated { get; set; }
 
     #region on-ready nodes
-
-    private CelestialMotionManager? _celestialMotionManager; // 天体运动
     public Node3D? PlanetContainer { get; private set; } // 所有行星相关节点的父节点，用于整体一起自转
 
     // 行星节点
@@ -210,12 +159,6 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
 
     private void InitOnReadyNodes()
     {
-        _celestialMotionManager = GetNode<CelestialMotionManager>("%CelestialMotionManager");
-        _celestialMotionManager.PlanetRotation = _planetRotation;
-        _celestialMotionManager.PlanetRevolution = _planetRevolution;
-        _celestialMotionManager.SatelliteRotation = _satelliteRotation;
-        _celestialMotionManager.SatelliteRevolution = _satelliteRevolution;
-
         PlanetContainer = GetNode<Node3D>("%PlanetContainer");
         // 行星节点
         PlanetAtmosphere = GetNode<Node3D>("%PlanetAtmosphere");
@@ -284,9 +227,6 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
     {
         NewPlanetGenerated?.Invoke(); // 触发事件
     }
-
-    // 锁定经纬网的显示
-    public void FixLatLon(bool toggle) => _longitudeLatitude!.FixFullVisibility = toggle;
 
     public Vector3 ToPlanetLocal(Vector3 global) => PlanetContainer!.ToLocal(global);
 }

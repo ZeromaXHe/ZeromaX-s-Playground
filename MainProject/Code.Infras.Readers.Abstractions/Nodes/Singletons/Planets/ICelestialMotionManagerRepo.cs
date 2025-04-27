@@ -10,4 +10,7 @@ public interface ICelestialMotionManagerRepo : ISingletonNodeRepo<ICelestialMoti
 {
     event Action<float>? SatelliteDistRatioChanged;
     event Action<float>? SatelliteRadiusRatioChanged;
+    event Action? StarMoveStatusToggled;
+    event Action? PlanetMoveStatusToggled;
+    event Action? SatelliteMoveStatusToggled;
 }

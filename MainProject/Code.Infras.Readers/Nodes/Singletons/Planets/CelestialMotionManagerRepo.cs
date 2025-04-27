@@ -13,16 +13,28 @@ public class CelestialMotionManagerRepo : SingletonNodeRepo<ICelestialMotionMana
     private void OnSatelliteDistRatioChanged(float value) => SatelliteDistRatioChanged?.Invoke(value);
     public event Action<float>? SatelliteRadiusRatioChanged;
     private void OnSatelliteRadiusRatioChanged(float value) => SatelliteRadiusRatioChanged?.Invoke(value);
+    public event Action? StarMoveStatusToggled;
+    private void OnStarMoveStatusToggled() => StarMoveStatusToggled?.Invoke();
+    public event Action? PlanetMoveStatusToggled;
+    private void OnPlanetMoveStatusToggled() => PlanetMoveStatusToggled?.Invoke();
+    public event Action? SatelliteMoveStatusToggled;
+    private void OnSatelliteMoveStatusToggled() => SatelliteMoveStatusToggled?.Invoke();
 
     protected override void ConnectNodeEvents()
     {
         Singleton!.SatelliteDistRatioChanged += OnSatelliteDistRatioChanged;
         Singleton.SatelliteRadiusRatioChanged += OnSatelliteRadiusRatioChanged;
+        Singleton.StarMoveStatusToggled += OnStarMoveStatusToggled;
+        Singleton.PlanetMoveStatusToggled += OnPlanetMoveStatusToggled;
+        Singleton.SatelliteMoveStatusToggled += OnSatelliteMoveStatusToggled;
     }
 
     protected override void DisconnectNodeEvents()
     {
         Singleton!.SatelliteDistRatioChanged -= OnSatelliteDistRatioChanged;
         Singleton.SatelliteRadiusRatioChanged -= OnSatelliteRadiusRatioChanged;
+        Singleton.StarMoveStatusToggled -= OnStarMoveStatusToggled;
+        Singleton.PlanetMoveStatusToggled -= OnPlanetMoveStatusToggled;
+        Singleton.SatelliteMoveStatusToggled -= OnSatelliteMoveStatusToggled;
     }
 }

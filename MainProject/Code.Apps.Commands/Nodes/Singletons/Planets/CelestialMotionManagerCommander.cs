@@ -17,13 +17,19 @@ public class CelestialMotionManagerCommander
         _celestialMotionManagerService = celestialMotionManagerService;
         _celestialMotionManagerRepo = celestialMotionManagerRepo;
         _celestialMotionManagerRepo.Ready += OnReady;
+        _celestialMotionManagerRepo.Processed += OnProcessed;
         _celestialMotionManagerRepo.SatelliteDistRatioChanged += OnSatelliteDistRatioChanged;
         _celestialMotionManagerRepo.SatelliteRadiusRatioChanged += OnSatelliteRadiusRatioChanged;
+        _celestialMotionManagerRepo.StarMoveStatusToggled += _celestialMotionManagerService.ToggleStarMoveStatus;
+        _celestialMotionManagerRepo.PlanetMoveStatusToggled += _celestialMotionManagerService.TogglePlanetMoveStatus;
+        _celestialMotionManagerRepo.SatelliteMoveStatusToggled +=
+            _celestialMotionManagerService.ToggleSatelliteMoveStatus;
     }
 
     public void ReleaseEvents()
     {
         _celestialMotionManagerRepo.Ready -= OnReady;
+        _celestialMotionManagerRepo.Processed -= OnProcessed;
         _celestialMotionManagerRepo.SatelliteDistRatioChanged -= OnSatelliteDistRatioChanged;
         _celestialMotionManagerRepo.SatelliteRadiusRatioChanged -= OnSatelliteRadiusRatioChanged;
     }
@@ -33,6 +39,12 @@ public class CelestialMotionManagerCommander
     {
         _celestialMotionManagerService.UpdateLunarDist();
         _celestialMotionManagerService.UpdateMoonMeshRadius();
+    }
+
+    private void OnProcessed(double delta)
+    {
+        if (!_celestialMotionManagerRepo.IsRegistered()) return;
+        _celestialMotionManagerService.UpdateStellarRotation((float)delta);
     }
 
     private void OnSatelliteDistRatioChanged(float obj)
