@@ -9,6 +9,10 @@ public interface IHexGridChunkService
 {
     void RefreshChunk(int id);
     void OnEditorEditModeChanged(bool mode);
+    void ShowFeatures(Tile tile, bool onlyExplored, bool preview);
+    void HideFeatures(Tile tile, bool preview);
+    void ClearFeatures(Tile tile, bool preview);
+    void ExploreFeatures(Tile tile);
     void RefreshTilesLabelMode(int mode);
     void ShowChunk(int chunkId);
     void HideChunk(int chunkId);

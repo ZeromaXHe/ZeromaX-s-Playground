@@ -18,8 +18,6 @@ public interface IHexGridChunkRepo : IIdInstanceNodeRepo<IHexGridChunk>
     bool NoUnusedChunk();
     IHexGridChunk DequeUnusedChunk();
     void EnqueueUnusedChunks(IHexGridChunk chunk);
-
-    void ExploreChunkFeatures(int chunkId, int tileId);
     void OnChunkServiceRefreshChunkTileLabel(int chunkId, int tileId, string text);
     void ClearOldData();
 }

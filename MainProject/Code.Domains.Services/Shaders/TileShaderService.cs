@@ -31,6 +31,12 @@ public class TileShaderService : ITileShaderService
         _hexPlanetManagerRepo = hexPlanetManagerRepo;
     }
 
+    public void ReleaseEvents()
+    {
+        _tileRepo.RefreshTerrainShader -= RefreshTerrain;
+        _tileRepo.ViewElevationChanged -= ViewElevationChanged;
+    }
+
     public event ITileShaderService.RangeVisibilityIncreasedEvent? RangeVisibilityIncreased;
     public event ITileShaderService.TileExploredEvent? TileExplored;
 

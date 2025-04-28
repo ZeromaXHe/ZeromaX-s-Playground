@@ -1,16 +1,8 @@
 using System.Collections.Generic;
-using System.Linq;
-using Apps.Queries.Abstractions.Features;
-using Commons.Utils;
 using Contexts;
-using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.ValueObjects.PlanetGenerates;
-using Domains.Services.Abstractions.Shaders;
 using Godot;
 using GodotNodes.Abstractions.Addition;
-using Infras.Readers.Abstractions.Caches;
-using Infras.Readers.Abstractions.Nodes.Singletons;
-using Infras.Writers.Abstractions.PlanetGenerates;
 using Nodes.Abstractions;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
@@ -70,10 +62,6 @@ public partial class HexGridChunk : Node3D, IHexGridChunk
         _labels!.AddChild(label);
         return label;
     }
-
-#if !FEATURE_NEW
-    public void ExploreFeatures(int tileId) => Features!.ExploreFeatures(tileId);
-#endif
 
     public void RefreshTileLabel(int tileId, string text) =>
         UsingTileUis[tileId].Label!.Text = text;

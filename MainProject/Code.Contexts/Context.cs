@@ -6,10 +6,6 @@ using Apps.Commands.Nodes.Singletons;
 using Apps.Commands.Nodes.Singletons.ChunkManagers;
 using Apps.Commands.Nodes.Singletons.LandGenerators;
 using Apps.Commands.Nodes.Singletons.Planets;
-#if FEATURE_NEW
-using Apps.Queries.Abstractions.Features;
-using Apps.Queries.Applications.Features;
-#endif
 using Autofac;
 using Contexts.Abstractions;
 using Domains.Services.Abstractions.Nodes.IdInstances;
@@ -30,6 +26,7 @@ using Domains.Services.PlanetGenerates;
 using Domains.Services.Searches;
 using Domains.Services.Shaders;
 using Domains.Services.Uis;
+using Godot;
 using GodotNodes.Abstractions;
 using Infras.Readers.Abstractions.Caches;
 using Infras.Readers.Abstractions.Nodes;
@@ -68,16 +65,16 @@ public class Context : IContext
         return ContextHolder.BeanContext.RegisterNode(singleton);
     }
 
-    private IContainer? _container;
-
     public T GetBean<T>() where T : class
     {
         // 现在 4.4 的生命周期有点看不懂了，运行游戏时居然先调用 HexGridChunk 的构造函数而不是 HexPlanetManager 的？！
         // 所以只能在这里初始化，否则直接 GetBean null 容易把编辑器和游戏运行搞崩。
-        if (_container == null) Init();
-        return _container.Resolve<T>();
+        if (_buildLifetimeScope == null) Init();
+        return _buildLifetimeScope.Resolve<T>();
     }
 
+    private IContainer? _container;
+    private ILifetimeScope? _buildLifetimeScope;
     private NodeRegister? _nodeRegister;
 
     public bool RegisterNode<T>(T singleton) where T : INode
@@ -86,203 +83,220 @@ public class Context : IContext
         return _nodeRegister.Register(singleton);
     }
 
-    [MemberNotNull(nameof(_nodeRegister), nameof(_container))]
+    [MemberNotNull(nameof(_nodeRegister), nameof(_container), nameof(_buildLifetimeScope))]
     private void Init()
     {
         // 测试过，RegisterType 的顺序不影响注入结果（就是说不要求被依赖的放在前面），毕竟只是 Builder 的顺序
         var builder = new ContainerBuilder();
         // 默认是瞬态 Instance，单例需要加 .SingleInstance()
+        // 单例在根生存周期域内，释放不了，所以要创建一个新的生存周期域 build，在卸载程序集时释放所有 Autofac 管理的对象。
         // TODO: 替换为扫描程序集注入？总之不是这样手写，不然容易漏……（一旦漏了，并不会报错，只是拿不到依赖）
         // ===== 基础设施层 =====
         // 写库
-        builder.RegisterType<ChunkRepo>().As<IChunkRepo>().SingleInstance();
-        builder.RegisterType<TileRepo>().As<ITileRepo>().SingleInstance();
-        builder.RegisterType<FeatureRepo>().As<IFeatureRepo>().SingleInstance();
-        builder.RegisterType<FaceRepo>().As<IFaceRepo>().SingleInstance();
-        builder.RegisterType<PointRepo>().As<IPointRepo>().SingleInstance();
-        builder.RegisterType<UnitRepo>().As<IUnitRepo>().SingleInstance();
-        builder.RegisterType<CivRepo>().As<ICivRepo>().SingleInstance();
+        builder.RegisterType<ChunkRepo>().As<IChunkRepo>().InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<TileRepo>().As<ITileRepo>().InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<FeatureRepo>().As<IFeatureRepo>().InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<FaceRepo>().As<IFaceRepo>().InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<PointRepo>().As<IPointRepo>().InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<UnitRepo>().As<IUnitRepo>().InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<CivRepo>().As<ICivRepo>().InstancePerMatchingLifetimeScope("build");
         // 读库
         // 缓存
-        builder.RegisterType<LodMeshCache>().As<ILodMeshCache>().SingleInstance();
+        builder.RegisterType<LodMeshCache>().As<ILodMeshCache>().InstancePerMatchingLifetimeScope("build");
         // 节点存储
-        builder.RegisterType<NodeRegister>().SingleInstance();
+        builder.RegisterType<NodeRegister>().InstancePerMatchingLifetimeScope("build");
         // 单例存储
-        builder.RegisterType<ChunkLoaderRepo>().As<IChunkLoaderRepo>().SingleInstance()
+        builder.RegisterType<ChunkLoaderRepo>().As<IChunkLoaderRepo>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(repo => repo.Unregister());
-        builder.RegisterType<FeatureMeshManagerRepo>().As<IFeatureMeshManagerRepo>().SingleInstance()
+        builder.RegisterType<FeatureMeshManagerRepo>().As<IFeatureMeshManagerRepo>()
+            .InstancePerMatchingLifetimeScope("build")
             .OnRelease(repo => repo.Unregister());
-        builder.RegisterType<FeaturePreviewManagerRepo>().As<IFeaturePreviewManagerRepo>().SingleInstance()
+        builder.RegisterType<FeaturePreviewManagerRepo>().As<IFeaturePreviewManagerRepo>()
+            .InstancePerMatchingLifetimeScope("build")
             .OnRelease(repo => repo.Unregister());
-        builder.RegisterType<ErosionLandGeneratorRepo>().As<IErosionLandGeneratorRepo>().SingleInstance()
+        builder.RegisterType<ErosionLandGeneratorRepo>().As<IErosionLandGeneratorRepo>()
+            .InstancePerMatchingLifetimeScope("build")
             .OnRelease(repo => repo.Unregister());
-        builder.RegisterType<FractalNoiseLandGeneratorRepo>().As<IFractalNoiseLandGeneratorRepo>().SingleInstance()
+        builder.RegisterType<FractalNoiseLandGeneratorRepo>().As<IFractalNoiseLandGeneratorRepo>()
+            .InstancePerMatchingLifetimeScope("build")
             .OnRelease(repo => repo.Unregister());
-        builder.RegisterType<RealEarthLandGeneratorRepo>().As<IRealEarthLandGeneratorRepo>().SingleInstance()
+        builder.RegisterType<RealEarthLandGeneratorRepo>().As<IRealEarthLandGeneratorRepo>()
+            .InstancePerMatchingLifetimeScope("build")
             .OnRelease(repo => repo.Unregister());
-        builder.RegisterType<CelestialMotionManagerRepo>().As<ICelestialMotionManagerRepo>().SingleInstance()
+        builder.RegisterType<CelestialMotionManagerRepo>().As<ICelestialMotionManagerRepo>()
+            .InstancePerMatchingLifetimeScope("build")
             .OnRelease(repo => repo.Unregister());
-        builder.RegisterType<SelectTileViewerRepo>().As<ISelectTileViewerRepo>().SingleInstance()
+        builder.RegisterType<SelectTileViewerRepo>().As<ISelectTileViewerRepo>()
+            .InstancePerMatchingLifetimeScope("build")
             .OnRelease(repo => repo.Unregister());
-        builder.RegisterType<UnitManagerRepo>().As<IUnitManagerRepo>().SingleInstance()
+        builder.RegisterType<UnitManagerRepo>().As<IUnitManagerRepo>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(repo => repo.Unregister());
-        builder.RegisterType<ChunkManagerRepo>().As<IChunkManagerRepo>().SingleInstance()
+        builder.RegisterType<ChunkManagerRepo>().As<IChunkManagerRepo>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(repo => repo.Unregister());
-        builder.RegisterType<EditPreviewChunkRepo>().As<IEditPreviewChunkRepo>().SingleInstance()
+        builder.RegisterType<EditPreviewChunkRepo>().As<IEditPreviewChunkRepo>()
+            .InstancePerMatchingLifetimeScope("build")
             .OnRelease(repo => repo.Unregister());
-        builder.RegisterType<HexMapGeneratorRepo>().As<IHexMapGeneratorRepo>().SingleInstance()
+        builder.RegisterType<HexMapGeneratorRepo>().As<IHexMapGeneratorRepo>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(repo => repo.Unregister());
-        builder.RegisterType<HexPlanetHudRepo>().As<IHexPlanetHudRepo>().SingleInstance()
+        builder.RegisterType<HexPlanetHudRepo>().As<IHexPlanetHudRepo>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(repo => repo.Unregister());
-        builder.RegisterType<HexPlanetManagerRepo>().As<IHexPlanetManagerRepo>().SingleInstance()
+        builder.RegisterType<HexPlanetManagerRepo>().As<IHexPlanetManagerRepo>()
+            .InstancePerMatchingLifetimeScope("build")
             .OnRelease(repo => repo.Unregister());
-        builder.RegisterType<LongitudeLatitudeRepo>().As<ILongitudeLatitudeRepo>().SingleInstance()
+        builder.RegisterType<LongitudeLatitudeRepo>().As<ILongitudeLatitudeRepo>()
+            .InstancePerMatchingLifetimeScope("build")
             .OnRelease(repo => repo.Unregister());
-        builder.RegisterType<MiniMapManagerRepo>().As<IMiniMapManagerRepo>().SingleInstance()
+        builder.RegisterType<MiniMapManagerRepo>().As<IMiniMapManagerRepo>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(repo => repo.Unregister());
-        builder.RegisterType<OrbitCameraRepo>().As<IOrbitCameraRepo>().SingleInstance()
+        builder.RegisterType<OrbitCameraRepo>().As<IOrbitCameraRepo>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(repo => repo.Unregister());
         // 多例存储
-        builder.RegisterType<HexGridChunkRepo>().As<IHexGridChunkRepo>().SingleInstance()
+        builder.RegisterType<HexGridChunkRepo>().As<IHexGridChunkRepo>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(repo => repo.UnregisterAll());
-        builder.RegisterType<HexUnitRepo>().As<IHexUnitRepo>().SingleInstance()
+        builder.RegisterType<HexUnitRepo>().As<IHexUnitRepo>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(repo => repo.UnregisterAll());
         // ===== 领域层 =====
         // 领域服务
-        builder.RegisterType<PointService>().As<IPointService>().SingleInstance();
-        builder.RegisterType<ChunkService>().As<IChunkService>().SingleInstance();
-        builder.RegisterType<TileService>().As<ITileService>().SingleInstance();
-        builder.RegisterType<TileSearchService>().As<ITileSearchService>().SingleInstance();
-        builder.RegisterType<TileShaderService>().As<ITileShaderService>().SingleInstance();
-        builder.RegisterType<MiniMapService>().As<IMiniMapService>().SingleInstance();
+        builder.RegisterType<PointService>().As<IPointService>().InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<ChunkService>().As<IChunkService>().InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<TileService>().As<ITileService>().InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<TileSearchService>().As<ITileSearchService>().InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<TileShaderService>().As<ITileShaderService>().InstancePerMatchingLifetimeScope("build")
+            .OnRelease(service => service.ReleaseEvents());
+        builder.RegisterType<MiniMapService>().As<IMiniMapService>().InstancePerMatchingLifetimeScope("build");
         // 单例节点服务
-        builder.RegisterType<ChunkLoaderService>().As<IChunkLoaderService>().SingleInstance();
-        builder.RegisterType<ChunkTriangulationService>().As<IChunkTriangulationService>().SingleInstance();
-        builder.RegisterType<FeatureMeshManagerService>().As<IFeatureMeshManagerService>().SingleInstance();
-        builder.RegisterType<FeaturePreviewManagerService>().As<IFeaturePreviewManagerService>().SingleInstance();
-        builder.RegisterType<ErosionLandGeneratorService>().As<IErosionLandGeneratorService>().SingleInstance();
+        builder.RegisterType<ChunkLoaderService>().As<IChunkLoaderService>().InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<ChunkTriangulationService>().As<IChunkTriangulationService>()
+            .InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<FeatureMeshManagerService>().As<IFeatureMeshManagerService>()
+            .InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<FeaturePreviewManagerService>().As<IFeaturePreviewManagerService>()
+            .InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<ErosionLandGeneratorService>().As<IErosionLandGeneratorService>()
+            .InstancePerMatchingLifetimeScope("build");
         builder.RegisterType<FractalNoiseLandGeneratorService>().As<IFractalNoiseLandGeneratorService>()
-            .SingleInstance();
-        builder.RegisterType<RealEarthLandGeneratorService>().As<IRealEarthLandGeneratorService>().SingleInstance();
-        builder.RegisterType<CelestialMotionManagerService>().As<ICelestialMotionManagerService>().SingleInstance();
-        builder.RegisterType<SelectTileViewerService>().As<ISelectTileViewerService>().SingleInstance();
-        builder.RegisterType<UnitManagerService>().As<IUnitManagerService>().SingleInstance();
-        builder.RegisterType<ChunkManagerService>().As<IChunkManagerService>().SingleInstance();
-        builder.RegisterType<EditPreviewChunkService>().As<IEditPreviewChunkService>().SingleInstance();
-        builder.RegisterType<HexMapGeneratorService>().As<IHexMapGeneratorService>().SingleInstance();
-        builder.RegisterType<HexPlanetHudService>().As<IHexPlanetHudService>().SingleInstance();
-        builder.RegisterType<HexPlanetManagerService>().As<IHexPlanetManagerService>().SingleInstance();
-        builder.RegisterType<LongitudeLatitudeService>().As<ILongitudeLatitudeService>().SingleInstance();
-        builder.RegisterType<MiniMapManagerService>().As<IMiniMapManagerService>().SingleInstance();
-        builder.RegisterType<OrbitCameraService>().As<IOrbitCameraService>().SingleInstance();
+            .InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<RealEarthLandGeneratorService>().As<IRealEarthLandGeneratorService>()
+            .InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<CelestialMotionManagerService>().As<ICelestialMotionManagerService>()
+            .InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<SelectTileViewerService>().As<ISelectTileViewerService>()
+            .InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<UnitManagerService>().As<IUnitManagerService>().InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<ChunkManagerService>().As<IChunkManagerService>()
+            .InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<EditPreviewChunkService>().As<IEditPreviewChunkService>()
+            .InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<HexMapGeneratorService>().As<IHexMapGeneratorService>()
+            .InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<HexPlanetHudService>().As<IHexPlanetHudService>()
+            .InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<HexPlanetManagerService>().As<IHexPlanetManagerService>()
+            .InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<LongitudeLatitudeService>().As<ILongitudeLatitudeService>()
+            .InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<MiniMapManagerService>().As<IMiniMapManagerService>()
+            .InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<OrbitCameraService>().As<IOrbitCameraService>().InstancePerMatchingLifetimeScope("build");
         // 多例节点服务
-        builder.RegisterType<HexGridChunkService>().As<IHexGridChunkService>().SingleInstance();
-        builder.RegisterType<HexUnitService>().As<IHexUnitService>().SingleInstance();
+        builder.RegisterType<HexGridChunkService>().As<IHexGridChunkService>()
+            .InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<HexUnitService>().As<IHexUnitService>().InstancePerMatchingLifetimeScope("build");
         // ===== 应用层 =====
-        // 查询
-#if FEATURE_NEW
-        builder.RegisterType<FeatureApplication>().As<IFeatureApplication>().SingleInstance();
-#endif
         // 单例节点命令
-        builder.RegisterType<ChunkLoaderCommander>().SingleInstance()
+        builder.RegisterType<ChunkLoaderCommander>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(cmd => cmd.ReleaseEvents());
-        builder.RegisterType<FeatureMeshManagerCommander>().SingleInstance()
+        builder.RegisterType<FeatureMeshManagerCommander>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(cmd => cmd.ReleaseEvents());
-        builder.RegisterType<FeaturePreviewManagerCommander>().SingleInstance()
+        builder.RegisterType<FeaturePreviewManagerCommander>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(cmd => cmd.ReleaseEvents());
-        builder.RegisterType<ErosionLandGeneratorCommander>().SingleInstance()
+        builder.RegisterType<ErosionLandGeneratorCommander>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(cmd => cmd.ReleaseEvents());
-        builder.RegisterType<FractalNoiseLandGeneratorCommander>().SingleInstance()
+        builder.RegisterType<FractalNoiseLandGeneratorCommander>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(cmd => cmd.ReleaseEvents());
-        builder.RegisterType<RealEarthLandGeneratorCommander>().SingleInstance()
+        builder.RegisterType<RealEarthLandGeneratorCommander>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(cmd => cmd.ReleaseEvents());
-        builder.RegisterType<CelestialMotionManagerCommander>().SingleInstance()
+        builder.RegisterType<CelestialMotionManagerCommander>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(cmd => cmd.ReleaseEvents());
-        builder.RegisterType<SelectTileViewerCommander>().SingleInstance()
+        builder.RegisterType<SelectTileViewerCommander>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(cmd => cmd.ReleaseEvents());
-        builder.RegisterType<UnitManagerCommander>().SingleInstance()
+        builder.RegisterType<UnitManagerCommander>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(cmd => cmd.ReleaseEvents());
-        builder.RegisterType<ChunkManagerCommander>().SingleInstance();
-        builder.RegisterType<EditPreviewChunkCommander>().SingleInstance()
+        builder.RegisterType<ChunkManagerCommander>().InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<EditPreviewChunkCommander>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(cmd => cmd.ReleaseEvents());
-        builder.RegisterType<HexMapGeneratorCommander>().SingleInstance();
-        builder.RegisterType<HexPlanetHudCommander>().SingleInstance()
+        builder.RegisterType<HexMapGeneratorCommander>().InstancePerMatchingLifetimeScope("build");
+        builder.RegisterType<HexPlanetHudCommander>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(cmd => cmd.ReleaseEvents());
-        builder.RegisterType<HexPlanetManagerCommander>().SingleInstance()
+        builder.RegisterType<HexPlanetManagerCommander>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(cmd => cmd.ReleaseEvents());
-        builder.RegisterType<LongitudeLatitudeCommander>().SingleInstance()
+        builder.RegisterType<LongitudeLatitudeCommander>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(cmd => cmd.ReleaseEvents());
-        builder.RegisterType<MiniMapManagerCommander>().SingleInstance()
+        builder.RegisterType<MiniMapManagerCommander>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(cmd => cmd.ReleaseEvents());
-        builder.RegisterType<OrbitCameraCommander>().SingleInstance()
+        builder.RegisterType<OrbitCameraCommander>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(cmd => cmd.ReleaseEvents());
         // 多例节点命令
-        builder.RegisterType<HexGridChunkCommander>().SingleInstance()
+        builder.RegisterType<HexGridChunkCommander>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(cmd => cmd.ReleaseEvents());
-        builder.RegisterType<HexUnitCommander>().SingleInstance()
+        builder.RegisterType<HexUnitCommander>().InstancePerMatchingLifetimeScope("build")
             .OnRelease(cmd => cmd.ReleaseEvents());
         _container = builder.Build();
-        _nodeRegister = _container.Resolve<NodeRegister>();
+        _buildLifetimeScope = _container.BeginLifetimeScope("build");
+        _nodeRegister = _buildLifetimeScope.Resolve<NodeRegister>();
         // 这种构造函数有初始化逻辑的，必须先 Resolve()，否则构造函数并没有被调用
         // 单例
-        _container.Resolve<ChunkLoaderCommander>();
-        _container.Resolve<FeatureMeshManagerCommander>();
-        _container.Resolve<FeaturePreviewManagerCommander>();
-        _container.Resolve<ErosionLandGeneratorCommander>();
-        _container.Resolve<FractalNoiseLandGeneratorCommander>();
-        _container.Resolve<RealEarthLandGeneratorCommander>();
-        _container.Resolve<EditPreviewChunkCommander>();
-        _container.Resolve<CelestialMotionManagerCommander>();
-        _container.Resolve<SelectTileViewerCommander>();
-        _container.Resolve<UnitManagerCommander>();
-        _container.Resolve<HexPlanetHudCommander>();
-        _container.Resolve<HexPlanetManagerCommander>();
-        _container.Resolve<LongitudeLatitudeCommander>();
-        _container.Resolve<MiniMapManagerCommander>();
-        _container.Resolve<OrbitCameraCommander>();
+        _buildLifetimeScope.Resolve<ChunkLoaderCommander>();
+        _buildLifetimeScope.Resolve<FeatureMeshManagerCommander>();
+        _buildLifetimeScope.Resolve<FeaturePreviewManagerCommander>();
+        _buildLifetimeScope.Resolve<ErosionLandGeneratorCommander>();
+        _buildLifetimeScope.Resolve<FractalNoiseLandGeneratorCommander>();
+        _buildLifetimeScope.Resolve<RealEarthLandGeneratorCommander>();
+        _buildLifetimeScope.Resolve<EditPreviewChunkCommander>();
+        _buildLifetimeScope.Resolve<CelestialMotionManagerCommander>();
+        _buildLifetimeScope.Resolve<SelectTileViewerCommander>();
+        _buildLifetimeScope.Resolve<UnitManagerCommander>();
+        _buildLifetimeScope.Resolve<HexPlanetHudCommander>();
+        _buildLifetimeScope.Resolve<HexPlanetManagerCommander>();
+        _buildLifetimeScope.Resolve<LongitudeLatitudeCommander>();
+        _buildLifetimeScope.Resolve<MiniMapManagerCommander>();
+        _buildLifetimeScope.Resolve<OrbitCameraCommander>();
         // 多例
-        _container.Resolve<HexGridChunkCommander>();
-        _container.Resolve<HexUnitCommander>();
+        _buildLifetimeScope.Resolve<HexGridChunkCommander>();
+        _buildLifetimeScope.Resolve<HexUnitCommander>();
 
-        var tileShaderService = _container.Resolve<ITileShaderService>();
-#if FEATURE_NEW
-        var featureApplication = _container.Resolve<IFeatureApplication>();
-        tileShaderService.TileExplored += featureApplication.ExploreFeatures;
-#endif
-
-        var context = AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly())!;
         // 解决 .NET: Failed to unload assemblies. Please check <this issue> for more information. 问题
         // GitHub issue 78513：https://github.com/godotengine/godot/issues/78513
         // register cleanup code to prevent unloading issues
-        context.Unloading += Unload;
+        // var context = AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly())!;
+        // context.Unloading += Unload;
     }
 
     private void Unload(AssemblyLoadContext context)
     {
+        GD.Print($"AssemblyLoadContext {context} Unloading");
+        _buildLifetimeScope?.Dispose();
+        _buildLifetimeScope = null;
         _container?.Dispose();
         _container = null;
         _nodeRegister = null;
         ContextHolder.BeanContext = null;
-        // trigger unload
-        // 卸载 Infras.Writers
-        AssemblyLoadContext.GetLoadContext(typeof(ChunkRepo).Assembly)?.Unload();
-        // 卸载 Infras.Writers.Abstractions
-        AssemblyLoadContext.GetLoadContext(typeof(IChunkRepo).Assembly)?.Unload();
-        // 卸载 Infras.Readers
-        AssemblyLoadContext.GetLoadContext(typeof(ChunkLoaderRepo).Assembly)?.Unload();
-        // 卸载 Infras.Readers.Abstractions
-        AssemblyLoadContext.GetLoadContext(typeof(IChunkLoaderRepo).Assembly)?.Unload();
-        // 卸载 Domains.Services
-        AssemblyLoadContext.GetLoadContext(typeof(ChunkService).Assembly)?.Unload();
-        // 卸载 Domains.Services.Abstractions
-        AssemblyLoadContext.GetLoadContext(typeof(IChunkService).Assembly)?.Unload();
-        // 卸载 Apps.Commands
-        AssemblyLoadContext.GetLoadContext(typeof(ChunkLoaderCommander).Assembly)?.Unload();
-        // 卸载当前程序集
-        AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly())?.Unload();
-#if FEATURE_NEW
-        AssemblyLoadContext.GetLoadContext(typeof(FeatureApplication).Assembly)?.Unload();
-        AssemblyLoadContext.GetLoadContext(typeof(IFeatureApplication).Assembly)?.Unload();
-#endif
+        // // trigger unload
+        // // 卸载 Infras.Writers
+        // AssemblyLoadContext.GetLoadContext(typeof(ChunkRepo).Assembly)?.Unload();
+        // // 卸载 Infras.Writers.Abstractions
+        // AssemblyLoadContext.GetLoadContext(typeof(IChunkRepo).Assembly)?.Unload();
+        // // 卸载 Infras.Readers
+        // AssemblyLoadContext.GetLoadContext(typeof(ChunkLoaderRepo).Assembly)?.Unload();
+        // // 卸载 Infras.Readers.Abstractions
+        // AssemblyLoadContext.GetLoadContext(typeof(IChunkLoaderRepo).Assembly)?.Unload();
+        // // 卸载 Domains.Services
+        // AssemblyLoadContext.GetLoadContext(typeof(ChunkService).Assembly)?.Unload();
+        // // 卸载 Domains.Services.Abstractions
+        // AssemblyLoadContext.GetLoadContext(typeof(IChunkService).Assembly)?.Unload();
+        // // 卸载 Apps.Commands
+        // AssemblyLoadContext.GetLoadContext(typeof(ChunkLoaderCommander).Assembly)?.Unload();
+        // // 卸载当前程序集
+        // AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly())?.Unload();
     }
 }

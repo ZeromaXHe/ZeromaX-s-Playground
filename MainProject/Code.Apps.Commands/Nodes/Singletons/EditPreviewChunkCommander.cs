@@ -1,5 +1,7 @@
+using Domains.Services.Abstractions.Nodes.IdInstances;
 using Domains.Services.Abstractions.Nodes.Singletons.ChunkManagers;
 using Infras.Readers.Abstractions.Nodes.Singletons;
+using Infras.Writers.Abstractions.PlanetGenerates;
 using Nodes.Abstractions;
 
 namespace Apps.Commands.Nodes.Singletons;
@@ -12,19 +14,26 @@ public class EditPreviewChunkCommander
     private readonly IEditPreviewChunkRepo _editPreviewChunkRepo;
 
     private readonly IChunkTriangulationService _chunkTriangulationService;
+    private readonly IHexGridChunkService _hexGridChunkService;
+    private readonly ITileRepo _tileRepo;
 
     public EditPreviewChunkCommander(IEditPreviewChunkRepo editPreviewChunkRepo,
-        IChunkTriangulationService chunkTriangulationService)
+        IChunkTriangulationService chunkTriangulationService, IHexGridChunkService hexGridChunkService,
+        ITileRepo tileRepo)
     {
         _editPreviewChunkRepo = editPreviewChunkRepo;
         _editPreviewChunkRepo.Processed += OnProcessed;
 
         _chunkTriangulationService = chunkTriangulationService;
+        _hexGridChunkService = hexGridChunkService;
+        _tileRepo = tileRepo;
+        _tileRepo.RefreshChunk += RefreshChunk;
     }
 
     public void ReleaseEvents()
     {
         _editPreviewChunkRepo.Processed -= OnProcessed;
+        _tileRepo.RefreshChunk -= RefreshChunk;
     }
 
     private IEditPreviewChunk Self => _editPreviewChunkRepo.Singleton!;
@@ -47,13 +56,9 @@ public class EditPreviewChunkCommander
             water.Clear();
             waterShore.Clear();
             estuary.Clear();
-#if FEATURE_NEW
-            Features.Clear(true, false);
-            foreach (var tile in TileDataOverrider.OverrideTiles)
-                _featureApplication.HideFeatures(tile, true);
-#else
-            feature.Clear();
-#endif
+            feature.Clear(true, _hexGridChunkService.ClearFeatures);
+            foreach (var tile in Self.TileDataOverrider.OverrideTiles)
+                _hexGridChunkService.ClearFeatures(tile, true);
             foreach (var tile in Self.TileDataOverrider.OverrideTiles)
                 _chunkTriangulationService.Triangulate(tile, Self);
             terrain.Apply();
@@ -63,21 +68,20 @@ public class EditPreviewChunkCommander
             waterShore.Apply();
             estuary.Apply();
             feature.Apply();
-#if FEATURE_NEW
-            foreach (var tile in TileDataOverrider.OverrideTiles)
-                if (Visible)
-                    _featureApplication.ShowFeatures(tile, false, true);
+            foreach (var tile in Self.TileDataOverrider.OverrideTiles)
+                if (Self.Visible)
+                    _hexGridChunkService.ShowFeatures(tile, false, true);
                 else
-                    _featureApplication.HideFeatures(tile, true);
-#else
-            if (Self.Visible)
-                feature.ShowFeatures(false);
-            else
-                feature.HideFeatures(false);
-#endif
+                    _hexGridChunkService.HideFeatures(tile, true);
             // GD.Print($"EditPreviewChunk BuildMesh cost: {Time.GetTicksMsec() - time} ms");
         }
 
         Self.SetProcess(false);
+    }
+
+    private void RefreshChunk(int id)
+    {
+        if (_editPreviewChunkRepo.IsRegistered())
+            Self.SetProcess(true);
     }
 }

@@ -10,10 +10,8 @@ namespace Nodes.Abstractions;
 /// Date: 2025-04-17 10:32:17
 public interface IHexFeatureManager : INode3D
 {
-    void Clear();
+    void Clear(bool preview, Action<Tile, bool> clearOrHideFeatures);
     void Apply();
-    void ShowFeatures(bool onlyExplored);
-    void HideFeatures(bool onlyUnexplored);
     void AddBridge(Tile tile, Vector3 roadCenter1, Vector3 roadCenter2);
     void AddSpecialFeature(Tile tile, Vector3 position, HexTileDataOverrider overrider);
     void AddFeature(Tile tile, Vector3 position, HexTileDataOverrider overrider);

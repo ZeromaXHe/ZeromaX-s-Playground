@@ -8,9 +8,6 @@ namespace Domains.Services.Abstractions.Nodes.Singletons.ChunkManagers;
 /// Date: 2025-04-18 20:05:18
 public interface IChunkLoaderService
 {
-#if !FEATURE_NEW
-    void ExploreFeatures(Tile tile);
-#endif
     void UpdateInsightChunks(Transform3D transform, float delta);
     void InitChunkNodes();
 }

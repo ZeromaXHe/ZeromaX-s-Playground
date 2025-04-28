@@ -77,12 +77,8 @@ public class HexGridChunkCommander
             }
 
             ApplyNewData(instance, !_hexGridChunkService.IsHandlingLodGaps(chunk));
-#if FEATURE_NEW
             foreach (var tile in tiles)
-                _featureApplication.ShowFeatures(tile, !EditMode, false);
-#else
-            instance.GetFeatures()!.ShowFeatures(!_hexPlanetHudRepo.GetEditMode());
-#endif
+                _hexGridChunkService.ShowFeatures(tile, !_hexPlanetHudRepo.GetEditMode(), false);
             // GD.Print($"Chunk {_id} BuildMesh cost: {Time.GetTicksMsec() - time} ms");
         }
 
@@ -120,10 +116,6 @@ public class HexGridChunkCommander
         instance.GetWater()!.Clear();
         instance.GetWaterShore()!.Clear();
         instance.GetEstuary()!.Clear();
-#if FEATURE_NEW
-        Features.Clear(false, true);
-#else
-        instance.GetFeatures()!.Clear();
-#endif
+        instance.GetFeatures()!.Clear(false, _hexGridChunkService.ClearFeatures);
     }
 }

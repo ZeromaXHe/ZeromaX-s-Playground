@@ -10,8 +10,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Code.Apps.Commands\Code.Apps.Commands.csproj" />
-      <ProjectReference Include="..\Code.Apps.Queries.Abstractions\Code.Apps.Queries.Abstractions.csproj" />
-      <ProjectReference Include="..\Code.Apps.Queries\Code.Apps.Queries.csproj" />
       <ProjectReference Include="..\Code.Contexts.Abstractions\Code.Contexts.Abstractions.csproj" />
       <ProjectReference Include="..\Code.Domains.Services.Abstractions\Code.Domains.Services.Abstractions.csproj" />
       <ProjectReference Include="..\Code.Domains.Services\Code.Domains.Services.csproj" />

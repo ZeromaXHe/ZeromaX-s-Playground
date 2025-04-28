@@ -16,7 +16,6 @@
         <EmbeddedResource Remove="GodotNodes.Abstractions\**"/>
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="Code.Apps.Queries\Code.Apps.Queries.csproj" />
         <ProjectReference Include="Code.Contexts\Code.Contexts.csproj" />
         <ProjectReference Include="Code.Nodes.Abstractions\Code.Nodes.Abstractions.csproj" />
     </ItemGroup>

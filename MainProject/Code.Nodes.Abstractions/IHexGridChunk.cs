@@ -14,6 +14,5 @@ public interface IHexGridChunk : IChunk
     Queue<IHexTileLabel> UnusedTileUis { get; }
 
     IHexTileLabel InstantiateHexTileLabel();
-    void ExploreFeatures(int tileId);
     void RefreshTileLabel(int tileId, string text);
 }

@@ -1,6 +1,7 @@
 using Commons.Utils;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.ValueObjects.PlanetGenerates;
+using Domains.Services.Abstractions.Events.Events;
 using Domains.Services.Abstractions.Nodes.IdInstances;
 using Godot;
 using Infras.Readers.Abstractions.Caches;
@@ -23,6 +24,7 @@ public class HexGridChunkService(
     IChunkRepo chunkRepo,
     ITileRepo tileRepo,
     IPointRepo pointRepo,
+    IFeatureRepo featureRepo,
     ILodMeshCache lodMeshCache)
     : IHexGridChunkService
 {
@@ -121,16 +123,44 @@ public class HexGridChunkService(
         {
             hexGridChunk.Show();
             UpdateLod(hexGridChunk, lod);
-#if FEATURE_NEW
-        // 编辑模式下全部显示，游戏模式下仅显示探索过的
-        foreach (var tile in _chunkRepo.GetById(_id)!.TileIds.Select(_tileRepo.GetById))
-            _featureApplication.ShowFeatures(tile, !EditMode, false);
-#else
-            hexGridChunk.GetFeatures()!.ShowFeatures(!hexPlanetHudRepo.GetEditMode()); // 编辑模式下全部显示，游戏模式下仅显示探索过的
-#endif
+            // 编辑模式下全部显示，游戏模式下仅显示探索过的
+            foreach (var tile in chunkRepo.GetById(hexGridChunk.Id)!.TileIds.Select(tileRepo.GetById))
+                ShowFeatures(tile!, !hexPlanetHudRepo.GetEditMode(), false);
             OnEditorEditModeChanged(hexGridChunk, hexPlanetHudRepo.GetEditMode());
         }
     }
+
+    public void ShowFeatures(Tile tile, bool onlyExplored, bool preview)
+    {
+        foreach (var feature in featureRepo.GetByTileId(tile.Id)
+                     .Where(f => f.MeshId == -1 && (!onlyExplored || tile.Data.IsExplored) && f.Preview == preview))
+        {
+            feature.MeshId = preview
+                ? FeatureEvent.EmitPreviewShown(feature.Transform, feature.Type)
+                : FeatureEvent.EmitMeshShown(feature.Transform, feature.Type);
+        }
+    }
+
+    public void HideFeatures(Tile tile, bool preview)
+    {
+        foreach (var feature in featureRepo.GetByTileId(tile.Id)
+                     .Where(f => f.MeshId > -1 && f.Preview == preview))
+        {
+            if (preview)
+                FeatureEvent.EmitPreviewHidden(feature.MeshId, feature.Type);
+            else
+                FeatureEvent.EmitMeshHidden(feature.MeshId, feature.Type);
+            feature.MeshId = -1;
+        }
+    }
+
+    public void ClearFeatures(Tile tile, bool preview)
+    {
+        HideFeatures(tile, preview);
+        featureRepo.DeleteByTileId(tile.Id);
+    }
+
+    public void ExploreFeatures(Tile tile) => ShowFeatures(tile, true, false);
 
     public void RefreshChunk(int id)
     {
@@ -215,11 +245,7 @@ public class HexGridChunkService(
         hexGridChunk.GetWater()!.Clear();
         hexGridChunk.GetWaterShore()!.Clear();
         hexGridChunk.GetEstuary()!.Clear();
-#if FEATURE_NEW
-        Features.Clear(false, false);
-#else
-        hexGridChunk.GetFeatures()!.Clear();
-#endif
+        hexGridChunk.GetFeatures()!.Clear(false, HideFeatures);
         hexGridChunk.Id = 0; // 重置 id，归还给池子
     }
 }

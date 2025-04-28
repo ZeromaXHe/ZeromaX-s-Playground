@@ -32,14 +32,6 @@ public class HexGridChunkRepo : IdInstanceNodeRepo<IHexGridChunk>, IHexGridChunk
     public IHexGridChunk DequeUnusedChunk() => UnusedChunks!.Dequeue();
     public void EnqueueUnusedChunks(IHexGridChunk chunk) => UnusedChunks!.Enqueue(chunk);
 
-#if !FEATURE_NEW
-    public void ExploreChunkFeatures(int chunkId, int tileId)
-    {
-        if (TryGetUsingChunk(chunkId, out var chunk))
-            chunk.ExploreFeatures(tileId);
-    }
-#endif
-
     public void OnChunkServiceRefreshChunkTileLabel(int chunkId, int tileId, string text)
     {
         if (TryGetUsingChunk(chunkId, out var chunk))

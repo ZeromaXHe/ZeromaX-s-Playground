@@ -17,20 +17,10 @@ public class ChunkLoaderService(
     IChunkLoaderRepo chunkLoaderRepo,
     IHexPlanetManagerRepo hexPlanetManagerRepo,
     IHexGridChunkRepo hexGridChunkRepo,
-    IChunkRepo chunkRepo,
-    ITileRepo tileRepo)
+    IChunkRepo chunkRepo)
     : IChunkLoaderService
 {
     private IChunkLoader Self => chunkLoaderRepo.Singleton!;
-
-#if !FEATURE_NEW
-    public void ExploreFeatures(Tile tile)
-    {
-        var tileId = tile.Id;
-        var chunkId = tileRepo.GetById(tileId)!.ChunkId;
-        hexGridChunkRepo.ExploreChunkFeatures(chunkId, tileId);
-    }
-#endif
 
     // 后续优化可以考虑：
     // 全过程异步化，即：下次新任务来时停止上次任务，并保证一次任务能分成多帧执行。

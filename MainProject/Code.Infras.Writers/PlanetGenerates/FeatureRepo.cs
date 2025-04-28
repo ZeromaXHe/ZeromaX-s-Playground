@@ -13,8 +13,8 @@ public class FeatureRepo : Repository<Feature>, IFeatureRepo
 {
     private readonly Dictionary<int, List<int>> _tileIdIndex = new();
 
-    public Feature Add(FeatureType type, Transform3D transform, int tileId) =>
-        Add(id => new Feature(type, transform, tileId, id));
+    public Feature Add(FeatureType type, Transform3D transform, int tileId, bool preview) =>
+        Add(id => new Feature(type, transform, tileId, preview, id));
 
     protected override void AddHook(Feature entity)
     {

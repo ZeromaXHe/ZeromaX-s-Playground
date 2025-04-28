@@ -1,16 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-#if FEATURE_NEW
-using Apps.Queries.Abstractions.Features;
-#endif
 using Commons.Constants;
 using Commons.Enums;
 using Commons.Utils;
 using Contexts;
 using Domains.Models.Entities.PlanetGenerates;
 using Domains.Models.ValueObjects.PlanetGenerates;
-using Domains.Services.Abstractions.Events.Events;
 using Godot;
 using GodotNodes.Abstractions.Addition;
 using Infras.Readers.Abstractions.Nodes.Singletons;
@@ -33,18 +28,13 @@ public partial class HexFeatureManager : Node3D, IHexFeatureManager
 
     #region 服务
 
+    // TODO: 节点层不应该有直接调用服务或仓储，应该放到上下文层内依赖注入
     private static IHexPlanetManagerRepo? _hexPlanetManagerRepo;
     private static IFeatureRepo? _featureRepo;
-#if FEATURE_NEW
-    private static IFeatureApplication? _featureApplication;
-#endif
 
     private void InitServices()
     {
         _hexPlanetManagerRepo ??= Context.GetBeanFromHolder<IHexPlanetManagerRepo>();
-#if FEATURE_NEW
-        _featureApplication ??= Context.GetBeanFromHolder<IFeatureApplication>();
-#endif
         _featureRepo ??= Context.GetBeanFromHolder<IFeatureRepo>();
     }
 
@@ -82,83 +72,23 @@ public partial class HexFeatureManager : Node3D, IHexFeatureManager
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, "new type no deal")
         };
 
-#if FEATURE_NEW
     // 保存所有的显示中的地块 id
     private readonly List<Tile> _tiles = [];
 
     private void SaveTileFeatureInfo(FeatureType featureType, Transform3D transform, Tile tile)
     {
-        _featureRepo.Add(featureType, transform, tile.Id);
+        _featureRepo!.Add(featureType, transform, tile.Id, _preview);
         _tiles.Add(tile);
     }
 
-    public void Clear(bool preview, bool clearData)
+    public void Clear(bool preview, Action<Tile, bool> clearOrHideFeatures)
     {
         foreach (var tile in _tiles)
-            // if (clearData)
-            _featureApplication.ClearFeatures(tile, preview);
-            // else
-            //     _featureApplication.HideFeatures(tile, preview);
+            clearOrHideFeatures(tile, preview);
         _tiles.Clear();
-        _walls.Clear();
-    }
-#else
-    private class Feature(FeatureType type, Transform3D transform)
-    {
-        public readonly FeatureType Type = type;
-        public readonly Transform3D Transform = transform;
-        public bool Explored;
-        public int Id = -1;
-    }
-
-    // 保存分块上所有的特征信息（未来可能下沉到存储库）
-    private readonly Dictionary<int, List<Feature>> _container = new();
-
-    public void HideFeatures(bool onlyUnexplored)
-    {
-        foreach (var (_, list) in _container)
-        foreach (var feature in list.Where(f => f.Id > -1 && (!onlyUnexplored || !f.Explored)))
-        {
-            if (_preview)
-                FeatureEvent.EmitPreviewHidden(feature.Id, feature.Type);
-            else
-                FeatureEvent.EmitMeshHidden(feature.Id, feature.Type);
-            feature.Id = -1;
-        }
-    }
-
-    public void ShowFeatures(bool onlyExplored)
-    {
-        foreach (var (_, list) in _container)
-        foreach (var feature in list.Where(f => f.Id == -1 && (!onlyExplored || f.Explored)))
-        {
-            feature.Id = _preview
-                ? FeatureEvent.EmitPreviewShown(feature.Transform, feature.Type)
-                : FeatureEvent.EmitMeshShown(feature.Transform, feature.Type);
-        }
-    }
-
-    public void ExploreFeatures(int tileId)
-    {
-        if (!_container.TryGetValue(tileId, out var list) || list is not { Count: > 0 }) return;
-        foreach (var feature in list.Where(f => !f.Explored))
-        {
-            feature.Explored = true;
-            // 正常情况按道理不应该出现还没探索就有 Id 的情况
-            if (feature.Id == -1)
-                feature.Id = _preview
-                    ? FeatureEvent.EmitPreviewShown(feature.Transform, feature.Type)
-                    : FeatureEvent.EmitMeshShown(feature.Transform, feature.Type);
-        }
-    }
-
-    public void Clear()
-    {
-        HideFeatures(false);
-        _container.Clear();
         _walls!.Clear();
     }
-#endif
+
     public void Apply() => _walls!.Apply();
 
     private void AddTower(Tile tile, Vector3 left, Vector3 right)
@@ -169,14 +99,7 @@ public partial class HexFeatureManager : Node3D, IHexFeatureManager
         var rightDirection = right - left;
         transform = transform.Rotated(position.Normalized(),
             transform.Basis.X.SignedAngleTo(rightDirection, position.Normalized()));
-#if FEATURE_NEW
         SaveTileFeatureInfo(FeatureType.Tower, transform, tile);
-#else
-        if (_container.TryGetValue(tile.Id, out var tileFeatures))
-            tileFeatures.Add(new Feature(FeatureType.Tower, transform));
-        else
-            _container.Add(tile.Id, [new Feature(FeatureType.Tower, transform)]);
-#endif
         // 不能采用 instance shader uniform 的解决方案，编辑器里会大量报错：
         // ERROR: servers/rendering/renderer_rd/storage_rd/material_storage.cpp:1791 - Condition "global_shader_uniforms.instance_buffer_pos.has(p_instance)" is true. Returning: -1
         // ERROR: Too many instances using shader instance variables. Increase buffer size in Project Settings.
@@ -195,14 +118,7 @@ public partial class HexFeatureManager : Node3D, IHexFeatureManager
             new Vector3(length / HexMetrics.BridgeDesignLength, scale, scale), GetHeight(FeatureType.Bridge));
         transform = transform.Rotated(position.Normalized(),
             transform.Basis.X.SignedAngleTo(roadCenter2 - roadCenter1, position.Normalized()));
-#if FEATURE_NEW
         SaveTileFeatureInfo(FeatureType.Bridge, transform, tile);
-#else
-        if (_container.TryGetValue(tile.Id, out var tileFeatures))
-            tileFeatures.Add(new Feature(FeatureType.Bridge, transform));
-        else
-            _container.Add(tile.Id, [new Feature(FeatureType.Bridge, transform)]);
-#endif
     }
 
     public void AddSpecialFeature(Tile tile, Vector3 position, HexTileDataOverrider overrider)
@@ -219,14 +135,7 @@ public partial class HexFeatureManager : Node3D, IHexFeatureManager
             Vector3.One * _hexPlanetManagerRepo.StandardScale, GetHeight(specialType));
         var hash = _hexPlanetManagerRepo.SampleHashGrid(position);
         transform = transform.Rotated(position.Normalized(), hash.E * Mathf.Tau); // 入参 axis 还是得用全局坐标
-#if FEATURE_NEW
         SaveTileFeatureInfo(specialType, transform, tile);
-#else
-        if (_container.TryGetValue(tile.Id, out var tileFeatures))
-            tileFeatures.Add(new Feature(specialType, transform));
-        else
-            _container.Add(tile.Id, [new Feature(specialType, transform)]);
-#endif
     }
 
     public void AddFeature(Tile tile, Vector3 position, HexTileDataOverrider overrider)
@@ -265,15 +174,7 @@ public partial class HexFeatureManager : Node3D, IHexFeatureManager
         var transform = Math3dUtil.PlaceOnSphere(Basis.Identity, position,
             Vector3.One * _hexPlanetManagerRepo.StandardScale, GetHeight(featureType));
         transform = transform.Rotated(position.Normalized(), hash.E * Mathf.Tau); // 入参 axis 还是得用全局坐标
-#if FEATURE_NEW
         SaveTileFeatureInfo(featureType, transform, tile);
-#else
-        if (_container.TryGetValue(tile.Id, out var tileFeatures))
-            tileFeatures.Add(new Feature(featureType, transform));
-        else
-            _container.Add(tile.Id, [new Feature(featureType, transform)]);
-
-#endif
     }
 
     private static FeatureType? PickFeatureSizeType(FeatureType baseType, int level, float hash, float choice)
