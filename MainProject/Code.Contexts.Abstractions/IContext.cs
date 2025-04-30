@@ -12,4 +12,6 @@ public interface IContext
     // private readonly Lazy<ITileRepo> _tileRepo = new(() => Context.GetSingleton<ITileRepo>());
     T? GetBean<T>() where T : class;
     bool RegisterNode<T>(T singleton) where T : INode;
+    void Init();
+    void Unload();
 }

@@ -83,8 +83,14 @@ public class Context : IContext
         return _nodeRegister.Register(singleton);
     }
 
+    public static void InitBeanContext()
+    {
+        ContextHolder.BeanContext ??= new Context();
+        ContextHolder.BeanContext.Init();
+    }
+    
     [MemberNotNull(nameof(_nodeRegister), nameof(_container), nameof(_buildLifetimeScope))]
-    private void Init()
+    public void Init()
     {
         // 测试过，RegisterType 的顺序不影响注入结果（就是说不要求被依赖的放在前面），毕竟只是 Builder 的顺序
         var builder = new ContainerBuilder();
@@ -264,16 +270,13 @@ public class Context : IContext
         // 多例
         _buildLifetimeScope.Resolve<HexGridChunkCommander>();
         _buildLifetimeScope.Resolve<HexUnitCommander>();
-
-        // 解决 .NET: Failed to unload assemblies. Please check <this issue> for more information. 问题
-        // GitHub issue 78513：https://github.com/godotengine/godot/issues/78513
-        // register cleanup code to prevent unloading issues
-        // var context = AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly())!;
-        // context.Unloading += Unload;
     }
 
-    private void Unload(AssemblyLoadContext context)
+    public static void UnloadBeanContext() => ContextHolder.BeanContext?.Unload();
+
+    public void Unload()
     {
+        var context = AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly())!;
         GD.Print($"AssemblyLoadContext {context} Unloading");
         _buildLifetimeScope?.Dispose();
         _buildLifetimeScope = null;
@@ -281,22 +284,5 @@ public class Context : IContext
         _container = null;
         _nodeRegister = null;
         ContextHolder.BeanContext = null;
-        // // trigger unload
-        // // 卸载 Infras.Writers
-        // AssemblyLoadContext.GetLoadContext(typeof(ChunkRepo).Assembly)?.Unload();
-        // // 卸载 Infras.Writers.Abstractions
-        // AssemblyLoadContext.GetLoadContext(typeof(IChunkRepo).Assembly)?.Unload();
-        // // 卸载 Infras.Readers
-        // AssemblyLoadContext.GetLoadContext(typeof(ChunkLoaderRepo).Assembly)?.Unload();
-        // // 卸载 Infras.Readers.Abstractions
-        // AssemblyLoadContext.GetLoadContext(typeof(IChunkLoaderRepo).Assembly)?.Unload();
-        // // 卸载 Domains.Services
-        // AssemblyLoadContext.GetLoadContext(typeof(ChunkService).Assembly)?.Unload();
-        // // 卸载 Domains.Services.Abstractions
-        // AssemblyLoadContext.GetLoadContext(typeof(IChunkService).Assembly)?.Unload();
-        // // 卸载 Apps.Commands
-        // AssemblyLoadContext.GetLoadContext(typeof(ChunkLoaderCommander).Assembly)?.Unload();
-        // // 卸载当前程序集
-        // AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly())?.Unload();
     }
 }

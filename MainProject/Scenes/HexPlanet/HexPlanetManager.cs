@@ -8,7 +8,6 @@ using Godot.Collections;
 using GodotNodes.Abstractions.Addition;
 using Nodes.Abstractions;
 using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes;
-using ZeromaXsPlaygroundProject.Scenes.HexPlanet.Nodes.Planets;
 
 namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 
@@ -16,7 +15,7 @@ namespace ZeromaXsPlaygroundProject.Scenes.HexPlanet;
 /// Author: Zhu XH
 /// Date: 2025-02-12 21:07
 [Tool]
-public partial class HexPlanetManager : Node3D, IHexPlanetManager
+public partial class HexPlanetManager : Node3D, IHexPlanetManager, ISerializationListener
 {
     // Godot C# 的生命周期方法执行顺序：
     // 父节点构造函数 -> 子节点构造函数
@@ -51,6 +50,7 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
 
     public override void _ExitTree()
     {
+        GD.Print("HexPlanetManager _ExitTree");
         NodeReady = false;
     }
 
@@ -148,6 +148,7 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
     public float LastUpdated { get; set; }
 
     #region on-ready nodes
+
     public Node3D? PlanetContainer { get; private set; } // 所有行星相关节点的父节点，用于整体一起自转
 
     // 行星节点
@@ -229,4 +230,18 @@ public partial class HexPlanetManager : Node3D, IHexPlanetManager
     }
 
     public Vector3 ToPlanetLocal(Vector3 global) => PlanetContainer!.ToLocal(global);
+
+    public void OnBeforeSerialize()
+    {
+        GD.Print("OnBeforeSerialize");
+        // 解决 .NET: Failed to unload assemblies. Please check <this issue> for more information. 问题
+        // GitHub issue 78513：https://github.com/godotengine/godot/issues/78513
+        Context.UnloadBeanContext();
+    }
+
+    public void OnAfterDeserialize()
+    {
+        GD.Print("OnAfterDeserialize");
+        Context.InitBeanContext();
+    }
 }
