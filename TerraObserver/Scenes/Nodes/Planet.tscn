@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://1w7o4aflp3wg"]
+
+[ext_resource type="Script" uid="uid://dc2c26cdsdb2b" path="res://Scenes/Nodes/Planet.cs" id="1_xsd1q"]
+
+[node name="Planet" type="Node3D"]
+script = ExtResource("1_xsd1q")
+Radius = 99.641
