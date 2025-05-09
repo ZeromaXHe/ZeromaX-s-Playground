@@ -6,12 +6,14 @@
     </PropertyGroup>
     <ItemGroup>
         <Compile Remove="TO.*\**"/>
+        <Compile Remove="Test.*\**"/>
     </ItemGroup>
     <ItemGroup>
         <EmbeddedResource Remove="TO.*\**"/>
+        <EmbeddedResource Remove="Test.*\**"/>
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="TO.Contexts\TO.Contexts.csproj"/>
+        <ProjectReference Include="TO.Commons\TO.Commons.csproj" />
         <ProjectReference Include="TO.Nodes.Abstractions\TO.Nodes.Abstractions.csproj"/>
     </ItemGroup>
 </Project>

@@ -14,10 +14,6 @@ config/name="TerraObserver"
 config/features=PackedStringArray("4.4", "C#", "Forward Plus")
 config/icon="res://icon.svg"
 
-[autoload]
-
-GlobalNode="*res://Scenes/Nodes/GlobalNode.cs"
-
 [dotnet]
 
 project/assembly_name="TerraObserver"
