@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://b6hxyed0b8cfa"]
+
+[ext_resource type="Script" uid="uid://b02ygsbo8van6" path="res://Scenes/Planets/Views/Planet.cs" id="1_oyolk"]
+
+[node name="Planet" type="Node3D"]
+script = ExtResource("1_oyolk")

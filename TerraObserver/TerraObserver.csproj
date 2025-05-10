@@ -13,7 +13,6 @@
         <EmbeddedResource Remove="Test.*\**"/>
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="TO.Commons\TO.Commons.csproj" />
-        <ProjectReference Include="TO.Nodes.Abstractions\TO.Nodes.Abstractions.csproj"/>
+        <ProjectReference Include="TO.IocContainers\TO.IocContainers.csproj" />
     </ItemGroup>
 </Project>

@@ -7,6 +7,8 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\TO.Commons\TO.Commons.csproj" />
+      <ProjectReference Include="..\TO.Domains.Models\TO.Domains.Models.csproj" />
       <ProjectReference Include="..\TO.Domains.Services.Abstractions\TO.Domains.Services.Abstractions.csproj" />
       <ProjectReference Include="..\TO.Infras.Readers.Abstractions\TO.Infras.Readers.Abstractions.csproj" />
     </ItemGroup>

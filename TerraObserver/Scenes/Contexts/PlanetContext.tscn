@@ -1,7 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://cnu45krarcdsr"]
-
-[ext_resource type="PackedScene" uid="uid://b6hxyed0b8cfa" path="res://Scenes/Planets/Entities/Views/Planet.tscn" id="1_pvma5"]
-
-[node name="PlanetContext" type="Node"]
-
-[node name="Planet" parent="." instance=ExtResource("1_pvma5")]
