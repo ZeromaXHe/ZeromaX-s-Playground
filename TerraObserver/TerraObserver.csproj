@@ -13,6 +13,10 @@
         <EmbeddedResource Remove="Test.*\**"/>
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="TO.IocContainers\TO.IocContainers.csproj" />
+      <ProjectReference Include="TO.Commons\TO.Commons.fsproj" />
+      <ProjectReference Include="TO.Nodes.Abstractions\TO.Nodes.Abstractions.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="Scenes\Bases\Enums\" />
     </ItemGroup>
 </Project>

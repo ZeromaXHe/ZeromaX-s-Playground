@@ -1,5 +1,5 @@
 using Godot;
-using TO.Commons.Enums;
+using TerraObserver.Scenes.Bases.Enums;
 
 namespace TerraObserver.Scenes.Bases.Resources;
 

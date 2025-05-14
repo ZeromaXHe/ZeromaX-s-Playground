@@ -1,4 +1,4 @@
-namespace TO.Commons.Enums;
+namespace TerraObserver.Scenes.Bases.Enums;
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH

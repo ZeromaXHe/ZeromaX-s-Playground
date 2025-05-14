@@ -59,7 +59,7 @@ public partial class HexSphereConfigs : Resource, IHexSphereConfigs
     }
 
     private int _chunkDivisions = 5;
-    
+
     // 单位高度
     public float UnitHeight { get; private set; } = 1.5f;
     public float MaxHeight { get; private set; } = 15f;
@@ -73,11 +73,11 @@ public partial class HexSphereConfigs : Resource, IHexSphereConfigs
     {
         MaxHeightRatio = StandardScale * MaxHeightRadiusRatio;
         MaxHeight = Radius * MaxHeightRatio;
-        RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.MaxHeight, MaxHeight);
+        RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.maxHeight, MaxHeight);
         UnitHeight = MaxHeight / ElevationStep;
     }
 
-    public float StandardScale => Radius / HexMetrics.StandardRadius * HexMetrics.StandardDivisions / Divisions;
+    public float StandardScale => Radius / HexMetrics.standardRadius * HexMetrics.standardDivisions / Divisions;
 
     // 默认水面高度 [Export(PropertyHint.Range, "1, 5")]
     public int DefaultWaterLevel { get; set; } = 5;
