@@ -6,8 +6,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Constants\GlobalShaderParam.fs" />
         <Compile Include="Enums\HexEdgeType.fs" />
+        <Compile Include="Constants\GlobalShaderParam.fs" />
+        <Compile Include="Constants\IcosahedronConstant.fs" />
+        <Compile Include="Structs\HexPlaneGrid\AxialCoords.fs" />
+        <Compile Include="Structs\HexSphereGrid\LonLatCoords.fs" />
+        <Compile Include="Structs\HexSphereGrid\SphereAxial.fs" />
+        <Compile Include="DataStructures\VpTree.fs" />
         <Compile Include="Utils\Math3dUtil.fs" />
         <Compile Include="Utils\HexMetrics.fs" />
     </ItemGroup>

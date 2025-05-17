@@ -2,8 +2,15 @@ namespace TO.Commons.Utils
 
 open Godot
 
-module Math3dUtil =
-    let subdivide (from, target, count) =
+/// 数学 3D 工具类
+/// 作为对其他 .NET 公开的 F# 库，需要遵循《F# 组件设计准则 - 命名空间和类型设计 - 使用命名空间、类型和成员作为组件的主要组织结构》
+/// https://learn.microsoft.com/zh-cn/dotnet/fsharp/style-guide/component-design-guidelines#use-namespaces-types-and-members-as-the-primary-organizational-structure-for-your-components
+///
+/// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
+/// Author: Zhu XH
+[<AbstractClass; Sealed>]
+type Math3dUtil =
+    static member Subdivide(from, target, count) =
         let segments: Vector3 array = Array.zeroCreate <| count + 1
         segments[0] <- from
 
@@ -14,25 +21,26 @@ module Math3dUtil =
         segments[count] <- target
         segments
 
-    let getNormal (v0: Vector3, v1, v2) =
+    static member GetNormal(v0: Vector3, v1, v2) =
         let side1 = v1 - v0
         let side2 = v2 - v0
         -side1.Cross(side2).Normalized()
 
-    let isNormalAwayFromOrigin (surface: Vector3, normal, origin) = (surface - origin).Dot normal > 0f
+    static member IsNormalAwayFromOrigin(surface: Vector3, normal, origin) = (surface - origin).Dot normal > 0f
 
-    let projectToSphere (p: Vector3, radius, scale: float32) =
+    static member ProjectToSphere(p: Vector3, radius, scale: float32) =
         let projectionPoint = radius / p.Length()
         p * projectionPoint * scale
 
-    let projectToUnitSphere (p, radius) = projectToSphere (p, radius, 1f)
+    static member ProjectToUnitSphere(p, radius) =
+        Math3dUtil.ProjectToSphere(p, radius, 1f)
 
     /// 判断是否 v0, v1, v2 的顺序是合适的缠绕方向（正面顺时针）
-    let isRightVSeq (origin, v0, v1, v2) =
+    static member IsRightVSeq(origin, v0, v1, v2) =
         let center: Vector3 = (v0 + v1 + v2) / 3f
         // 决定缠绕顺序
-        let normal = getNormal (v0, v1, v2)
-        isNormalAwayFromOrigin (center, normal, origin)
+        let normal = Math3dUtil.GetNormal(v0, v1, v2)
+        Math3dUtil.IsNormalAwayFromOrigin(center, normal, origin)
 
     /// <summary>计算两个向量在垂直于 dir 的平面上的夹角（弧度）</summary>
     /// <param name="a">向量 a</param>
@@ -41,10 +49,10 @@ module Math3dUtil =
     /// <param name="signed">是否返回带符号的夹角</param>
     /// <returns>两个投影向量间的夹角（弧度制）</returns>
     /// <exception cref="Exception">输入向量不能为零向量</exception>
-    let getPlanarAngle (a: Vector3, b: Vector3, dir: Vector3, signed: bool) =
+    static member GetPlanarAngle(a: Vector3, b: Vector3, dir: Vector3, signed: bool) =
         // 异常处理：入参向量均不能为零
         if a = Vector3.Zero || b = Vector3.Zero || dir = Vector3.Zero then
-            failwith "Input vectors cannot be zero"
+            failwith "Input vectors cannot be zero" // TODO: 去掉异常
         // 1. 获取垂直于 dir 的投影平面法线
         let planeNormal = dir.Normalized()
         // 2. 投影向量到平面
@@ -68,7 +76,7 @@ module Math3dUtil =
         else
             aProj.SignedAngleTo(bProj, planeNormal)
 
-    let alignYAxisToDirection (basis: Basis, direction: Vector3, alignForward: Vector3, inGlobal: bool) =
+    static member AlignYAxisToDirection(basis: Basis, direction: Vector3, alignForward: Vector3, inGlobal: bool) =
         let mutable transform = Transform3D.Identity
         transform.Basis <- basis
         // 确保方向是单位向量
@@ -101,7 +109,7 @@ module Math3dUtil =
             if alignForward <> Vector3.Zero && alignForward <> direction then
                 // 如果有指定向前对齐方向，则对齐向前（-Z）到最近的方向
                 let forward = if inGlobal then Vector3.Forward else -transform.Basis.Z
-                let zAngle = getPlanarAngle (forward, alignForward, direction, true)
+                let zAngle = Math3dUtil.GetPlanarAngle(forward, alignForward, direction, true)
 
                 if inGlobal then
                     transform <- transform.Rotated(direction, zAngle)
@@ -111,8 +119,12 @@ module Math3dUtil =
             transform
 
 
-    let placeOnSphere (basis: Basis, position: Vector3, scale: Vector3, addHeight: float32, alignForward: Vector3) =
-        let mutable transform = alignYAxisToDirection (basis, position, alignForward, false)
+    static member PlaceOnSphere
+        (basis: Basis, position: Vector3, scale: Vector3, addHeight: float32, alignForward: Vector3)
+        =
+        let mutable transform =
+            Math3dUtil.AlignYAxisToDirection(basis, position, alignForward, false)
+
         transform <- transform.Scaled scale
         transform.Origin <- position.Normalized() * (position.Length() + addHeight * scale.Y)
         transform
@@ -123,7 +135,7 @@ module Math3dUtil =
     /// <param name="pointA"></param>
     /// <param name="pointB"></param>
     /// <returns></returns>
-    let directionBetweenPointsOnSphere (pointA: Vector3, pointB: Vector3) =
+    static member DirectionBetweenPointsOnSphere(pointA: Vector3, pointB: Vector3) =
         let sphereCenter = Vector3.Zero
         let vectorToA = pointA - sphereCenter
         let vectorToB = pointB - sphereCenter

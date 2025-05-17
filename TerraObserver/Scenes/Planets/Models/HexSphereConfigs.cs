@@ -73,11 +73,11 @@ public partial class HexSphereConfigs : Resource, IHexSphereConfigs
     {
         MaxHeightRatio = StandardScale * MaxHeightRadiusRatio;
         MaxHeight = Radius * MaxHeightRatio;
-        RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.maxHeight, MaxHeight);
+        RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.MaxHeight, MaxHeight);
         UnitHeight = MaxHeight / ElevationStep;
     }
 
-    public float StandardScale => Radius / HexMetrics.standardRadius * HexMetrics.standardDivisions / Divisions;
+    public float StandardScale => Radius / HexMetrics.StandardRadius * HexMetrics.StandardDivisions / Divisions;
 
     // 默认水面高度 [Export(PropertyHint.Range, "1, 5")]
     public int DefaultWaterLevel { get; set; } = 5;
