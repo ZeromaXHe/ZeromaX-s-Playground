@@ -20,16 +20,16 @@ open System.Collections.Generic
 /// <param name="item2">第二个物体 Second item</param>
 /// <typeparam name="'T"></typeparam>
 /// <returns>double 类型的距离。Distance as double</returns>
-type CalculateDistance<'T> = delegate of 'T * 'T -> double
+type CalculateDistance<'T> = delegate of 'T * 'T -> float32
 
 type private Node =
     { mutable Index: int
-      mutable Threshold: float
+      mutable Threshold: float32
       mutable Left: Node option
       mutable Right: Node option }
 
 [<Sealed>]
-type private HeapItem(index: int, dist: float) =
+type private HeapItem(index: int, dist: float32) =
     member this.Index = index
     member this.Dist = dist
     // (<)
@@ -53,7 +53,7 @@ type VpTree<'T>() =
     let rand = Random() // 在 BuildFromPoints 中使用。 Used in BuildFromPoints
 
     let mutable items: 'T array = null
-    let mutable tau: float = 0.
+    let mutable tau = 0f
     let mutable root: Node option = None
     let mutable calculateDistance: CalculateDistance<'T> = null
 
@@ -97,7 +97,7 @@ type VpTree<'T>() =
         else
             let node =
                 { Index = lowerIndex
-                  Threshold = 0.
+                  Threshold = 0f
                   Left = None
                   Right = None }
 
@@ -175,21 +175,21 @@ type VpTree<'T>() =
     /// <param name="numberOfResults">想要的结果数量 Number of results wanted</param>
     /// <param name="results">结果（最近的一个是第一个物体） Results (nearest one is the first item)</param>
     /// <param name="distances">距离 Distances</param>
-    member this.Search(target: 'T, numberOfResults, results: byref<'T array>, distances: byref<float array>) =
+    member this.Search(target: 'T, numberOfResults, results: byref<'T array>, distances: byref<float32 array>) =
         let closestHits = List<HeapItem>()
         // 重置 tau 为最长的可能距离
         // Reset tau to longest possible distance
-        tau <- Double.MaxValue
+        tau <- Single.MaxValue
         // 开始搜索
         // Start search
         search (root, target, numberOfResults, closestHits)
         // 返回值的临时数组
         // Temp arrays for return values
         let returnResults = List<'T>()
-        let returnDistance = List<float>()
+        let returnDistance = List<float32>()
         // 我们必须反转顺序，因为我们想要最近的物体是第一个结果
         // We have to reverse the order since we want the nearest object to be first in the array
-        for i in numberOfResults - 1 .. -1 .. 0 do
+        for i = numberOfResults - 1 downto 0 do
             returnResults.Add items[closestHits[i].Index]
             returnDistance.Add closestHits[i].Dist
 

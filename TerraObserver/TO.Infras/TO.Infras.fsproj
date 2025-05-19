@@ -6,18 +6,22 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Friflo.Engine.ECS" Version="3.3.2" />
+        <PackageReference Include="Friflo.Engine.ECS" Version="3.3.2"/>
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Include="Planets\Models\ChunkComponent.fs" />
-      <Compile Include="Planets\Models\PointComponent.fs" />
-      <Compile Include="Planets\Models\FaceComponent.fs" />
-      <Compile Include="Planets\PlanetRepo.fs" />
+        <Compile Include="Planets\Models\Points.fs" />
+        <Compile Include="Planets\Models\Faces.fs" />
+        <Compile Include="Planets\Models\Chunks.fs" />
+        <Compile Include="Planets\Repos\PointRepo.fs" />
+        <Compile Include="Planets\Repos\FaceRepo.fs" />
+        <Compile Include="Planets\Repos\ChunkRepo.fs" />
+        <Compile Include="Planets\PlanetWorld.fs" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\TO.Infras.Abstractions\TO.Infras.Abstractions.fsproj" />
+      <ProjectReference Include="..\TO.Domains\TO.Domains.fsproj" />
+      <ProjectReference Include="..\TO.Nodes.Abstractions\TO.Nodes.Abstractions.csproj" />
     </ItemGroup>
 
 </Project>

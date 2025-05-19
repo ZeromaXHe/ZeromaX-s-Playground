@@ -73,7 +73,7 @@ type LonLatCoords =
             else
                 "S"
 
-        let abs = Mathf.Abs this.Longitude
+        let abs = Mathf.Abs(if isLon then this.Longitude else this.Latitude)
         let mutable degreeInt = int abs
         let mutable minuteInt = int <| abs % 1f * 60f
         let mutable secondInt = Mathf.RoundToInt(abs % 1f * 60f % 1f * 60f)

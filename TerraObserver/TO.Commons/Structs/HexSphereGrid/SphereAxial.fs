@@ -351,8 +351,8 @@ type SphereAxial =
 
                         let rot2Right =
                             sa1.Coords
-                                .RotateCounterClockwiseAround(AxialCoords(-sa1.Column * SphereAxial.Div, 0))
-                                .RotateCounterClockwiseAround(AxialCoords(-(sa1.Column - 1) * SphereAxial.Div, 0))
+                                .RotateClockwiseAround(AxialCoords(-sa1.Column * SphereAxial.Div, 0))
+                                .RotateClockwiseAround(AxialCoords(-(sa1.Column - 1) * SphereAxial.Div, 0))
 
                         Mathf.Min(
                             (if sa1.Index < sa2.Index then
@@ -478,7 +478,9 @@ type SphereAxial =
                     | 16 ->
                         // sa 在右边逆斜列（/）上的情况
                         let rotRight =
-                            sa1.Coords.RotateCounterClockwiseAround(AxialCoords(-sa1.Column * SphereAxial.Div, 0))
+                            sa1.Coords.RotateCounterClockwiseAround(
+                                AxialCoords(-sa1.Column * SphereAxial.Div, SphereAxial.Div)
+                            )
 
                         if sa1.Index < sa2.Index then
                             rotRight.DistanceTo <| sa2.Coords + AxialCoords(SphereAxial.Width, 0)

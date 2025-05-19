@@ -9,5 +9,8 @@ public interface IHexSphereConfigs : IResource
 {
     event Action? ParamsChanged;
     float Radius { get; set; }
+    int Divisions { get; }
+    int ChunkDivisions { get; }
+    float MaxHeight { get; }
     float StandardScale { get; }
 }
