@@ -34,17 +34,25 @@ type FaceRepo(store: EntityStore) =
 
     // 因为 pointComponent 要传给闭包，所以不用 inref
     member this.GetOrderedFaces (pointComponent: PointComponent) (pointEntity: Entity) =
-        let linkFaces = pointEntity.GetRelations<PointLinkFace>()
+        let linkFaceIds = pointEntity.GetRelations<PointToFaceId>()
 
-        if linkFaces.Length = 0 then
+        if linkFaceIds.Length = 0 then
             []
         else
+            let faceEntities: Entity array = Array.zeroCreate linkFaceIds.Length
+
+            for i in 0 .. linkFaceIds.Length - 1 do
+                // BUG: 似乎这里 Relations<>.[index] 有 bug…… 想要放弃 ECS 了
+                // https://github.com/friflo/Friflo.Engine.ECS/issues/70
+                let id = linkFaceIds[i]
+                let faceId = id.FaceId
+                let e = store.GetEntityById(faceId)
+                faceEntities[i] <- e
             // 将第一个面设置为最接近北方顺时针方向第一个的面
-            let mutable first = linkFaces[0].Face
+            let mutable first = faceEntities[0]
             let mutable minAngle = Mathf.Tau
 
-            for i in 0 .. linkFaces.Length - 1 do
-                let faceEntity = linkFaces[i].Face
+            for faceEntity in faceEntities do
                 let face = faceEntity.GetComponent<FaceComponent>()
                 let angle = pointComponent.Position.DirectionTo(face.Center).AngleTo(Vector3.Up)
 
@@ -55,9 +63,8 @@ type FaceRepo(store: EntityStore) =
             let firstFace = first.GetComponent<FaceComponent>()
             // 第二个面必须保证和第一个面形成顺时针方向，从而保证所有都是顺时针
             let second =
-                { 0 .. linkFaces.Length - 1 }
-                |> Seq.map (fun i -> linkFaces[i].Face)
-                |> Seq.find (fun faceEntity ->
+                faceEntities
+                |> Array.find (fun faceEntity ->
                     let face = faceEntity.GetComponent<FaceComponent>()
 
                     faceEntity.Id <> first.Id
@@ -67,19 +74,19 @@ type FaceRepo(store: EntityStore) =
             let mutable orderedList = [ second; first ]
             let mutable currentFaceEntity = orderedList[1]
 
-            while orderedList.Length < linkFaces.Length do
+            while orderedList.Length < faceEntities.Length do
                 let neighbor =
-                    { 0 .. linkFaces.Length - 1 }
-                    |> Seq.find (fun faceId ->
-                        let faceEntity = linkFaces[faceId].Face
+                    faceEntities
+                    |> Seq.find (fun faceEntity ->
                         let face = faceEntity.GetComponent<FaceComponent>()
                         let currentFace = currentFaceEntity.GetComponent<FaceComponent>()
 
                         orderedList
-                        |> Seq.exists (fun orderedFaceEntity -> orderedFaceEntity.Id <> faceEntity.Id)
+                        |> List.forall (fun orderedFaceEntity -> orderedFaceEntity.Id <> faceEntity.Id)
+                        |> not
                         && face.IsAdjacentTo currentFace)
 
-                currentFaceEntity <- linkFaces[neighbor].Face
+                currentFaceEntity <- neighbor
                 orderedList <- currentFaceEntity :: orderedList
 
             orderedList |> List.rev

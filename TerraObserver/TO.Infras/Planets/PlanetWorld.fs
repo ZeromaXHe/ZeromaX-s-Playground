@@ -29,7 +29,7 @@ type PlanetWorld() =
                 // 给每个点建立它与所归属的面的关系
                 pointRepo.QueryByPosition chunky v
                 |> Option.iter (fun pointEntity ->
-                    let link = PointLinkFace(faceEntity)
+                    let link = PointToFaceId(faceEntity)
                     pointEntity.AddRelation(&link) |> ignore)))
 
     let initPointsAndFaces chunky chunkDivisions =
@@ -121,7 +121,7 @@ type PlanetWorld() =
                 let tileId =
                     tileRepo.Add(pEntity.Id, chunk.Id, hexFaces, hexFaceIds, neighborCenterIds)
 
-                let link = ChunkLinkTile(store.GetEntityById tileId)
+                let link = ChunkToTileId(store.GetEntityById tileId)
                 chunk.AddRelation(&link) |> ignore))
 
         let mutable time2 = Time.GetTicksMsec()

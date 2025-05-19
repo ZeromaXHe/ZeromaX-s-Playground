@@ -26,9 +26,9 @@ module Chunks =
               NeighborCenterIds = neighborCenterIds }
 
     [<Struct>]
-    type ChunkLinkTile =
-        interface ILinkRelation with
-            member this.GetRelationKey() = this.Tile
+    type ChunkToTileId =
+        interface IRelation<int> with
+            member this.GetRelationKey() = this.TileId
 
-        val Tile: Entity
-        new(tile: Entity) = { Tile = tile }
+        val TileId: int
+        new(tile: Entity) = { TileId = tile.Id }
