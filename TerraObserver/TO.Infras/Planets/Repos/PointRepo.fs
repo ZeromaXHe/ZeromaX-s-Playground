@@ -10,24 +10,22 @@ open TO.Infras.Planets.Models.Points
 /// Date: 2025-05-18 09:37:18
 type PointRepo(store: EntityStore) =
     let typePoint = ComponentTypes.Get<PointComponent>()
-    let tagChunkPoint = Tags.Get<PointTagChunk>()
-    let tagTilePoint = Tags.Get<PointTagTile>()
+    let tagChunk = Tags.Get<PointTagChunk>()
+    let tagTile = Tags.Get<PointTagTile>()
 
-    let archetypeChunkPoint = store.GetArchetype(&typePoint, &tagChunkPoint)
-    let archetypeTilePoint = store.GetArchetype(&typePoint, &tagTilePoint)
-    let IndexPointByPosition = store.ComponentIndex<PointComponent, Vector3>()
+    let archetypeChunk = store.GetArchetype(&typePoint, &tagChunk)
+    let archetypeTile = store.GetArchetype(&typePoint, &tagTile)
+    let IndexByPosition = store.ComponentIndex<PointComponent, Vector3>()
 
-    let queryPointsByPosition chunky pos =
+    let queryByPosition chunky pos =
         let entityList =
             store
                 .Query<PointComponent>()
                 .HasValue<PointComponent, Vector3>(pos)
-                .AllTags(if chunky then &tagChunkPoint else &tagTilePoint)
+                .AllTags(if chunky then &tagChunk else &tagTile)
                 .ToEntityList()
-        if entityList.Count = 0 then
-            None
-        else
-            Some entityList[0] // 我们默认只会存在一个点
+
+        if entityList.Count = 0 then None else Some entityList[0] // 我们默认只会存在一个点
 
     let getPointIdx (face: FaceComponent, point: inref<PointComponent>) =
         // Array.findIndex 自己会抛异常，没必要重复检测
@@ -48,31 +46,29 @@ type PointRepo(store: EntityStore) =
         let idx = getPointIdx (face, &point)
 
         seq {
-            queryPointsByPosition chunky face.TriVertices[(idx + 1) % 3]
-            queryPointsByPosition chunky face.TriVertices[(idx + 2) % 3]
+            queryByPosition chunky face.TriVertices[(idx + 1) % 3]
+            queryByPosition chunky face.TriVertices[(idx + 2) % 3]
         }
     // 顺时针第一个顶点
     let getLeftOtherPoint (chunky, face, point: inref<PointComponent>) =
         let idx = getPointIdx (face, &point)
-        queryPointsByPosition chunky face.TriVertices[(idx + 1) % 3]
+        queryByPosition chunky face.TriVertices[(idx + 1) % 3]
     // 顺时针第二个顶点
     let getRightOtherPoint (chunky, face, point: inref<PointComponent>) =
         let idx = getPointIdx (face, &point)
-        queryPointsByPosition chunky face.TriVertices[(idx + 2) % 3]
+        queryByPosition chunky face.TriVertices[(idx + 2) % 3]
 
-    member this.QueryPoints chunky =
-        store
-            .Query<PointComponent>()
-            .AllTags(if chunky then &tagChunkPoint else &tagTilePoint)
+    member this.QueryAllByChunky chunky =
+        store.Query<PointComponent>().AllTags(if chunky then &tagChunk else &tagTile)
 
-    member this.QueryPointsByPosition chunky pos = queryPointsByPosition chunky pos
+    member this.QueryByPosition chunky pos = queryByPosition chunky pos
 
-    member this.AddPoint chunky position coords =
+    member this.Add chunky position coords =
         let point =
             if chunky then
-                archetypeChunkPoint.CreateEntity()
+                archetypeChunk.CreateEntity()
             else
-                archetypeTilePoint.CreateEntity()
+                archetypeTile.CreateEntity()
 
         let pointComponent = PointComponent(position, coords)
         point.AddComponent<PointComponent>(&pointComponent) |> ignore

@@ -1,6 +1,7 @@
 namespace TO.Commons.Utils
 
 open Godot
+open Microsoft.FSharp.Core
 
 /// 数学 3D 工具类
 /// 作为对其他 .NET 公开的 F# 库，需要遵循《F# 组件设计准则 - 命名空间和类型设计 - 使用命名空间、类型和成员作为组件的主要组织结构》
@@ -16,7 +17,7 @@ type Math3dUtil =
 
         for i in 1..count do
             // 注意这里用 Slerp 而不是 Lerp，让所有的点都在单位球面而不是单位正二十面体上，方便我们后面 VP 树找最近点
-            segments[i] <- from.Lerp(target, float32 <| i / count)
+            segments[i] <- from.Slerp(target, float32 i / float32 count)
 
         segments[count] <- target
         segments
@@ -28,12 +29,12 @@ type Math3dUtil =
 
     static member IsNormalAwayFromOrigin(surface: Vector3, normal, origin) = (surface - origin).Dot normal > 0f
 
-    static member ProjectToSphere(p: Vector3, radius, scale: float32) =
+    static member ProjectToSphere(p: Vector3, radius, ?scale: float32) =
+        let scale = defaultArg scale 1f
         let projectionPoint = radius / p.Length()
         p * projectionPoint * scale
 
-    static member ProjectToUnitSphere(p, radius) =
-        Math3dUtil.ProjectToSphere(p, radius, 1f)
+    static member ProjectToUnitSphere(p, radius) = Math3dUtil.ProjectToSphere(p, radius)
 
     /// 判断是否 v0, v1, v2 的顺序是合适的缠绕方向（正面顺时针）
     static member IsRightVSeq(origin, v0, v1, v2) =
@@ -49,10 +50,12 @@ type Math3dUtil =
     /// <param name="signed">是否返回带符号的夹角</param>
     /// <returns>两个投影向量间的夹角（弧度制）</returns>
     /// <exception cref="Exception">输入向量不能为零向量</exception>
-    static member GetPlanarAngle(a: Vector3, b: Vector3, dir: Vector3, signed: bool) =
+    static member GetPlanarAngle(a: Vector3, b: Vector3, dir: Vector3, ?signed: bool) =
         // 异常处理：入参向量均不能为零
         if a = Vector3.Zero || b = Vector3.Zero || dir = Vector3.Zero then
             failwith "Input vectors cannot be zero" // TODO: 去掉异常
+
+        let signed = defaultArg signed false
         // 1. 获取垂直于 dir 的投影平面法线
         let planeNormal = dir.Normalized()
         // 2. 投影向量到平面
@@ -76,7 +79,9 @@ type Math3dUtil =
         else
             aProj.SignedAngleTo(bProj, planeNormal)
 
-    static member AlignYAxisToDirection(basis: Basis, direction: Vector3, alignForward: Vector3, inGlobal: bool) =
+    static member AlignYAxisToDirection(basis: Basis, direction: Vector3, ?alignForward: Vector3, ?inGlobal: bool) =
+        let alignForward = defaultArg alignForward Vector3.Zero
+        let inGlobal = defaultArg inGlobal false
         let mutable transform = Transform3D.Identity
         transform.Basis <- basis
         // 确保方向是单位向量
@@ -120,10 +125,12 @@ type Math3dUtil =
 
 
     static member PlaceOnSphere
-        (basis: Basis, position: Vector3, scale: Vector3, addHeight: float32, alignForward: Vector3)
+        (basis: Basis, position: Vector3, scale: Vector3, ?addHeight: float32, ?alignForward: Vector3)
         =
+        let addHeight = defaultArg addHeight 0f
+        let alignForward = defaultArg alignForward Vector3.Zero
         let mutable transform =
-            Math3dUtil.AlignYAxisToDirection(basis, position, alignForward, false)
+            Math3dUtil.AlignYAxisToDirection(basis, position, alignForward)
 
         transform <- transform.Scaled scale
         transform.Origin <- position.Normalized() * (position.Length() + addHeight * scale.Y)

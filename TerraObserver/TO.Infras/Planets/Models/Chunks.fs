@@ -12,7 +12,9 @@ module Chunks =
     /// Date: 2025-05-16 19:30:16
     [<Struct>]
     type ChunkComponent =
-        interface IComponent
+        interface IIndexedComponent<int> with
+            member this.GetIndexedValue() = this.CenterId
+
         val CenterId: int // 注意，此处对应的是中心点投射到单位球上的 Point id。
         val Pos: Vector3 // 这里存储是实际地块中心位置（带有星球半径）
         // val HexFaceIds: int array // 已确保顺序为顺时针方向
@@ -22,3 +24,11 @@ module Chunks =
             { CenterId = centerId
               Pos = pos
               NeighborCenterIds = neighborCenterIds }
+
+    [<Struct>]
+    type ChunkLinkTile =
+        interface ILinkRelation with
+            member this.GetRelationKey() = this.Tile
+
+        val Tile: Entity
+        new(tile: Entity) = { Tile = tile }

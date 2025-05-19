@@ -12,22 +12,20 @@ open TO.Infras.Planets.Models.Points
 type FaceRepo(store: EntityStore) =
     // 面
     let typeFace = ComponentTypes.Get<FaceComponent>()
-    let tagChunkFace = Tags.Get<FaceTagChunk>()
-    let tagTileFace = Tags.Get<FaceTagTile>()
-    let archetypeChunkFace = store.GetArchetype(&typeFace, &tagChunkFace)
-    let archetypeTileFace = store.GetArchetype(&typeFace, &tagTileFace)
+    let tagChunk = Tags.Get<FaceTagChunk>()
+    let tagTile = Tags.Get<FaceTagTile>()
+    let archetypeChunk = store.GetArchetype(&typeFace, &tagChunk)
+    let archetypeTile = store.GetArchetype(&typeFace, &tagTile)
 
-    member this.QueryFaces chunky =
-        store
-            .Query<FaceComponent>()
-            .AllTags(if chunky then &tagChunkFace else &tagTileFace)
+    member this.QueryAll chunky =
+        store.Query<FaceComponent>().AllTags(if chunky then &tagChunk else &tagTile)
 
-    member this.AddFace chunky (triVertices: Vector3 array) =
+    member this.Add chunky (triVertices: Vector3 array) =
         let face =
             if chunky then
-                archetypeChunkFace.CreateEntity()
+                archetypeChunk.CreateEntity()
             else
-                archetypeTileFace.CreateEntity()
+                archetypeTile.CreateEntity()
 
         let center = (triVertices[0] + triVertices[1] + triVertices[2]) / 3f
         let faceComponent = FaceComponent(center, triVertices)
@@ -53,15 +51,16 @@ type FaceRepo(store: EntityStore) =
                 if angle < minAngle then
                     minAngle <- angle
                     first <- faceEntity
+
+            let firstFace = first.GetComponent<FaceComponent>()
             // 第二个面必须保证和第一个面形成顺时针方向，从而保证所有都是顺时针
             let second =
                 { 0 .. linkFaces.Length - 1 }
                 |> Seq.map (fun i -> linkFaces[i].Face)
                 |> Seq.find (fun faceEntity ->
-                    let firstFace = first.GetComponent<FaceComponent>()
                     let face = faceEntity.GetComponent<FaceComponent>()
 
-                    faceEntity <> first
+                    faceEntity.Id <> first.Id
                     && face.IsAdjacentTo(firstFace)
                     && Math3dUtil.IsRightVSeq(Vector3.Zero, pointComponent.Position, firstFace.Center, face.Center))
 
@@ -77,7 +76,7 @@ type FaceRepo(store: EntityStore) =
                         let currentFace = currentFaceEntity.GetComponent<FaceComponent>()
 
                         orderedList
-                        |> Seq.exists (fun orderedFaceEntity -> orderedFaceEntity <> faceEntity)
+                        |> Seq.exists (fun orderedFaceEntity -> orderedFaceEntity.Id <> faceEntity.Id)
                         && face.IsAdjacentTo currentFace)
 
                 currentFaceEntity <- linkFaces[neighbor].Face

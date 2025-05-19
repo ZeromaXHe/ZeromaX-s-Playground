@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Godot;
 using TerraObserver.Scenes.Planets.Models;
 using TerraObserver.Scenes.Planets.Views;
+using TO.Infras.Planets;
 
 namespace TerraObserver.Scenes.Planets.Contexts;
 
@@ -18,10 +19,7 @@ public partial class PlanetContext : Node
     public Planet? Planet
     {
         get => _planet;
-        set
-        {
-            _planet = value;
-        }
+        set { _planet = value; }
     }
 
     private Planet? _planet;
@@ -33,7 +31,11 @@ public partial class PlanetContext : Node
         get => _hexSphereConfigs;
         set
         {
+            if (_hexSphereConfigs != null)
+                _hexSphereConfigs.ParamsChanged -= DrawHexSphereMesh;
             _hexSphereConfigs = value;
+            if (_hexSphereConfigs != null)
+                _hexSphereConfigs.ParamsChanged += DrawHexSphereMesh;
         }
     }
 
@@ -43,10 +45,7 @@ public partial class PlanetContext : Node
     public CatlikeCodingNoise? CatlikeCodingNoise
     {
         get => _catlikeCodingNoise;
-        set
-        {
-            _catlikeCodingNoise = value;
-        }
+        set { _catlikeCodingNoise = value; }
     }
 
     private CatlikeCodingNoise? _catlikeCodingNoise;
@@ -64,4 +63,37 @@ public partial class PlanetContext : Node
     }
 
     #endregion
+
+    private PlanetWorld _planetWorld = new();
+
+    private bool NodeReady { get; set; }
+
+    public override void _Ready()
+    {
+        NodeReady = true;
+        DrawHexSphereMesh();
+    }
+
+    public override void _EnterTree()
+    {
+        if (HexSphereConfigs != null)
+            HexSphereConfigs.ParamsChanged += DrawHexSphereMesh;
+    }
+
+    public override void _ExitTree()
+    {
+        if (HexSphereConfigs != null)
+            HexSphereConfigs.ParamsChanged -= DrawHexSphereMesh;
+    }
+
+    private void DrawHexSphereMesh()
+    {
+        if (!NodeReady)
+            return;
+        var time = Time.GetTicksMsec();
+        GD.Print($"[===DrawHexSphereMesh===] radius {HexSphereConfigs?.Radius}, divisions {
+            HexSphereConfigs?.Divisions}, start at: {time}");
+        _planetWorld.ClearOldData();
+        _planetWorld.InitHexSphere(HexSphereConfigs);
+    }
 }

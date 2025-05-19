@@ -12,9 +12,11 @@
     <ItemGroup>
         <Compile Include="Planets\Models\Points.fs" />
         <Compile Include="Planets\Models\Faces.fs" />
+        <Compile Include="Planets\Models\Tiles.fs" />
         <Compile Include="Planets\Models\Chunks.fs" />
         <Compile Include="Planets\Repos\PointRepo.fs" />
         <Compile Include="Planets\Repos\FaceRepo.fs" />
+        <Compile Include="Planets\Repos\TileRepo.fs" />
         <Compile Include="Planets\Repos\ChunkRepo.fs" />
         <Compile Include="Planets\PlanetWorld.fs" />
     </ItemGroup>

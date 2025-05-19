@@ -11,5 +11,8 @@ module FacePoint =
         { Position: Vector3
           Coords: SphereAxial }
 
-    type FaceAdder =
-        { TriVertices: Vector3 array }
+    type FaceAdder = { TriVertices: Vector3 array }
+
+    type FacePointAdder =
+        | PointAdder of PointAdder
+        | FaceAdder of FaceAdder

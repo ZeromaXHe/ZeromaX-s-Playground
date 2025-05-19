@@ -7,8 +7,8 @@
 [sub_resource type="Resource" id="Resource_v27gh"]
 script = ExtResource("2_s1lu0")
 Radius = 100.0
-Divisions = 50
-ChunkDivisions = 5
+Divisions = 4
+ChunkDivisions = 1
 metadata/_custom_type_script = "uid://bnipotfr48ihb"
 
 [node name="PlanetContext" type="Node" node_paths=PackedStringArray("Planet")]
