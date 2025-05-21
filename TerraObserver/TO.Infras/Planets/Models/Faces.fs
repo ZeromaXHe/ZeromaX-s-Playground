@@ -22,21 +22,31 @@ module Faces =
     type FaceComponent =
         interface IComponent
         val Center: Vector3 // 三角形重心 median point
-        // 需要注意 struct 的成员必须是 array 而不是 list，否则没法有默认值，从而无法生成默认的无参构造函数
-        // （之前索引 IIndexedComponent 将因此无法正常使用，不确定 IComponent 的情况）
-        // 之所以不用 ILinkRelation 功能，是因为我们的顶点 id 需要保证顺序，并且
-        val TriVertices: Vector3 array // 第一个顶点是非水平边的顶点，后续水平边的两点按照顺时针方向排列
+        // 第一个顶点是非水平边的顶点，后续水平边的两点按照顺时针方向排列
+        // ECS 结构中不建议使用 array，更不推荐使用 List、Dictionary 之类的（否则没法有默认值，从而无法生成默认的无参构造函数）
+        val Vertex1: Vector3
+        val Vertex2: Vector3
+        val Vertex3: Vector3
 
-        new(center: Vector3, triVertices: Vector3 array) =
+        new(center: Vector3, vertex1: Vector3, vertex2: Vector3, vertex3: Vector3) =
             { Center = center
-              TriVertices = triVertices }
+              Vertex1 = vertex1
+              Vertex2 = vertex2
+              Vertex3 = vertex3 }
+
+        member this.Vertex i =
+            match i with
+            | 0 -> this.Vertex1
+            | 1 -> this.Vertex2
+            | 2 -> this.Vertex3
+            | _ -> failwith "Invalid index"
 
         member this.IsAdjacentTo(face: FaceComponent) =
-            // F# 没有 Enumerable.Intersect，因为我们 TriVertices 只有三个顶点，所以直接数吧
+            // F# 没有 Enumerable.Intersect，因为我们只有三个顶点，所以直接数吧
             let mutable count = 0
 
-            for v1 in this.TriVertices do
-                for v2 in face.TriVertices do
+            for v1 in [| this.Vertex1; this.Vertex2; this.Vertex3 |] do
+                for v2 in [| face.Vertex1; face.Vertex2; face.Vertex3 |] do
                     if v1 = v2 then
                         count <- count + 1
 

@@ -19,7 +19,11 @@ public partial class PlanetContext : Node
     public Planet? Planet
     {
         get => _planet;
-        set { _planet = value; }
+        set
+        {
+            _planet = value;
+            UpdateConfigurationWarnings();
+        }
     }
 
     private Planet? _planet;
@@ -36,6 +40,7 @@ public partial class PlanetContext : Node
             _hexSphereConfigs = value;
             if (_hexSphereConfigs != null)
                 _hexSphereConfigs.ParamsChanged += DrawHexSphereMesh;
+            UpdateConfigurationWarnings();
         }
     }
 
@@ -45,7 +50,11 @@ public partial class PlanetContext : Node
     public CatlikeCodingNoise? CatlikeCodingNoise
     {
         get => _catlikeCodingNoise;
-        set { _catlikeCodingNoise = value; }
+        set
+        {
+            _catlikeCodingNoise = value;
+            UpdateConfigurationWarnings();
+        }
     }
 
     private CatlikeCodingNoise? _catlikeCodingNoise;

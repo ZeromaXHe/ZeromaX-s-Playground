@@ -28,35 +28,27 @@ type PointRepo(store: EntityStore) =
         if entityList.Count = 0 then None else Some entityList[0] // 我们默认只会存在一个点
 
     let getPointIdx (face: FaceComponent, point: inref<PointComponent>) =
-        // Array.findIndex 自己会抛异常，没必要重复检测
-        // if face.TriVertices |> Array.forall (fun v -> v <> point.Position) then
-        //     failwith "Given point must be one of the points on the face!"
-        // 采用 inref 的话，就只能用 for 循环了
-        // face.TriVertices |> Array.findIndex (fun v -> v = point.Position)
-        let mutable idx = -1
-
-        for i = 0 to face.TriVertices.Length - 1 do
-            if face.TriVertices[i] = point.Position then
-                idx <- i
-
-        idx
+        if face.Vertex1 = point.Position then 0
+        elif face.Vertex2 = point.Position then 1
+        elif face.Vertex3 = point.Position then 2
+        else -1
     // 按照顺时针方向返回三角形上的在指定顶点后的另外两个顶点
     let getOtherPoints (chunky, face, point: inref<PointComponent>) =
         // 注意：并没有对 face 和 point 的 Chunky 进行校验
         let idx = getPointIdx (face, &point)
 
         seq {
-            queryByPosition chunky face.TriVertices[(idx + 1) % 3]
-            queryByPosition chunky face.TriVertices[(idx + 2) % 3]
+            queryByPosition chunky <| face.Vertex((idx + 1) % 3)
+            queryByPosition chunky <| face.Vertex((idx + 2) % 3)
         }
     // 顺时针第一个顶点
     let getLeftOtherPoint (chunky, face, point: inref<PointComponent>) =
         let idx = getPointIdx (face, &point)
-        queryByPosition chunky face.TriVertices[(idx + 1) % 3]
+        queryByPosition chunky <| face.Vertex((idx + 1) % 3)
     // 顺时针第二个顶点
     let getRightOtherPoint (chunky, face, point: inref<PointComponent>) =
         let idx = getPointIdx (face, &point)
-        queryByPosition chunky face.TriVertices[(idx + 2) % 3]
+        queryByPosition chunky <| face.Vertex((idx + 2) % 3)
 
     member this.QueryAllByChunky chunky =
         store.Query<PointComponent>().AllTags(if chunky then &tagChunk else &tagTile)

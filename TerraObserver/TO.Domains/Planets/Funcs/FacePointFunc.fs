@@ -63,7 +63,10 @@ module FacePointFunc =
             for j in 0 .. i - 1 do
                 if j > 0 then
                     adders <-
-                        FaceAdder { TriVertices = [| nowLine[j]; preLine[j]; preLine[j - 1] |] }
+                        FaceAdder
+                            { Vertex1 = nowLine[j]
+                              Vertex2 = preLine[j]
+                              Vertex3 = preLine[j - 1] }
                         :: adders
 
                     adders <-
@@ -77,7 +80,10 @@ module FacePointFunc =
                         :: adders
 
                 adders <-
-                    FaceAdder { TriVertices = [| preLine[j]; nowLine[j]; nowLine[j + 1] |] }
+                    FaceAdder
+                        { Vertex1 = preLine[j]
+                          Vertex2 = nowLine[j]
+                          Vertex3 = nowLine[j + 1] }
                     :: adders
 
             preLine <- nowLine
@@ -114,7 +120,10 @@ module FacePointFunc =
             for j in 0 .. i - 1 do
                 if j > 0 then
                     adders <-
-                        FaceAdder { TriVertices = [| nowLineEast[j]; preLineEast[j]; preLineEast[j - 1] |] }
+                        FaceAdder
+                            { Vertex1 = nowLineEast[j]
+                              Vertex2 = preLineEast[j]
+                              Vertex3 = preLineEast[j - 1] }
                         :: adders
 
                     adders <-
@@ -124,7 +133,10 @@ module FacePointFunc =
                         :: adders
 
                 adders <-
-                    FaceAdder { TriVertices = [| preLineEast[j]; nowLineEast[j]; nowLineEast[j + 1] |] }
+                    FaceAdder
+                        { Vertex1 = preLineEast[j]
+                          Vertex2 = nowLineEast[j]
+                          Vertex3 = nowLineEast[j + 1] }
                     :: adders
             // 构造西边面（第二面）
             if i < divisions then
@@ -137,7 +149,10 @@ module FacePointFunc =
             for j in 0 .. divisions - i do
                 if j > 0 then
                     adders <-
-                        FaceAdder { TriVertices = [| preLineWest[j]; nowLineWest[j - 1]; nowLineWest[j] |] }
+                        FaceAdder
+                            { Vertex1 = preLineWest[j]
+                              Vertex2 = nowLineWest[j - 1]
+                              Vertex3 = nowLineWest[j] }
                         :: adders
 
                     if j < divisions - i then
@@ -148,7 +163,10 @@ module FacePointFunc =
                             :: adders
 
                 adders <-
-                    FaceAdder { TriVertices = [| nowLineWest[j]; preLineWest[j + 1]; preLineWest[j] |] }
+                    FaceAdder
+                        { Vertex1 = nowLineWest[j]
+                          Vertex2 = preLineWest[j + 1]
+                          Vertex3 = preLineWest[j] }
                     :: adders
 
             preLineEast <- nowLineEast
@@ -178,7 +196,10 @@ module FacePointFunc =
             for j in 0 .. divisions - i do
                 if j > 0 then
                     adders <-
-                        FaceAdder { TriVertices = [| preLine[j]; nowLine[j - 1]; nowLine[j] |] }
+                        FaceAdder
+                            { Vertex1 = preLine[j]
+                              Vertex2 = nowLine[j - 1]
+                              Vertex3 = nowLine[j] }
                         :: adders
 
                     if j < divisions - i then
@@ -189,7 +210,10 @@ module FacePointFunc =
                             :: adders
 
                 adders <-
-                    FaceAdder { TriVertices = [| nowLine[j]; preLine[j + 1]; preLine[j] |] }
+                    FaceAdder
+                        { Vertex1 = nowLine[j]
+                          Vertex2 = preLine[j + 1]
+                          Vertex3 = preLine[j] }
                     :: adders
 
             preLine <- nowLine

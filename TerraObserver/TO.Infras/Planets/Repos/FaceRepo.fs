@@ -20,15 +20,15 @@ type FaceRepo(store: EntityStore) =
     member this.QueryAll chunky =
         store.Query<FaceComponent>().AllTags(if chunky then &tagChunk else &tagTile)
 
-    member this.Add chunky (triVertices: Vector3 array) =
+    member this.Add chunky (vertex1: Vector3) (vertex2: Vector3) (vertex3: Vector3) =
         let face =
             if chunky then
                 archetypeChunk.CreateEntity()
             else
                 archetypeTile.CreateEntity()
 
-        let center = (triVertices[0] + triVertices[1] + triVertices[2]) / 3f
-        let faceComponent = FaceComponent(center, triVertices)
+        let center = (vertex1 + vertex2 + vertex3) / 3f
+        let faceComponent = FaceComponent(center, vertex1, vertex2, vertex3)
         face.AddComponent<FaceComponent>(&faceComponent) |> ignore
         face.Id
 
@@ -41,13 +41,17 @@ type FaceRepo(store: EntityStore) =
         else
             let faceEntities: Entity array = Array.zeroCreate linkFaceIds.Length
 
-            for i in 0 .. linkFaceIds.Length - 1 do
+            let mutable i = 0
+
+            for id in linkFaceIds do
+                // for i in 0 .. linkFaceIds.Length - 1 do
                 // BUG: 似乎这里 Relations<>.[index] 有 bug…… 想要放弃 ECS 了
                 // https://github.com/friflo/Friflo.Engine.ECS/issues/70
-                let id = linkFaceIds[i]
+                // let id = linkFaceIds[i]
                 let faceId = id.FaceId
                 let e = store.GetEntityById(faceId)
                 faceEntities[i] <- e
+                i <- i + 1
             // 将第一个面设置为最接近北方顺时针方向第一个的面
             let mutable first = faceEntities[0]
             let mutable minAngle = Mathf.Tau

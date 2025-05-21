@@ -24,13 +24,16 @@ type PlanetWorld() =
         let query = faceRepo.QueryAll chunky
 
         query.ForEachEntity(fun faceComp faceEntity ->
-            faceComp.TriVertices
-            |> Array.iter (fun v ->
+            let relatePointToFace v =
                 // 给每个点建立它与所归属的面的关系
                 pointRepo.QueryByPosition chunky v
                 |> Option.iter (fun pointEntity ->
-                    let link = PointToFaceId(faceEntity)
-                    pointEntity.AddRelation(&link) |> ignore)))
+                    let relation = PointToFaceId(faceEntity)
+                    pointEntity.AddRelation(&relation) |> ignore)
+
+            relatePointToFace faceComp.Vertex1
+            relatePointToFace faceComp.Vertex2
+            relatePointToFace faceComp.Vertex3)
 
     let initPointsAndFaces chunky chunkDivisions =
         let time = Time.GetTicksMsec()
@@ -39,7 +42,7 @@ type PlanetWorld() =
         |> List.rev
         |> List.iter (fun a ->
             match a with
-            | FaceAdder fa -> faceRepo.Add chunky fa.TriVertices |> ignore
+            | FaceAdder fa -> faceRepo.Add chunky fa.Vertex1 fa.Vertex2 fa.Vertex3 |> ignore
             | PointAdder pa -> pointRepo.Add chunky pa.Position pa.Coords |> ignore)
 
         initPointFaceLinks chunky
@@ -112,7 +115,7 @@ type PlanetWorld() =
             let pComp = pEntity.GetComponent<PointComponent>()
 
             let hexFaces, hexFaceIds, neighborCenterIds =
-                getHexFacesAndNeighborCenterIds (true, &pComp, &pEntity)
+                getHexFacesAndNeighborCenterIds (false, &pComp, &pEntity)
 
             let chunkOpt = searchNearestChunk pComp.Position
 
