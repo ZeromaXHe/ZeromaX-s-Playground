@@ -23,7 +23,7 @@ let ``Relations for-loop test`` () =
             let relation = PointToFaceId(face)
             point.AddRelation<PointToFaceId>(&relation) |> ignore)
 
-    // Asset
+    // Assert
     let mutable pIdx = 0
     let mutable difference = 0
 
@@ -35,9 +35,8 @@ let ``Relations for-loop test`` () =
             Assert.NotNull(relation)
             let faceId = faces[(3 * pIdx + relIdx) % 9].Id
             let relationId = relation.FaceId
-
             if faceId <> relationId then
-                difference <- difference + 1 // will find differences
+                difference <- difference + 1 // will find differences in 3.4.1
 
         let mutable rIdx = 0
         for relation in relations do // using IEnumerator
@@ -48,4 +47,5 @@ let ``Relations for-loop test`` () =
 
         pIdx <- pIdx + 1
 
-    Assert.Equal(18, difference) // 18 differences in for-idx-loop
+    // Assert.Equal(18, difference) // 18 differences in for-idx-loop 3.4.1
+    Assert.Equal(0, difference) // 0 differences in for-idx-loop 3.4.2
