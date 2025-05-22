@@ -6,6 +6,7 @@ open TO.Domains.Planets.Functions
 open TO.Infras.Planets.Models.Chunks
 open TO.Infras.Planets.Models.Faces
 open TO.Infras.Planets.Models.Points
+open TO.Infras.Planets.Models.Tiles
 open TO.Infras.Planets.Repos
 open TO.Domains.Planets.Types.FacePoint
 open TO.Nodes.Abstractions.Planets.Models
@@ -107,7 +108,7 @@ type PlanetWorld() =
 
     let initTiles (hexSphereConfigs: IHexSphereConfigs) =
         let mutable time = Time.GetTicksMsec()
-        initPointsAndFaces false hexSphereConfigs.ChunkDivisions
+        initPointsAndFaces false hexSphereConfigs.Divisions
         let tilePoints = pointRepo.QueryAllByChunky false
 
         tilePoints.ToEntityList()
@@ -144,6 +145,8 @@ type PlanetWorld() =
     member this.InitHexSphere(hexSphereConfigs: IHexSphereConfigs) =
         initChunks hexSphereConfigs
         initTiles hexSphereConfigs
+        store.Query<TileComponent>().ToEntityList()
+        |> Seq.map _.GetComponent<TileComponent>()
 
     member this.ClearOldData() =
         store.Entities |> Seq.iter _.DeleteEntity()

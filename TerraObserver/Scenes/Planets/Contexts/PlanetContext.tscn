@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3 uid="uid://cnu45krarcdsr"]
+[gd_scene load_steps=8 format=3 uid="uid://cnu45krarcdsr"]
 
 [ext_resource type="Script" uid="uid://4ki6so6sadfr" path="res://Scenes/Planets/Contexts/PlanetContext.cs" id="1_d8mpy"]
 [ext_resource type="PackedScene" uid="uid://b6hxyed0b8cfa" path="res://Scenes/Planets/Views/Planet.tscn" id="1_pvma5"]
@@ -7,13 +7,36 @@
 [sub_resource type="Resource" id="Resource_v27gh"]
 script = ExtResource("2_s1lu0")
 Radius = 100.0
-Divisions = 4
+Divisions = 10
 ChunkDivisions = 1
 metadata/_custom_type_script = "uid://bnipotfr48ihb"
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_s1lu0"]
+sky_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
+ground_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
+
+[sub_resource type="Sky" id="Sky_v27gh"]
+sky_material = SubResource("ProceduralSkyMaterial_s1lu0")
+
+[sub_resource type="Environment" id="Environment_pcevp"]
+background_mode = 2
+sky = SubResource("Sky_v27gh")
+tonemap_mode = 2
+glow_enabled = true
 
 [node name="PlanetContext" type="Node" node_paths=PackedStringArray("Planet")]
 script = ExtResource("1_d8mpy")
 Planet = NodePath("Planet")
 HexSphereConfigs = SubResource("Resource_v27gh")
 
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_pcevp")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.866023, -0.433016, 0.250001, 0, 0.499998, 0.866027, -0.500003, 0.749999, -0.43301, 0, 0, 0)
+shadow_enabled = true
+
 [node name="Planet" parent="." instance=ExtResource("1_pvma5")]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(0.999945, 0.00548363, -0.00896443, 0, 0.853054, 0.521822, 0.0105086, -0.521793, 0.853007, -1.94389, 111.574, 185.099)

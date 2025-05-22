@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Godot;
 using TerraObserver.Scenes.Planets.Models;
@@ -97,12 +98,50 @@ public partial class PlanetContext : Node
 
     private void DrawHexSphereMesh()
     {
-        if (!NodeReady)
+        if (!NodeReady || HexSphereConfigs == null || Planet == null)
             return;
         var time = Time.GetTicksMsec();
-        GD.Print($"[===DrawHexSphereMesh===] radius {HexSphereConfigs?.Radius}, divisions {
-            HexSphereConfigs?.Divisions}, start at: {time}");
+        GD.Print($"[===DrawHexSphereMesh===] radius {HexSphereConfigs.Radius}, divisions {
+            HexSphereConfigs.Divisions}, start at: {time}");
         _planetWorld.ClearOldData();
-        _planetWorld.InitHexSphere(HexSphereConfigs);
+        var tiles = _planetWorld.InitHexSphere(HexSphereConfigs);
+
+        foreach (var child in Planet.GetChildren())
+            child.QueueFree();
+        var meshIns = new MeshInstance3D();
+        var surfaceTool = new SurfaceTool();
+        surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
+        surfaceTool.SetSmoothGroup(uint.MaxValue);
+        var vi = 0;
+        foreach (var tile in tiles)
+        {
+            surfaceTool.SetColor(Color.FromHsv(GD.Randf(), GD.Randf(), GD.Randf()));
+            // var heightMultiplier = (float)GD.RandRange(1, 1.05);
+            var points = tile.GetCorners(HexSphereConfigs.Radius, 1f)!;
+            // GD.Print($"points {vi}: {string.Join(", ", points)}");
+            foreach (var point in points)
+                surfaceTool.AddVertex(point);
+            AddFaceIndex(vi, vi + 1, vi + 2, surfaceTool);
+            AddFaceIndex(vi, vi + 2, vi + 3, surfaceTool);
+            AddFaceIndex(vi, vi + 3, vi + 4, surfaceTool);
+            if (points.Length > 5)
+                AddFaceIndex(vi, vi + 4, vi + 5, surfaceTool);
+            vi += points.Length;
+        }
+
+        surfaceTool.GenerateNormals();
+        var material = new StandardMaterial3D();
+        material.VertexColorUseAsAlbedo = true;
+        surfaceTool.SetMaterial(material);
+        meshIns.Mesh = surfaceTool.Commit();
+        Planet.AddChild(meshIns);
+        return;
+
+        static void AddFaceIndex(int i0, int i1, int i2, SurfaceTool surfaceTool)
+        {
+            surfaceTool.AddIndex(i0);
+            surfaceTool.AddIndex(i1);
+            surfaceTool.AddIndex(i2);
+        }
     }
 }

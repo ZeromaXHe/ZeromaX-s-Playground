@@ -76,7 +76,7 @@ type FaceRepo(store: EntityStore) =
                     && Math3dUtil.IsRightVSeq(Vector3.Zero, pointComponent.Position, firstFace.Center, face.Center))
 
             let mutable orderedList = [ second; first ]
-            let mutable currentFaceEntity = orderedList[1]
+            let mutable currentFaceEntity = second
 
             while orderedList.Length < faceEntities.Length do
                 let neighbor =
@@ -87,7 +87,6 @@ type FaceRepo(store: EntityStore) =
 
                         orderedList
                         |> List.forall (fun orderedFaceEntity -> orderedFaceEntity.Id <> faceEntity.Id)
-                        |> not
                         && face.IsAdjacentTo currentFace)
 
                 currentFaceEntity <- neighbor
