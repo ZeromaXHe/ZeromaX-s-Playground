@@ -55,7 +55,7 @@ type VpTree<'T>() =
     let mutable items: 'T array = null
     let mutable tau = 0f
     let mutable root: Node option = None
-    let mutable calculateDistance: CalculateDistance<'T> = null
+    let mutable calculateDistance: 'T CalculateDistance = null
 
     let swap (arr: 'TE array) index1 index2 =
         let temp = arr[index1]
@@ -162,7 +162,7 @@ type VpTree<'T>() =
     /// </summary>
     /// <param name="newItems">新的物体数组 New items</param>
     /// <param name="distanceCalculator">距离计算方法 Distance calculator method</param>
-    member this.Create(newItems: 'T array, distanceCalculator: CalculateDistance<'T>) =
+    member this.Create(newItems: 'T array, distanceCalculator: 'T CalculateDistance) =
         items <- newItems
         calculateDistance <- distanceCalculator
         root <- buildFromPoints 0 newItems.Length
@@ -175,7 +175,7 @@ type VpTree<'T>() =
     /// <param name="numberOfResults">想要的结果数量 Number of results wanted</param>
     /// <param name="results">结果（最近的一个是第一个物体） Results (nearest one is the first item)</param>
     /// <param name="distances">距离 Distances</param>
-    member this.Search(target: 'T, numberOfResults, results: byref<'T array>, distances: byref<float32 array>) =
+    member this.Search(target: 'T, numberOfResults, results: 'T array byref, distances: float32 array byref) =
         let closestHits = List<HeapItem>()
         // 重置 tau 为最长的可能距离
         // Reset tau to longest possible distance

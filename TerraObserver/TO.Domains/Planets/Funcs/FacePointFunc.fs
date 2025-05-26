@@ -32,222 +32,121 @@ module FacePointFunc =
         edges
 
     // 构造北部的第一个面
-    let private initNorthTriangle (edges: Vector3 array array) col divisions adders =
-        let nextCol = (col + 1) % 5
-        let northEast = edges[col * 6] // 北极出来的靠东的边界
-        let northWest = edges[nextCol * 6] // 北极出来的靠西的边界
-        let tropicOfCancer = edges[col * 6 + 1] // 北回归线的边（E -> W）
-        let mutable preLine = [| northEast[0] |] // 初始为北极点
+    let private initNorthTriangle pointAdder faceAdder =
+        fun (edges: Vector3 array array) col divisions ->
+            let nextCol = (col + 1) % 5
+            let northEast = edges[col * 6] // 北极出来的靠东的边界
+            let northWest = edges[nextCol * 6] // 北极出来的靠西的边界
+            let tropicOfCancer = edges[col * 6 + 1] // 北回归线的边（E -> W）
+            let mutable preLine = [| northEast[0] |] // 初始为北极点
 
-        let mutable adders: FacePointAdder list = adders
+            for i in 1..divisions do
+                let nowLine =
+                    if i = divisions then
+                        tropicOfCancer
+                    else
+                        Math3dUtil.Subdivide(northEast[i], northWest[i], i)
 
-        for i in 1..divisions do
-            let nowLine =
                 if i = divisions then
-                    tropicOfCancer
+                    pointAdder nowLine[0] <| SphereAxial(-divisions * col, 0)
                 else
-                    Math3dUtil.Subdivide(northEast[i], northWest[i], i)
+                    pointAdder nowLine[i] <| SphereAxial(-divisions * col, i - divisions)
 
-            adders <-
-                if i = divisions then
-                    PointAdder
-                        { Position = nowLine[0]
-                          Coords = SphereAxial(-divisions * col, 0) }
-                    :: adders
-                else
-                    PointAdder
-                        { Position = nowLine[i]
-                          Coords = SphereAxial(-divisions * col, i - divisions) }
-                    :: adders
+                for j in 0 .. i - 1 do
+                    if j > 0 then
+                        faceAdder nowLine[j] preLine[j] preLine[j - 1]
 
-            for j in 0 .. i - 1 do
-                if j > 0 then
-                    adders <-
-                        FaceAdder
-                            { Vertex1 = nowLine[j]
-                              Vertex2 = preLine[j]
-                              Vertex3 = preLine[j - 1] }
-                        :: adders
+                        pointAdder
+                            nowLine[j]
+                            (if i = divisions then
+                                 SphereAxial(-divisions * col - j, 0)
+                             else
+                                 SphereAxial(-divisions * col - j, i - divisions))
 
-                    adders <-
-                        PointAdder
-                            { Position = nowLine[j]
-                              Coords =
-                                if (i = divisions) then
-                                    SphereAxial(-divisions * col - j, 0)
-                                else
-                                    SphereAxial(-divisions * col - j, i - divisions) }
-                        :: adders
+                    faceAdder preLine[j] nowLine[j] nowLine[j + 1]
 
-                adders <-
-                    FaceAdder
-                        { Vertex1 = preLine[j]
-                          Vertex2 = nowLine[j]
-                          Vertex3 = nowLine[j + 1] }
-                    :: adders
-
-            preLine <- nowLine
-
-        adders
+                preLine <- nowLine
 
     // 赤道两个面（第二、三面）的构造
-    let private initEquatorTwoTriangles (edges: Vector3 array array) col divisions adders =
-        let nextCol = (col + 1) % 5
-        let equatorWest = edges[nextCol * 6 + 3] // 向东南方斜跨赤道的靠西的边界
-        let equatorMid = edges[col * 6 + 2] // 向西南方斜跨赤道的中间的边
-        let equatorEast = edges[col * 6 + 3] // 向东南方斜跨赤道的靠东的边界
-        let tropicOfCapricorn = edges[col * 6 + 4] // 南回归线的边（E -> W）
-        let mutable preLineWest = edges[col * 6 + 1] // 北回归线的边（E -> W）
-        let mutable preLineEast = [| equatorEast[0] |]
+    let private initEquatorTwoTriangles pointAdder faceAdder =
+        fun (edges: Vector3 array array) col divisions ->
+            let nextCol = (col + 1) % 5
+            let equatorWest = edges[nextCol * 6 + 3] // 向东南方斜跨赤道的靠西的边界
+            let equatorMid = edges[col * 6 + 2] // 向西南方斜跨赤道的中间的边
+            let equatorEast = edges[col * 6 + 3] // 向东南方斜跨赤道的靠东的边界
+            let tropicOfCapricorn = edges[col * 6 + 4] // 南回归线的边（E -> W）
+            let mutable preLineWest = edges[col * 6 + 1] // 北回归线的边（E -> W）
+            let mutable preLineEast = [| equatorEast[0] |]
 
-        let mutable adders: FacePointAdder list = adders
+            for i in 1..divisions do
+                let nowLineEast =
+                    if i = divisions then
+                        tropicOfCapricorn
+                    else
+                        Math3dUtil.Subdivide(equatorEast[i], equatorMid[i], i)
 
-        for i in 1..divisions do
-            let nowLineEast =
-                if i = divisions then
-                    tropicOfCapricorn
-                else
-                    Math3dUtil.Subdivide(equatorEast[i], equatorMid[i], i)
+                let nowLineWest = Math3dUtil.Subdivide(equatorMid[i], equatorWest[i], divisions - i)
+                // 构造东边面（第三面）
+                pointAdder nowLineEast[0] <| SphereAxial(-divisions * col, i)
 
-            let nowLineWest = Math3dUtil.Subdivide(equatorMid[i], equatorWest[i], divisions - i)
-            // 构造东边面（第三面）
-            adders <-
-                PointAdder
-                    { Position = nowLineEast[0]
-                      Coords = SphereAxial(-divisions * col, i) }
-                :: adders
+                for j in 0 .. i - 1 do
+                    if j > 0 then
+                        faceAdder nowLineEast[j] preLineEast[j] preLineEast[j - 1]
+                        pointAdder nowLineEast[j] <| SphereAxial(-divisions * col - j, i)
 
-            for j in 0 .. i - 1 do
-                if j > 0 then
-                    adders <-
-                        FaceAdder
-                            { Vertex1 = nowLineEast[j]
-                              Vertex2 = preLineEast[j]
-                              Vertex3 = preLineEast[j - 1] }
-                        :: adders
+                    faceAdder preLineEast[j] nowLineEast[j] nowLineEast[j + 1]
+                // 构造西边面（第二面）
+                if i < divisions then
+                    pointAdder nowLineWest[0] <| SphereAxial(-divisions * col - i, i)
 
-                    adders <-
-                        PointAdder
-                            { Position = nowLineEast[j]
-                              Coords = SphereAxial(-divisions * col - j, i) }
-                        :: adders
+                for j in 0 .. divisions - i do
+                    if j > 0 then
+                        faceAdder preLineWest[j] nowLineWest[j - 1] nowLineWest[j]
 
-                adders <-
-                    FaceAdder
-                        { Vertex1 = preLineEast[j]
-                          Vertex2 = nowLineEast[j]
-                          Vertex3 = nowLineEast[j + 1] }
-                    :: adders
-            // 构造西边面（第二面）
-            if i < divisions then
-                adders <-
-                    PointAdder
-                        { Position = nowLineWest[0]
-                          Coords = SphereAxial(-divisions * col - i, i) }
-                    :: adders
+                        if j < divisions - i then
+                            pointAdder nowLineWest[j] <| SphereAxial(-divisions * col - i - j, i)
 
-            for j in 0 .. divisions - i do
-                if j > 0 then
-                    adders <-
-                        FaceAdder
-                            { Vertex1 = preLineWest[j]
-                              Vertex2 = nowLineWest[j - 1]
-                              Vertex3 = nowLineWest[j] }
-                        :: adders
+                    faceAdder nowLineWest[j] preLineWest[j + 1] preLineWest[j]
 
-                    if j < divisions - i then
-                        adders <-
-                            PointAdder
-                                { Position = nowLineWest[j]
-                                  Coords = SphereAxial(-divisions * col - i - j, i) }
-                            :: adders
-
-                adders <-
-                    FaceAdder
-                        { Vertex1 = nowLineWest[j]
-                          Vertex2 = preLineWest[j + 1]
-                          Vertex3 = preLineWest[j] }
-                    :: adders
-
-            preLineEast <- nowLineEast
-            preLineWest <- nowLineWest
-
-        adders
+                preLineEast <- nowLineEast
+                preLineWest <- nowLineWest
 
     // 构造南部的最后一面（列的第四面）
-    let private initSouthTriangle (edges: Vector3 array array) col divisions adders =
-        let nextCol = (col + 1) % 5
-        let southWest = edges[nextCol * 6 + 5] // 向南方连接南极的靠西的边界
-        let southEast = edges[col * 6 + 5] // 向南方连接南极的靠东的边界
-        let mutable preLine = edges[col * 6 + 4] // 南回归线的边（E -> W）
+    let private initSouthTriangle pointAdder faceAdder =
+        fun (edges: Vector3 array array) col divisions ->
+            let nextCol = (col + 1) % 5
+            let southWest = edges[nextCol * 6 + 5] // 向南方连接南极的靠西的边界
+            let southEast = edges[col * 6 + 5] // 向南方连接南极的靠东的边界
+            let mutable preLine = edges[col * 6 + 4] // 南回归线的边（E -> W）
 
-        let mutable adders: FacePointAdder list = adders
+            for i in 1..divisions do
+                let nowLine = Math3dUtil.Subdivide(southEast[i], southWest[i], divisions - i)
 
-        for i in 1..divisions do
-            let nowLine = Math3dUtil.Subdivide(southEast[i], southWest[i], divisions - i)
+                if i < divisions then
+                    pointAdder nowLine[0] <| SphereAxial(-divisions * col - i, divisions + i)
 
-            if i < divisions then
-                adders <-
-                    PointAdder
-                        { Position = nowLine[0]
-                          Coords = SphereAxial(-divisions * col - i, divisions + i) }
-                    :: adders
+                for j in 0 .. divisions - i do
+                    if j > 0 then
+                        faceAdder preLine[j] nowLine[j - 1] nowLine[j]
 
-            for j in 0 .. divisions - i do
-                if j > 0 then
-                    adders <-
-                        FaceAdder
-                            { Vertex1 = preLine[j]
-                              Vertex2 = nowLine[j - 1]
-                              Vertex3 = nowLine[j] }
-                        :: adders
+                        if j < divisions - i then
+                            pointAdder nowLine[j] <| SphereAxial(-divisions * col - i - j, divisions + i)
 
-                    if j < divisions - i then
-                        adders <-
-                            PointAdder
-                                { Position = nowLine[j]
-                                  Coords = SphereAxial(-divisions * col - i - j, divisions + i) }
-                            :: adders
+                    faceAdder nowLine[j] preLine[j + 1] preLine[j]
 
-                adders <-
-                    FaceAdder
-                        { Vertex1 = nowLine[j]
-                          Vertex2 = preLine[j + 1]
-                          Vertex3 = preLine[j] }
-                    :: adders
-
-            preLine <- nowLine
-
-        adders
+                preLine <- nowLine
 
     // 初始化 Point 和 Face
-    let subdivideIcosahedron divisions =
-        let pn = IcosahedronConstant.Vertices[0] // 北极点
-        let ps = IcosahedronConstant.Vertices[6] // 南极点
+    let subdivideIcosahedron pointAdder faceAdder =
+        fun divisions ->
+            let pn = IcosahedronConstant.Vertices[0] // 北极点
+            let ps = IcosahedronConstant.Vertices[6] // 南极点
+            // 轴坐标系（0,0）放在第一组竖列四面的北回归线最东端
+            pointAdder pn <| SphereAxial(0, -divisions)
+            pointAdder ps <| SphereAxial(-divisions, 2 * divisions)
+            let edges = genEdgeVectors divisions pn ps
 
-        let mutable adders: FacePointAdder list = []
-        // 轴坐标系（0,0）放在第一组竖列四面的北回归线最东端
-        adders <-
-            PointAdder(
-                { Position = pn
-                  Coords = SphereAxial(0, -divisions) }
-            )
-            :: adders
-
-        adders <-
-            PointAdder(
-                { Position = ps
-                  Coords = SphereAxial(-divisions, 2 * divisions) }
-            )
-            :: adders
-
-        let edges = genEdgeVectors divisions pn ps
-
-        for col in 0..4 do
-            adders <-
-                adders
-                |> (initNorthTriangle edges col divisions
-                    >> initEquatorTwoTriangles edges col divisions
-                    >> initSouthTriangle edges col divisions)
-
-        adders
+            for col in 0..4 do
+                initNorthTriangle pointAdder faceAdder edges col divisions
+                initEquatorTwoTriangles pointAdder faceAdder edges col divisions
+                initSouthTriangle pointAdder faceAdder edges col divisions

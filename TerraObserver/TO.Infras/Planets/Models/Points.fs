@@ -22,7 +22,7 @@ module Points =
     // 这里直接用 ILinkRelation 连接面实体，是因为我们不在乎面的顺序
     [<Struct>]
     type PointToFaceId =
-        interface IRelation<int> with
+        interface int IRelation with
             member this.GetRelationKey() = this.FaceId
 
         val FaceId: int
@@ -34,7 +34,7 @@ module Points =
     /// Date: 2025-05-17 10:44:17
     [<Struct>]
     type PointComponent =
-        interface IIndexedComponent<Vector3> with
+        interface Vector3 IIndexedComponent with
             member this.GetIndexedValue() = this.Position
 
         val Position: Vector3

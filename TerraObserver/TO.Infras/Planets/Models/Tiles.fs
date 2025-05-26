@@ -10,7 +10,7 @@ open TO.Commons.Utils
 module Tiles =
     [<Struct>]
     type TileComponent =
-        interface IIndexedComponent<int> with
+        interface int IIndexedComponent with
             member this.GetIndexedValue() = this.CenterId
 
         val CenterId: int // 注意，此处对应的是中心点投射到单位球上的 Point id。
