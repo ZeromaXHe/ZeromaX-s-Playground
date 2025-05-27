@@ -5,31 +5,30 @@ open Godot
 open TO.Commons.Utils
 open TO.Infras.Planets.Models.Faces
 open TO.Infras.Planets.Models.Points
+open TO.Infras.Planets.Utils
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-05-18 20:05:18
 type FaceRepo(store: EntityStore) =
     // 面
-    let typeFace = ComponentTypes.Get<FaceComponent>()
     let tagChunk = Tags.Get<FaceTagChunk>()
     let tagTile = Tags.Get<FaceTagTile>()
-    let archetypeChunk = store.GetArchetype(&typeFace, &tagChunk)
-    let archetypeTile = store.GetArchetype(&typeFace, &tagTile)
 
-    member this.QueryAll chunky =
-        store.Query<FaceComponent>().AllTags(if chunky then &tagChunk else &tagTile)
+    member this.ForEachByChunky chunky forEachFace =
+        FrifloEcsUtil.forEachEntity
+        <| store.Query<FaceComponent>().AllTags(if chunky then &tagChunk else &tagTile)
+        <| forEachFace
 
     member this.Add chunky (vertex1: Vector3) (vertex2: Vector3) (vertex3: Vector3) =
+        let center = (vertex1 + vertex2 + vertex3) / 3f
+
         let face =
             if chunky then
-                archetypeChunk.CreateEntity()
+                store.CreateEntity(FaceComponent(center, vertex1, vertex2, vertex3), &tagChunk)
             else
-                archetypeTile.CreateEntity()
+                store.CreateEntity(FaceComponent(center, vertex1, vertex2, vertex3), &tagTile)
 
-        let center = (vertex1 + vertex2 + vertex3) / 3f
-        let faceComponent = FaceComponent(center, vertex1, vertex2, vertex3)
-        face.AddComponent<FaceComponent>(&faceComponent) |> ignore
         face.Id
 
     // 因为 pointComponent 要传给闭包，所以不用 inref

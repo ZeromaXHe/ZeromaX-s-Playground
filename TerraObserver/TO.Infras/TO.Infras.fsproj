@@ -10,6 +10,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Compile Include="Planets\Utils\FrifloEcsUtil.fs" />
         <Compile Include="Planets\Models\Points.fs" />
         <Compile Include="Planets\Models\Faces.fs" />
         <Compile Include="Planets\Models\Tiles.fs" />

@@ -5,6 +5,7 @@ open Godot
 open TO.Commons.DataStructures
 open TO.Infras.Planets.Models.Faces
 open TO.Infras.Planets.Models.Points
+open TO.Infras.Planets.Utils
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
@@ -17,22 +18,13 @@ type PointRepo(store: EntityStore) =
     // 单位球上的 Tile 点 VP 树
     let tilePointVpTree = VpTree<Vector3>()
 
-    let queryByPosition chunky pos =
-        let pointChunks =
-            store
-                .Query<PointComponent>()
-                .HasValue<PointComponent, Vector3>(pos)
-                .AllTags(if chunky then &tagChunk else &tagTile)
-                .Chunks
-
-        if pointChunks.Count = 0 then
-            None
-        else
-            pointChunks
-            |> Seq.tryHead
-            |> Option.map (fun chunk ->
-                let _, pointEntities = chunk.Deconstruct()
-                pointEntities.EntityAt(0)) // 我们默认只会存在一个点
+    let tryHeadByPosition chunky pos =
+        // 我们默认只会最多存在一个结果
+        FrifloEcsUtil.tryHeadEntity
+        <| store
+            .Query<PointComponent>()
+            .HasValue<PointComponent, Vector3>(pos)
+            .AllTags(if chunky then &tagChunk else &tagTile)
 
     let getPointIdx (face: FaceComponent, point: PointComponent inref) =
         if face.Vertex1 = point.Position then 0
@@ -45,22 +37,25 @@ type PointRepo(store: EntityStore) =
         let idx = getPointIdx (face, &point)
 
         seq {
-            queryByPosition chunky <| face.Vertex((idx + 1) % 3)
-            queryByPosition chunky <| face.Vertex((idx + 2) % 3)
+            tryHeadByPosition chunky <| face.Vertex((idx + 1) % 3)
+            tryHeadByPosition chunky <| face.Vertex((idx + 2) % 3)
         }
     // 顺时针第一个顶点
     let getLeftOtherPoint (chunky, face, point: PointComponent inref) =
         let idx = getPointIdx (face, &point)
-        queryByPosition chunky <| face.Vertex((idx + 1) % 3)
+        tryHeadByPosition chunky <| face.Vertex((idx + 1) % 3)
     // 顺时针第二个顶点
     let getRightOtherPoint (chunky, face, point: PointComponent inref) =
         let idx = getPointIdx (face, &point)
-        queryByPosition chunky <| face.Vertex((idx + 2) % 3)
+        tryHeadByPosition chunky <| face.Vertex((idx + 2) % 3)
 
-    member this.QueryAllByChunky chunky =
+    let queryByChunky chunky =
         store.Query<PointComponent>().AllTags(if chunky then &tagChunk else &tagTile)
 
-    member this.QueryByPosition chunky pos = queryByPosition chunky pos
+    member this.ForEachByChunky chunky forEachPoint =
+        FrifloEcsUtil.forEachEntity <| queryByChunky chunky <| forEachPoint
+
+    member this.TryHeadByPosition chunky pos = tryHeadByPosition chunky pos
 
     member this.Add chunky position coords =
         let point =
@@ -84,13 +79,10 @@ type PointRepo(store: EntityStore) =
         result
 
     member this.CreateVpTree(chunky: bool) =
-        let pointQuery = this.QueryAllByChunky chunky
-        let items = Array.zeroCreate<Vector3> pointQuery.Count
-        let mutable i = 0
+        let pointQuery = queryByChunky chunky
 
-        pointQuery.ForEachEntity(fun pComp pEntity ->
-            items[i] <- pComp.Position
-            i <- i + 1)
+        let items =
+            FrifloEcsUtil.toComponentSeq pointQuery |> Seq.map _.Position |> Seq.toArray
 
         let tree = if chunky then chunkPointVpTree else tilePointVpTree
         tree.Create(items, fun p0 p1 -> p0.DistanceTo p1)

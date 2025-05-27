@@ -8,6 +8,7 @@ open TO.Infras.Planets.Models.Faces
 open TO.Infras.Planets.Models.Points
 open TO.Infras.Planets.Models.Tiles
 open TO.Infras.Planets.Repos
+open TO.Infras.Planets.Utils
 open TO.Nodes.Abstractions.Planets.Models
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
@@ -21,12 +22,11 @@ type PlanetWorld() =
     let chunkRepo = ChunkRepo(store)
 
     let initPointFaceLinks chunky =
-        let query = faceRepo.QueryAll chunky
-
-        query.ForEachEntity(fun faceComp faceEntity ->
+        faceRepo.ForEachByChunky chunky
+        <| (fun faceComp faceEntity ->
             let relatePointToFace v =
                 // 给每个点建立它与所归属的面的关系
-                pointRepo.QueryByPosition chunky v
+                pointRepo.TryHeadByPosition chunky v
                 |> Option.iter (fun pointEntity ->
                     let relation = PointToFaceId(faceEntity)
                     pointEntity.AddRelation(&relation) |> ignore)
@@ -53,14 +53,13 @@ type PlanetWorld() =
 
     let searchNearest (pos: Vector3) chunky =
         let center = pointRepo.SearchNearestCenterPos(pos, chunky)
-        let pointEntityOpt = pointRepo.QueryByPosition chunky center
 
-        pointEntityOpt
+        pointRepo.TryHeadByPosition chunky center
         |> Option.bind (fun pointEntity ->
             if chunky then
-                chunkRepo.QueryByCenterId pointEntity.Id
+                chunkRepo.TryHeadByCenterId pointEntity.Id
             else
-                tileRepo.QueryByCenterId pointEntity.Id)
+                tileRepo.TryHeadByCenterId pointEntity.Id)
 
     let searchNearestId (pos: Vector3) chunky =
         searchNearest pos chunky |> Option.map _.Id
@@ -79,9 +78,9 @@ type PlanetWorld() =
     let initChunks (hexSphereConfigs: IHexSphereConfigs) =
         let time = Time.GetTicksMsec()
         initPointsAndFaces true hexSphereConfigs.ChunkDivisions
-        let chunkyPoints = pointRepo.QueryAllByChunky true
 
-        chunkyPoints.ForEachEntity(fun pComp pEntity ->
+        pointRepo.ForEachByChunky true
+        <| (fun pComp pEntity ->
             let _, _, neighborCenterIds =
                 getHexFacesAndNeighborCenterIds (true, &pComp, &pEntity)
 
@@ -99,13 +98,13 @@ type PlanetWorld() =
     let initTiles (hexSphereConfigs: IHexSphereConfigs) =
         let mutable time = Time.GetTicksMsec()
         initPointsAndFaces false hexSphereConfigs.Divisions
-        let tilePoints = pointRepo.QueryAllByChunky false
 
-        tilePoints.ForEachEntity(fun pComp pEntity ->
+        pointRepo.ForEachByChunky false
+        <| (fun pComp pEntity ->
             let hexFaces, hexFaceIds, neighborCenterIds =
                 getHexFacesAndNeighborCenterIds (false, &pComp, &pEntity)
 
-            searchNearest pComp.Position true
+            searchNearest pComp.Position true // 找到最近的 Chunk
             |> Option.iter (fun chunk ->
                 let tileId =
                     tileRepo.Add(pEntity.Id, chunk.Id, hexFaces, hexFaceIds, neighborCenterIds)
@@ -124,14 +123,7 @@ type PlanetWorld() =
     member this.InitHexSphere(hexSphereConfigs: IHexSphereConfigs) =
         initChunks hexSphereConfigs
         initTiles hexSphereConfigs
-
-        seq {
-            for chunks in store.Query<TileComponent>().Chunks do
-                let chunk, _ = chunks.Deconstruct()
-
-                for i in 0 .. chunk.Length - 1 do
-                    chunk.Span[i]
-        }
+        FrifloEcsUtil.toComponentSeq <| store.Query<TileComponent>()
 
     member this.ClearOldData() =
         store.Entities |> Seq.iter _.DeleteEntity()
