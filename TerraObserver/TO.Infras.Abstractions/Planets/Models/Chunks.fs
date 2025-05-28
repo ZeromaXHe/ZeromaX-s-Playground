@@ -1,4 +1,4 @@
-namespace TO.Infras.Planets.Models
+namespace TO.Infras.Abstractions.Planets.Models
 
 open Friflo.Engine.ECS
 open Godot
@@ -31,4 +31,4 @@ module Chunks =
             member this.GetRelationKey() = this.TileId
 
         val TileId: int
-        new(tile: Entity) = { TileId = tile.Id }
+        new(tileId: int) = { TileId = tileId }

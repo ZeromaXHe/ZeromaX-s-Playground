@@ -13,11 +13,9 @@
         <EmbeddedResource Remove="Test.*\**"/>
     </ItemGroup>
     <ItemGroup>
-      <ProjectReference Include="TO.Commons\TO.Commons.fsproj" />
-      <ProjectReference Include="TO.Infras\TO.Infras.fsproj" />
-      <ProjectReference Include="TO.Nodes.Abstractions\TO.Nodes.Abstractions.csproj" />
+        <ProjectReference Include="TO.Apps\TO.Apps.fsproj"/>
     </ItemGroup>
     <ItemGroup>
-      <Folder Include="Scenes\Bases\Enums\" />
+        <Folder Include="Scenes\Bases\Enums\"/>
     </ItemGroup>
 </Project>

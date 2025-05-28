@@ -1,4 +1,4 @@
-namespace TO.Infras.Planets.Models
+namespace TO.Infras.Abstractions.Planets.Models
 
 open Friflo.Engine.ECS
 open Godot

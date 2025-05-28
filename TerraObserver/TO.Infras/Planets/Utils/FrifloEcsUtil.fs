@@ -39,3 +39,6 @@ module FrifloEcsUtil =
         // This function value is being used to construct a delegate type whose signature includes a byref argument. You must use an explicit lambda expression taking 2 arguments.
         query.ForEachEntity
         <| ForEachEntity<'T>(fun comp entity -> forEachLambda comp entity)
+
+    let truncate<'T when 'T: (new: unit -> 'T) and 'T: struct and 'T :> System.ValueType> (query: ArchetypeQuery<'T>) =
+        query.ForEachEntity(fun _ tileEntity -> tileEntity.DeleteEntity())

@@ -1,26 +1,18 @@
-namespace TO.Infras.Planets
+namespace TO.Apps.Planets.Services
 
 open Friflo.Engine.ECS
 open Godot
 open TO.Domains.Planets.Functions
-open TO.Infras.Planets.Models.Chunks
-open TO.Infras.Planets.Models.Faces
-open TO.Infras.Planets.Models.Points
-open TO.Infras.Planets.Models.Tiles
-open TO.Infras.Planets.Repos
-open TO.Infras.Planets.Utils
+open TO.Infras.Abstractions.Planets.Repos
+open TO.Infras.Abstractions.Planets.Models.Chunks
+open TO.Infras.Abstractions.Planets.Models.Faces
+open TO.Infras.Abstractions.Planets.Models.Points
 open TO.Nodes.Abstractions.Planets.Models
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
-/// Date: 2025-05-15 14:33:15
-type PlanetWorld() =
-    let store = EntityStore()
-    let pointRepo = PointRepo(store)
-    let faceRepo = FaceRepo(store)
-    let tileRepo = TileRepo(store)
-    let chunkRepo = ChunkRepo(store)
-
+/// Date: 2025-05-27 20:40:27
+type HexSphereService(pointRepo: IPointRepo, faceRepo: IFaceRepo, tileRepo: ITileRepo, chunkRepo: IChunkRepo) =
     let initPointFaceLinks chunky =
         faceRepo.ForEachByChunky chunky
         <| (fun faceComp faceEntity ->
@@ -28,7 +20,7 @@ type PlanetWorld() =
                 // 给每个点建立它与所归属的面的关系
                 pointRepo.TryHeadByPosition chunky v
                 |> Option.iter (fun pointEntity ->
-                    let relation = PointToFaceId(faceEntity)
+                    let relation = PointToFaceId(faceEntity.Id)
                     pointEntity.AddRelation(&relation) |> ignore)
 
             relatePointToFace faceComp.Vertex1
@@ -69,8 +61,7 @@ type PlanetWorld() =
         let hexFaces = hexFaceEntities |> List.map _.GetComponent<FaceComponent>()
 
         let neighborCenterIds =
-            pointRepo.GetNeighborCenterPoints(chunky, hexFaces, &pComp)
-            |> Seq.map _.Id
+            pointRepo.GetNeighborCenterPointIds(chunky, hexFaces, &pComp)
             |> Seq.toArray
 
         (hexFaces |> List.toArray, hexFaceEntities |> List.map _.Id |> List.toArray, neighborCenterIds)
@@ -109,7 +100,7 @@ type PlanetWorld() =
                 let tileId =
                     tileRepo.Add(pEntity.Id, chunk.Id, hexFaces, hexFaceIds, neighborCenterIds)
 
-                let link = ChunkToTileId(store.GetEntityById tileId)
+                let link = ChunkToTileId(tileId)
                 chunk.AddRelation(&link) |> ignore))
 
         let mutable time2 = Time.GetTicksMsec()
@@ -123,7 +114,10 @@ type PlanetWorld() =
     member this.InitHexSphere(hexSphereConfigs: IHexSphereConfigs) =
         initChunks hexSphereConfigs
         initTiles hexSphereConfigs
-        FrifloEcsUtil.toComponentSeq <| store.Query<TileComponent>()
+        tileRepo.AllSeq()
 
     member this.ClearOldData() =
-        store.Entities |> Seq.iter _.DeleteEntity()
+        pointRepo.Truncate()
+        faceRepo.Truncate()
+        tileRepo.Truncate()
+        chunkRepo.Truncate()

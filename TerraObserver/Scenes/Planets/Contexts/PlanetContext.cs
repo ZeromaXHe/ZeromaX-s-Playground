@@ -1,9 +1,12 @@
-using System;
 using System.Collections.Generic;
+using Friflo.Engine.ECS;
 using Godot;
 using TerraObserver.Scenes.Planets.Models;
 using TerraObserver.Scenes.Planets.Views;
-using TO.Infras.Planets;
+using TO.Apps.Planets;
+using TO.Apps.Planets.Services;
+using TO.Infras.Abstractions.Planets.Repos;
+using TO.Infras.Planets.Repos;
 
 namespace TerraObserver.Scenes.Planets.Contexts;
 
@@ -13,7 +16,7 @@ namespace TerraObserver.Scenes.Planets.Contexts;
 [Tool]
 public partial class PlanetContext : Node
 {
-    #region export 变量
+    #region 外部依赖
 
     [ExportGroup("Views 显示层")]
     [Export]
@@ -74,13 +77,37 @@ public partial class PlanetContext : Node
 
     #endregion
 
-    private PlanetWorld _planetWorld = new();
+    #region 内部依赖
+
+    private readonly EntityStore _store = new();
+    // Repos
+    private IPointRepo _pointRepo = null!;
+    private IFaceRepo _faceRepo = null!;
+    private ITileRepo _tileRepo = null!;
+    private IChunkRepo _chunkRepo = null!;
+    // Services
+    private HexSphereService _hexSphereService = null!;
+    // Worlds
+    private PlanetWorld _planetWorld = null!;
+
+    private void ComposeRoot()
+    {
+        _pointRepo = new PointRepo(_store);
+        _faceRepo = new FaceRepo(_store);
+        _tileRepo = new TileRepo(_store);
+        _chunkRepo = new ChunkRepo(_store);
+        _hexSphereService = new HexSphereService(_pointRepo, _faceRepo, _tileRepo, _chunkRepo);
+        _planetWorld = new PlanetWorld(_hexSphereService);
+    }
+
+    #endregion
 
     private bool NodeReady { get; set; }
 
     public override void _Ready()
     {
         NodeReady = true;
+        ComposeRoot();
         DrawHexSphereMesh();
     }
 
@@ -100,48 +127,6 @@ public partial class PlanetContext : Node
     {
         if (!NodeReady || HexSphereConfigs == null || Planet == null)
             return;
-        var time = Time.GetTicksMsec();
-        GD.Print($"[===DrawHexSphereMesh===] radius {HexSphereConfigs.Radius}, divisions {
-            HexSphereConfigs.Divisions}, start at: {time}");
-        _planetWorld.ClearOldData();
-        var tiles = _planetWorld.InitHexSphere(HexSphereConfigs);
-
-        foreach (var child in Planet.GetChildren())
-            child.QueueFree();
-        var meshIns = new MeshInstance3D();
-        var surfaceTool = new SurfaceTool();
-        surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
-        surfaceTool.SetSmoothGroup(uint.MaxValue);
-        var vi = 0;
-        foreach (var tile in tiles)
-        {
-            surfaceTool.SetColor(Color.FromHsv(GD.Randf(), GD.Randf(), GD.Randf()));
-            // var heightMultiplier = (float)GD.RandRange(1, 1.05);
-            var points = tile.GetCorners(HexSphereConfigs.Radius, 1f)!;
-            // GD.Print($"points {vi}: {string.Join(", ", points)}");
-            foreach (var point in points)
-                surfaceTool.AddVertex(point);
-            AddFaceIndex(vi, vi + 1, vi + 2, surfaceTool);
-            AddFaceIndex(vi, vi + 2, vi + 3, surfaceTool);
-            AddFaceIndex(vi, vi + 3, vi + 4, surfaceTool);
-            if (points.Length > 5)
-                AddFaceIndex(vi, vi + 4, vi + 5, surfaceTool);
-            vi += points.Length;
-        }
-
-        surfaceTool.GenerateNormals();
-        var material = new StandardMaterial3D();
-        material.VertexColorUseAsAlbedo = true;
-        surfaceTool.SetMaterial(material);
-        meshIns.Mesh = surfaceTool.Commit();
-        Planet.AddChild(meshIns);
-        return;
-
-        static void AddFaceIndex(int i0, int i1, int i2, SurfaceTool surfaceTool)
-        {
-            surfaceTool.AddIndex(i0);
-            surfaceTool.AddIndex(i1);
-            surfaceTool.AddIndex(i2);
-        }
+        _planetWorld.DrawHexSphereMesh(Planet, HexSphereConfigs);
     }
 }

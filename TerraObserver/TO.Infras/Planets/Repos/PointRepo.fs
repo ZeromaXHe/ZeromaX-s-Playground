@@ -3,8 +3,9 @@ namespace TO.Infras.Planets.Repos
 open Friflo.Engine.ECS
 open Godot
 open TO.Commons.DataStructures
-open TO.Infras.Planets.Models.Faces
-open TO.Infras.Planets.Models.Points
+open TO.Infras.Abstractions.Planets.Repos
+open TO.Infras.Abstractions.Planets.Models.Faces
+open TO.Infras.Abstractions.Planets.Models.Points
 open TO.Infras.Planets.Utils
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
@@ -52,44 +53,49 @@ type PointRepo(store: EntityStore) =
     let queryByChunky chunky =
         store.Query<PointComponent>().AllTags(if chunky then &tagChunk else &tagTile)
 
-    member this.ForEachByChunky chunky forEachPoint =
-        FrifloEcsUtil.forEachEntity <| queryByChunky chunky <| forEachPoint
 
-    member this.TryHeadByPosition chunky pos = tryHeadByPosition chunky pos
+    interface IPointRepo with
+        override this.ForEachByChunky chunky forEachPoint =
+            FrifloEcsUtil.forEachEntity <| queryByChunky chunky <| forEachPoint
 
-    member this.Add chunky position coords =
-        let point =
-            if chunky then
-                store.CreateEntity(PointComponent(position, coords), &tagChunk)
-            else
-                store.CreateEntity(PointComponent(position, coords), &tagTile)
+        override this.TryHeadByPosition chunky pos = tryHeadByPosition chunky pos
 
-        point.Id
+        override this.Add chunky position coords =
+            let point =
+                if chunky then
+                    store.CreateEntity(PointComponent(position, coords), &tagChunk)
+                else
+                    store.CreateEntity(PointComponent(position, coords), &tagTile)
 
-    // 使用 inref 时，无法使用函数柯里化形式
-    member this.GetNeighborCenterPoints(chunky, hexFaces: FaceComponent list, center: PointComponent inref) =
-        // 使用 inref 时，无法使用闭包
-        // hexFaces |> List.map (fun face -> getRightOtherPoints chunky face center)
-        let result = ResizeArray<_>() // 对应就是 C# List 在 F# 的别名
+            point.Id
 
-        for face in hexFaces do
-            let otherPoint = getRightOtherPoint (chunky, face, &center)
-            otherPoint |> Option.iter result.Add
+        // 使用 inref 时，无法使用函数柯里化形式
+        override this.GetNeighborCenterPointIds(chunky, hexFaces: FaceComponent list, center: PointComponent inref) =
+            // 使用 inref 时，无法使用闭包
+            // hexFaces |> List.map (fun face -> getRightOtherPoints chunky face center)
+            let result = ResizeArray<_>() // 对应就是 C# List 在 F# 的别名
 
-        result
+            for face in hexFaces do
+                let otherPoint = getRightOtherPoint (chunky, face, &center)
+                otherPoint |> Option.iter (fun p -> result.Add p.Id)
 
-    member this.CreateVpTree(chunky: bool) =
-        let pointQuery = queryByChunky chunky
+            result
 
-        let items =
-            FrifloEcsUtil.toComponentSeq pointQuery |> Seq.map _.Position |> Seq.toArray
+        override this.CreateVpTree(chunky: bool) =
+            let pointQuery = queryByChunky chunky
 
-        let tree = if chunky then chunkPointVpTree else tilePointVpTree
-        tree.Create(items, fun p0 p1 -> p0.DistanceTo p1)
+            let items =
+                FrifloEcsUtil.toComponentSeq pointQuery |> Seq.map _.Position |> Seq.toArray
 
-    member this.SearchNearestCenterPos(pos: Vector3, chunky: bool) =
-        let mutable results: Vector3 array = null
-        let mutable distances: float32 array = null
-        let tree = if chunky then chunkPointVpTree else tilePointVpTree
-        tree.Search(pos.Normalized(), 1, &results, &distances)
-        results[0]
+            let tree = if chunky then chunkPointVpTree else tilePointVpTree
+            tree.Create(items, fun p0 p1 -> p0.DistanceTo p1)
+
+        override this.SearchNearestCenterPos(pos: Vector3, chunky: bool) =
+            let mutable results: Vector3 array = null
+            let mutable distances: float32 array = null
+            let tree = if chunky then chunkPointVpTree else tilePointVpTree
+            tree.Search(pos.Normalized(), 1, &results, &distances)
+            results[0]
+
+        override this.Truncate() =
+            FrifloEcsUtil.truncate <| store.Query<PointComponent>()

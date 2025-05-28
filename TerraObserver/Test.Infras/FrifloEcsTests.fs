@@ -1,7 +1,7 @@
 module FrifloEcsTests
 
 open Friflo.Engine.ECS
-open TO.Infras.Planets.Models.Points
+open TO.Infras.Abstractions.Planets.Models.Points
 open Xunit
 
 [<Fact>]

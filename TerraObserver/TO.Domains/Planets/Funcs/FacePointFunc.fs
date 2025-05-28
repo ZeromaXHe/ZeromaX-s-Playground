@@ -4,7 +4,6 @@ open Godot
 open TO.Commons.Constants
 open TO.Commons.Structs.HexSphereGrid
 open TO.Commons.Utils
-open TO.Domains.Planets.Types.FacePoint
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)

@@ -1,4 +1,4 @@
-namespace TO.Infras.Planets.Models
+namespace TO.Infras.Abstractions.Planets.Models
 
 open Friflo.Engine.ECS
 open Godot
@@ -26,7 +26,7 @@ module Points =
             member this.GetRelationKey() = this.FaceId
 
         val FaceId: int
-        new(face: Entity) = { FaceId = face.Id }
+        new(faceId: int) = { FaceId = faceId }
 
     /// 点组件<br/>
     /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
