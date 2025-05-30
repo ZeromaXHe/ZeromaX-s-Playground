@@ -38,3 +38,9 @@ module TileRepo =
 
     let truncate (store: EntityStore) : TruncateTiles =
         fun () -> FrifloEcsUtil.truncate <| store.Query<TileComponent>()
+
+    let getDependency store : TileRepoDep =
+        { TryHeadByCenterId = tryHeadByCenterId store
+          Add = add store
+          AllSeq = allSeq store
+          Truncate = truncate store }

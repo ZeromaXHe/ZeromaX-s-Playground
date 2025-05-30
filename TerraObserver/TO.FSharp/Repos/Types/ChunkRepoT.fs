@@ -10,3 +10,8 @@ open TO.FSharp.Repos.Models.HexSpheres.Tiles
 type TryHeadChunkByCenterId = CenterId -> Entity option
 type AddChunk = CenterId -> Vector3 -> NeighborCenterIds -> int
 type TruncateChunks = unit -> unit
+
+type ChunkRepoDep =
+    { TryHeadByCenterId: TryHeadChunkByCenterId
+      Add: AddChunk
+      Truncate: TruncateChunks }

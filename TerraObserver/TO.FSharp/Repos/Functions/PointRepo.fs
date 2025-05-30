@@ -98,3 +98,12 @@ module PointRepo =
 
     let truncate (store: EntityStore) : TruncatePoints =
         fun () -> FrifloEcsUtil.truncate <| store.Query<PointComponent>()
+
+    let getDependency chunkDep chunkVpTree tileVpTree : PointRepoDep =
+        { ForEachByChunky = forEachByChunky chunkDep
+          TryHeadByPosition = tryHeadByPosition chunkDep
+          Add = add chunkDep
+          GetNeighborCenterPointIds = getNeighborCenterPointIds chunkDep
+          CreateVpTree = createVpTree chunkDep chunkVpTree tileVpTree
+          SearchNearestCenterPos = searchNearestCenterPos chunkVpTree tileVpTree
+          Truncate = truncate chunkDep.Store }

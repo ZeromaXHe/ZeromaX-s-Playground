@@ -16,54 +16,21 @@ open TO.FSharp.Services.Functions
 /// Date: 2025-05-30 19:41:30
 type PlanetApp(planet: IPlanet) =
     let store = EntityStore()
-
-    let truncatePoints = PointRepo.truncate store
-    let truncateFaces = FaceRepo.truncate store
-    let truncateTiles = TileRepo.truncate store
-    let truncateChunks = ChunkRepo.truncate store
-
-    let clearOldData =
-        HexSphereService.clearOldData truncatePoints truncateFaces truncateTiles truncateChunks
+    let chunkVpTree = VpTree<Vector3>()
+    let tileVpTree = VpTree<Vector3>()
 
     let chunkDep =
         { Store = store
           TagChunk = Tags.Get<TagChunk>()
           TagTile = Tags.Get<TagTile>() }
 
-    let forEachFaceByChunky = FaceRepo.forEachByChunky chunkDep
-    let forEachPointByChunky = PointRepo.forEachByChunky chunkDep
-    let chunkVpTree = VpTree<Vector3>()
-    let tileVpTree = VpTree<Vector3>()
-    let searchNearestCenterPos = PointRepo.searchNearestCenterPos chunkVpTree tileVpTree
-    let tryHeadPointByPosition = PointRepo.tryHeadByPosition chunkDep
-    let tryHeadChunkByCenterId = ChunkRepo.tryHeadByCenterId store
-    let tryHeadTileByCenterId =  TileRepo.tryHeadByCenterId store
-    let getOrderedFaces = FaceRepo.getOrderedFaces store
-    let getNeighborCenterPointIds =  PointRepo.getNeighborCenterPointIds chunkDep
-    let createVpTree = PointRepo.createVpTree chunkDep chunkVpTree tileVpTree
-    let addPoint = PointRepo.add chunkDep
-    let addFace = FaceRepo.add chunkDep
-    let addTile = TileRepo.add store
-    let addChunk = ChunkRepo.add store
-    let allTilesSeq = TileRepo.allSeq store
+    let pointRepoDep = PointRepo.getDependency chunkDep chunkVpTree tileVpTree
+    let faceRepoDep = FaceRepo.getDependency chunkDep
+    let tileRepoDep = TileRepo.getDependency store
+    let chunkRepoDep = ChunkRepo.getDependency store
 
-    let initHexSphere () =
-        HexSphereService.initHexSphere
-            planet
-            forEachFaceByChunky
-            forEachPointByChunky
-            searchNearestCenterPos
-            tryHeadPointByPosition
-            tryHeadChunkByCenterId
-            tryHeadTileByCenterId
-            getOrderedFaces
-            getNeighborCenterPointIds
-            createVpTree
-            addPoint
-            addFace
-            addTile
-            addChunk
-            allTilesSeq
+    let hexSphereServiceDep =
+        HexSphereService.getDependency pointRepoDep faceRepoDep tileRepoDep chunkRepoDep
 
     let addFaceIndex (surfaceTool: SurfaceTool) i0 i1 i2 =
         surfaceTool.AddIndex i0
@@ -111,6 +78,6 @@ type PlanetApp(planet: IPlanet) =
             $"[===DrawHexSphereMesh===] radius {planet.Radius},
         divisions {planet.Divisions}, start at: {time}"
 
-        clearOldData ()
-        let tiles = initHexSphere ()
+        hexSphereServiceDep.ClearOldData()
+        let tiles = hexSphereServiceDep.InitHexSphere planet
         generateMesh tiles

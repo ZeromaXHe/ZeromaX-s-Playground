@@ -11,3 +11,9 @@ type TryHeadTileByCenterId = CenterId -> Entity option
 type AddTile = CenterId -> ChunkId -> HexFaces -> HexFaceIds -> NeighborCenterIds -> int
 type AllTilesSeq = unit -> TileComponent seq
 type TruncateTiles = unit -> unit
+
+type TileRepoDep =
+    { TryHeadByCenterId: TryHeadTileByCenterId
+      Add: AddTile
+      AllSeq: AllTilesSeq
+      Truncate: TruncateTiles }

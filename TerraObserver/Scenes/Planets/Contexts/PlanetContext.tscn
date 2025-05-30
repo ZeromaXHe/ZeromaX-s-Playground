@@ -1,15 +1,7 @@
-[gd_scene load_steps=8 format=3 uid="uid://cnu45krarcdsr"]
+[gd_scene load_steps=6 format=3 uid="uid://cnu45krarcdsr"]
 
 [ext_resource type="Script" uid="uid://4ki6so6sadfr" path="res://Scenes/Planets/Contexts/PlanetContext.cs" id="1_d8mpy"]
 [ext_resource type="PackedScene" uid="uid://b6hxyed0b8cfa" path="res://Scenes/Planets/Views/Planet.tscn" id="1_pvma5"]
-[ext_resource type="Script" uid="uid://bnipotfr48ihb" path="res://Scenes/Planets/Models/HexSphereConfigs.cs" id="2_s1lu0"]
-
-[sub_resource type="Resource" id="Resource_v27gh"]
-script = ExtResource("2_s1lu0")
-Radius = 100.0
-Divisions = 10
-ChunkDivisions = 1
-metadata/_custom_type_script = "uid://bnipotfr48ihb"
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_s1lu0"]
 sky_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
@@ -24,10 +16,8 @@ sky = SubResource("Sky_v27gh")
 tonemap_mode = 2
 glow_enabled = true
 
-[node name="PlanetContext" type="Node" node_paths=PackedStringArray("Planet")]
+[node name="PlanetContext" type="Node"]
 script = ExtResource("1_d8mpy")
-Planet = NodePath("Planet")
-HexSphereConfigs = SubResource("Resource_v27gh")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_pcevp")

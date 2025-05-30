@@ -96,3 +96,9 @@ module FaceRepo =
 
     let truncate (store: EntityStore) : TruncateFaces =
         fun () -> FrifloEcsUtil.truncate <| store.Query<FaceComponent>()
+
+    let getDependency chunkDep : FaceRepoDep =
+        { ForEachByChunky = forEachByChunky chunkDep
+          Add = add chunkDep
+          GetOrderedFaces = getOrderedFaces chunkDep.Store
+          Truncate = truncate chunkDep.Store }

@@ -39,7 +39,7 @@
         <Compile Include="Repos\Functions\ChunkRepo.fs" />
         <Folder Include="Domains\Types\" />
         <Compile Include="Domains\Functions\FacePointDomain.fs" />
-        <Folder Include="Services\Types\" />
+        <Compile Include="Services\Types\HexSphereServiceT.fs" />
         <Compile Include="Services\Functions\HexSphereService.fs" />
         <Compile Include="Apps\PlanetApp.fs" />
     </ItemGroup>
