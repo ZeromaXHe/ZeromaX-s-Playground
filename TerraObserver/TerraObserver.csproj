@@ -13,9 +13,6 @@
         <EmbeddedResource Remove="Test.*\**"/>
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="TO.Apps\TO.Apps.fsproj"/>
-    </ItemGroup>
-    <ItemGroup>
-        <Folder Include="Scenes\Bases\Enums\"/>
+        <ProjectReference Include="TO.FSharp\TO.FSharp.fsproj" />
     </ItemGroup>
 </Project>

@@ -9,7 +9,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Tests.fs"/>
+        <Compile Include="Godots\GodotTests.fs" />
+        <Compile Include="Grammars\FSharpTests.fs"/>
+        <Compile Include="Friflos\FrifloEcsTests.fs"/>
+        <Compile Include="Commons\AxialCoordsTest.fs"/>
+        <Compile Include="Commons\LonLatCoordsTest.fs"/>
+        <Compile Include="Commons\Math3dUtilTest.fs"/>
+        <Compile Include="Commons\SphereAxialTest.fs"/>
         <Compile Include="Program.fs"/>
     </ItemGroup>
     <ItemGroup>
@@ -17,6 +23,9 @@
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0"/>
         <PackageReference Include="xunit" Version="2.9.3"/>
         <PackageReference Include="xunit.runner.visualstudio" Version="3.1.0"/>
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\TO.FSharp\TO.FSharp.fsproj"/>
     </ItemGroup>
 
 </Project>

@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="GodotAbstractions\Bases\IGodotObject.fs"/>
+        <Compile Include="GodotAbstractions\Bases\IRefCounted.fs"/>
+        <Compile Include="GodotAbstractions\Bases\IResource.fs"/>
+        <Compile Include="GodotAbstractions\Bases\INode.fs"/>
+        <Compile Include="GodotAbstractions\Bases\INode3D.fs"/>
+        <Compile Include="GodotAbstractions\Bases\IVisualInstance3D.fs"/>
+        <Compile Include="GodotAbstractions\Bases\IGeometryInstance3D.fs"/>
+        <Compile Include="GodotAbstractions\Bases\IMeshInstance3D.fs"/>
+        <Compile Include="GodotAbstractions\Extensions\Planets\IPlanet.fs" />
+        <Compile Include="Commons\Enums\Tiles\HexEdgeType.fs" />
+        <Compile Include="Commons\Constants\Shaders\GlobalShaderParam.fs" />
+        <Compile Include="Commons\Constants\HexSpheres\IcosahedronConstant.fs" />
+        <Compile Include="Commons\Structs\HexPlaneGrid\AxialCoords.fs"/>
+        <Compile Include="Commons\Structs\HexSphereGrid\LonLatCoords.fs"/>
+        <Compile Include="Commons\Structs\HexSphereGrid\SphereAxial.fs"/>
+        <Compile Include="Commons\DataStructures\VpTree.fs"/>
+        <Compile Include="Commons\Utils\Math3dUtil.fs"/>
+        <Compile Include="Commons\Utils\HexMetrics.fs"/>
+        <Compile Include="Commons\Utils\FrifloEcsUtil.fs" />
+        <Compile Include="Repos\Models\HexSpheres\Points.fs" />
+        <Compile Include="Repos\Models\HexSpheres\Faces.fs" />
+        <Compile Include="Repos\Models\HexSpheres\Tiles.fs" />
+        <Compile Include="Repos\Models\HexSpheres\Chunks.fs" />
+        <Compile Include="Repos\Types\PointRepoT.fs" />
+        <Compile Include="Repos\Types\FaceRepoT.fs" />
+        <Compile Include="Repos\Types\TileRepoT.fs" />
+        <Compile Include="Repos\Types\ChunkRepoT.fs" />
+        <Compile Include="Repos\Functions\PointRepo.fs" />
+        <Compile Include="Repos\Functions\FaceRepo.fs" />
+        <Compile Include="Repos\Functions\TileRepo.fs" />
+        <Compile Include="Repos\Functions\ChunkRepo.fs" />
+        <Folder Include="Domains\Types\" />
+        <Compile Include="Domains\Functions\FacePointDomain.fs" />
+        <Folder Include="Services\Types\" />
+        <Compile Include="Services\Functions\HexSphereService.fs" />
+        <Compile Include="Apps\PlanetApp.fs" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Friflo.Engine.ECS" Version="3.4.2"/>
+        <PackageReference Include="GodotSharp" Version="4.4.1"/>
+    </ItemGroup>
+
+</Project>
