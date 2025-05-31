@@ -1,6 +1,5 @@
 using System;
 using Godot;
-using TO.FSharp.Apps;
 using TO.FSharp.Commons.Constants.Shaders;
 using TO.FSharp.Commons.Utils;
 using TO.FSharp.GodotAbstractions.Extensions.Planets;
@@ -120,22 +119,4 @@ public partial class Planet : Node3D, IPlanet
 
     // 默认水面高度 [Export(PropertyHint.Range, "1, 5")]
     public int DefaultWaterLevel { get; set; } = 5;
-
-    private bool NodeReady { get; set; }
-    private PlanetApp _planetApp = null!;
-
-    public override void _Ready()
-    {
-        _planetApp = new PlanetApp(this);
-        NodeReady = true;
-        DrawHexSphereMesh();
-        ParamsChanged += DrawHexSphereMesh;
-    }
-
-    private void DrawHexSphereMesh()
-    {
-        if (!NodeReady)
-            return;
-        _planetApp.DrawHexSphereMesh();
-    }
 }

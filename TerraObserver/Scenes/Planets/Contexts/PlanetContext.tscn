@@ -16,8 +16,9 @@ sky = SubResource("Sky_v27gh")
 tonemap_mode = 2
 glow_enabled = true
 
-[node name="PlanetContext" type="Node"]
+[node name="PlanetContext" type="Node" node_paths=PackedStringArray("Planet")]
 script = ExtResource("1_d8mpy")
+Planet = NodePath("Planet")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_pcevp")

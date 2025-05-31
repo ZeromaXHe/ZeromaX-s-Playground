@@ -1,12 +1,17 @@
 namespace TO.FSharp.Services.Functions
 
+open System
 open Friflo.Engine.ECS
 open Godot
-open TO.Domains.Planets.Functions
+open Microsoft.FSharp.Core.LanguagePrimitives
+open TO.FSharp.Commons.Constants.HexSpheres
+open TO.FSharp.Commons.Structs.HexSphereGrid
+open TO.FSharp.Commons.Utils
 open TO.FSharp.GodotAbstractions.Extensions.Planets
 open TO.FSharp.Repos.Models.HexSpheres.Chunks
 open TO.FSharp.Repos.Models.HexSpheres.Faces
 open TO.FSharp.Repos.Models.HexSpheres.Points
+open TO.FSharp.Repos.Models.HexSpheres.Tiles
 open TO.FSharp.Repos.Types.ChunkRepoT
 open TO.FSharp.Repos.Types.FaceRepoT
 open TO.FSharp.Repos.Types.PointRepoT
@@ -17,6 +22,157 @@ open TO.FSharp.Services.Types.HexSphereServiceT
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-05-30 12:46:30
 module HexSphereService =
+    let private genEdgeVectors divisions pn ps =
+        let points = IcosahedronConstant.vertices
+        let indices = IcosahedronConstant.indices
+        let edges: Vector3 array array = Array.zeroCreate 30 // 30 条边
+        // 初始化所有的边上的点位置
+        for col in 0..4 do
+            // p1 到 p4 映射到平面上是竖列四面组中间的四个点，中间 Z 字型边按顺序连接：p2，p1，p3，p4
+            let p1 = points[indices[col * 4][1]]
+            let p2 = points[indices[col * 4][2]]
+            let p3 = points[indices[col * 4 + 1][0]]
+            let p4 = points[indices[col * 4 + 2][1]]
+            // 每个竖列四面组有六个属于它的边（右边两个三趾鸡爪形的从上到下的边，列左边界的三条边不属于它）
+            edges[col * 6] <- Math3dUtil.subdivide pn p1 divisions // 从左上到右下
+            edges[col * 6 + 1] <- Math3dUtil.subdivide p1 p2 divisions // 从右往左
+            edges[col * 6 + 2] <- Math3dUtil.subdivide p1 p3 divisions // 从右上到左下
+            edges[col * 6 + 3] <- Math3dUtil.subdivide p1 p4 divisions // 从左上到右下
+            edges[col * 6 + 4] <- Math3dUtil.subdivide p4 p3 divisions // 从右往左
+            edges[col * 6 + 5] <- Math3dUtil.subdivide p4 ps divisions // 从右上到左下
+
+        edges
+
+    // 构造北部的第一个面
+    let private initNorthTriangle (point: PointRepoDep) (face: FaceRepoDep) =
+        fun chunky (edges: Vector3 array array) col divisions ->
+            let nextCol = (col + 1) % 5
+            let northEast = edges[col * 6] // 北极出来的靠东的边界
+            let northWest = edges[nextCol * 6] // 北极出来的靠西的边界
+            let tropicOfCancer = edges[col * 6 + 1] // 北回归线的边（E -> W）
+            let mutable preLine = [| northEast[0] |] // 初始为北极点
+
+            for i in 1..divisions do
+                let nowLine =
+                    if i = divisions then
+                        tropicOfCancer
+                    else
+                        Math3dUtil.subdivide northEast[i] northWest[i] i
+
+                if i = divisions then
+                    point.Add chunky nowLine[0] <| SphereAxial(-divisions * col, 0) |> ignore
+                else
+                    point.Add chunky nowLine[i] <| SphereAxial(-divisions * col, i - divisions)
+                    |> ignore
+
+                for j in 0 .. i - 1 do
+                    if j > 0 then
+                        face.Add chunky nowLine[j] preLine[j] preLine[j - 1] |> ignore
+
+                        point.Add
+                            chunky
+                            nowLine[j]
+                            (if i = divisions then
+                                 SphereAxial(-divisions * col - j, 0)
+                             else
+                                 SphereAxial(-divisions * col - j, i - divisions))
+                        |> ignore
+
+                    face.Add chunky preLine[j] nowLine[j] nowLine[j + 1] |> ignore
+
+                preLine <- nowLine
+
+    // 赤道两个面（第二、三面）的构造
+    let private initEquatorTwoTriangles (point: PointRepoDep) (face: FaceRepoDep) =
+        fun chunky (edges: Vector3 array array) col divisions ->
+            let nextCol = (col + 1) % 5
+            let equatorWest = edges[nextCol * 6 + 3] // 向东南方斜跨赤道的靠西的边界
+            let equatorMid = edges[col * 6 + 2] // 向西南方斜跨赤道的中间的边
+            let equatorEast = edges[col * 6 + 3] // 向东南方斜跨赤道的靠东的边界
+            let tropicOfCapricorn = edges[col * 6 + 4] // 南回归线的边（E -> W）
+            let mutable preLineWest = edges[col * 6 + 1] // 北回归线的边（E -> W）
+            let mutable preLineEast = [| equatorEast[0] |]
+
+            for i in 1..divisions do
+                let nowLineEast =
+                    if i = divisions then
+                        tropicOfCapricorn
+                    else
+                        Math3dUtil.subdivide equatorEast[i] equatorMid[i] i
+
+                let nowLineWest = Math3dUtil.subdivide equatorMid[i] equatorWest[i] <| divisions - i
+                // 构造东边面（第三面）
+                point.Add chunky nowLineEast[0] <| SphereAxial(-divisions * col, i) |> ignore
+
+                for j in 0 .. i - 1 do
+                    if j > 0 then
+                        face.Add chunky nowLineEast[j] preLineEast[j] preLineEast[j - 1] |> ignore
+
+                        point.Add chunky nowLineEast[j] <| SphereAxial(-divisions * col - j, i)
+                        |> ignore
+
+                    face.Add chunky preLineEast[j] nowLineEast[j] nowLineEast[j + 1] |> ignore
+                // 构造西边面（第二面）
+                if i < divisions then
+                    point.Add chunky nowLineWest[0] <| SphereAxial(-divisions * col - i, i)
+                    |> ignore
+
+                for j in 0 .. divisions - i do
+                    if j > 0 then
+                        face.Add chunky preLineWest[j] nowLineWest[j - 1] nowLineWest[j] |> ignore
+
+                        if j < divisions - i then
+                            point.Add chunky nowLineWest[j] <| SphereAxial(-divisions * col - i - j, i)
+                            |> ignore
+
+                    face.Add chunky nowLineWest[j] preLineWest[j + 1] preLineWest[j] |> ignore
+
+                preLineEast <- nowLineEast
+                preLineWest <- nowLineWest
+
+    // 构造南部的最后一面（列的第四面）
+    let private initSouthTriangle (point: PointRepoDep) (face: FaceRepoDep) =
+        fun chunky (edges: Vector3 array array) col divisions ->
+            let nextCol = (col + 1) % 5
+            let southWest = edges[nextCol * 6 + 5] // 向南方连接南极的靠西的边界
+            let southEast = edges[col * 6 + 5] // 向南方连接南极的靠东的边界
+            let mutable preLine = edges[col * 6 + 4] // 南回归线的边（E -> W）
+
+            for i in 1..divisions do
+                let nowLine = Math3dUtil.subdivide southEast[i] southWest[i] <| divisions - i
+
+                if i < divisions then
+                    point.Add chunky nowLine[0] <| SphereAxial(-divisions * col - i, divisions + i)
+                    |> ignore
+
+                for j in 0 .. divisions - i do
+                    if j > 0 then
+                        face.Add chunky preLine[j] nowLine[j - 1] nowLine[j] |> ignore
+
+                        if j < divisions - i then
+                            point.Add chunky nowLine[j]
+                            <| SphereAxial(-divisions * col - i - j, divisions + i)
+                            |> ignore
+
+                    face.Add chunky nowLine[j] preLine[j + 1] preLine[j] |> ignore
+
+                preLine <- nowLine
+
+    // 初始化 Point 和 Face
+    let private subdivideIcosahedron (point: PointRepoDep) (face: FaceRepoDep) =
+        fun chunky divisions ->
+            let pn = IcosahedronConstant.vertices[0] // 北极点
+            let ps = IcosahedronConstant.vertices[6] // 南极点
+            // 轴坐标系（0,0）放在第一组竖列四面的北回归线最东端
+            point.Add chunky pn <| SphereAxial(0, -divisions) |> ignore
+            point.Add chunky ps <| SphereAxial(-divisions, 2 * divisions) |> ignore
+            let edges = genEdgeVectors divisions pn ps
+
+            for col in 0..4 do
+                initNorthTriangle point face chunky edges col divisions
+                initEquatorTwoTriangles point face chunky edges col divisions
+                initSouthTriangle point face chunky edges col divisions
+
     let private initPointFaceLinks (point: PointRepoDep) (face: FaceRepoDep) =
         fun chunky ->
             face.ForEachByChunky chunky
@@ -33,15 +189,9 @@ module HexSphereService =
                 relatePointToFace faceComp.Vertex3)
 
     let private initPointsAndFaces (point: PointRepoDep) (face: FaceRepoDep) =
-        fun chunky chunkDivisions ->
+        fun chunky divisions ->
             let time = Time.GetTicksMsec()
-
-            let pointAdder pos coords = point.Add chunky pos coords |> ignore
-
-            let faceAdder v1 v2 v3 = face.Add chunky v1 v2 v3 |> ignore
-
-            FacePointDomain.subdivideIcosahedron pointAdder faceAdder chunkDivisions
-
+            subdivideIcosahedron point face chunky divisions
             initPointFaceLinks point face chunky
             let chunkyType = if chunky then "Chunk" else "Tile" // 不能直接写在输出中
             // 三元表达式直接写在输出中，会报错：Invalid interpolated string.
@@ -118,6 +268,52 @@ module HexSphereService =
         time2 <- Time.GetTicksMsec()
         GD.Print $"_tilePointVpTree Create cost: {time2 - time} ms"
 
+    let private addFaceIndex (surfaceTool: SurfaceTool) i0 i1 i2 =
+        surfaceTool.AddIndex i0
+        surfaceTool.AddIndex i1
+        surfaceTool.AddIndex i2
+
+    let private generateMesh (planet: IPlanet) (tiles: TileComponent seq) =
+        for child in planet.GetChildren() do
+            child.QueueFree()
+
+        let meshIns = new MeshInstance3D()
+        let surfaceTool = new SurfaceTool()
+        surfaceTool.Begin Mesh.PrimitiveType.Triangles
+        surfaceTool.SetSmoothGroup UInt32.MaxValue
+        let mutable vi = 0
+
+        for tile in tiles do
+            surfaceTool.SetColor <| Color.FromHsv(GD.Randf(), GD.Randf(), GD.Randf())
+            let points = tile.GetCorners planet.Radius
+
+            for point in points do
+                surfaceTool.AddVertex point
+
+            addFaceIndex surfaceTool vi <| vi + 1 <| vi + 2
+            addFaceIndex surfaceTool vi <| vi + 2 <| vi + 3
+            addFaceIndex surfaceTool vi <| vi + 3 <| vi + 4
+
+            if points.Length > 5 then
+                addFaceIndex surfaceTool vi <| vi + 4 <| vi + 5
+
+            vi <- vi + points.Length
+
+        surfaceTool.GenerateNormals()
+        let material = new StandardMaterial3D()
+        material.VertexColorUseAsAlbedo <- true
+        surfaceTool.SetMaterial material
+        meshIns.Mesh <- surfaceTool.Commit()
+        // 貌似不能只传一个参数，尴尬……
+        planet.AddChild(meshIns, false, EnumOfValue<int64, Node.InternalMode> 0L)
+
+
+    let private clearOldData (point: PointRepoDep) (face: FaceRepoDep) (tile: TileRepoDep) (chunk: ChunkRepoDep) =
+        point.Truncate()
+        face.Truncate()
+        tile.Truncate()
+        chunk.Truncate()
+
     let initHexSphere
         (point: PointRepoDep)
         (face: FaceRepoDep)
@@ -125,21 +321,10 @@ module HexSphereService =
         (chunk: ChunkRepoDep)
         : InitHexSphere =
         fun (planet: IPlanet) ->
+            clearOldData point face tile chunk
             initChunks planet point face chunk
             initTiles planet point face tile chunk
-            tile.AllSeq()
-
-    let clearOldData
-        (point: PointRepoDep)
-        (face: FaceRepoDep)
-        (tile: TileRepoDep)
-        (chunk: ChunkRepoDep)
-        : ClearOldData =
-        fun () ->
-            point.Truncate()
-            face.Truncate()
-            tile.Truncate()
-            chunk.Truncate()
+            generateMesh planet <| tile.AllSeq()
 
     let getDependency
         (point: PointRepoDep)
@@ -147,5 +332,4 @@ module HexSphereService =
         (tile: TileRepoDep)
         (chunk: ChunkRepoDep)
         : HexSphereServiceDep =
-        { InitHexSphere = initHexSphere point face tile chunk
-          ClearOldData = clearOldData point face tile chunk }
+        { InitHexSphere = initHexSphere point face tile chunk }

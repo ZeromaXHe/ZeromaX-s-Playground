@@ -37,8 +37,6 @@
         <Compile Include="Repos\Functions\FaceRepo.fs" />
         <Compile Include="Repos\Functions\TileRepo.fs" />
         <Compile Include="Repos\Functions\ChunkRepo.fs" />
-        <Folder Include="Domains\Types\" />
-        <Compile Include="Domains\Functions\FacePointDomain.fs" />
         <Compile Include="Services\Types\HexSphereServiceT.fs" />
         <Compile Include="Services\Functions\HexSphereService.fs" />
         <Compile Include="Apps\PlanetApp.fs" />

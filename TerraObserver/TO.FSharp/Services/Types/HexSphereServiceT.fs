@@ -6,9 +6,7 @@ open TO.FSharp.Repos.Models.HexSpheres.Tiles
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-05-30 22:39:30
-type InitHexSphere = IPlanet -> TileComponent seq
-type ClearOldData = unit -> unit
+type InitHexSphere = IPlanet -> unit
 
 type HexSphereServiceDep =
-    { InitHexSphere: InitHexSphere
-      ClearOldData: ClearOldData }
+    { InitHexSphere: InitHexSphere }
