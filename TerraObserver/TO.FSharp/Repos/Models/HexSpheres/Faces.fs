@@ -2,6 +2,7 @@ namespace TO.FSharp.Repos.Models.HexSpheres.Faces
 
 open Friflo.Engine.ECS
 open Godot
+open TO.FSharp.Repos.Models.HexSpheres.Points
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
@@ -39,3 +40,9 @@ type FaceComponent =
                     count <- count + 1
 
         count = 2
+
+    member this.GetPointIdx(point: PointComponent inref) =
+        if this.Vertex1 = point.Position then 0
+        elif this.Vertex2 = point.Position then 1
+        elif this.Vertex3 = point.Position then 2
+        else -1

@@ -3,11 +3,10 @@ namespace TO.FSharp.Services.Functions
 open System
 open Friflo.Engine.ECS
 open Godot
-open Microsoft.FSharp.Core.LanguagePrimitives
+open Godot.Abstractions.Extensions.Planets
 open TO.FSharp.Commons.Constants.HexSpheres
 open TO.FSharp.Commons.Structs.HexSphereGrid
 open TO.FSharp.Commons.Utils
-open TO.FSharp.GodotAbstractions.Extensions.Planets
 open TO.FSharp.Repos.Models.HexSpheres.Chunks
 open TO.FSharp.Repos.Models.HexSpheres.Faces
 open TO.FSharp.Repos.Models.HexSpheres.Points
@@ -22,27 +21,6 @@ open TO.FSharp.Services.Types.HexSphereServiceT
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-05-30 12:46:30
 module HexSphereService =
-    let private genEdgeVectors divisions pn ps =
-        let points = IcosahedronConstant.vertices
-        let indices = IcosahedronConstant.indices
-        let edges: Vector3 array array = Array.zeroCreate 30 // 30 条边
-        // 初始化所有的边上的点位置
-        for col in 0..4 do
-            // p1 到 p4 映射到平面上是竖列四面组中间的四个点，中间 Z 字型边按顺序连接：p2，p1，p3，p4
-            let p1 = points[indices[col * 4][1]]
-            let p2 = points[indices[col * 4][2]]
-            let p3 = points[indices[col * 4 + 1][0]]
-            let p4 = points[indices[col * 4 + 2][1]]
-            // 每个竖列四面组有六个属于它的边（右边两个三趾鸡爪形的从上到下的边，列左边界的三条边不属于它）
-            edges[col * 6] <- Math3dUtil.subdivide pn p1 divisions // 从左上到右下
-            edges[col * 6 + 1] <- Math3dUtil.subdivide p1 p2 divisions // 从右往左
-            edges[col * 6 + 2] <- Math3dUtil.subdivide p1 p3 divisions // 从右上到左下
-            edges[col * 6 + 3] <- Math3dUtil.subdivide p1 p4 divisions // 从左上到右下
-            edges[col * 6 + 4] <- Math3dUtil.subdivide p4 p3 divisions // 从右往左
-            edges[col * 6 + 5] <- Math3dUtil.subdivide p4 ps divisions // 从右上到左下
-
-        edges
-
     // 构造北部的第一个面
     let private initNorthTriangle (point: PointRepoDep) (face: FaceRepoDep) =
         fun chunky (edges: Vector3 array array) col divisions ->
@@ -166,7 +144,7 @@ module HexSphereService =
             // 轴坐标系（0,0）放在第一组竖列四面的北回归线最东端
             point.Add chunky pn <| SphereAxial(0, -divisions) |> ignore
             point.Add chunky ps <| SphereAxial(-divisions, 2 * divisions) |> ignore
-            let edges = genEdgeVectors divisions pn ps
+            let edges = HexSphereUtil.genEdgeVectors divisions pn ps
 
             for col in 0..4 do
                 initNorthTriangle point face chunky edges col divisions
@@ -305,7 +283,7 @@ module HexSphereService =
         surfaceTool.SetMaterial material
         meshIns.Mesh <- surfaceTool.Commit()
         // 貌似不能只传一个参数，尴尬……
-        planet.AddChild(meshIns, false, EnumOfValue<int64, Node.InternalMode> 0L)
+        planet.AddChild(meshIns)
 
 
     let private clearOldData (point: PointRepoDep) (face: FaceRepoDep) (tile: TileRepoDep) (chunk: ChunkRepoDep) =

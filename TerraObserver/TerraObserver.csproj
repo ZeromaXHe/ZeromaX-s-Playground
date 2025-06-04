@@ -7,10 +7,12 @@
     <ItemGroup>
         <Compile Remove="TO.*\**"/>
         <Compile Remove="Test.*\**"/>
+        <Compile Remove="Godot.*\**"/>
     </ItemGroup>
     <ItemGroup>
         <EmbeddedResource Remove="TO.*\**"/>
         <EmbeddedResource Remove="Test.*\**"/>
+        <EmbeddedResource Remove="Godot.*\**"/>
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="TO.FSharp\TO.FSharp.fsproj" />

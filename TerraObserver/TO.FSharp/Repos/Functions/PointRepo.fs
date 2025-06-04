@@ -22,29 +22,23 @@ module PointRepo =
                 .HasValue<PointComponent, Vector3>(pos)
                 .AllTags(if chunky then &dep.TagChunk else &dep.TagTile)
 
-    let private getPointIdx (face: FaceComponent) (point: PointComponent inref) =
-        if face.Vertex1 = point.Position then 0
-        elif face.Vertex2 = point.Position then 1
-        elif face.Vertex3 = point.Position then 2
-        else -1
-
     // 按照顺时针方向返回三角形上的在指定顶点后的另外两个顶点
     let private getOtherPoints (dep: ChunkyDep) =
-        fun chunky face (point: PointComponent inref) ->
+        fun chunky (face: FaceComponent) (point: PointComponent inref) ->
             // 注意：并没有对 face 和 point 的 Chunky 进行校验
-            let idx = getPointIdx face &point
+            let idx = face.GetPointIdx &point
 
             seq {
                 tryHeadByPosition dep chunky <| face.Vertex((idx + 1) % 3)
                 tryHeadByPosition dep chunky <| face.Vertex((idx + 2) % 3)
             }
     // 顺时针第一个顶点
-    let private getLeftOtherPoint (dep: ChunkyDep) chunky face (point: PointComponent inref) =
-        let idx = getPointIdx face &point
+    let private getLeftOtherPoint (dep: ChunkyDep) chunky (face: FaceComponent) (point: PointComponent inref) =
+        let idx = face.GetPointIdx &point
         tryHeadByPosition dep chunky <| face.Vertex((idx + 1) % 3)
     // 顺时针第二个顶点
-    let private getRightOtherPoint (dep: ChunkyDep) chunky face (point: PointComponent inref) =
-        let idx = getPointIdx face &point
+    let private getRightOtherPoint (dep: ChunkyDep) chunky (face: FaceComponent) (point: PointComponent inref) =
+        let idx = face.GetPointIdx &point
         tryHeadByPosition dep chunky <| face.Vertex((idx + 2) % 3)
 
     let private queryByChunky (dep: ChunkyDep) chunky =
