@@ -1,8 +1,9 @@
-[gd_scene load_steps=7 format=3 uid="uid://cnu45krarcdsr"]
+[gd_scene load_steps=8 format=3 uid="uid://cnu45krarcdsr"]
 
 [ext_resource type="Script" uid="uid://4ki6so6sadfr" path="res://Scenes/Planets/Contexts/PlanetContext.cs" id="1_d8mpy"]
 [ext_resource type="PackedScene" uid="uid://b6hxyed0b8cfa" path="res://Scenes/Planets/Views/Planet.tscn" id="1_pvma5"]
 [ext_resource type="PackedScene" uid="uid://bdondmaglaff5" path="res://Scenes/Cameras/Views/OrbitCameraRig.tscn" id="3_s1lu0"]
+[ext_resource type="PackedScene" uid="uid://ed6bxdqb7oek" path="res://Scenes/Geos/Views/LonLatGrid.tscn" id="4_v27gh"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_s1lu0"]
 sky_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
@@ -17,10 +18,8 @@ sky = SubResource("Sky_v27gh")
 tonemap_mode = 2
 glow_enabled = true
 
-[node name="PlanetContext" type="Node" node_paths=PackedStringArray("Planet", "OrbitCameraRig")]
+[node name="PlanetContext" type="Node"]
 script = ExtResource("1_d8mpy")
-Planet = NodePath("Planet")
-OrbitCameraRig = NodePath("OrbitCameraRig")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_pcevp")
@@ -30,9 +29,14 @@ transform = Transform3D(-0.866023, -0.433016, 0.250001, 0, 0.499998, 0.866027, -
 shadow_enabled = true
 
 [node name="Planet" parent="." instance=ExtResource("1_pvma5")]
+unique_name_in_owner = true
 
 [node name="OrbitCameraRig" parent="." node_paths=PackedStringArray("Camera") instance=ExtResource("3_s1lu0")]
+unique_name_in_owner = true
 Camera = NodePath("../Camera3D")
 
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(-1, -6.18173e-08, 6.18173e-08, -8.74228e-08, 0.707107, -0.707107, 3.82137e-15, -0.707107, -0.707107, 1.23635e-06, -34.1421, -124.142)
+transform = Transform3D(-1, -6.18173e-08, 6.18173e-08, -8.74228e-08, 0.707107, -0.707107, 3.82137e-15, -0.707107, -0.707107, 1.40705e-06, -16.0948, -124.428)
+
+[node name="LonLatGrid" parent="." instance=ExtResource("4_v27gh")]
+unique_name_in_owner = true

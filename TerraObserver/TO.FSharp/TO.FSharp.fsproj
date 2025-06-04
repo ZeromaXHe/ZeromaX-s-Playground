@@ -32,7 +32,6 @@
         <Compile Include="Services\Types\HexSphereServiceT.fs" />
         <Compile Include="Services\Functions\HexSphereService.fs" />
         <Compile Include="Apps\Planets\PlanetApp.fs" />
-        <Compile Include="Apps\Cameras\OrbitCameraApp.fs" />
     </ItemGroup>
 
     <ItemGroup>

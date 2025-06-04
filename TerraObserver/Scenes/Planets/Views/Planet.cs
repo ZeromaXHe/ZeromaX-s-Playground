@@ -11,6 +11,8 @@ namespace TerraObserver.Scenes.Planets.Views;
 [Tool]
 public partial class Planet : Node3D, IPlanet
 {
+    #region 事件和 Export 属性
+
     public event Action? ParamsChanged;
 
     [ExportGroup("戈德堡多面体配置")]
@@ -56,7 +58,7 @@ public partial class Planet : Node3D, IPlanet
         }
     }
 
-    private int _chunkDivisions = 5;
+    private int _chunkDivisions = 2;
 
     [ExportGroup("噪声配置")]
     // 其实这里可以直接导入 Image, 在导入界面选择导入类型。但是导入 Image 的场景 tscn 文件会大得吓人……（等于直接按像素写一遍）
@@ -98,6 +100,10 @@ public partial class Planet : Node3D, IPlanet
     // 卫星自转
     [Export] public bool SatelliteRotation { get; set; } = true;
 
+    #endregion
+
+    #region 外部变量、属性
+
     // 单位高度
     public float UnitHeight { get; private set; } = 1.5f;
     public float MaxHeight { get; private set; } = 15f;
@@ -107,6 +113,13 @@ public partial class Planet : Node3D, IPlanet
     // [Export(PropertyHint.Range, "10, 15")]
     public int ElevationStep { get; set; } = 10; // 这里对应含义是 Elevation 分为几级
 
+    public float StandardScale => Radius / HexMetrics.standardRadius * HexMetrics.standardDivisions / Divisions;
+
+    // 默认水面高度 [Export(PropertyHint.Range, "1, 5")]
+    public int DefaultWaterLevel { get; set; } = 5;
+
+    #endregion
+
     private void CalcUnitHeight()
     {
         MaxHeightRatio = StandardScale * MaxHeightRadiusRatio;
@@ -114,9 +127,4 @@ public partial class Planet : Node3D, IPlanet
         RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.maxHeight, MaxHeight);
         UnitHeight = MaxHeight / ElevationStep;
     }
-
-    public float StandardScale => Radius / HexMetrics.standardRadius * HexMetrics.standardDivisions / Divisions;
-
-    // 默认水面高度 [Export(PropertyHint.Range, "1, 5")]
-    public int DefaultWaterLevel { get; set; } = 5;
 }

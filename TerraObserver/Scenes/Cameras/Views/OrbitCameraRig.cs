@@ -1,6 +1,7 @@
 using System;
 using Godot;
 using Godot.Abstractions.Extensions.Cameras;
+using Godot.Abstractions.Extensions.Planets;
 
 namespace TerraObserver.Scenes.Cameras.Views;
 
@@ -10,25 +11,29 @@ namespace TerraObserver.Scenes.Cameras.Views;
 [Tool]
 public partial class OrbitCameraRig : Node3D, IOrbitCameraRig
 {
-    public event IOrbitCameraRig.MovedEvent? Moved;
-    public event IOrbitCameraRig.TransformedEvent? Transformed;
-    public event Action<float>? RadiusChanged;
-    public event Action<float>? ZoomChanged;
-    [Export] public Camera3D? Camera { get; set; } // 设置摄像机节点
+    #region 依赖
 
-    [Export(PropertyHint.Range, "0.01, 1000, or_greater")]
-    public float Radius
+    public IPlanet Planet
     {
-        get => _radius;
+        get => _planet;
         set
         {
-            _radius = value;
-            if (!_ready) return;
-            RadiusChanged?.Invoke(value);
+            _planet = value;
+            Reset();
+            _planet.ParamsChanged += OnPlanetParamsChanged;
+            _planet.ParamsChanged += OnZoomChanged;
         }
     }
 
-    private float _radius = 100f;
+    private IPlanet _planet = null!;
+
+    #endregion
+
+    #region 事件与 Export 属性
+
+    public event IOrbitCameraRig.MovedEvent? Moved;
+    public event IOrbitCameraRig.TransformedEvent? Transformed;
+    [Export] public Camera3D? Camera { get; set; } // 设置摄像机节点
 
     [Export(PropertyHint.Range, "0.01, 10")]
     public float StickMinZoom { get; set; } = 1f;
@@ -58,6 +63,10 @@ public partial class OrbitCameraRig : Node3D, IOrbitCameraRig
     [Export(PropertyHint.Range, "0.01, 10")]
     public float AutoPilotSpeed { get; set; } = 1f;
 
+    #endregion
+
+    #region 内部变量、属性
+
     private Node3D? _focusBase;
     private CsgBox3D? _focusBox;
     private Node3D? _focusBackStick;
@@ -74,7 +83,7 @@ public partial class OrbitCameraRig : Node3D, IOrbitCameraRig
         {
             _zoom = value;
             if (!_ready) return;
-            ZoomChanged?.Invoke(value);
+            OnZoomChanged();
         }
     }
 
@@ -84,6 +93,10 @@ public partial class OrbitCameraRig : Node3D, IOrbitCameraRig
     private Vector3 _destinationDirection = Vector3.Zero;
     private float _autoPilotProgress;
     private float _antiStuckSpeedMultiplier = 1f; // 用于防止速度过低的时候相机卡死
+
+    #endregion
+
+    #region 生命周期
 
     private bool _ready;
 
@@ -101,34 +114,6 @@ public partial class OrbitCameraRig : Node3D, IOrbitCameraRig
             _camRig.RemotePath = _camRig.GetPathTo(Camera);
         _ready = true;
     }
-
-    public Vector3 GetFocusBasePos() => _focusBase!.GlobalPosition;
-
-    public void SetAutoPilot(Vector3 destinationDirection)
-    {
-        var fromDirection = GetFocusBasePos().Normalized();
-        if (fromDirection.IsEqualApprox(destinationDirection))
-        {
-            GD.Print("设置的自动跳转位置就是当前位置");
-            return;
-        }
-
-        _fromDirection = fromDirection;
-        _destinationDirection = destinationDirection;
-        _autoPilotProgress = 0f;
-    }
-
-    private bool IsAutoPiloting() => _destinationDirection != Vector3.Zero;
-
-    // 取消自动跳转目的地
-    private void CancelAutoPilot()
-    {
-        _fromDirection = Vector3.Zero;
-        _destinationDirection = Vector3.Zero;
-        _autoPilotProgress = 0f;
-    }
-
-    private const float MouseMoveSensitivity = 0.01f;
 
     public override void _Process(double delta)
     {
@@ -193,6 +178,48 @@ public partial class OrbitCameraRig : Node3D, IOrbitCameraRig
         _light.LightEnergy = Mathf.Clamp((lightSunAngle - Mathf.Pi / 3) / (Mathf.Pi / 3), 0f, 0.1f);
     }
 
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (Engine.IsEditorHint()) return;
+        // 缩放
+        if (@event is InputEventMouseButton { ButtonIndex: MouseButton.WheelDown or MouseButton.WheelUp } e)
+        {
+            var zoomDelta = 0.025f * e.Factor * (e.ButtonIndex == MouseButton.WheelUp ? 1f : -1f);
+            Zoom = Mathf.Clamp(Zoom + zoomDelta, 0f, 1f);
+            Transformed?.Invoke(_camRig!.GlobalTransform, (float)GetProcessDeltaTime());
+        }
+    }
+
+    #endregion
+
+    public Vector3 GetFocusBasePos() => _focusBase!.GlobalPosition;
+
+    public void SetAutoPilot(Vector3 destinationDirection)
+    {
+        var fromDirection = GetFocusBasePos().Normalized();
+        if (fromDirection.IsEqualApprox(destinationDirection))
+        {
+            GD.Print("设置的自动跳转位置就是当前位置");
+            return;
+        }
+
+        _fromDirection = fromDirection;
+        _destinationDirection = destinationDirection;
+        _autoPilotProgress = 0f;
+    }
+
+    private bool IsAutoPiloting() => _destinationDirection != Vector3.Zero;
+
+    // 取消自动跳转目的地
+    private void CancelAutoPilot()
+    {
+        _fromDirection = Vector3.Zero;
+        _destinationDirection = Vector3.Zero;
+        _autoPilotProgress = 0f;
+    }
+
+    private const float MouseMoveSensitivity = 0.01f;
+
     private bool RotateCamera(float rotationDelta)
     {
         // 旋转
@@ -210,7 +237,7 @@ public partial class OrbitCameraRig : Node3D, IOrbitCameraRig
         var direction = (Vector3.Right * xDelta + Vector3.Back * zDelta).Normalized();
         var damping = Mathf.Max(Mathf.Abs(xDelta), Mathf.Abs(zDelta));
         var distance = Mathf.Lerp(MoveSpeedMinZoom, MoveSpeedMaxZoom, Zoom)
-                       * Radius * _antiStuckSpeedMultiplier * damping * delta;
+                       * Planet.Radius * _antiStuckSpeedMultiplier * damping * delta;
         var target = GetFocusBasePos() - GlobalPosition +
                      _focusBackStick!.GlobalBasis * (direction * distance);
         // 现在在速度很慢，半径很大的时候，容易在南北极卡住（游戏开始后，只按 WS 即可走到南北极）
@@ -226,48 +253,35 @@ public partial class OrbitCameraRig : Node3D, IOrbitCameraRig
         return true;
     }
 
-    public override void _UnhandledInput(InputEvent @event)
-    {
-        if (Engine.IsEditorHint()) return;
-        // 缩放
-        if (@event is InputEventMouseButton { ButtonIndex: MouseButton.WheelDown or MouseButton.WheelUp } e)
-        {
-            var zoomDelta = 0.025f * e.Factor * (e.ButtonIndex == MouseButton.WheelUp ? 1f : -1f);
-            Zoom = Mathf.Clamp(Zoom + zoomDelta, 0f, 1f);
-            Transformed?.Invoke(_camRig!.GlobalTransform, (float)GetProcessDeltaTime());
-        }
-    }
-
     private float _boxSizeMultiplier = 0.01f;
     private float _focusBackZoom = 0.2f;
     private float _lightRangeMultiplier = 1f;
 
-    public void SetZoom(float value, float standardScale)
+    private void OnZoomChanged()
     {
         _focusBackStick!.Position =
             _focusBackStick.Basis * Vector3.Back * Mathf.Lerp(0f,
-                _focusBackZoom * Radius * standardScale, value);
+                _focusBackZoom * Planet.Radius * Planet.StandardScale, Zoom);
         var distance = Mathf.Lerp(StickMinZoom,
-            StickMaxZoom * standardScale * 2f,
-            value) * Radius;
+            StickMaxZoom * Planet.StandardScale * 2f,
+            Zoom) * Planet.Radius;
         _stick!.Position = Vector3.Back * distance;
-        var angle = Mathf.Lerp(SwivelMinZoom, SwivelMaxZoom, value);
+        var angle = Mathf.Lerp(SwivelMinZoom, SwivelMaxZoom, Zoom);
         _swivel!.RotationDegrees = Vector3.Right * angle;
     }
 
-    public void SetRadius(float value, float maxHeightRatio, float standardScale)
+    private void OnPlanetParamsChanged()
     {
-        _focusBase!.Position = Vector3.Forward * value * (1 + maxHeightRatio);
-        _focusBox!.Size = Vector3.One * value * _boxSizeMultiplier * standardScale;
-        _backBox!.Size = Vector3.One * value * _boxSizeMultiplier * standardScale;
-        _light!.SpotRange = value * _lightRangeMultiplier;
-        _light.Position = Vector3.Up * value * _lightRangeMultiplier * 0.5f;
+        _focusBase!.Position = Vector3.Forward * (Planet.Radius + Planet.MaxHeight);
+        _focusBox!.Size = Vector3.One * Planet.Radius * _boxSizeMultiplier * Planet.StandardScale;
+        _backBox!.Size = Vector3.One * Planet.Radius * _boxSizeMultiplier * Planet.StandardScale;
+        _light!.SpotRange = Planet.Radius * _lightRangeMultiplier;
+        _light.Position = Vector3.Up * Planet.Radius * _lightRangeMultiplier * 0.5f;
     }
 
-    public void Reset(float radius)
+    public void Reset()
     {
-        // 必须在 _ready = true 后面，触发各数据 setter 的初始化
-        Radius = radius;
+        OnPlanetParamsChanged();
         Zoom = 1f;
     }
 }

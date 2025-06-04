@@ -7,6 +7,7 @@ namespace Godot.Abstractions.Extensions.Planets;
 /// Date: 2025-06-03 17:38:03
 public interface IPlanet : INode3D
 {
+    event Action? ParamsChanged;
     float Radius { get; }
     int Divisions { get; }
     int ChunkDivisions { get; }

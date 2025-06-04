@@ -1,8 +1,10 @@
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Friflo.Engine.ECS;
 using Godot;
 using TerraObserver.Scenes.Cameras.Views;
+using TerraObserver.Scenes.Geos.Views;
 using TerraObserver.Scenes.Planets.Views;
-using TO.FSharp.Apps.Cameras;
 using TO.FSharp.Apps.Planets;
 using TO.FSharp.Commons.DataStructures;
 
@@ -14,86 +16,53 @@ namespace TerraObserver.Scenes.Planets.Contexts;
 [Tool]
 public partial class PlanetContext : Node
 {
-    [Export]
-    public Planet? Planet
-    {
-        get => _planet;
-        set
-        {
-            if (NodeReady && _planet != null)
-                _planet.ParamsChanged -= DrawHexSphereMesh;
-            _planet = value;
-            if (NodeReady && _planet != null)
-                _planet.ParamsChanged += DrawHexSphereMesh;
-        }
-    }
+    #region 依赖
 
-    private Planet? _planet;
+    private readonly PlanetApp _planetApp;
 
-    [Export]
-    public OrbitCameraRig? OrbitCameraRig
-    {
-        get => _orbitCameraRig;
-        set
-        {
-            if (NodeReady && _orbitCameraRig != null)
-            {
-                _orbitCameraRig.RadiusChanged -= OnOrbitCameraRadiusChanged;
-                _orbitCameraRig.ZoomChanged -= OnOrbitCameraZoomChanged;
-            }
-
-            _orbitCameraRig = value;
-            if (NodeReady && _orbitCameraRig != null)
-            {
-                _orbitCameraRig.RadiusChanged += OnOrbitCameraRadiusChanged;
-                _orbitCameraRig.ZoomChanged += OnOrbitCameraZoomChanged;
-            }
-        }
-    }
-
-    private OrbitCameraRig? _orbitCameraRig;
-
-    private bool NodeReady { get; set; }
-    private PlanetApp _planetApp = null!;
-    private OrbitCameraApp _orbitCameraApp = null!;
-
-    public override void _Ready()
+    public PlanetContext()
     {
         var store = new EntityStore();
         var chunkVpTree = new VpTree<Vector3>();
         var tileVpTree = new VpTree<Vector3>();
         _planetApp = new PlanetApp(store, chunkVpTree, tileVpTree);
-        _orbitCameraApp = new OrbitCameraApp();
+    }
+
+    #endregion
+
+    #region 内部变量、属性
+
+    private Planet _planet = null!;
+    private OrbitCameraRig _orbitCameraRig = null!;
+    private LonLatGrid _lonLatGrid = null!;
+
+    #endregion
+
+    #region 生命周期
+
+    private bool NodeReady { get; set; }
+
+    public override void _Ready()
+    {
+        _planet = GetNode<Planet>("%Planet");
+        _orbitCameraRig = GetNode<OrbitCameraRig>("%OrbitCameraRig");
+        _lonLatGrid = GetNode<LonLatGrid>("%LonLatGrid");
         NodeReady = true;
 
         DrawHexSphereMesh();
-        if (Planet != null)
-            Planet.ParamsChanged += DrawHexSphereMesh;
-        if (OrbitCameraRig != null)
-        {
-            OrbitCameraRig.RadiusChanged += OnOrbitCameraRadiusChanged;
-            OrbitCameraRig.ZoomChanged += OnOrbitCameraZoomChanged;
-        }
+        _planet.ParamsChanged += DrawHexSphereMesh;
+
+        _orbitCameraRig.Planet = _planet;
+        _lonLatGrid.Planet = _planet;
+        _lonLatGrid.OrbitCameraRig = _orbitCameraRig;
     }
+
+    #endregion
 
     private void DrawHexSphereMesh()
     {
-        if (!NodeReady || Planet == null)
+        if (!NodeReady)
             return;
-        _planetApp.DrawHexSphereMesh(Planet);
-    }
-
-    private void OnOrbitCameraRadiusChanged(float radius)
-    {
-        if (!NodeReady || Planet == null || OrbitCameraRig == null)
-            return;
-        OrbitCameraRig.SetRadius(radius, Planet.MaxHeightRatio, Planet.StandardScale);
-    }
-
-    private void OnOrbitCameraZoomChanged(float radius)
-    {
-        if (!NodeReady || Planet == null || OrbitCameraRig == null)
-            return;
-        OrbitCameraRig.SetZoom(radius, Planet.StandardScale);
+        _planetApp.DrawHexSphereMesh(_planet);
     }
 }
