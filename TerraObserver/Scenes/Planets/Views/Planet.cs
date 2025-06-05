@@ -86,20 +86,6 @@ public partial class Planet : Node3D, IPlanet
 
     private ulong _seed = 1234;
 
-    [ExportGroup("天体运动设置")]
-    // 行星公转
-    [Export]
-    public bool PlanetRevolution { get; set; } = true;
-
-    // 行星自转
-    [Export] public bool PlanetRotation { get; set; } = true;
-
-    // 卫星公转
-    [Export] public bool SatelliteRevolution { get; set; } = true;
-
-    // 卫星自转
-    [Export] public bool SatelliteRotation { get; set; } = true;
-
     #endregion
 
     #region 外部变量、属性
@@ -124,7 +110,7 @@ public partial class Planet : Node3D, IPlanet
     {
         MaxHeightRatio = StandardScale * MaxHeightRadiusRatio;
         MaxHeight = Radius * MaxHeightRatio;
-        RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.maxHeight, MaxHeight);
+        RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.MaxHeight, MaxHeight);
         UnitHeight = MaxHeight / ElevationStep;
     }
 }

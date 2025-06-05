@@ -1,32 +1,77 @@
-[gd_scene load_steps=8 format=3 uid="uid://cnu45krarcdsr"]
+[gd_scene load_steps=20 format=3 uid="uid://cnu45krarcdsr"]
 
 [ext_resource type="Script" uid="uid://4ki6so6sadfr" path="res://Scenes/Planets/Contexts/PlanetContext.cs" id="1_d8mpy"]
 [ext_resource type="PackedScene" uid="uid://b6hxyed0b8cfa" path="res://Scenes/Planets/Views/Planet.tscn" id="1_pvma5"]
+[ext_resource type="Script" uid="uid://voxnbptif4nk" path="res://Addons/SIsilicon.vfx.lens flare/lens-flare.gd" id="2_mvjou"]
 [ext_resource type="PackedScene" uid="uid://bdondmaglaff5" path="res://Scenes/Cameras/Views/OrbitCameraRig.tscn" id="3_s1lu0"]
 [ext_resource type="PackedScene" uid="uid://ed6bxdqb7oek" path="res://Scenes/Geos/Views/LonLatGrid.tscn" id="4_v27gh"]
+[ext_resource type="PackedScene" uid="uid://c36velgas3n3k" path="res://Addons/zylann.atmosphere/planet_atmosphere.tscn" id="6_mvjou"]
+[ext_resource type="Shader" uid="uid://bixaf68e35s0f" path="res://Addons/zylann.atmosphere/shaders/planet_atmosphere_clouds.gdshader" id="7_ex45l"]
+[ext_resource type="Script" uid="uid://bmjowuxck5v32" path="res://Addons/zylann.atmosphere/noise_cubemap.gd" id="8_a82mq"]
+[ext_resource type="PackedScene" uid="uid://0fh2xl2k3hyk" path="res://Scenes/Planets/Views/CelestialMotion.tscn" id="9_ex45l"]
+[ext_resource type="Texture2D" uid="uid://c17e87lvb2tbv" path="res://Assets/Space/euvi_aia304_2012_carrington_searchweb.png" id="10_a82mq"]
+[ext_resource type="Texture2D" uid="uid://dbh7h21k155fe" path="res://Assets/Sebastian/lroc_color_poles_512x256.png" id="11_jet37"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_s1lu0"]
-sky_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
-ground_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_jet37"]
+noise_type = 2
+frequency = 0.1
+fractal_type = 2
+fractal_octaves = 8
+fractal_gain = 0.665
 
-[sub_resource type="Sky" id="Sky_v27gh"]
-sky_material = SubResource("ProceduralSkyMaterial_s1lu0")
+[sub_resource type="NoiseTexture3D" id="NoiseTexture3D_ioxuh"]
+seamless = true
+noise = SubResource("FastNoiseLite_jet37")
 
-[sub_resource type="Environment" id="Environment_pcevp"]
-background_mode = 2
-sky = SubResource("Sky_v27gh")
-tonemap_mode = 2
-glow_enabled = true
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_kkspw"]
+domain_warp_enabled = true
+domain_warp_amplitude = 90.0
+domain_warp_frequency = 0.01
+domain_warp_fractal_octaves = 3
+
+[sub_resource type="Cubemap" id="Cubemap_opj56"]
+script = ExtResource("8_a82mq")
+noise = SubResource("FastNoiseLite_kkspw")
+resolution = 256
+scale = Vector3(100, 100, 100)
+metadata/_custom_type_script = "uid://bmjowuxck5v32"
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jet37"]
+albedo_color = Color(1.73, 1.72, 1.65, 1)
+albedo_texture = ExtResource("10_a82mq")
+emission_enabled = true
+emission = Color(2, 1.79, 1.65, 1)
+emission_energy_multiplier = 2.0
+emission_texture = ExtResource("10_a82mq")
+
+[sub_resource type="SphereMesh" id="SphereMesh_ioxuh"]
+material = SubResource("StandardMaterial3D_jet37")
+radius = 100.0
+height = 200.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_a82mq"]
+albedo_texture = ExtResource("11_jet37")
+metallic = 0.2
+metallic_specular = 0.8
+
+[sub_resource type="SphereMesh" id="SphereMesh_jet37"]
+material = SubResource("StandardMaterial3D_a82mq")
+radius = 27.3
+height = 54.6
 
 [node name="PlanetContext" type="Node"]
 script = ExtResource("1_d8mpy")
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
-environment = SubResource("Environment_pcevp")
-
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-transform = Transform3D(-0.866023, -0.433016, 0.250001, 0, 0.499998, 0.866027, -0.500003, 0.749999, -0.43301, 0, 0, 0)
-shadow_enabled = true
+[node name="LensFlare" type="Node" parent="."]
+script = ExtResource("2_mvjou")
+flareStrength = 4.0
+flareBias = 0.3
+flareBlur = 3.5
+distortion = 7.0
+ghostSpacing = 0.45
+haloWidth = 0.06
+streakStrength = 0.8
+metadata/_custom_type_script = "uid://voxnbptif4nk"
 
 [node name="Planet" parent="." instance=ExtResource("1_pvma5")]
 unique_name_in_owner = true
@@ -40,3 +85,36 @@ transform = Transform3D(-1, -6.18173e-08, 6.18173e-08, -8.74228e-08, 0.707107, -
 
 [node name="LonLatGrid" parent="." instance=ExtResource("4_v27gh")]
 unique_name_in_owner = true
+
+[node name="PlanetAthmosphere" parent="." instance=ExtResource("6_mvjou")]
+planet_radius = 100.0
+atmosphere_height = 25.0
+custom_shader = ExtResource("7_ex45l")
+shader_params/u_density = 0.1
+shader_params/u_scattering_strength = 15.0
+shader_params/u_cloud_density_scale = 0.2
+shader_params/u_cloud_bottom = 0.5
+shader_params/u_cloud_top = 0.75
+shader_params/u_cloud_blend = 0.5
+shader_params/u_cloud_shape_texture = SubResource("NoiseTexture3D_ioxuh")
+shader_params/u_cloud_shape_invert = 1.0
+shader_params/u_cloud_coverage_bias = 0.0
+shader_params/u_cloud_shape_factor = 0.1
+shader_params/u_cloud_shape_scale = 1.0
+shader_params/u_cloud_coverage_cubemap = SubResource("Cubemap_opj56")
+
+[node name="CelestialMotion" parent="." node_paths=PackedStringArray("Sun", "Moon") instance=ExtResource("9_ex45l")]
+unique_name_in_owner = true
+Sun = NodePath("Sun")
+Moon = NodePath("Moon")
+
+[node name="Sun" type="MeshInstance3D" parent="CelestialMotion"]
+transform = Transform3D(-1, 0, 8.74228e-08, 3.47758e-08, 0.917477, 0.397789, -8.02085e-08, 0.397789, -0.917477, 0.000262268, 1193.37, -2752.43)
+cast_shadow = 0
+mesh = SubResource("SphereMesh_ioxuh")
+skeleton = NodePath("../..")
+
+[node name="Moon" type="MeshInstance3D" parent="CelestialMotion"]
+transform = Transform3D(-1, 1.01694e-08, 8.68293e-08, 4.18218e-08, 0.927837, 0.372988, -7.67704e-08, 0.372988, -0.927837, 6.55671e-05, 358.789, -658.613)
+mesh = SubResource("SphereMesh_jet37")
+skeleton = NodePath("../..")

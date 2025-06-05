@@ -35,6 +35,7 @@ public partial class PlanetContext : Node
     private Planet _planet = null!;
     private OrbitCameraRig _orbitCameraRig = null!;
     private LonLatGrid _lonLatGrid = null!;
+    private CelestialMotion _celestialMotion = null!;
 
     #endregion
 
@@ -47,6 +48,7 @@ public partial class PlanetContext : Node
         _planet = GetNode<Planet>("%Planet");
         _orbitCameraRig = GetNode<OrbitCameraRig>("%OrbitCameraRig");
         _lonLatGrid = GetNode<LonLatGrid>("%LonLatGrid");
+        _celestialMotion = GetNode<CelestialMotion>("%CelestialMotion");
         NodeReady = true;
 
         DrawHexSphereMesh();
@@ -55,6 +57,7 @@ public partial class PlanetContext : Node
         _orbitCameraRig.Planet = _planet;
         _lonLatGrid.Planet = _planet;
         _lonLatGrid.OrbitCameraRig = _orbitCameraRig;
+        _celestialMotion.Planet = _planet;
     }
 
     #endregion
