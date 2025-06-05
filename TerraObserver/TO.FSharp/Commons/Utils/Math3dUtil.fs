@@ -32,23 +32,23 @@ module Math3dUtil =
         let normal = getNormal v0 v1 v2
         isNormalAwayFromOrigin center normal origin
 
+/// 作为对其他 .NET 公开的 F# 库（目前是使用了可选参数），需要遵循《F# 组件设计准则 - 命名空间和类型设计 - 使用命名空间、类型和成员作为组件的主要组织结构》
+/// https://learn.microsoft.com/zh-cn/dotnet/fsharp/style-guide/component-design-guidelines#use-namespaces-types-and-members-as-the-primary-organizational-structure-for-your-components
+[<AbstractClass; Sealed>]
+type Math3dUtil =
     /// <summary>
     /// 计算从点 A 在球面上对齐到点 B 的最短路径方向的朝向向量
     /// </summary>
     /// <param name="pointA"></param>
     /// <param name="pointB"></param>
     /// <returns></returns>
-    let directionBetweenPointsOnSphere (pointA: Vector3) (pointB: Vector3) =
+    static member DirectionBetweenPointsOnSphere (pointA: Vector3) (pointB: Vector3) =
         let sphereCenter = Vector3.Zero
         let vectorToA = pointA - sphereCenter
         let vectorToB = pointB - sphereCenter
         let greatCircleNormal = vectorToA.Cross(vectorToB).Normalized()
         greatCircleNormal.Cross(vectorToA).Normalized()
 
-/// 作为对其他 .NET 公开的 F# 库（目前是使用了可选参数），需要遵循《F# 组件设计准则 - 命名空间和类型设计 - 使用命名空间、类型和成员作为组件的主要组织结构》
-/// https://learn.microsoft.com/zh-cn/dotnet/fsharp/style-guide/component-design-guidelines#use-namespaces-types-and-members-as-the-primary-organizational-structure-for-your-components
-[<AbstractClass; Sealed>]
-type Math3dUtil =
     static member ProjectToSphere(p: Vector3, radius, ?scale: float32) =
         let scale = defaultArg scale 1f
         let projectionPoint = radius / p.Length()

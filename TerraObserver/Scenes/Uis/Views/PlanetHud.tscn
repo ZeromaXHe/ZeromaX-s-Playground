@@ -1,0 +1,580 @@
+[gd_scene load_steps=11 format=3 uid="uid://b2v0nm0kt4y6m"]
+
+[ext_resource type="Texture2D" uid="uid://tsvwdv70km4i" path="res://icon.svg" id="1_0cpvq"]
+[ext_resource type="Script" uid="uid://vl1304uyharx" path="res://Scenes/Uis/Views/PlanetHud.cs" id="1_his83"]
+[ext_resource type="Shader" uid="uid://h6qljtxgdgpi" path="res://Shaders/Geos/SphereToRectMiniMap.gdshader" id="1_n7e48"]
+
+[sub_resource type="Gradient" id="Gradient_vu6iq"]
+offsets = PackedFloat32Array(0, 0.98, 1)
+colors = PackedColorArray(0.164706, 0.145098, 0.129412, 0.317647, 0.360784, 0.313726, 0.270588, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_0cpvq"]
+gradient = SubResource("Gradient_vu6iq")
+width = 150
+height = 150
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_n7e48"]
+texture = SubResource("GradientTexture2D_0cpvq")
+
+[sub_resource type="Gradient" id="Gradient_0cpvq"]
+offsets = PackedFloat32Array(0, 0.9, 0.92, 0.98, 1)
+colors = PackedColorArray(0, 0, 0, 1, 1, 1, 1, 0, 1, 0.235294, 0, 0.501961, 1, 0.235294, 0, 0.501961, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_n7e48"]
+gradient = SubResource("Gradient_0cpvq")
+width = 150
+height = 150
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_his83"]
+shader = ExtResource("1_n7e48")
+shader_parameter/lon = 0.0
+shader_parameter/lat = 0.0
+shader_parameter/angle_to_north = 0.0
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_0cpvq"]
+
+[node name="PlanetHud" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_his83")
+
+[node name="LeftPanel" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 1
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_right = 220.0
+grow_vertical = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="LeftPanel"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="VBox" type="VBoxContainer" parent="LeftPanel/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EditCheckButton" type="CheckButton" parent="LeftPanel/ScrollContainer/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "编辑模式"
+
+[node name="WireframeCheckButton" type="CheckButton" parent="LeftPanel/ScrollContainer/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "查看线框模式"
+
+[node name="CelestialMotionCheckButton" type="CheckButton" parent="LeftPanel/ScrollContainer/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "天体运动"
+
+[node name="HSeparator" type="HSeparator" parent="LeftPanel/ScrollContainer/VBox"]
+layout_mode = 2
+
+[node name="EditTabBar" type="TabBar" parent="LeftPanel/ScrollContainer/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+current_tab = 0
+tab_alignment = 1
+tab_count = 1
+tab_0/title = "编辑功能"
+tab_0/tooltip = "提示：当编辑功能分页缩起时，即使打开了相关编辑开关，点击地块将不进行任何修改"
+
+[node name="EditGrid" type="GridContainer" parent="LeftPanel/ScrollContainer/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+columns = 2
+
+[node name="TerrainLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+layout_mode = 2
+text = "地貌："
+
+[node name="TerrainOptionButton" type="OptionButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 0
+item_count = 6
+popup/item_0/text = "---"
+popup/item_0/id = 0
+popup/item_1/text = "沙漠"
+popup/item_1/id = 1
+popup/item_2/text = "草原"
+popup/item_2/id = 2
+popup/item_3/text = "泥地"
+popup/item_3/id = 3
+popup/item_4/text = "岩石"
+popup/item_4/id = 4
+popup/item_5/text = "雪地"
+popup/item_5/id = 5
+
+[node name="ElevationLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+layout_mode = 2
+text = "高程："
+
+[node name="ElevationVSlider" type="VSlider" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+size_flags_horizontal = 4
+max_value = 10.0
+tick_count = 11
+ticks_on_borders = true
+
+[node name="ElevationCheckButton" type="CheckButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "高程开关"
+
+[node name="ElevationValueLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="WaterLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+layout_mode = 2
+text = "水位："
+
+[node name="WaterVSlider" type="VSlider" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+size_flags_horizontal = 4
+max_value = 10.0
+tick_count = 11
+ticks_on_borders = true
+
+[node name="WaterCheckButton" type="CheckButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "水位开关"
+
+[node name="WaterValueLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BrushLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "笔刷大小：0"
+
+[node name="BrushHSlider" type="HSlider" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+max_value = 4.0
+tick_count = 5
+ticks_on_borders = true
+
+[node name="RiverLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+layout_mode = 2
+text = "河流："
+
+[node name="RiverOptionButton" type="OptionButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 0
+item_count = 3
+popup/item_0/text = "---"
+popup/item_0/id = 0
+popup/item_1/text = "是"
+popup/item_1/id = 1
+popup/item_2/text = "否"
+popup/item_2/id = 2
+
+[node name="RoadLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+layout_mode = 2
+text = "道路："
+
+[node name="RoadOptionButton" type="OptionButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 0
+item_count = 3
+popup/item_0/text = "---"
+popup/item_0/id = 0
+popup/item_1/text = "是"
+popup/item_1/id = 1
+popup/item_2/text = "否"
+popup/item_2/id = 2
+
+[node name="UrbanCheckButton" type="CheckButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "城市："
+
+[node name="UrbanHSlider" type="HSlider" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+max_value = 3.0
+tick_count = 4
+ticks_on_borders = true
+
+[node name="FarmCheckButton" type="CheckButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "农田："
+
+[node name="FarmHSlider" type="HSlider" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+max_value = 3.0
+tick_count = 4
+ticks_on_borders = true
+
+[node name="PlantCheckButton" type="CheckButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "植被："
+
+[node name="PlantHSlider" type="HSlider" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+max_value = 3.0
+tick_count = 4
+ticks_on_borders = true
+
+[node name="WallLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+layout_mode = 2
+text = "城墙："
+
+[node name="WallOptionButton" type="OptionButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 0
+item_count = 3
+popup/item_0/text = "---"
+popup/item_0/id = 0
+popup/item_1/text = "是"
+popup/item_1/id = 1
+popup/item_2/text = "否"
+popup/item_2/id = 2
+
+[node name="SpecialFeatureCheckButton" type="CheckButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "地标："
+
+[node name="SpecialFeatureOptionButton" type="OptionButton" parent="LeftPanel/ScrollContainer/VBox/EditGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 0
+item_count = 4
+popup/item_0/text = "无"
+popup/item_0/id = 0
+popup/item_1/text = "城堡"
+popup/item_1/id = 1
+popup/item_2/text = "金字塔"
+popup/item_2/id = 2
+popup/item_3/text = "巨型植被"
+popup/item_3/id = 3
+
+[node name="HSeparator2" type="HSeparator" parent="LeftPanel/ScrollContainer/VBox"]
+layout_mode = 2
+
+[node name="PlanetTabBar" type="TabBar" parent="LeftPanel/ScrollContainer/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+current_tab = 0
+tab_alignment = 1
+tab_count = 1
+tab_0/title = "星球设置"
+
+[node name="PlanetGrid" type="GridContainer" parent="LeftPanel/ScrollContainer/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+columns = 2
+
+[node name="RadiusLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/PlanetGrid"]
+layout_mode = 2
+text = "半径："
+
+[node name="RadiusLineEdit" type="LineEdit" parent="LeftPanel/ScrollContainer/VBox/PlanetGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "100"
+
+[node name="DivisionLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/PlanetGrid"]
+layout_mode = 2
+text = "地块细分："
+
+[node name="DivisionLineEdit" type="LineEdit" parent="LeftPanel/ScrollContainer/VBox/PlanetGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "20"
+
+[node name="ChunkDivisionLabel2" type="Label" parent="LeftPanel/ScrollContainer/VBox/PlanetGrid"]
+layout_mode = 2
+text = "分块细分："
+
+[node name="ChunkDivisionLineEdit" type="LineEdit" parent="LeftPanel/ScrollContainer/VBox/PlanetGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "2"
+
+[node name="HSeparator3" type="HSeparator" parent="LeftPanel/ScrollContainer/VBox"]
+layout_mode = 2
+
+[node name="TileTabBar" type="TabBar" parent="LeftPanel/ScrollContainer/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+current_tab = 0
+tab_alignment = 1
+tab_count = 1
+tab_0/title = "地块信息"
+
+[node name="TileVBox" type="VBoxContainer" parent="LeftPanel/ScrollContainer/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ChunkCountLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/TileVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "分块总数：999"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TileCountLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/TileVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "地块总数：9999"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TileGrid" type="GridContainer" parent="LeftPanel/ScrollContainer/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+columns = 2
+
+[node name="ShowLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+layout_mode = 2
+text = "标签显示："
+
+[node name="ShowLabelOptionButton" type="OptionButton" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 0
+item_count = 3
+popup/item_0/text = "无"
+popup/item_0/id = 0
+popup/item_1/text = "坐标"
+popup/item_1/id = 1
+popup/item_2/text = "ID"
+popup/item_2/id = 2
+
+[node name="IdLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+layout_mode = 2
+text = "ID："
+
+[node name="IdLineEdit" type="LineEdit" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "9999"
+editable = false
+
+[node name="ChunkLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+layout_mode = 2
+text = "所属分块："
+
+[node name="ChunkLineEdit" type="LineEdit" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "99"
+editable = false
+
+[node name="CoordsLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+layout_mode = 2
+text = "坐标："
+
+[node name="CoordsLineEdit" type="LineEdit" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "99"
+editable = false
+
+[node name="HeightLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+layout_mode = 2
+text = "高度："
+
+[node name="HeightLineEdit" type="LineEdit" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0"
+editable = false
+
+[node name="ElevationLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+layout_mode = 2
+text = "高程："
+
+[node name="ElevationLineEdit" type="LineEdit" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0"
+editable = false
+
+[node name="LonLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+layout_mode = 2
+text = "经度："
+
+[node name="LonLineEdit" type="LineEdit" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0"
+editable = false
+
+[node name="LatLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+layout_mode = 2
+text = "纬度："
+
+[node name="LatLineEdit" type="LineEdit" parent="LeftPanel/ScrollContainer/VBox/TileGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0"
+editable = false
+
+[node name="MiniMapVBox" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -360.0
+offset_bottom = 232.0
+grow_horizontal = 0
+
+[node name="RightPanel" type="PanelContainer" parent="MiniMapVBox"]
+layout_mode = 2
+size_flags_horizontal = 8
+
+[node name="Center" type="CenterContainer" parent="MiniMapVBox/RightPanel"]
+custom_minimum_size = Vector2(360, 170)
+layout_mode = 2
+
+[node name="MiniMapContainer" type="SubViewportContainer" parent="MiniMapVBox/RightPanel/Center"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(350, 160)
+layout_mode = 2
+stretch = true
+
+[node name="SubViewport" type="SubViewport" parent="MiniMapVBox/RightPanel/Center/MiniMapContainer"]
+handle_input_locally = false
+size = Vector2i(350, 160)
+render_target_update_mode = 4
+
+[node name="CamLatLonLabel" type="Label" parent="MiniMapVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "相机位置：E 25°31'00\", S33°44'00\""
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MiniMapVBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+alignment = 2
+
+[node name="LatLonFixCheckButton" type="CheckButton" parent="MiniMapVBox/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "锁定经纬网显示"
+
+[node name="CompassPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+clip_children = 2
+custom_minimum_size = Vector2(150, 150)
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -150.0
+offset_top = -150.0
+grow_horizontal = 0
+grow_vertical = 0
+pivot_offset = Vector2(75, 75)
+theme_override_styles/panel = SubResource("StyleBoxTexture_n7e48")
+
+[node name="Frame" type="TextureRect" parent="CompassPanel"]
+layout_mode = 2
+texture = SubResource("GradientTexture2D_n7e48")
+
+[node name="Directions" type="RichTextLabel" parent="CompassPanel"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+theme_override_constants/outline_size = 3
+theme_override_constants/shadow_outline_size = 5
+bbcode_enabled = true
+text = "             [b][color=red]N[/color]
+             [color=red]|[/color]
+W                     E
+             |
+             S[/b]"
+fit_content = true
+autowrap_mode = 0
+
+[node name="RectMap" type="TextureRect" parent="."]
+unique_name_in_owner = true
+visible = false
+material = SubResource("ShaderMaterial_his83")
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -350.0
+offset_top = -350.0
+offset_right = 350.0
+grow_horizontal = 2
+grow_vertical = 0
+pivot_offset = Vector2(350, 175)
+texture = SubResource("PlaceholderTexture2D_0cpvq")
+expand_mode = 2
+
+[node name="CameraIcon" type="TextureRect" parent="RectMap"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -10.0
+offset_top = -10.0
+offset_right = 10.0
+offset_bottom = 10.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_0cpvq")
+expand_mode = 1
+
+[node name="RectMapCheckButton" type="CheckButton" parent="."]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -56.0
+offset_top = -31.0
+offset_right = 56.0
+grow_horizontal = 2
+grow_vertical = 0
+text = "矩形地图"
+
+[connection signal="toggled" from="RectMapCheckButton" to="RectMap" method="set_visible"]

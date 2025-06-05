@@ -5,6 +5,7 @@ using Godot;
 using TerraObserver.Scenes.Cameras.Views;
 using TerraObserver.Scenes.Geos.Views;
 using TerraObserver.Scenes.Planets.Views;
+using TerraObserver.Scenes.Uis.Views;
 using TO.FSharp.Apps.Planets;
 using TO.FSharp.Commons.DataStructures;
 
@@ -36,6 +37,7 @@ public partial class PlanetContext : Node
     private OrbitCameraRig _orbitCameraRig = null!;
     private LonLatGrid _lonLatGrid = null!;
     private CelestialMotion _celestialMotion = null!;
+    private PlanetHud _planetHud = null!;
 
     #endregion
 
@@ -49,15 +51,25 @@ public partial class PlanetContext : Node
         _orbitCameraRig = GetNode<OrbitCameraRig>("%OrbitCameraRig");
         _lonLatGrid = GetNode<LonLatGrid>("%LonLatGrid");
         _celestialMotion = GetNode<CelestialMotion>("%CelestialMotion");
+        _planetHud = GetNode<PlanetHud>("%PlanetHud");
         NodeReady = true;
 
         DrawHexSphereMesh();
         _planet.ParamsChanged += DrawHexSphereMesh;
 
+        // 轨道相机架
         _orbitCameraRig.Planet = _planet;
+        // 经纬网
         _lonLatGrid.Planet = _planet;
         _lonLatGrid.OrbitCameraRig = _orbitCameraRig;
+        // 天体运动
         _celestialMotion.Planet = _planet;
+        // HUD
+        _planetHud.Planet = _planet;
+        _planetHud.OrbitCameraRig = _orbitCameraRig;
+        _planetHud.LonLatGrid = _lonLatGrid;
+        _planetHud.CelestialMotion = _celestialMotion;
+        
     }
 
     #endregion

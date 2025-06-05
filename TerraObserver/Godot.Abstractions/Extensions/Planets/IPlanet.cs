@@ -8,9 +8,9 @@ namespace Godot.Abstractions.Extensions.Planets;
 public interface IPlanet : INode3D
 {
     event Action? ParamsChanged;
-    float Radius { get; }
-    int Divisions { get; }
-    int ChunkDivisions { get; }
+    float Radius { get; set; }
+    int Divisions { get; set; }
+    int ChunkDivisions { get; set; }
     float MaxHeight { get; }
     float MaxHeightRatio { get; }
     float StandardScale { get; }

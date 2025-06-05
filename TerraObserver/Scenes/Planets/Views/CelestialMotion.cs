@@ -8,7 +8,7 @@ namespace TerraObserver.Scenes.Planets.Views;
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-06-05 13:14:39
 [Tool]
-public partial class CelestialMotion : Node3D
+public partial class CelestialMotion : Node3D, ICelestialMotion
 {
     #region 依赖
 
