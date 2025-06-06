@@ -22,6 +22,12 @@ module PointRepo =
                 .HasValue<PointComponent, Vector3>(pos)
                 .AllTags(if chunky then &dep.TagChunk else &dep.TagTile)
 
+    let tryHeadEntityByPointCenterId (store: EntityStore) : TryHeadEntityByPointCenterId =
+        fun centerId ->
+            // 我们默认只会存在最多一个结果
+            FrifloEcsUtil.tryHeadEntity
+            <| store.Query<PointCenterId>().HasValue<PointCenterId, CenterId>(centerId)
+
     // 按照顺时针方向返回三角形上的在指定顶点后的另外两个顶点
     let private getOtherPoints (dep: ChunkyDep) =
         fun chunky (face: FaceComponent) (point: PointComponent inref) ->
@@ -96,6 +102,7 @@ module PointRepo =
     let getDependency chunkDep chunkVpTree tileVpTree : PointRepoDep =
         { ForEachByChunky = forEachByChunky chunkDep
           TryHeadByPosition = tryHeadByPosition chunkDep
+          TryHeadEntityByCenterId = tryHeadEntityByPointCenterId chunkDep.Store
           Add = add chunkDep
           GetNeighborCenterPointIds = getNeighborCenterPointIds chunkDep
           CreateVpTree = createVpTree chunkDep chunkVpTree tileVpTree

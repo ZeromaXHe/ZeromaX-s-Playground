@@ -30,3 +30,5 @@ type PointComponent =
     new(position: Vector3, coords: SphereAxial) = { Position = position; Coords = coords }
 
 type Chunky = bool
+type CenterId = int
+type NeighborCenterIds = CenterId array

@@ -177,16 +177,12 @@ module HexSphereService =
             // Consider using an explicit 'let' binding for the interpolation expression or use a triple quote string as the outer string literal.
             GD.Print($"--- InitPointsAndFaces for {chunkyType} cost: {Time.GetTicksMsec() - time} ms")
 
-    let private searchNearest (point: PointRepoDep) (tile: TileRepoDep) (chunk: ChunkRepoDep) =
+    let private searchNearest (point: PointRepoDep) =
         fun (pos: Vector3) chunky ->
             let center = point.SearchNearestCenterPos pos chunky
 
             point.TryHeadByPosition chunky center
-            |> Option.bind (fun pointEntity ->
-                if chunky then
-                    chunk.TryHeadByCenterId pointEntity.Id
-                else
-                    tile.TryHeadByCenterId pointEntity.Id)
+            |> Option.bind (fun pointEntity -> point.TryHeadEntityByCenterId pointEntity.Id)
 
     let private getHexFacesAndNeighborCenterIds (point: PointRepoDep) (face: FaceRepoDep) =
         fun chunky (pComp: PointComponent inref) (pEntity: Entity inref) ->
@@ -231,7 +227,7 @@ module HexSphereService =
             let hexFaces, hexFaceIds, neighborCenterIds =
                 getHexFacesAndNeighborCenterIds point face false &pComp &pEntity
 
-            searchNearest point tile chunk pComp.Position true // 找到最近的 Chunk
+            searchNearest point pComp.Position true // 找到最近的 Chunk
             |> Option.iter (fun chunk ->
                 let tileId = tile.Add pEntity.Id chunk.Id hexFaces hexFaceIds neighborCenterIds
 
@@ -251,7 +247,7 @@ module HexSphereService =
         surfaceTool.AddIndex i1
         surfaceTool.AddIndex i2
 
-    let private generateMesh (planet: IPlanet) (tiles: TileComponent seq) =
+    let private generateMesh (planet: IPlanet) (tiles: (TileUnitCentroid * TileUnitCorners) seq) =
         for child in planet.GetChildren() do
             child.QueueFree()
 
@@ -261,9 +257,11 @@ module HexSphereService =
         surfaceTool.SetSmoothGroup UInt32.MaxValue
         let mutable vi = 0
 
-        for tile in tiles do
+        for unitCentroid, unitCorners in tiles do
             surfaceTool.SetColor <| Color.FromHsv(GD.Randf(), GD.Randf(), GD.Randf())
-            let points = tile.GetCorners planet.Radius
+
+            let points =
+                unitCorners.GetCorners(unitCentroid.UnitCentroid, planet.Radius) |> Seq.toArray
 
             for point in points do
                 surfaceTool.AddVertex point
@@ -302,7 +300,7 @@ module HexSphereService =
             clearOldData point face tile chunk
             initChunks planet point face chunk
             initTiles planet point face tile chunk
-            generateMesh planet <| tile.AllSeq()
+            generateMesh planet <| tile.CentroidAndCornersSeq()
 
     let getDependency
         (point: PointRepoDep)

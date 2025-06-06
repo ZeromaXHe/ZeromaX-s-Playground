@@ -17,9 +17,16 @@
         <Compile Include="Commons\Utils\HexMetrics.fs"/>
         <Compile Include="Commons\Utils\FrifloEcsUtil.fs" />
         <Compile Include="Commons\Utils\HexSphereUtil.fs" />
+        <Compile Include="Commons\Utils\HexIndexUtil.fs" />
         <Compile Include="Repos\Models\HexSpheres\Points.fs" />
+        <Compile Include="Repos\Models\HexSpheres\Points\PointCenterId.fs" />
+        <Compile Include="Repos\Models\HexSpheres\Points\PointNeighborCenterIds.fs" />
         <Compile Include="Repos\Models\HexSpheres\Faces.fs" />
         <Compile Include="Repos\Models\HexSpheres\Tiles.fs" />
+        <Compile Include="Repos\Models\HexSpheres\Tiles\TileChunkId.fs" />
+        <Compile Include="Repos\Models\HexSpheres\Tiles\TileUnitCentroid.fs" />
+        <Compile Include="Repos\Models\HexSpheres\Tiles\TileUnitCorners.fs" />
+        <Compile Include="Repos\Models\HexSpheres\Tiles\TileHexFaceIds.fs" />
         <Compile Include="Repos\Models\HexSpheres\Chunks.fs" />
         <Compile Include="Repos\Types\PointRepoT.fs" />
         <Compile Include="Repos\Types\FaceRepoT.fs" />

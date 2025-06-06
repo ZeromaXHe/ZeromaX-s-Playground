@@ -47,11 +47,13 @@ public partial class PlanetContext : Node
 
     public override void _Ready()
     {
+        var inEditor = Engine.IsEditorHint();
         _planet = GetNode<Planet>("%Planet");
         _orbitCameraRig = GetNode<OrbitCameraRig>("%OrbitCameraRig");
         _lonLatGrid = GetNode<LonLatGrid>("%LonLatGrid");
         _celestialMotion = GetNode<CelestialMotion>("%CelestialMotion");
-        _planetHud = GetNode<PlanetHud>("%PlanetHud");
+        if (!inEditor)
+            _planetHud = GetNode<PlanetHud>("%PlanetHud");
         NodeReady = true;
 
         DrawHexSphereMesh();
@@ -65,11 +67,13 @@ public partial class PlanetContext : Node
         // 天体运动
         _celestialMotion.Planet = _planet;
         // HUD
-        _planetHud.Planet = _planet;
-        _planetHud.OrbitCameraRig = _orbitCameraRig;
-        _planetHud.LonLatGrid = _lonLatGrid;
-        _planetHud.CelestialMotion = _celestialMotion;
-        
+        if (!inEditor)
+        {
+            _planetHud.Planet = _planet;
+            _planetHud.OrbitCameraRig = _orbitCameraRig;
+            _planetHud.LonLatGrid = _lonLatGrid;
+            _planetHud.CelestialMotion = _celestialMotion;
+        }
     }
 
     #endregion

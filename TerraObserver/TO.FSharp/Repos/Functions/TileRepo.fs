@@ -3,6 +3,7 @@ namespace TO.FSharp.Repos.Functions
 open Friflo.Engine.ECS
 open TO.FSharp.Commons.Utils
 open TO.FSharp.Repos.Models.HexSpheres.Faces
+open TO.FSharp.Repos.Models.HexSpheres.Points
 open TO.FSharp.Repos.Models.HexSpheres.Tiles
 open TO.FSharp.Repos.Types.TileRepoT
 
@@ -16,12 +17,6 @@ module TileRepo =
 
     let private initUnitCorners (hexFaces: FaceComponent array) = hexFaces |> Array.map _.Center
 
-    let tryHeadByCenterId (store: EntityStore) : TryHeadTileByCenterId =
-        fun centerId ->
-            // 我们默认只会存在最多一个结果
-            FrifloEcsUtil.tryHeadEntity
-            <| store.Query<TileComponent>().HasValue<TileComponent, int>(centerId)
-
     let add (store: EntityStore) : AddTile =
         fun centerId chunkId hexFaces hexFaceIds neighborCenterIds ->
             let unitCentroid = initUnitCentroid hexFaces
@@ -29,18 +24,22 @@ module TileRepo =
 
             store
                 .CreateEntity(
-                    TileComponent(centerId, chunkId, unitCentroid, unitCorners, hexFaceIds, neighborCenterIds)
+                    PointCenterId centerId,
+                    TileChunkId chunkId,
+                    TileUnitCentroid unitCentroid,
+                    TileUnitCorners unitCorners,
+                    TileHexFaceIds hexFaceIds,
+                    PointNeighborCenterIds neighborCenterIds
                 )
                 .Id
 
-    let allSeq (store: EntityStore) : AllTilesSeq =
-        fun () -> FrifloEcsUtil.toComponentSeq <| store.Query<TileComponent>()
+    let centroidAndCornersSeq (store: EntityStore) : CentroidAndCornersSeq =
+        fun () -> FrifloEcsUtil.toComponentSeq2 <| store.Query<TileUnitCentroid, TileUnitCorners>()
 
     let truncate (store: EntityStore) : TruncateTiles =
-        fun () -> FrifloEcsUtil.truncate <| store.Query<TileComponent>()
+        fun () -> FrifloEcsUtil.truncate <| store.Query<TileUnitCentroid>()
 
     let getDependency store : TileRepoDep =
-        { TryHeadByCenterId = tryHeadByCenterId store
-          Add = add store
-          AllSeq = allSeq store
+        { Add = add store
+          CentroidAndCornersSeq = centroidAndCornersSeq store
           Truncate = truncate store }
