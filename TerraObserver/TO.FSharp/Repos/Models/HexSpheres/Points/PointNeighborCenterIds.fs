@@ -13,12 +13,12 @@ open TO.FSharp.Commons.Utils
 type PointNeighborCenterIds =
     interface IComponent
     val Length: int
-    val NeighborCenterId0: CenterId
-    val NeighborCenterId1: CenterId
-    val NeighborCenterId2: CenterId
-    val NeighborCenterId3: CenterId
-    val NeighborCenterId4: CenterId
-    val NeighborCenterId5: CenterId
+    val NeighborCenterId0: PointId
+    val NeighborCenterId1: PointId
+    val NeighborCenterId2: PointId
+    val NeighborCenterId3: PointId
+    val NeighborCenterId4: PointId
+    val NeighborCenterId5: PointId
 
     new(centerIds: NeighborCenterIds) =
         if centerIds.Length <> 5 && centerIds.Length <> 6 then
@@ -32,16 +32,8 @@ type PointNeighborCenterIds =
           NeighborCenterId4 = centerIds[4]
           NeighborCenterId5 = if centerIds.Length > 5 then centerIds[5] else centerIds[0] }
 
-    interface int IWithLength with
-        override this.Length = this.Length
-
-        override this.GetEnumerator() : IEnumerator<CenterId> =
-            new WithLengthEnumerator<CenterId>(this)
-
-        override this.GetEnumerator() : IEnumerator =
-            new WithLengthEnumerator<CenterId>(this)
-        // 只读的索引属性
-        override this.Item idx =
+    member this.Item
+        with get idx =
             if idx < 0 || idx >= this.Length then
                 failwith "TileNeighborCenterIds invalid index"
 
@@ -54,8 +46,17 @@ type PointNeighborCenterIds =
             | 5 -> this.NeighborCenterId5
             | _ -> failwith "TileNeighborCenterIds invalid index"
 
+    interface int IWithLength with
+        override this.Length = this.Length
+
+        override this.GetEnumerator() : IEnumerator<PointId> = new WithLengthEnumerator<PointId>(this)
+
+        override this.GetEnumerator() : IEnumerator = new WithLengthEnumerator<PointId>(this)
+        // 只读的索引属性
+        override this.Item idx = this.Item idx
+
     // 邻居
-    member this.GetNeighborIdx(neighborCenterId: CenterId) =
+    member this.GetNeighborIdx(neighborCenterId: PointId) =
         this |> Seq.findIndex (fun id -> id = neighborCenterId)
 
-    member this.IsNeighbor(neighborCenterId: CenterId) = this |> Seq.contains neighborCenterId
+    member this.IsNeighbor(neighborCenterId: PointId) = this |> Seq.contains neighborCenterId

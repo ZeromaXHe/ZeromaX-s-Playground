@@ -49,10 +49,12 @@ type Math3dUtil =
         let greatCircleNormal = vectorToA.Cross(vectorToB).Normalized()
         greatCircleNormal.Cross(vectorToA).Normalized()
 
-    static member ProjectToSphere(p: Vector3, radius, ?scale: float32) =
-        let scale = defaultArg scale 1f
+    static member ProjectToSphere(p: Vector3, radius, scale: float32) =
         let projectionPoint = radius / p.Length()
         p * projectionPoint * scale
+
+    static member ProjectToSphere(p, radius) =
+        Math3dUtil.ProjectToSphere(p, radius, 1f)
 
     /// <summary>计算两个向量在垂直于 dir 的平面上的夹角（弧度）</summary>
     /// <param name="a">向量 a</param>

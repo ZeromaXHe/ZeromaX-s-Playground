@@ -1,4 +1,4 @@
-namespace TO.FSharp.Repos.Types.FaceRepoT
+namespace TO.FSharp.Repos.Types.HexSpheres.FaceRepoT
 
 open Friflo.Engine.ECS
 open Godot
@@ -9,12 +9,14 @@ open TO.FSharp.Repos.Models.HexSpheres.Points
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-05-30 10:26:30
 type ForEachFaceByChunky = Chunky -> FaceComponent ForEachEntity -> unit
-type AddFace = Chunky -> Vector3 -> Vector3 -> Vector3 -> int
+type AddFace = Chunky -> Vector3 -> Vector3 -> Vector3 -> FaceId
 type GetOrderedFaces = PointComponent -> Entity -> Entity list
+type GetFaceComponentById = FaceId -> FaceComponent
 type TruncateFaces = unit -> unit
 
 type FaceRepoDep =
     { ForEachByChunky: ForEachFaceByChunky
       Add: AddFace
       GetOrderedFaces: GetOrderedFaces
+      GetComponentById: GetFaceComponentById
       Truncate: TruncateFaces }

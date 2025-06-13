@@ -20,7 +20,7 @@ public partial class LonLatGrid : Node3D, ILonLatGrid
         {
             _planet = value;
             Draw(_planet.Radius + _planet.MaxHeight * 1.25f);
-            _planet.ParamsChanged += () => Draw(_planet.Radius + _planet.MaxHeight * 1.25f);
+            _planet.ParamsChanged += OnPlanetParamsChanged;
         }
     }
 
@@ -37,6 +37,15 @@ public partial class LonLatGrid : Node3D, ILonLatGrid
     }
 
     private IOrbitCameraRig _orbitCameraRig = null!;
+
+    public void PreDelete()
+    {
+        // GD.Print($"LonLatGrid _PreDelete {Planet != null!}");
+        if (Planet != null!) // TODO: 非常莫名其妙的会为空，又是神奇的生命周期…… 有待后续搞明白
+            Planet.ParamsChanged -= OnPlanetParamsChanged;
+        if (OrbitCameraRig != null!)
+            OrbitCameraRig.Moved -= OnCameraMoved;
+    }
 
     #endregion
 
@@ -160,6 +169,8 @@ public partial class LonLatGrid : Node3D, ILonLatGrid
         _fadeVisibility = false;
         SetProcess(true);
     }
+
+    public void OnPlanetParamsChanged() => Draw(_planet.Radius + _planet.MaxHeight * 1.25f);
 
     public void Draw(float radius)
     {

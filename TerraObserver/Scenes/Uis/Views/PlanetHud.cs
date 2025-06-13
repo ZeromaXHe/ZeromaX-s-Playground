@@ -3,8 +3,10 @@ using Godot;
 using Godot.Abstractions.Extensions.Cameras;
 using Godot.Abstractions.Extensions.Geos;
 using Godot.Abstractions.Extensions.Planets;
+using TO.FSharp.Commons.Constants.Shaders;
 using TO.FSharp.Commons.Structs.HexSphereGrid;
 using TO.FSharp.Commons.Utils;
+using TO.FSharp.Repos.Models.Meshes;
 
 namespace TerraObserver.Scenes.Uis.Views;
 
@@ -15,7 +17,17 @@ public partial class PlanetHud : Control
 {
     #region 依赖
 
-    public IPlanet Planet { get; set; } = null!;
+    public IPlanet Planet
+    {
+        get => _planet;
+        set
+        {
+            _planet = value;
+            InitElevationAndWaterVSlider();
+        }
+    }
+
+    private IPlanet _planet = null!;
 
     public IOrbitCameraRig OrbitCameraRig
     {
@@ -26,6 +38,7 @@ public partial class PlanetHud : Control
             _orbitCameraRig.Transformed += OnOrbitCameraRigTransformed;
             _orbitCameraRig.Moved += OnOrbitCameraRigMoved;
             OnOrbitCameraRigMoved(_orbitCameraRig.GetFocusBasePos(), 0f);
+            OnOrbitCameraRigTransformed(_orbitCameraRig.GetViewport().GetCamera3D().GetGlobalTransform(), 0f);
         }
     }
 
@@ -121,6 +134,7 @@ public partial class PlanetHud : Control
     public int? DragTileId { get; set; }
     public int? PreviousTileId { get; set; }
     public int LabelMode { get; set; }
+    public HexTileDataOverrider TileOverrider { get; set; } = new();
 
     #endregion
 
@@ -183,15 +197,19 @@ public partial class PlanetHud : Control
         SpecialFeatureCheckButton = GetNode<CheckButton>("%SpecialFeatureCheckButton");
         SpecialFeatureOptionButton = GetNode<OptionButton>("%SpecialFeatureOptionButton");
 
-        WireframeCheckButton!.Toggled += toggle =>
-            Planet.GetViewport()
+        SetEditMode(EditCheckButton.ButtonPressed);
+        SetLabelMode(ShowLableOptionButton.Selected);
+        SetTerrain(0);
+
+        WireframeCheckButton.Toggled += toggle =>
+            OrbitCameraRig.GetViewport()
                 .SetDebugDraw(toggle ? Viewport.DebugDrawEnum.Wireframe : Viewport.DebugDrawEnum.Disabled);
-        CelestialMotionCheckButton!.Toggled += toggle =>
+        CelestialMotionCheckButton.Toggled += toggle =>
             CelestialMotion.PlanetRevolution = CelestialMotion.PlanetRotation =
                 CelestialMotion.SatelliteRevolution = CelestialMotion.SatelliteRotation = toggle;
-        LatLonFixCheckButton!.Toggled += toggle => LonLatGrid.FixFullVisibility = toggle; // 锁定经纬网的显示
-        PlanetTabBar!.TabClicked += _ => PlanetGrid!.Visible = !PlanetGrid.Visible;
-        RadiusLineEdit!.TextSubmitted += text =>
+        LatLonFixCheckButton.Toggled += toggle => LonLatGrid.FixFullVisibility = toggle; // 锁定经纬网的显示
+        PlanetTabBar.TabClicked += _ => PlanetGrid.Visible = !PlanetGrid.Visible;
+        RadiusLineEdit.TextSubmitted += text =>
         {
             if (float.TryParse(text, out var radius))
                 Planet.Radius = radius;
@@ -199,7 +217,7 @@ public partial class PlanetHud : Control
                 RadiusLineEdit.Text = $"{Planet.Radius:F2}";
         };
 
-        DivisionLineEdit!.TextSubmitted += text =>
+        DivisionLineEdit.TextSubmitted += text =>
         {
             if (int.TryParse(text, out var division))
                 Planet.Divisions = division;
@@ -207,7 +225,7 @@ public partial class PlanetHud : Control
                 DivisionLineEdit.Text = $"{Planet.Divisions}";
         };
 
-        ChunkDivisionLineEdit!.TextSubmitted += text =>
+        ChunkDivisionLineEdit.TextSubmitted += text =>
         {
             if (int.TryParse(text, out var chunkDivision))
                 Planet.ChunkDivisions = chunkDivision;
@@ -215,16 +233,50 @@ public partial class PlanetHud : Control
                 DivisionLineEdit.Text = $"{Planet.ChunkDivisions}";
         };
 
-        TileTabBar!.TabClicked += _ =>
+        TileTabBar.TabClicked += _ =>
         {
-            var vis = !TileVBox!.Visible;
+            var vis = !TileVBox.Visible;
             TileVBox.Visible = vis;
-            TileGrid!.Visible = vis;
+            TileGrid.Visible = vis;
         };
+
+        EditTabBar.TabClicked += _ =>
+        {
+            var vis = !EditGrid.Visible;
+            EditGrid.Visible = vis;
+            if (vis)
+            {
+                SetTerrain(TerrainOptionButton.Selected);
+                SetElevation(ElevationVSlider.Value);
+            }
+            else
+            {
+                SetApplyTerrain(false);
+                SetApplyElevation(false);
+            }
+        };
+        EditCheckButton.Toggled += SetEditMode;
+        ShowLableOptionButton.ItemSelected += SetLabelMode;
+        TerrainOptionButton.ItemSelected += SetTerrain;
+        ElevationVSlider.ValueChanged += SetElevation;
+        ElevationCheckButton.Toggled += SetApplyElevation;
+        WaterVSlider.ValueChanged += SetWaterLevel;
+        WaterCheckButton.Toggled += SetApplyWaterLevel;
+        BrushHSlider.ValueChanged += SetBrushSize;
+        RiverOptionButton.ItemSelected += SetRiverMode;
+        RoadOptionButton.ItemSelected += SetRoadMode;
+        UrbanCheckButton.Toggled += SetApplyUrbanLevel;
+        UrbanHSlider.ValueChanged += SetUrbanLevel;
+        FarmCheckButton.Toggled += SetApplyFarmLevel;
+        FarmHSlider.ValueChanged += SetFarmLevel;
+        PlantCheckButton.Toggled += SetApplyPlantLevel;
+        PlantHSlider.ValueChanged += SetPlantLevel;
+        WallOptionButton.ItemSelected += SetWalledMode;
+        SpecialFeatureCheckButton.Toggled += SetApplySpecialIndex;
+        SpecialFeatureOptionButton.ItemSelected += SetSpecialIndex;
     }
 
     #endregion
-
 
     private void OnOrbitCameraRigMoved(Vector3 pos, float _)
     {
@@ -250,4 +302,74 @@ public partial class PlanetHud : Control
         // GD.Print($"lonLat: {longLat.Longitude}, {longLat.Latitude}; angleToNorth: {
         //     angleToNorth}; posNormal: {posNormal};");
     }
+
+    private void InitElevationAndWaterVSlider()
+    {
+        // 按照指定的高程分割数量确定 UI
+        ElevationVSlider!.MaxValue = Planet.ElevationStep;
+        ElevationVSlider.TickCount = Planet.ElevationStep + 1;
+        WaterVSlider!.MaxValue = Planet.ElevationStep;
+        WaterVSlider.TickCount = Planet.ElevationStep + 1;
+    }
+    
+    private void SetEditMode(bool toggle)
+    {
+        var editMode = TileOverrider.EditMode;
+        TileOverrider.EditMode = toggle;
+        // if (toggle != editMode)
+        //     EditModeChanged?.Invoke(toggle);
+        RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.HexMapEditMode, toggle);
+    }
+
+    private void SetLabelMode(long mode)
+    {
+        var before = LabelMode;
+        var intMode = (int)mode;
+        LabelMode = intMode;
+        // if (before != intMode)
+        //     LabelModeChanged?.Invoke(intMode);
+    }
+    
+    private void SetTerrain(long index)
+    {
+        TileOverrider.ApplyTerrain = index > 0;
+        if (TileOverrider.ApplyTerrain)
+            TileOverrider.ActiveTerrain = (int)index - 1;
+    }
+
+    private void SetApplyTerrain(bool toggle) => TileOverrider.ApplyTerrain = toggle;
+
+    private void SetElevation(double elevation)
+    {
+        TileOverrider.ActiveElevation = (int)elevation;
+        ElevationValueLabel!.Text = TileOverrider.ActiveElevation.ToString();
+    }
+
+    private void SetApplyElevation(bool toggle) => TileOverrider.ApplyElevation = toggle;
+
+    private void SetBrushSize(double brushSize)
+    {
+        TileOverrider.BrushSize = (int)brushSize;
+        BrushLabel!.Text = $"笔刷大小：{TileOverrider.BrushSize}";
+    }
+
+    private void SetRiverMode(long mode) => TileOverrider.RiverMode = (OptionalToggle)mode;
+    private void SetRoadMode(long mode) => TileOverrider.RoadMode = (OptionalToggle)mode;
+    private void SetApplyWaterLevel(bool toggle) => TileOverrider.ApplyWaterLevel = toggle;
+
+    private void SetWaterLevel(double level)
+    {
+        TileOverrider.ActiveWaterLevel = (int)level;
+        WaterValueLabel!.Text = TileOverrider.ActiveWaterLevel.ToString();
+    }
+
+    private void SetApplyUrbanLevel(bool toggle) => TileOverrider.ApplyUrbanLevel = toggle;
+    private void SetUrbanLevel(double level) => TileOverrider.ActiveUrbanLevel = (int)level;
+    private void SetApplyFarmLevel(bool toggle) => TileOverrider.ApplyFarmLevel = toggle;
+    private void SetFarmLevel(double level) => TileOverrider.ActiveFarmLevel = (int)level;
+    private void SetApplyPlantLevel(bool toggle) => TileOverrider.ApplyPlantLevel = toggle;
+    private void SetPlantLevel(double level) => TileOverrider.ActivePlantLevel = (int)level;
+    private void SetWalledMode(long mode) => TileOverrider.WalledMode = (OptionalToggle)mode;
+    private void SetApplySpecialIndex(bool toggle) => TileOverrider.ApplySpecialIndex = toggle;
+    private void SetSpecialIndex(long index) => TileOverrider.ActiveSpecialIndex = (int)index;
 }

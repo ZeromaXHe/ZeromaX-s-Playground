@@ -56,7 +56,7 @@ public partial class CelestialMotion : Node3D, ICelestialMotion
             PlanetRevolution = false;
             SunRevolution!.RotationDegrees = Vector3.Up * 180f;
             RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.DirToSun,
-                Sun!.GlobalPosition.Normalized());
+                SunTransform!.GlobalPosition.Normalized());
         }
         else
             PlanetRevolution = true;

@@ -6,39 +6,58 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Commons\Enums\Tiles\HexEdgeType.fs" />
-        <Compile Include="Commons\Constants\Shaders\GlobalShaderParam.fs" />
-        <Compile Include="Commons\Constants\HexSpheres\IcosahedronConstant.fs" />
+        <Compile Include="Commons\Enums\Tiles\HexEdgeType.fs"/>
+        <Compile Include="Commons\Constants\Shaders\GlobalShaderParam.fs"/>
+        <Compile Include="Commons\Constants\HexSpheres\IcosahedronConstant.fs"/>
+        <Compile Include="Commons\Constants\Meshes\HexMeshConstant.fs" />
         <Compile Include="Commons\Structs\HexPlaneGrid\AxialCoords.fs"/>
         <Compile Include="Commons\Structs\HexSphereGrid\LonLatCoords.fs"/>
         <Compile Include="Commons\Structs\HexSphereGrid\SphereAxial.fs"/>
+        <Compile Include="Commons\Structs\Planets\HexHash.fs"/>
+        <Compile Include="Commons\Structs\Planets\EdgeVertices.fs" />
         <Compile Include="Commons\DataStructures\VpTree.fs"/>
+        <Compile Include="Commons\DataStructures\LruCache.fs"/>
         <Compile Include="Commons\Utils\Math3dUtil.fs"/>
         <Compile Include="Commons\Utils\HexMetrics.fs"/>
-        <Compile Include="Commons\Utils\FrifloEcsUtil.fs" />
-        <Compile Include="Commons\Utils\HexSphereUtil.fs" />
-        <Compile Include="Commons\Utils\HexIndexUtil.fs" />
-        <Compile Include="Repos\Models\HexSpheres\Points.fs" />
-        <Compile Include="Repos\Models\HexSpheres\Points\PointCenterId.fs" />
-        <Compile Include="Repos\Models\HexSpheres\Points\PointNeighborCenterIds.fs" />
-        <Compile Include="Repos\Models\HexSpheres\Faces.fs" />
-        <Compile Include="Repos\Models\HexSpheres\Tiles.fs" />
-        <Compile Include="Repos\Models\HexSpheres\Tiles\TileChunkId.fs" />
-        <Compile Include="Repos\Models\HexSpheres\Tiles\TileUnitCentroid.fs" />
-        <Compile Include="Repos\Models\HexSpheres\Tiles\TileUnitCorners.fs" />
-        <Compile Include="Repos\Models\HexSpheres\Tiles\TileHexFaceIds.fs" />
-        <Compile Include="Repos\Models\HexSpheres\Chunks.fs" />
-        <Compile Include="Repos\Types\PointRepoT.fs" />
-        <Compile Include="Repos\Types\FaceRepoT.fs" />
-        <Compile Include="Repos\Types\TileRepoT.fs" />
-        <Compile Include="Repos\Types\ChunkRepoT.fs" />
-        <Compile Include="Repos\Functions\PointRepo.fs" />
-        <Compile Include="Repos\Functions\FaceRepo.fs" />
-        <Compile Include="Repos\Functions\TileRepo.fs" />
-        <Compile Include="Repos\Functions\ChunkRepo.fs" />
-        <Compile Include="Services\Types\HexSphereServiceT.fs" />
-        <Compile Include="Services\Functions\HexSphereService.fs" />
-        <Compile Include="Apps\Planets\PlanetApp.fs" />
+        <Compile Include="Commons\Utils\FrifloEcsUtil.fs"/>
+        <Compile Include="Commons\Utils\HexSphereUtil.fs"/>
+        <Compile Include="Commons\Utils\HexIndexUtil.fs"/>
+        <Compile Include="Repos\Models\HexSpheres\Points.fs"/>
+        <Compile Include="Repos\Models\HexSpheres\Points\PointCenterId.fs"/>
+        <Compile Include="Repos\Models\HexSpheres\Points\PointNeighborCenterIds.fs"/>
+        <Compile Include="Repos\Models\HexSpheres\Faces.fs"/>
+        <Compile Include="Repos\Models\HexSpheres\Tiles.fs"/>
+        <Compile Include="Repos\Models\HexSpheres\Tiles\TileChunkId.fs"/>
+        <Compile Include="Repos\Models\HexSpheres\Tiles\TileUnitCentroid.fs"/>
+        <Compile Include="Repos\Models\HexSpheres\Tiles\TileUnitCorners.fs"/>
+        <Compile Include="Repos\Models\HexSpheres\Tiles\TileHexFaceIds.fs"/>
+        <Compile Include="Repos\Models\HexSpheres\Tiles\TileCivId.fs"/>
+        <Compile Include="Repos\Models\HexSpheres\Tiles\TileValue.fs" />
+        <Compile Include="Repos\Models\HexSpheres\Tiles\TileFlag.fs" />
+        <Compile Include="Repos\Models\HexSpheres\Chunks.fs"/>
+        <Compile Include="Repos\Models\HexSpheres\Chunks\ChunkPos.fs"/>
+        <Compile Include="Repos\Models\HexSpheres\Chunks\ChunkLod.fs"/>
+        <Compile Include="Repos\Models\HexSpheres\Chunks\ChunkInsight.fs" />
+        <Compile Include="Repos\Models\MapGenerators\MapGenerator.fs"/>
+        <Compile Include="Repos\Models\Meshes\LodMeshCache.fs" />
+        <Compile Include="Repos\Models\Meshes\HexTileDataOverrider.fs" />
+        <Compile Include="Repos\Models\PathFindings\TileSearchData.fs"/>
+        <Compile Include="Repos\Models\PathFindings\TilePriorityQueue.fs"/>
+        <Compile Include="Repos\Models\PathFindings\TileSearcher.fs"/>
+        <Compile Include="Repos\Models\Shaders\TileShaderData.fs"/>
+        <Compile Include="Repos\Types\HexSpheres\PointRepoT.fs"/>
+        <Compile Include="Repos\Types\HexSpheres\FaceRepoT.fs"/>
+        <Compile Include="Repos\Types\HexSpheres\TileRepoT.fs"/>
+        <Compile Include="Repos\Types\HexSpheres\ChunkRepoT.fs"/>
+        <Compile Include="Repos\Functions\HexSpheres\PointRepo.fs"/>
+        <Compile Include="Repos\Functions\HexSpheres\FaceRepo.fs"/>
+        <Compile Include="Repos\Functions\HexSpheres\TileRepo.fs"/>
+        <Compile Include="Repos\Functions\HexSpheres\ChunkRepo.fs"/>
+        <Compile Include="Services\Types\HexSphereServiceT.fs"/>
+        <Compile Include="Services\Types\HexGridChunkServiceT.fs"/>
+        <Compile Include="Services\Functions\HexSphereService.fs"/>
+        <Compile Include="Services\Functions\HexGridChunkService.fs"/>
+        <Compile Include="Apps\Planets\PlanetApp.fs"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -46,7 +65,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Godot.Abstractions\Godot.Abstractions.csproj" />
+        <ProjectReference Include="..\Godot.Abstractions\Godot.Abstractions.csproj"/>
     </ItemGroup>
 
 </Project>

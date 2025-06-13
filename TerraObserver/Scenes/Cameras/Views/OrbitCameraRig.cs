@@ -27,6 +27,14 @@ public partial class OrbitCameraRig : Node3D, IOrbitCameraRig
 
     private IPlanet _planet = null!;
 
+    public void PreDelete()
+    {
+        if (Planet == null!)
+            return;
+        Planet.ParamsChanged -= OnPlanetParamsChanged;
+        Planet.ParamsChanged -= OnZoomChanged;
+    }
+
     #endregion
 
     #region 事件与 Export 属性

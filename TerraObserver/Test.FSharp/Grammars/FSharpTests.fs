@@ -18,6 +18,20 @@ let ``管道符测试`` () =
     Assert.Equal(0, left2)
 
 [<Fact>]
+let ``not 管道符测试`` () =
+    // Arrange
+    let b1 = not <| true || true // 会先计算 not <| true = false 再 || true = true
+    let b1Anti = not <| (true || true)
+    let b2 = not <| false && false // 会先计算 not <| false = true 再 && false = false
+    let b2Anti = not <| (false && false)
+    // Act
+    // Assert
+    Assert.True(b1)
+    Assert.False(b1Anti)
+    Assert.False(b2)
+    Assert.True(b2Anti)
+
+[<Fact>]
 let ``Seq 延迟执行测试`` () =
     // Arrange
     let mutable count = 0

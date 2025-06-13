@@ -74,12 +74,12 @@ type TileUnitCorners =
     member this.GetFirstSolidCorner(unitCentroid: Vector3, idx: int, ?radius: float32, ?size: float32) =
         let radius = defaultArg radius 1f
         let size = defaultArg size 1f
-        this.GetFirstCorner(unitCentroid, idx, radius, size * HexMetrics.solidFactor)
+        this.GetFirstCorner(unitCentroid, idx, radius, size * HexMetrics.SolidFactor)
     // 按照 tile 高度查询 NextIdx(idx) (顺时针第二个)核心角落的位置，相对于 Tile 中心进行插值 size 的缩放。
     member this.GetSecondSolidCorner(unitCentroid: Vector3, idx: int, ?radius: float32, ?size: float32) =
         let radius = defaultArg radius 1f
         let size = defaultArg size 1f
-        this.GetSecondCorner(unitCentroid, idx, radius, size * HexMetrics.solidFactor)
+        this.GetSecondCorner(unitCentroid, idx, radius, size * HexMetrics.SolidFactor)
 
     member this.GetEdgeMiddle(unitCentroid: Vector3, idx: int, ?radius: float32, ?size: float32) =
         let corner1 = this.GetFirstCorner(unitCentroid, idx, ?radius = radius, ?size = size)
@@ -93,10 +93,10 @@ type TileUnitCorners =
     member this.GetSolidEdgeMiddle(unitCentroid: Vector3, idx: int, ?radius: float32, ?size: float32) =
         let radius = defaultArg radius 1f
         let size = defaultArg size 1f
-        this.GetEdgeMiddle(unitCentroid, idx, radius, size * HexMetrics.solidFactor)
+        this.GetEdgeMiddle(unitCentroid, idx, radius, size * HexMetrics.SolidFactor)
 
     member this.GetNeighborCommonCorners
-        (neighborCenterIds: PointNeighborCenterIds, unitCentroid: Vector3, queryingCenterId: CenterId, ?radius: float32) =
+        (neighborCenterIds: PointNeighborCenterIds, unitCentroid: Vector3, queryingCenterId: PointId, ?radius: float32) =
         let radius = defaultArg radius 1f
         let idx = neighborCenterIds |> Seq.findIndex (fun id -> id = queryingCenterId)
 

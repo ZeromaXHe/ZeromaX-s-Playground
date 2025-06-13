@@ -1,4 +1,4 @@
-namespace Test.Commons
+namespace Test.FSharp.Commons
 
 open TO.FSharp.Commons.Structs.HexSphereGrid
 open Xunit

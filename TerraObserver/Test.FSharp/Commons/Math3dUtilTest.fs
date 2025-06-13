@@ -1,4 +1,4 @@
-namespace Test.Commons
+namespace Test.FSharp.Commons
 
 open Godot
 open TO.FSharp.Commons.Utils

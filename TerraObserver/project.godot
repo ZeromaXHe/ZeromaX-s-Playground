@@ -96,10 +96,6 @@ hex_tile_data_texel_size={
 "type": "vec4",
 "value": Vector4(0, 0, 0, 0)
 }
-inv_planet_matrix={
-"type": "mat4",
-"value": Projection(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
-}
 max_height={
 "type": "float",
 "value": 0.0

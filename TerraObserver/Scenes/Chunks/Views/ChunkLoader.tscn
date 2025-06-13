@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3 uid="uid://by2hifni2i1ql"]
+
+[ext_resource type="Script" uid="uid://ca7k5h7h7nsj0" path="res://Scenes/Chunks/Views/ChunkLoader.cs" id="1_mrxla"]
+[ext_resource type="PackedScene" uid="uid://xt27m67y5sb6" path="res://Scenes/Chunks/Views/HexGridChunk.tscn" id="2_ousbf"]
+
+[node name="ChunkLoader" type="Node3D"]
+script = ExtResource("1_mrxla")
+_gridChunkScene = ExtResource("2_ousbf")

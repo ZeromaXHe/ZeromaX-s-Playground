@@ -1,9 +1,11 @@
 namespace TO.FSharp.Repos.Models.HexSpheres.Tiles
 
 open Friflo.Engine.ECS
+open TO.FSharp.Repos.Models.HexSpheres.Points
 
+type TileId = int
 type ChunkId = int
-type HexFaceIds = int array
+type HexFaceIds = FaceId array
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)

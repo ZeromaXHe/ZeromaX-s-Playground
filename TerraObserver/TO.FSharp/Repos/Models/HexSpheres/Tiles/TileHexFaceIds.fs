@@ -4,6 +4,7 @@ open System.Collections
 open System.Collections.Generic
 open Friflo.Engine.ECS
 open TO.FSharp.Commons.Utils
+open TO.FSharp.Repos.Models.HexSpheres.Points
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
@@ -11,15 +12,15 @@ open TO.FSharp.Commons.Utils
 [<Struct>]
 type TileHexFaceIds =
     interface IComponent
-    val Length: int
-    val FaceId0: int
-    val FaceId1: int
-    val FaceId2: int
-    val FaceId3: int
-    val FaceId4: int
-    val FaceId5: int
+    val Length: FaceId
+    val FaceId0: FaceId
+    val FaceId1: FaceId
+    val FaceId2: FaceId
+    val FaceId3: FaceId
+    val FaceId4: FaceId
+    val FaceId5: FaceId
 
-    new(faceIds: int array) =
+    new(faceIds: FaceId array) =
         if faceIds.Length <> 5 && faceIds.Length <> 6 then
             failwith "TileHexFaceIds must init with length 5 or 6"
 
@@ -31,12 +32,8 @@ type TileHexFaceIds =
           FaceId4 = faceIds[4]
           FaceId5 = if faceIds.Length > 5 then faceIds[5] else faceIds[0] }
 
-    interface int IWithLength with
-        override this.Length = this.Length
-        override this.GetEnumerator() : int IEnumerator = new WithLengthEnumerator<int>(this)
-        override this.GetEnumerator() : IEnumerator = new WithLengthEnumerator<int>(this)
-        // 只读的索引属性
-        override this.Item idx =
+    member this.Item
+        with get idx =
             if idx < 0 || idx >= this.Length then
                 failwith "TileHexFaceIds invalid index"
 
@@ -48,3 +45,10 @@ type TileHexFaceIds =
             | 4 -> this.FaceId4
             | 5 -> this.FaceId5
             | _ -> failwith "TileHexFaceIds invalid index"
+
+    interface FaceId IWithLength with
+        override this.Length = this.Length
+        override this.GetEnumerator() : FaceId IEnumerator = new WithLengthEnumerator<FaceId>(this)
+        override this.GetEnumerator() : IEnumerator = new WithLengthEnumerator<FaceId>(this)
+        // 只读的索引属性
+        override this.Item idx = this.Item idx

@@ -1,4 +1,4 @@
-namespace TO.FSharp.Repos.Functions
+namespace TO.FSharp.Repos.Functions.HexSpheres
 
 open Friflo.Engine.ECS
 open Godot
@@ -6,7 +6,7 @@ open TO.FSharp.Commons.Utils
 open TO.FSharp.Repos.Models.HexSpheres.Chunks
 open TO.FSharp.Repos.Models.HexSpheres.Faces
 open TO.FSharp.Repos.Models.HexSpheres.Points
-open TO.FSharp.Repos.Types.FaceRepoT
+open TO.FSharp.Repos.Types.HexSpheres.FaceRepoT
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
@@ -94,6 +94,8 @@ module FaceRepo =
 
                 orderedList |> List.rev
 
+    let getComponentById (store: EntityStore) : GetFaceComponentById =
+        fun id -> store.GetEntityById(id).GetComponent<FaceComponent>()
     let truncate (store: EntityStore) : TruncateFaces =
         fun () -> FrifloEcsUtil.truncate <| store.Query<FaceComponent>()
 
@@ -101,4 +103,5 @@ module FaceRepo =
         { ForEachByChunky = forEachByChunky chunkDep
           Add = add chunkDep
           GetOrderedFaces = getOrderedFaces chunkDep.Store
+          GetComponentById = getComponentById chunkDep.Store
           Truncate = truncate chunkDep.Store }

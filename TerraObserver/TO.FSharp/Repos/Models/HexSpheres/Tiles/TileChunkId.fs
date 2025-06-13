@@ -7,6 +7,8 @@ open Friflo.Engine.ECS
 /// Date: 2025-06-06 11:12:06
 [<Struct>]
 type TileChunkId =
-    interface IComponent
+    interface ChunkId IIndexedComponent with
+        override this.GetIndexedValue() = this.ChunkId
+
     val ChunkId: ChunkId
     new(chunkId: ChunkId) = { ChunkId = chunkId }
