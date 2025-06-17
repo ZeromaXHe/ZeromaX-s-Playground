@@ -933,7 +933,7 @@ public class ChunkTriangulationService(
         var ids = new Vector3(beginTile.Id, leftTile.Id, rightTile.Id);
         var terrain = _chunk.GetTerrain()!;
         terrain.AddTriangle([begin, v3, v4], [HexMeshConstant.Weights1, w3, w4], tis: ids);
-        for (var i = 0; i < HexMetrics.TerraceSteps; i++)
+        for (var i = 2; i < HexMetrics.TerraceSteps; i++)
         {
             var v1 = v3;
             var v2 = v4;

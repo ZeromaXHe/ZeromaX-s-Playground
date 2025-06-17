@@ -146,7 +146,7 @@ SatelliteRotation = false
 [node name="HexMapGenerator" parent="." instance=ExtResource("9_nxupj")]
 unique_name_in_owner = true
 LandGeneratorType = 2
-Seed = 2146161521
+Seed = 794602839
 
 [node name="LensFlare" type="Node" parent="."]
 script = ExtResource("16_das15")
