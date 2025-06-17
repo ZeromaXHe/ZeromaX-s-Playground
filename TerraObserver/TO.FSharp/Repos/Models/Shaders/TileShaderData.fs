@@ -21,6 +21,9 @@ type TileShaderData() =
     let transitionSpeed = 255f
     let mutable needsVisibilityReset = false
     let mutable visibilityTransitions: bool array = null
+    
+    let changePixel (img: Image) tileId data =
+        img.SetPixel(tileId % img.GetWidth(), tileId / img.GetWidth(), data)
 
     member val ImmediateMode = false with get, set
 

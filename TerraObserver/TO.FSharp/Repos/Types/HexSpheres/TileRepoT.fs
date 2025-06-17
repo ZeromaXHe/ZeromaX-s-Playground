@@ -13,6 +13,7 @@ type AddTile = PointId -> ChunkId -> HexFaces -> HexFaceIds -> NeighborCenterIds
 type CountTile = unit -> int
 type CentroidAndCornersSeq = unit -> (TileUnitCentroid * TileUnitCorners) seq
 type ForEachTileByChunkId = ChunkId -> TileChunkId ForEachEntity -> unit
+type GetTileCountIdById = TileId -> TileCountId
 type GetTileChunkIdById = TileId -> TileChunkId
 type GetTileUnitCentroidById = TileId -> TileUnitCentroid
 type GetTileUnitCornersById = TileId -> TileUnitCorners
@@ -26,6 +27,7 @@ type TileRepoDep =
       Count: CountTile
       CentroidAndCornersSeq: CentroidAndCornersSeq
       ForEachByChunkId: ForEachTileByChunkId
+      GetCountIdById: GetTileCountIdById
       GetChunkIdById: GetTileChunkIdById
       GetUnitCentroidById: GetTileUnitCentroidById
       GetUnitCornersById: GetTileUnitCornersById

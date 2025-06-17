@@ -24,11 +24,11 @@ module HexMetrics =
 
     let terraceLerpEdgeV (a: EdgeVertices) (b: EdgeVertices) (step: int) =
         EdgeVertices(
-            terraceLerp a.V1 b.V1 step,
-            terraceLerp a.V2 b.V2 step,
-            terraceLerp a.V3 b.V3 step,
-            terraceLerp a.V4 b.V4 step,
-            terraceLerp a.V5 b.V5 step
+            V1 = terraceLerp a.V1 b.V1 step,
+            V2 = terraceLerp a.V2 b.V2 step,
+            V3 = terraceLerp a.V3 b.V3 step,
+            V4 = terraceLerp a.V4 b.V4 step,
+            V5 = terraceLerp a.V5 b.V5 step
         )
 
     let terraceLerpColor (a: Color) (b: Color) (step: int) =

@@ -21,9 +21,6 @@ type EdgeVertices =
           V3 = corner1.Lerp(corner2, 0.5f)
           V4 = corner1.Lerp(corner2, 1.0f - outerStep)
           V5 = corner2 }
-    new (v1, v2,v3,v4,v5) =
-        { V1 = v1
-          V2 = v2
-          V3 = v3
-          V4 = v4
-          V5 = v5 }
+
+    override this.ToString() =
+        $"EdgeVertices:[{this.V1}, {this.V2}, {this.V3}, {this.V4}, {this.V5}]"

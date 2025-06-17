@@ -20,6 +20,8 @@ module private TileInitializer =
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-05-30 11:59:30
 module TileRepo =
+    let count (store: EntityStore) : CountTile =
+        fun () -> store.Query<TileUnitCentroid>().Count
     let add (store: EntityStore) : AddTile =
         fun centerId chunkId hexFaces hexFaceIds neighborCenterIds ->
             let unitCentroid = TileInitializer.initUnitCentroid hexFaces
@@ -29,20 +31,18 @@ module TileRepo =
                 .CreateEntity(
                     PointCenterId centerId,
                     PointNeighborCenterIds neighborCenterIds,
+                    TileCountId <| (count store)() + 1,
                     TileChunkId chunkId,
                     TileUnitCentroid unitCentroid,
                     TileUnitCorners unitCorners,
                     TileHexFaceIds hexFaceIds,
                     TileFlag TileFlagEnum.Explorable,
                     (TileValue 0)
-                        .WithElevation(GD.RandRange(0, 10))
+                        .WithElevation(GD.RandRange(3, 7))
                         .WithWaterLevel(5)
                         .WithTerrainTypeIndex(GD.RandRange(0, 5)) // TODO: 临时测试用
                 )
                 .Id
-
-    let count (store: EntityStore) : CountTile =
-        fun () -> store.Query<TileUnitCentroid>().Count
 
     let centroidAndCornersSeq (store: EntityStore) : CentroidAndCornersSeq =
         fun () ->
@@ -52,6 +52,9 @@ module TileRepo =
     let forEachByChunkId (store: EntityStore) : ForEachTileByChunkId =
         fun (chunkId: ChunkId) (forEachEntity: TileChunkId ForEachEntity) ->
             store.Query<TileChunkId>().HasValue<TileChunkId, ChunkId>(chunkId).ForEachEntity forEachEntity
+
+    let getCountIdById (store: EntityStore) : GetTileCountIdById =
+        fun (tileId: TileId) -> store.GetEntityById(tileId).GetComponent<TileCountId>()
 
     let getChunkIdById (store: EntityStore) : GetTileChunkIdById =
         fun (tileId: TileId) -> store.GetEntityById(tileId).GetComponent<TileChunkId>()
@@ -79,6 +82,7 @@ module TileRepo =
           Count = count store
           CentroidAndCornersSeq = centroidAndCornersSeq store
           ForEachByChunkId = forEachByChunkId store
+          GetCountIdById = getCountIdById store
           GetChunkIdById = getChunkIdById store
           GetUnitCentroidById = getUnitCentroidById store
           GetUnitCornersById = getUnitCornersById store

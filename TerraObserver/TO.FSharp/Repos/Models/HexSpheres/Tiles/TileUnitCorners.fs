@@ -110,7 +110,9 @@ type TileUnitCorners =
 
     // 水面
     member this.GetFirstWaterCorner(unitCentroid: Vector3, idx: int, ?radius: float32, ?size: float32) =
-        this.GetFirstCorner(unitCentroid, idx, ?radius = radius, ?size = size)
+        let size = defaultArg size 1f
+        this.GetFirstCorner(unitCentroid, idx, ?radius = radius, size = size * HexMetrics.waterFactor)
 
     member this.GetSecondWaterCorner(unitCentroid: Vector3, idx: int, ?radius: float32, ?size: float32) =
-        this.GetSecondCorner(unitCentroid, idx, ?radius = radius, ?size = size)
+        let size = defaultArg size 1f
+        this.GetSecondCorner(unitCentroid, idx, ?radius = radius, size = size * HexMetrics.waterFactor)

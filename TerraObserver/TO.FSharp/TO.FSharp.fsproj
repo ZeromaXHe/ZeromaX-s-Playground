@@ -27,6 +27,7 @@
         <Compile Include="Repos\Models\HexSpheres\Points\PointNeighborCenterIds.fs"/>
         <Compile Include="Repos\Models\HexSpheres\Faces.fs"/>
         <Compile Include="Repos\Models\HexSpheres\Tiles.fs"/>
+        <Compile Include="Repos\Models\HexSpheres\Tiles\TileCountId.fs" />
         <Compile Include="Repos\Models\HexSpheres\Tiles\TileChunkId.fs"/>
         <Compile Include="Repos\Models\HexSpheres\Tiles\TileUnitCentroid.fs"/>
         <Compile Include="Repos\Models\HexSpheres\Tiles\TileUnitCorners.fs"/>

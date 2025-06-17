@@ -28,7 +28,7 @@ float Foam (float shore, vec3 world_pos, sampler2D noiseTex) {
 	shore = sqrt(shore) * 0.9;
 	// 扰动泡沫
 	vec4 noise = triplanarOffset(world_pos, normalize(world_pos), 10.0 * TILING_SCALE, vec2(TIME / 20. * 0.25), noiseTex);
-	
+
 	float distortion1 = noise.x * (1.0 - shore);
 	// sin 形成周期波浪
 	float foam1 = sin((shore + distortion1) * 10.0 - TIME);
