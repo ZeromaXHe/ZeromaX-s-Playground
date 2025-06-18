@@ -3,6 +3,7 @@ namespace TO.FSharp.Repos.Models.Shaders
 open Godot
 open Godot.Abstractions.Extensions.Planets
 open TO.FSharp.Commons.Constants.Shaders
+open TO.FSharp.Repos.Models.HexSpheres.Tiles
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
@@ -16,16 +17,20 @@ type TileShaderData() =
     let mutable tileCivTextureData: Color array = null
     let mutable hexTileData: ImageTexture = null
     let mutable hexTileCivData: ImageTexture = null
-    let mutable enabled = false
     let transitioningTileIndices = ResizeArray<int>()
-    let transitionSpeed = 255f
-    let mutable needsVisibilityReset = false
     let mutable visibilityTransitions: bool array = null
-    
+
     let changePixel (img: Image) tileId data =
         img.SetPixel(tileId % img.GetWidth(), tileId / img.GetWidth(), data)
 
-    member val ImmediateMode = false with get, set
+    member val ImmediateMode = false with get, set    
+    member val Enabled = false with get, set
+    member val NeedsVisibilityReset = false with get, set
+    member this.TransitioningTileIndices = transitioningTileIndices
+    member this.HexTileData = hexTileData
+    member this.HexTileCivData = hexTileCivData
+    member this.TileTexture = tileTexture
+    member this.TileCivTexture = tileCivTexture
 
     member this.Initialize(planet: IPlanet) =
         // 地块数等于 20 * div * div / 2 + 2 = 10 * div ^ 2 + 2
@@ -54,4 +59,78 @@ type TileShaderData() =
                 visibilityTransitions.[i] <- false
 
         transitioningTileIndices.Clear()
-        enabled <- true
+        this.Enabled <- true
+
+    member this.RefreshCiv (tileCountId: TileCountId) (civColor: Color) =
+        let countId = tileCountId.CountId
+        tileCivTextureData[countId] <- civColor
+        changePixel tileCivTexture countId tileCivTextureData[countId]
+        this.Enabled <- true
+
+    member this.RefreshTerrain (planet: IPlanet) (tileCountId: TileCountId) (tileValue: TileValue) =
+        let countId = tileCountId.CountId
+        let mutable data = tileTextureData[countId]
+
+        data.B8 <-
+            if tileValue.IsUnderwater then
+                int <| tileValue.WaterSurfaceY planet.UnitHeight * 255f / planet.MaxHeight
+            else
+                0
+
+        data.A8 <- tileValue.TerrainTypeIndex
+        tileTextureData[countId] <- data
+        changePixel tileTexture countId data
+        this.Enabled <- true
+
+    member this.RefreshVisibility (tileId: TileId) (tileCountId: TileCountId) (tileFlag: TileFlag) (tileVisibility: TileVisibility) =
+        let countId = tileCountId.CountId
+
+        if this.ImmediateMode then
+            tileTextureData[countId].R8 <- if tileVisibility.IsVisible tileFlag then 255 else 0
+            tileTextureData[countId].G8 <- if tileFlag.IsExplored then 255 else 0
+            changePixel tileTexture countId tileTextureData[countId]
+        elif not visibilityTransitions[countId] then
+            visibilityTransitions[countId] <- true
+            transitioningTileIndices.Add tileId
+
+        this.Enabled <- true
+
+    member this.UpdateTileData (tileCountId: TileCountId) (tileFlag: TileFlag) (tileVisibility: TileVisibility) (deltaSpeed: int) =
+        let countId = tileCountId.CountId
+        let mutable data = tileTextureData[countId]
+        let mutable stillUpdating = false
+
+        if tileFlag.IsExplored && data.G8 < 255 then
+            stillUpdating <- true
+            let t = data.G8 + deltaSpeed
+            data.G8 <- if t >= 255 then 255 else t
+
+        if tileVisibility.IsVisible tileFlag then
+            if data.R8 < 255 then
+                stillUpdating <- true
+                let t = data.R8 + deltaSpeed
+                data.R8 <- if t >= 255 then 255 else t
+        elif data.R8 > 0 then
+            stillUpdating <- true
+            let t = data.R8 - deltaSpeed
+            data.R8 <- if t <= 0 then 0 else t
+
+        if not stillUpdating then
+            visibilityTransitions[countId] <- false
+
+        tileTextureData[countId] <- data
+        changePixel tileTexture countId data
+        stillUpdating
+
+    member this.ViewElevationChanged (planet: IPlanet) (tileCountId: TileCountId) (tileValue: TileValue) =
+        let countId = tileCountId.CountId
+
+        tileTextureData[countId].B8 <-
+            if tileValue.IsUnderwater then
+                int <| tileValue.WaterSurfaceY planet.UnitHeight * 255f / planet.MaxHeight
+            else
+                0
+
+        changePixel tileTexture countId tileTextureData[countId]
+        this.NeedsVisibilityReset <- true
+        this.Enabled <- true

@@ -1,28 +1,24 @@
 namespace TO.FSharp.Services.Functions
 
-open System
 open Friflo.Engine.ECS
 open Godot
-open Godot.Abstractions.Extensions.Chunks
 open Godot.Abstractions.Extensions.Planets
 open TO.FSharp.Commons.Constants.HexSpheres
+open TO.FSharp.Commons.DataStructures
 open TO.FSharp.Commons.Structs.HexSphereGrid
 open TO.FSharp.Commons.Utils
+open TO.FSharp.Repos.Functions.HexSpheres
 open TO.FSharp.Repos.Models.HexSpheres.Chunks
 open TO.FSharp.Repos.Models.HexSpheres.Faces
 open TO.FSharp.Repos.Models.PathFindings
 open TO.FSharp.Repos.Models.HexSpheres.Points
 open TO.FSharp.Repos.Models.Shaders
 open TO.FSharp.Repos.Models.HexSpheres.Tiles
-open TO.FSharp.Repos.Types.HexSpheres.ChunkRepoT
-open TO.FSharp.Repos.Types.HexSpheres.FaceRepoT
-open TO.FSharp.Repos.Types.HexSpheres.PointRepoT
-open TO.FSharp.Repos.Types.HexSpheres.TileRepoT
 open TO.FSharp.Services.Types.HexSphereServiceT
 
 module private HexSphereInitializer =
     // 构造北部的第一个面
-    let private initNorthTriangle (addPoint: AddPoint) (addFace: AddFace) =
+    let private initNorthTriangle (store: EntityStore) =
         fun chunky (edges: Vector3 array array) col divisions ->
             let nextCol = (col + 1) % 5
             let northEast = edges[col * 6] // 北极出来的靠东的边界
@@ -38,16 +34,19 @@ module private HexSphereInitializer =
                         Math3dUtil.subdivide northEast[i] northWest[i] i
 
                 if i = divisions then
-                    addPoint chunky nowLine[0] <| SphereAxial(-divisions * col, 0) |> ignore
+                    PointRepo.add store chunky nowLine[0] <| SphereAxial(-divisions * col, 0)
+                    |> ignore
                 else
-                    addPoint chunky nowLine[i] <| SphereAxial(-divisions * col, i - divisions)
+                    PointRepo.add store chunky nowLine[i]
+                    <| SphereAxial(-divisions * col, i - divisions)
                     |> ignore
 
                 for j in 0 .. i - 1 do
                     if j > 0 then
-                        addFace chunky nowLine[j] preLine[j] preLine[j - 1] |> ignore
+                        FaceRepo.add store chunky nowLine[j] preLine[j] preLine[j - 1] |> ignore
 
-                        addPoint
+                        PointRepo.add
+                            store
                             chunky
                             nowLine[j]
                             (if i = divisions then
@@ -56,12 +55,12 @@ module private HexSphereInitializer =
                                  SphereAxial(-divisions * col - j, i - divisions))
                         |> ignore
 
-                    addFace chunky preLine[j] nowLine[j] nowLine[j + 1] |> ignore
+                    FaceRepo.add store chunky preLine[j] nowLine[j] nowLine[j + 1] |> ignore
 
                 preLine <- nowLine
 
     // 赤道两个面（第二、三面）的构造
-    let private initEquatorTwoTriangles (addPoint: AddPoint) (addFace: AddFace) =
+    let private initEquatorTwoTriangles (store: EntityStore) =
         fun chunky (edges: Vector3 array array) col divisions ->
             let nextCol = (col + 1) % 5
             let equatorWest = edges[nextCol * 6 + 3] // 向东南方斜跨赤道的靠西的边界
@@ -80,34 +79,44 @@ module private HexSphereInitializer =
 
                 let nowLineWest = Math3dUtil.subdivide equatorMid[i] equatorWest[i] <| divisions - i
                 // 构造东边面（第三面）
-                addPoint chunky nowLineEast[0] <| SphereAxial(-divisions * col, i) |> ignore
+                PointRepo.add store chunky nowLineEast[0] <| SphereAxial(-divisions * col, i)
+                |> ignore
 
                 for j in 0 .. i - 1 do
                     if j > 0 then
-                        addFace chunky nowLineEast[j] preLineEast[j] preLineEast[j - 1] |> ignore
+                        FaceRepo.add store chunky nowLineEast[j] preLineEast[j] preLineEast[j - 1]
+                        |> ignore
 
-                        addPoint chunky nowLineEast[j] <| SphereAxial(-divisions * col - j, i) |> ignore
+                        PointRepo.add store chunky nowLineEast[j]
+                        <| SphereAxial(-divisions * col - j, i)
+                        |> ignore
 
-                    addFace chunky preLineEast[j] nowLineEast[j] nowLineEast[j + 1] |> ignore
+                    FaceRepo.add store chunky preLineEast[j] nowLineEast[j] nowLineEast[j + 1]
+                    |> ignore
                 // 构造西边面（第二面）
                 if i < divisions then
-                    addPoint chunky nowLineWest[0] <| SphereAxial(-divisions * col - i, i) |> ignore
+                    PointRepo.add store chunky nowLineWest[0]
+                    <| SphereAxial(-divisions * col - i, i)
+                    |> ignore
 
                 for j in 0 .. divisions - i do
                     if j > 0 then
-                        addFace chunky preLineWest[j] nowLineWest[j - 1] nowLineWest[j] |> ignore
+                        FaceRepo.add store chunky preLineWest[j] nowLineWest[j - 1] nowLineWest[j]
+                        |> ignore
 
                         if j < divisions - i then
-                            addPoint chunky nowLineWest[j] <| SphereAxial(-divisions * col - i - j, i)
+                            PointRepo.add store chunky nowLineWest[j]
+                            <| SphereAxial(-divisions * col - i - j, i)
                             |> ignore
 
-                    addFace chunky nowLineWest[j] preLineWest[j + 1] preLineWest[j] |> ignore
+                    FaceRepo.add store chunky nowLineWest[j] preLineWest[j + 1] preLineWest[j]
+                    |> ignore
 
                 preLineEast <- nowLineEast
                 preLineWest <- nowLineWest
 
     // 构造南部的最后一面（列的第四面）
-    let private initSouthTriangle (addPoint: AddPoint) (addFace: AddFace) =
+    let private initSouthTriangle (store: EntityStore) =
         fun chunky (edges: Vector3 array array) col divisions ->
             let nextCol = (col + 1) % 5
             let southWest = edges[nextCol * 6 + 5] // 向南方连接南极的靠西的边界
@@ -118,213 +127,172 @@ module private HexSphereInitializer =
                 let nowLine = Math3dUtil.subdivide southEast[i] southWest[i] <| divisions - i
 
                 if i < divisions then
-                    addPoint chunky nowLine[0] <| SphereAxial(-divisions * col - i, divisions + i)
+                    PointRepo.add store chunky nowLine[0]
+                    <| SphereAxial(-divisions * col - i, divisions + i)
                     |> ignore
 
                 for j in 0 .. divisions - i do
                     if j > 0 then
-                        addFace chunky preLine[j] nowLine[j - 1] nowLine[j] |> ignore
+                        FaceRepo.add store chunky preLine[j] nowLine[j - 1] nowLine[j] |> ignore
 
                         if j < divisions - i then
-                            addPoint chunky nowLine[j]
+                            PointRepo.add store chunky nowLine[j]
                             <| SphereAxial(-divisions * col - i - j, divisions + i)
                             |> ignore
 
-                    addFace chunky nowLine[j] preLine[j + 1] preLine[j] |> ignore
+                    FaceRepo.add store chunky nowLine[j] preLine[j + 1] preLine[j] |> ignore
 
                 preLine <- nowLine
 
     // 初始化 Point 和 Face
-    let private subdivideIcosahedron (addPoint: AddPoint) (addFace: AddFace) =
-        fun chunky divisions ->
-            let pn = IcosahedronConstant.vertices[0] // 北极点
-            let ps = IcosahedronConstant.vertices[6] // 南极点
-            // 轴坐标系（0,0）放在第一组竖列四面的北回归线最东端
-            addPoint chunky pn <| SphereAxial(0, -divisions) |> ignore
-            addPoint chunky ps <| SphereAxial(-divisions, 2 * divisions) |> ignore
-            let edges = HexSphereUtil.genEdgeVectors divisions pn ps
+    let private subdivideIcosahedron store chunky divisions =
+        let pn = IcosahedronConstant.vertices[0] // 北极点
+        let ps = IcosahedronConstant.vertices[6] // 南极点
+        // 轴坐标系（0,0）放在第一组竖列四面的北回归线最东端
+        PointRepo.add store chunky pn <| SphereAxial(0, -divisions) |> ignore
 
-            for col in 0..4 do
-                initNorthTriangle addPoint addFace chunky edges col divisions
-                initEquatorTwoTriangles addPoint addFace chunky edges col divisions
-                initSouthTriangle addPoint addFace chunky edges col divisions
+        PointRepo.add store chunky ps <| SphereAxial(-divisions, 2 * divisions)
+        |> ignore
 
-    let private initPointFaceLinks
-        (tryHeadPointByPosition: TryHeadPointByPosition)
-        (forEachFaceByChunky: ForEachFaceByChunky)
-        =
+        let edges = HexSphereUtil.genEdgeVectors divisions pn ps
+
+        for col in 0..4 do
+            initNorthTriangle store chunky edges col divisions
+            initEquatorTwoTriangles store chunky edges col divisions
+            initSouthTriangle store chunky edges col divisions
+
+    let private initPointFaceLinks (store: EntityStore) =
         fun chunky ->
-            forEachFaceByChunky chunky
-            <| ForEachEntity<FaceComponent>(fun faceComp faceEntity ->
-                let relatePointToFace v =
-                    // 给每个点建立它与所归属的面的关系
-                    tryHeadPointByPosition chunky v
-                    |> Option.iter (fun pointEntity ->
-                        let relation = PointToFaceId(faceEntity.Id)
-                        pointEntity.AddRelation(&relation) |> ignore)
+            let tag = PointRepo.chunkyTag chunky
 
-                relatePointToFace faceComp.Vertex1
-                relatePointToFace faceComp.Vertex2
-                relatePointToFace faceComp.Vertex3)
+            store
+                .Query<FaceComponent>()
+                .AllTags(&tag)
+                .ForEachEntity(fun faceComp faceEntity ->
+                    let relatePointToFace v =
+                        // 给每个点建立它与所归属的面的关系
+                        PointRepo.tryHeadByPosition store chunky v
+                        |> Option.iter (fun pointEntity ->
+                            let relation = PointToFaceId(faceEntity.Id)
+                            pointEntity.AddRelation(&relation) |> ignore)
 
-    let private initPointsAndFaces
-        (addPoint: AddPoint)
-        (addFace: AddFace)
-        (tryHeadPointByPosition: TryHeadPointByPosition)
-        (forEachFaceByChunky: ForEachFaceByChunky)
-        =
+                    relatePointToFace faceComp.Vertex1
+                    relatePointToFace faceComp.Vertex2
+                    relatePointToFace faceComp.Vertex3)
+
+    let private initPointsAndFaces (store: EntityStore) =
         fun chunky divisions ->
             let time = Time.GetTicksMsec()
-            subdivideIcosahedron addPoint addFace chunky divisions
-            initPointFaceLinks tryHeadPointByPosition forEachFaceByChunky chunky
+            subdivideIcosahedron store chunky divisions
+            initPointFaceLinks store chunky
             let chunkyType = if chunky then "Chunk" else "Tile" // 不能直接写在输出中
             // 三元表达式直接写在输出中，会报错：Invalid interpolated string.
             // Single quote or verbatim string literals may not be used in interpolated expressions in single quote or verbatim strings.
             // Consider using an explicit 'let' binding for the interpolation expression or use a triple quote string as the outer string literal.
             GD.Print($"--- InitPointsAndFaces for {chunkyType} cost: {Time.GetTicksMsec() - time} ms")
 
-    let searchNearest (point: PointRepoDep) =
+    let searchNearest (store: EntityStore) (chunkVpTree: Vector3 VpTree) (tileVpTree: Vector3 VpTree) =
         fun (pos: Vector3) chunky ->
-            let center = point.SearchNearestCenterPos pos chunky
+            let center = PointRepo.searchNearestCenterPos chunkVpTree tileVpTree pos chunky
 
-            point.TryHeadByPosition chunky center
-            |> Option.bind (fun pointEntity -> point.TryHeadEntityByPointId pointEntity.Id)
+            PointRepo.tryHeadByPosition store chunky center
+            |> Option.bind (fun pointEntity -> PointRepo.tryHeadEntityByCenterId store pointEntity.Id)
 
-    let getHexFacesAndNeighborCenterIds (point: PointRepoDep) (face: FaceRepoDep) =
+    let getHexFacesAndNeighborCenterIds (store: EntityStore) =
         fun chunky (pComp: PointComponent inref) (pEntity: Entity inref) ->
-            let hexFaceEntities = face.GetOrderedFaces pComp pEntity
+            let hexFaceEntities = FaceRepo.getOrderedFaces store pComp pEntity
             let hexFaces = hexFaceEntities |> List.map _.GetComponent<FaceComponent>()
 
             let neighborCenterIds =
-                point.GetNeighborCenterPointIds.Invoke(chunky, hexFaces, &pComp) |> Seq.toArray
+                PointRepo.getNeighborCenterPointIds store chunky hexFaces &pComp |> Seq.toArray
 
             (hexFaces |> List.toArray, hexFaceEntities |> List.map _.Id |> List.toArray, neighborCenterIds)
 
-    let initChunks (planet: IPlanet) (point: PointRepoDep) (face: FaceRepoDep) (chunk: ChunkRepoDep) =
+    let initChunks (planet: IPlanet) (store: EntityStore) (chunkVpTree: Vector3 VpTree) (tileVpTree: Vector3 VpTree) =
         let time = Time.GetTicksMsec()
-        initPointsAndFaces point.Add face.Add point.TryHeadByPosition face.ForEachByChunky true planet.ChunkDivisions
+        initPointsAndFaces store true planet.ChunkDivisions
 
-        point.ForEachByChunky true
-        <| ForEachEntity<PointComponent>(fun pComp pEntity ->
-            let _, _, neighborCenterIds =
-                getHexFacesAndNeighborCenterIds point face true &pComp &pEntity
+        let tag = PointRepo.chunkyTag true
 
-            chunk.Add pEntity.Id
-            <| pComp.Position * (planet.Radius + planet.MaxHeight)
-            <| neighborCenterIds
-            |> ignore)
+        store
+            .Query<PointComponent>()
+            .AllTags(&tag)
+            .ForEachEntity(fun pComp pEntity ->
+                let _, _, neighborCenterIds =
+                    getHexFacesAndNeighborCenterIds store true &pComp &pEntity
 
-        point.CreateVpTree true
+                ChunkRepo.add store pEntity.Id
+                <| pComp.Position * (planet.Radius + planet.MaxHeight)
+                <| neighborCenterIds
+                |> ignore)
+
+        PointRepo.createVpTree store chunkVpTree tileVpTree true
 
         GD.Print($"InitChunks chunkDivisions {planet.ChunkDivisions}, cost: {Time.GetTicksMsec() - time} ms")
 
-    let initTiles (planet: IPlanet) (point: PointRepoDep) (face: FaceRepoDep) (tile: TileRepoDep) =
+    let initTiles (planet: IPlanet) (store: EntityStore) (chunkVpTree: Vector3 VpTree) (tileVpTree: Vector3 VpTree) =
         let mutable time = Time.GetTicksMsec()
-        initPointsAndFaces point.Add face.Add point.TryHeadByPosition face.ForEachByChunky false planet.Divisions
+        initPointsAndFaces store false planet.Divisions
 
-        point.ForEachByChunky false
-        <| ForEachEntity<PointComponent>(fun pComp pEntity ->
-            let hexFaces, hexFaceIds, neighborCenterIds =
-                getHexFacesAndNeighborCenterIds point face false &pComp &pEntity
+        let tag = PointRepo.chunkyTag false
 
-            searchNearest point pComp.Position true // 找到最近的 Chunk
-            |> Option.iter (fun chunk ->
-                let tileId = tile.Add pEntity.Id chunk.Id hexFaces hexFaceIds neighborCenterIds
+        store
+            .Query<PointComponent>()
+            .AllTags(&tag)
+            .ForEachEntity(fun pComp pEntity ->
+                let hexFaces, hexFaceIds, neighborCenterIds =
+                    getHexFacesAndNeighborCenterIds store false &pComp &pEntity
 
-                let link = ChunkToTileId(tileId)
-                chunk.AddRelation(&link) |> ignore))
+                searchNearest store chunkVpTree tileVpTree pComp.Position true // 找到最近的 Chunk
+                |> Option.iter (fun chunk ->
+                    let tileId =
+                        TileRepo.add store pEntity.Id chunk.Id hexFaces hexFaceIds neighborCenterIds
+
+                    let link = ChunkToTileId(tileId)
+                    chunk.AddRelation(&link) |> ignore))
 
         let mutable time2 = Time.GetTicksMsec()
         GD.Print $"InitTiles cost: {time2 - time} ms"
         time <- time2
 
-        point.CreateVpTree false
+        PointRepo.createVpTree store chunkVpTree tileVpTree false
         time2 <- Time.GetTicksMsec()
         GD.Print $"_tilePointVpTree Create cost: {time2 - time} ms"
-
-module private MeshGenerator =
-    let private addFaceIndex (surfaceTool: SurfaceTool) i0 i1 i2 =
-        surfaceTool.AddIndex i0
-        surfaceTool.AddIndex i1
-        surfaceTool.AddIndex i2
-
-    let generateMesh (planet: IPlanet) (chunkLoader: IChunkLoader) (tiles: (TileUnitCentroid * TileUnitCorners) seq) =
-        for child in chunkLoader.GetChildren() do
-            child.QueueFree()
-
-        let meshIns = new MeshInstance3D()
-        let surfaceTool = new SurfaceTool()
-        surfaceTool.Begin Mesh.PrimitiveType.Triangles
-        surfaceTool.SetSmoothGroup UInt32.MaxValue
-        let mutable vi = 0
-
-        for unitCentroid, unitCorners in tiles do
-            surfaceTool.SetColor <| Color.FromHsv(GD.Randf(), GD.Randf(), GD.Randf())
-
-            let points =
-                unitCorners.GetCorners(unitCentroid.UnitCentroid, planet.Radius) |> Seq.toArray
-
-            for point in points do
-                surfaceTool.AddVertex point
-
-            addFaceIndex surfaceTool vi <| vi + 1 <| vi + 2
-            addFaceIndex surfaceTool vi <| vi + 2 <| vi + 3
-            addFaceIndex surfaceTool vi <| vi + 3 <| vi + 4
-
-            if points.Length > 5 then
-                addFaceIndex surfaceTool vi <| vi + 4 <| vi + 5
-
-            vi <- vi + points.Length
-
-        surfaceTool.GenerateNormals()
-        let material = new StandardMaterial3D()
-        material.VertexColorUseAsAlbedo <- true
-        surfaceTool.SetMaterial material
-        meshIns.Mesh <- surfaceTool.Commit()
-        chunkLoader.AddChild(meshIns)
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-05-30 12:46:30
 module HexSphereService =
-    let clearOldData
-        (point: PointRepoDep)
-        (face: FaceRepoDep)
-        (tile: TileRepoDep)
-        (chunk: ChunkRepoDep)
-        : ClearOldData =
+    let clearOldData (store: EntityStore) : ClearOldData =
         fun () ->
-            point.Truncate()
-            face.Truncate()
-            tile.Truncate()
-            chunk.Truncate()
+            let cb = store.GetCommandBuffer()
+            store.Query<PointComponent>().ForEachEntity(fun _ e -> cb.DeleteEntity(e.Id))
+            store.Query<FaceComponent>().ForEachEntity(fun _ e -> cb.DeleteEntity(e.Id))
+            store.Query<TileUnitCentroid>().ForEachEntity(fun _ e -> cb.DeleteEntity(e.Id))
+            store.Query<ChunkPos>().ForEachEntity(fun _ e -> cb.DeleteEntity(e.Id))
+            FrifloEcsUtil.commitCommands store
 
     let initHexSphere
         (planet: IPlanet)
-        (chunkLoader: IChunkLoader)
         (tileShaderData: TileShaderData)
         (tileSearcher: TileSearcher)
-        (point: PointRepoDep)
-        (face: FaceRepoDep)
-        (tile: TileRepoDep)
-        (chunk: ChunkRepoDep)
+        (store: EntityStore)
+        (chunkVpTree: Vector3 VpTree)
+        (tileVpTree: Vector3 VpTree)
         : InitHexSphere =
         fun () ->
-            HexSphereInitializer.initChunks planet point face chunk
-            HexSphereInitializer.initTiles planet point face tile
+            HexSphereInitializer.initChunks planet store chunkVpTree tileVpTree
+            HexSphereInitializer.initTiles planet store chunkVpTree tileVpTree
             tileShaderData.Initialize(planet)
-            tileSearcher.InitSearchData(tile.Count())
-            // MeshGenerator.generateMesh planet chunkLoader <| tile.CentroidAndCornersSeq()
+            tileSearcher.InitSearchData <| store.Query<TileUnitCentroid>().Count
 
     let getDependency
         (planet: IPlanet)
-        (chunkLoader: IChunkLoader)
         (tileShaderData: TileShaderData)
         (tileSearcher: TileSearcher)
-        (point: PointRepoDep)
-        (face: FaceRepoDep)
-        (tile: TileRepoDep)
-        (chunk: ChunkRepoDep)
+        (store: EntityStore)
+        (chunkVpTree: Vector3 VpTree)
+        (tileVpTree: Vector3 VpTree)
         : HexSphereServiceDep =
-        { InitHexSphere = initHexSphere planet chunkLoader tileShaderData tileSearcher point face tile chunk
-          ClearOldData = clearOldData point face tile chunk }
+        { InitHexSphere = initHexSphere planet tileShaderData tileSearcher store chunkVpTree tileVpTree
+          ClearOldData = clearOldData store }

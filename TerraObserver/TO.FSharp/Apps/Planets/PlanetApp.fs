@@ -24,37 +24,11 @@ type PlanetApp(planet: IPlanet, catlikeCodingNoise: ICatlikeCodingNoise, chunkLo
     let tileSearcher = TileSearcher()
     let lodMeshCache = LodMeshCache()
 
-    let chunkDep =
-        { Store = store
-          TagChunk = Tags.Get<TagChunk>()
-          TagTile = Tags.Get<TagTile>() }
-
-    let pointRepoDep = PointRepo.getDependency chunkDep chunkVpTree tileVpTree
-    let faceRepoDep = FaceRepo.getDependency chunkDep
-    let tileRepoDep = TileRepo.getDependency store
-    let chunkRepoDep = ChunkRepo.getDependency store
-
     let hexSphereServiceDep =
-        HexSphereService.getDependency
-            planet
-            chunkLoader
-            tileShaderData
-            tileSearcher
-            pointRepoDep
-            faceRepoDep
-            tileRepoDep
-            chunkRepoDep
+        HexSphereService.getDependency planet tileShaderData tileSearcher store chunkVpTree tileVpTree
 
     let hexGridChunkServiceDep =
-        HexGridChunkService.getDependency
-            planet
-            catlikeCodingNoise
-            chunkLoader
-            lodMeshCache
-            pointRepoDep
-            faceRepoDep
-            tileRepoDep
-            chunkRepoDep
+        HexGridChunkService.getDependency planet catlikeCodingNoise chunkLoader lodMeshCache store
 
     member this.DrawHexSphereMesh() =
         let time = Time.GetTicksMsec()

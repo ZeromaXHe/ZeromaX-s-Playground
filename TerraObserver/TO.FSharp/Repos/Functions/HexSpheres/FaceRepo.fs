@@ -3,37 +3,25 @@ namespace TO.FSharp.Repos.Functions.HexSpheres
 open Friflo.Engine.ECS
 open Godot
 open TO.FSharp.Commons.Utils
-open TO.FSharp.Repos.Models.HexSpheres.Chunks
 open TO.FSharp.Repos.Models.HexSpheres.Faces
 open TO.FSharp.Repos.Models.HexSpheres.Points
-open TO.FSharp.Repos.Types.HexSpheres.FaceRepoT
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-05-30 11:41:30
 module FaceRepo =
-    let forEachByChunky (dep: ChunkyDep) : ForEachFaceByChunky =
-        fun chunky forEachFace ->
-            dep.Store
-                .Query<FaceComponent>()
-                .AllTags(if chunky then &dep.TagChunk else &dep.TagTile)
-                .ForEachEntity
-                forEachFace
-
-    let add (dep: ChunkyDep) : AddFace =
-        fun chunky vertex1 vertex2 vertex3 ->
+    let add (store: EntityStore) =
+        fun (chunky: bool) (vertex1: Vector3) (vertex2: Vector3) (vertex3: Vector3) ->
             let center = (vertex1 + vertex2 + vertex3) / 3f
+            let tag = PointRepo.chunkyTag chunky
 
             let face =
-                if chunky then
-                    dep.Store.CreateEntity(FaceComponent(center, vertex1, vertex2, vertex3), &dep.TagChunk)
-                else
-                    dep.Store.CreateEntity(FaceComponent(center, vertex1, vertex2, vertex3), &dep.TagTile)
+                store.CreateEntity(FaceComponent(center, vertex1, vertex2, vertex3), &tag)
 
             face.Id
     // 因为 pointComponent 要传给闭包，所以不用 inref
-    let getOrderedFaces (store: EntityStore) : GetOrderedFaces =
-        fun pointComponent pointEntity ->
+    let getOrderedFaces (store: EntityStore) =
+        fun (pointComponent: PointComponent) (pointEntity: Entity) ->
             let linkFaceIds = pointEntity.GetRelations<PointToFaceId>()
 
             if linkFaceIds.Length = 0 then
@@ -93,15 +81,3 @@ module FaceRepo =
                     orderedList <- currentFaceEntity :: orderedList
 
                 orderedList |> List.rev
-
-    let getComponentById (store: EntityStore) : GetFaceComponentById =
-        fun id -> store.GetEntityById(id).GetComponent<FaceComponent>()
-    let truncate (store: EntityStore) : TruncateFaces =
-        fun () -> FrifloEcsUtil.truncate <| store.Query<FaceComponent>()
-
-    let getDependency chunkDep : FaceRepoDep =
-        { ForEachByChunky = forEachByChunky chunkDep
-          Add = add chunkDep
-          GetOrderedFaces = getOrderedFaces chunkDep.Store
-          GetComponentById = getComponentById chunkDep.Store
-          Truncate = truncate chunkDep.Store }

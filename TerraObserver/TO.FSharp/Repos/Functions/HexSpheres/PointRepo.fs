@@ -3,13 +3,15 @@ namespace TO.FSharp.Repos.Functions.HexSpheres
 open Godot
 open Friflo.Engine.ECS
 open TO.FSharp.Commons.DataStructures
+open TO.FSharp.Commons.Structs.HexSphereGrid
 open TO.FSharp.Commons.Utils
 open TO.FSharp.Repos.Models.HexSpheres.Chunks
 open TO.FSharp.Repos.Models.HexSpheres.Faces
 open TO.FSharp.Repos.Models.HexSpheres.Points
-open TO.FSharp.Repos.Types.HexSpheres.PointRepoT
+open TO.FSharp.Repos.Models.HexSpheres.Tiles
 
 module private FacePointGetter =
+    type TryHeadPointByPosition = Chunky -> Vector3 -> Entity option
     // 按照顺时针方向返回三角形上的在指定顶点后的另外两个顶点
     let getOtherPoints (tryHeadByPosition: TryHeadPointByPosition) =
         fun chunky (face: FaceComponent) (point: PointComponent inref) ->
@@ -39,90 +41,78 @@ module private FacePointGetter =
         let idx = face.GetPointIdx &point
         tryHeadByPosition chunky <| face.Vertex((idx + 2) % 3)
 
-module private PointQuery =
-    let queryByChunky (dep: ChunkyDep) chunky =
-        dep.Store
-            .Query<PointComponent>()
-            .AllTags(if chunky then &dep.TagChunk else &dep.TagTile)
-
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-05-30 10:47:30
 module PointRepo =
-    let tryHeadByPosition (dep: ChunkyDep) : TryHeadPointByPosition =
-        fun chunky pos ->
+    let chunkyTag chunky =
+        if chunky then Tags.Get<TagChunk>() else Tags.Get<TagTile>()
+
+    let tryHeadByPosition (store: EntityStore) =
+        fun (chunky: bool) (pos: Vector3) ->
+            let tag = chunkyTag chunky
             // 我们默认只会最多存在一个结果
             FrifloEcsUtil.tryHeadEntity
-            <| dep.Store
+            <| store
                 .Query<PointComponent>()
                 .HasValue<PointComponent, Vector3>(pos)
-                .AllTags(if chunky then &dep.TagChunk else &dep.TagTile)
+                .AllTags(&tag)
 
-    let tryHeadEntityByPointCenterId (store: EntityStore) : TryHeadEntityByPointId =
-        fun centerId ->
+    let tryHeadEntityByCenterId (store: EntityStore) =
+        fun (centerId: PointId) ->
             // 我们默认只会存在最多一个结果
             FrifloEcsUtil.tryHeadEntity
             <| store.Query<PointCenterId>().HasValue<PointCenterId, PointId>(centerId)
 
-    let forEachByChunky (dep: ChunkyDep) : ForEachPointByChunky =
-        fun chunky forEachPoint -> (PointQuery.queryByChunky dep chunky).ForEachEntity forEachPoint
-
-    let add (dep: ChunkyDep) : AddPoint =
-        fun chunky pos coords ->
-            let point =
-                if chunky then
-                    dep.Store.CreateEntity(PointComponent(pos, coords), &dep.TagChunk)
-                else
-                    dep.Store.CreateEntity(PointComponent(pos, coords), &dep.TagTile)
-
+    let add (store: EntityStore) =
+        fun (chunky: bool) (pos: Vector3) (coords: SphereAxial) ->
+            let tag = chunkyTag chunky
+            let point = store.CreateEntity(PointComponent(pos, coords), &tag)
             point.Id
 
-    let private getNeighborCenterIdsById (store: EntityStore) =
-        fun id -> store.GetEntityById(id).GetComponent<PointNeighborCenterIds>()
-
-    let private getCenterIdById (store: EntityStore) =
-        fun id -> store.GetEntityById(id).GetComponent<PointCenterId>()
-
-    let getNeighborByIdxAndId (store: EntityStore) : GetNeighborByIdAndIdx =
-        fun id idx ->
-            let neighborCenterIds = getNeighborCenterIdsById store id
+    let getNeighborByIdAndIdx (store: EntityStore) =
+        fun (id: int) (idx: int) ->
+            let neighborCenterIds =
+                store.GetEntityById(id).GetComponent<PointNeighborCenterIds>()
 
             if idx >= 0 && idx < neighborCenterIds.Length then
-                tryHeadEntityByPointCenterId store neighborCenterIds[idx]
+                tryHeadEntityByCenterId store neighborCenterIds[idx]
             else
                 None
 
-    let getNeighborIdx (store: EntityStore) : GetNeighborIdx =
-        fun tileId neighborId ->
-            let tileNeighborCenterIds = getNeighborCenterIdsById store tileId
-            let neighborCenterId = getCenterIdById store neighborId
-            tileNeighborCenterIds.GetNeighborIdx neighborCenterId.CenterId
+    let getNeighborIdx (store: EntityStore) =
+        fun (id: int) (neighborId: int) ->
+            let neighborCenterIds =
+                store.GetEntityById(id).GetComponent<PointNeighborCenterIds>()
 
-    let getNeighborIdsById (store: EntityStore) : GetNeighborIdsById =
-        fun chunkId ->
+            let neighborCenterId = store.GetEntityById(neighborId).GetComponent<PointCenterId>()
+            neighborCenterIds.GetNeighborIdx neighborCenterId.CenterId
+
+    let getNeighborIdsById (store: EntityStore) =
+        fun (chunkId: int) ->
             store.GetEntityById(chunkId).GetComponent<PointNeighborCenterIds>()
             |> Seq.collect (fun centerId ->
                 let entities = store.ComponentIndex<PointCenterId, PointId>()[centerId]
                 entities |> Seq.map _.Id)
 
-    // 使用 inref 时，无法使用函数柯里化形式
-    let getNeighborCenterPointIds (dep: ChunkyDep) =
-        GetNeighborPointIds(fun chunky hexFaces center ->
+    let getNeighborCenterPointIds (store: EntityStore) =
+        fun (chunky: bool) (hexFaces: FaceComponent list) (center: PointComponent inref) ->
             // 使用 inref 时，无法使用闭包
             // hexFaces |> List.map (fun face -> getRightOtherPoints chunky face center)
             let result = ResizeArray<_>() // 对应就是 C# List 在 F# 的别名
 
             for face in hexFaces do
                 let otherPoint =
-                    FacePointGetter.getRightOtherPoint (tryHeadByPosition dep) chunky face &center
+                    FacePointGetter.getRightOtherPoint (tryHeadByPosition store) chunky face &center
 
                 otherPoint |> Option.iter (fun p -> result.Add p.Id)
 
-            result)
+            result
 
-    let createVpTree (dependency: ChunkyDep) (chunkVpTree: Vector3 VpTree) (tileVpTree: Vector3 VpTree) : CreateVpTree =
+    let createVpTree (store: EntityStore) (chunkVpTree: Vector3 VpTree) (tileVpTree: Vector3 VpTree) =
         fun chunky ->
-            let pointQuery = PointQuery.queryByChunky dependency chunky
+            let tag = chunkyTag chunky
+            let pointQuery = store.Query<PointComponent>().AllTags(&tag)
 
             let items =
                 FrifloEcsUtil.toComponentSeq pointQuery |> Seq.map _.Position |> Seq.toArray
@@ -130,26 +120,10 @@ module PointRepo =
             let tree = if chunky then chunkVpTree else tileVpTree
             tree.Create(items, fun p0 p1 -> p0.DistanceTo p1)
 
-    let searchNearestCenterPos (chunkVpTree: Vector3 VpTree) (tileVpTree: Vector3 VpTree) : SearchNearestCenterPos =
-        fun pos chunky ->
+    let searchNearestCenterPos (chunkVpTree: Vector3 VpTree) (tileVpTree: Vector3 VpTree) =
+        fun (pos: Vector3) chunky ->
             let mutable results: Vector3 array = null
             let mutable distances: float32 array = null
             let tree = if chunky then chunkVpTree else tileVpTree
             tree.Search(pos.Normalized(), 1, &results, &distances)
             results[0]
-
-    let truncate (store: EntityStore) : TruncatePoints =
-        fun () -> FrifloEcsUtil.truncate <| store.Query<PointComponent>()
-
-    let getDependency chunkDep chunkVpTree tileVpTree : PointRepoDep =
-        { ForEachByChunky = forEachByChunky chunkDep
-          TryHeadByPosition = tryHeadByPosition chunkDep
-          TryHeadEntityByPointId = tryHeadEntityByPointCenterId chunkDep.Store
-          Add = add chunkDep
-          GetNeighborByIdAndIdx = getNeighborByIdxAndId chunkDep.Store
-          GetNeighborIdx = getNeighborIdx chunkDep.Store
-          GetNeighborIdsById = getNeighborIdsById chunkDep.Store
-          GetNeighborCenterPointIds = getNeighborCenterPointIds chunkDep
-          CreateVpTree = createVpTree chunkDep chunkVpTree tileVpTree
-          SearchNearestCenterPos = searchNearestCenterPos chunkVpTree tileVpTree
-          Truncate = truncate chunkDep.Store }

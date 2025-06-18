@@ -9,29 +9,27 @@ open TO.FSharp.Commons.Constants.Meshes
 open TO.FSharp.Commons.Enums.Tiles
 open TO.FSharp.Commons.Structs.Planets
 open TO.FSharp.Commons.Utils
+open TO.FSharp.Repos.Functions.HexSpheres
 open TO.FSharp.Repos.Models.HexSpheres.Chunks
+open TO.FSharp.Repos.Models.HexSpheres.Faces
+open TO.FSharp.Repos.Models.HexSpheres.Points
 open TO.FSharp.Repos.Models.HexSpheres.Tiles
 open TO.FSharp.Repos.Models.Meshes
-open TO.FSharp.Repos.Types.HexSpheres.ChunkRepoT
-open TO.FSharp.Repos.Types.HexSpheres.FaceRepoT
-open TO.FSharp.Repos.Types.HexSpheres.PointRepoT
-open TO.FSharp.Repos.Types.HexSpheres.TileRepoT
 open TO.FSharp.Services.Types
 
 module private ChunkLoaderProcess =
-    let isHandlingLodGaps (pointRepo: PointRepoDep) (chunkRepo: ChunkRepoDep) (lod: ChunkLodEnum) (chunkId: ChunkId) =
+    let isHandlingLodGaps (store: EntityStore) (lod: ChunkLodEnum) (chunkId: ChunkId) =
         (lod = ChunkLodEnum.PlaneHex
-         && pointRepo.GetNeighborIdsById chunkId
-            |> Seq.exists (fun id -> chunkRepo.GetLodEnumById id >= ChunkLodEnum.SimpleHex))
+         && PointRepo.getNeighborIdsById store chunkId
+            |> Seq.exists (fun id -> store.GetEntityById(id).GetComponent<ChunkLod>().Lod >= ChunkLodEnum.SimpleHex))
         || (lod = ChunkLodEnum.TerracesHex
-            && pointRepo.GetNeighborIdsById chunkId
-               |> Seq.exists (fun id -> chunkRepo.GetLodEnumById id = ChunkLodEnum.Full))
+            && PointRepo.getNeighborIdsById store chunkId
+               |> Seq.exists (fun id -> store.GetEntityById(id).GetComponent<ChunkLod>().Lod = ChunkLodEnum.Full))
 
     let private updateLod
         (hexGridChunk: IHexGridChunk)
         (lodMeshCache: LodMeshCache)
-        (pointRepo: PointRepoDep)
-        (chunkRepo: ChunkRepoDep)
+        (store: EntityStore)
         (lod: ChunkLodEnum)
         (chunkId: ChunkId)
         (idChanged: bool)
@@ -41,7 +39,7 @@ module private ChunkLoaderProcess =
         else
             hexGridChunk.Lod <- lod
 
-            if isHandlingLodGaps pointRepo chunkRepo lod chunkId then
+            if isHandlingLodGaps store lod chunkId then
                 // 对于需要处理接缝的情况，不使用缓存
                 hexGridChunk.SetProcess true
             else
@@ -54,8 +52,7 @@ module private ChunkLoaderProcess =
     let private usedBy
         (hexGridChunk: IHexGridChunk)
         (lodMeshCache: LodMeshCache)
-        (pointRepo: PointRepoDep)
-        (chunkRepo: ChunkRepoDep)
+        (store: EntityStore)
         (lod: ChunkLodEnum)
         (chunkId: ChunkId)
         =
@@ -63,42 +60,36 @@ module private ChunkLoaderProcess =
         // 默认不生成网格，而是先查缓存
         hexGridChunk.SetProcess false
         hexGridChunk.Show()
-        updateLod hexGridChunk lodMeshCache pointRepo chunkRepo lod chunkId true
+        updateLod hexGridChunk lodMeshCache store lod chunkId true
 
-    let showChunk
-        (chunkLoader: IChunkLoader)
-        (lodMeshCache: LodMeshCache)
-        (pointRepo: PointRepoDep)
-        (chunkRepo: ChunkRepoDep)
-        (chunkId: ChunkId)
-        =
-        let chunkLodEnum = chunkRepo.GetLodEnumById chunkId
+    let showChunk (chunkLoader: IChunkLoader) (lodMeshCache: LodMeshCache) (store: EntityStore) (chunkId: ChunkId) =
+        let chunkLodEnum = store.GetEntityById(chunkId).GetComponent<ChunkLod>().Lod
 
         match chunkLoader.TryGetUsingChunk chunkId with
-        | true, usingChunk -> updateLod usingChunk lodMeshCache pointRepo chunkRepo chunkLodEnum chunkId false
+        | true, usingChunk -> updateLod usingChunk lodMeshCache store chunkLodEnum chunkId false
         | false, _ ->
             // 没有空闲分块的话，初始化新的
             let hexGridChunk = chunkLoader.GetUnusedChunk()
-            usedBy hexGridChunk lodMeshCache pointRepo chunkRepo chunkLodEnum chunkId
+            usedBy hexGridChunk lodMeshCache store chunkLodEnum chunkId
             chunkLoader.AddUsingChunk(chunkId, hexGridChunk)
 
-    let searchNeighbor (chunkLoader: IChunkLoader) (pointRepo: PointRepoDep) (chunkId: ChunkId) (filter: int HashSet) =
-        for neighborId in pointRepo.GetNeighborIdsById chunkId do
+    let searchNeighbor (chunkLoader: IChunkLoader) (store: EntityStore) (chunkId: ChunkId) (filter: int HashSet) =
+        for neighborId in PointRepo.getNeighborIdsById store chunkId do
             if filter = null || not <| filter.Contains neighborId then
                 if chunkLoader.VisitedChunkIds.Add neighborId then
                     chunkLoader.ChunkQueryQueue.Enqueue neighborId
 
 module private ChunkInitializer =
-    /// 需要在更新后调用 chunkRepo.CommitCommands
+    /// 如果 inLoop，需要在更新后调用 FrifloEcsUtil.commitCommands store
     let updateChunkInsightAndLod
         (chunkLoader: IChunkLoader)
         (camera: Camera3D)
-        (chunkRepo: ChunkRepoDep)
+        (store: EntityStore)
         (chunkId: ChunkId)
         (insight: bool)
         (inLoop: bool)
         =
-        let chunkPos = chunkRepo.GetPosById chunkId
+        let chunkPos = store.GetEntityById(chunkId).GetComponent<ChunkPos>().Pos
 
         let lodEnum =
             if insight then
@@ -106,28 +97,35 @@ module private ChunkInitializer =
             else
                 ChunkLodEnum.JustHex
 
-        chunkRepo.UpdateInsightAndLodById chunkId insight lodEnum inLoop
+        let chunkInsight = ChunkInsight insight
+        let chunkLod = ChunkLod lodEnum
+        // 更新组件
+        if inLoop then
+            let cb = store.GetCommandBuffer()
+            cb.AddComponent<ChunkInsight>(chunkId, &chunkInsight)
+            cb.AddComponent<ChunkLod>(chunkId, &chunkLod)
+        else
+            let chunk = store.GetEntityById(chunkId)
+            chunk.AddComponent<ChunkInsight>(&chunkInsight) |> ignore
+            chunk.AddComponent<ChunkLod>(&chunkLod) |> ignore
 
-    let InitOutRimChunks
-        (chunkLoader: IChunkLoader)
-        (camera: Camera3D)
-        (pointRepo: PointRepoDep)
-        (chunkRepo: ChunkRepoDep)
-        =
+    let InitOutRimChunks (chunkLoader: IChunkLoader) (camera: Camera3D) (store: EntityStore) =
         chunkLoader.InsightChunkIdsNow
-        |> Seq.collect pointRepo.GetNeighborIdsById
+        |> Seq.collect (fun chunkId ->
+            store.GetEntityById(chunkId).GetComponent<PointNeighborCenterIds>()
+            |> Seq.collect (fun centerId ->
+                let entities = store.ComponentIndex<PointCenterId, PointId>()[centerId]
+                entities |> Seq.map _.Id))
         |> Seq.filter (fun neighborId -> not <| chunkLoader.InsightChunkIdsNow.Contains neighborId)
         |> Seq.iter (fun rimId ->
             if chunkLoader.RimChunkIds.Add rimId then
-                updateChunkInsightAndLod chunkLoader camera chunkRepo rimId true true
+                updateChunkInsightAndLod chunkLoader camera store rimId true false
 
                 if chunkLoader.UnloadSet.Contains rimId then
                     chunkLoader.UnloadSet.Remove rimId |> ignore
                     chunkLoader.RefreshSet.Add rimId |> ignore
                 else
                     chunkLoader.LoadSet.Add rimId |> ignore)
-
-        chunkRepo.CommitCommands()
 
 module private ChunkTriangulation =
     let private getHeight
@@ -143,28 +141,28 @@ module private ChunkTriangulation =
         (planet: IPlanet)
         (catlikeCodingNoise: ICatlikeCodingNoise)
         (chunk: IChunk)
-        (pointRepo: PointRepoDep)
-        (tileRepo: TileRepoDep)
+        (store: EntityStore)
         (tileId: int)
         =
-        let tileCountId = tileRepo.GetCountIdById tileId
+        let tile = store.GetEntityById tileId
+        let tileCountId = tile.GetComponent<TileCountId>()
         let ids = Vector3.One * float32 tileCountId.CountId
-        let tileCorners = tileRepo.GetUnitCornersById tileId
-        let tileFaceIds = tileRepo.GetHexFaceIdsById tileId
-        let tileValue = tileRepo.GetValueById tileId
-        let tileUnitCentroid = tileRepo.GetUnitCentroidById tileId
+        let tileCorners = tile.GetComponent<TileUnitCorners>()
+        let tileFaceIds = tile.GetComponent<TileHexFaceIds>()
+        let tileValue = tile.GetComponent<TileValue>()
+        let tileUnitCentroid = tile.GetComponent<TileUnitCentroid>()
         let height = getHeight catlikeCodingNoise tileValue tileUnitCentroid
         let waterHeight = tileValue.WaterSurfaceY planet.UnitHeight
 
         let mutable preNeighbor =
-            pointRepo.GetNeighborByIdAndIdx tileId
+            PointRepo.getNeighborByIdAndIdx store tileId
             <| HexIndexUtil.previousIdx tileFaceIds.Length 0
             |> Option.get
 
-        let mutable neighbor = pointRepo.GetNeighborByIdAndIdx tileId 0 |> Option.get
+        let mutable neighbor = PointRepo.getNeighborByIdAndIdx store tileId 0 |> Option.get
 
         let mutable nextNeighbor =
-            pointRepo.GetNeighborByIdAndIdx tileId
+            PointRepo.getNeighborByIdAndIdx store tileId
             <| HexIndexUtil.nextIdx tileFaceIds.Length 0
             |> Option.get
 
@@ -172,18 +170,18 @@ module private ChunkTriangulation =
         let mutable vw0 = Vector3.Zero
 
         for i in 0 .. tileFaceIds.Length - 1 do
-            let neighborValue = tileRepo.GetValueById neighbor.Id
-            let neighborUnitCentroid = tileRepo.GetUnitCentroidById neighbor.Id
+            let neighborValue = neighbor.GetComponent<TileValue>()
+            let neighborUnitCentroid = neighbor.GetComponent<TileUnitCentroid>()
             let neighborHeight = getHeight catlikeCodingNoise neighborValue neighborUnitCentroid
             let neighborWaterHeight = neighborValue.WaterSurfaceY planet.UnitHeight
 
-            let preValue = tileRepo.GetValueById preNeighbor.Id
-            let preUnitCentroid = tileRepo.GetUnitCentroidById preNeighbor.Id
+            let preValue = preNeighbor.GetComponent<TileValue>()
+            let preUnitCentroid = preNeighbor.GetComponent<TileUnitCentroid>()
             let preHeight = getHeight catlikeCodingNoise preValue preUnitCentroid
             let preWaterHeight = preValue.WaterSurfaceY planet.UnitHeight
 
-            let nextValue = tileRepo.GetValueById nextNeighbor.Id
-            let nextUnitCentroid = tileRepo.GetUnitCentroidById nextNeighbor.Id
+            let nextValue = nextNeighbor.GetComponent<TileValue>()
+            let nextUnitCentroid = nextNeighbor.GetComponent<TileUnitCentroid>()
             let nextHeight = getHeight catlikeCodingNoise nextValue nextUnitCentroid
             let nextWaterHeight = nextValue.WaterSurfaceY planet.UnitHeight
 
@@ -229,7 +227,7 @@ module private ChunkTriangulation =
             neighbor <- nextNeighbor
 
             nextNeighbor <-
-                pointRepo.GetNeighborByIdAndIdx tileId
+                PointRepo.getNeighborByIdAndIdx store tileId
                 <| HexIndexUtil.next2Idx tileFaceIds.Length i
                 |> Option.get
 
@@ -238,18 +236,16 @@ module private ChunkTriangulation =
         (planet: IPlanet)
         (catlikeCodingNoise: ICatlikeCodingNoise)
         (chunk: IChunk)
-        (pointRepo: PointRepoDep)
-        (faceRepo: FaceRepoDep)
-        (tileRepo: TileRepoDep)
-        (chunkRepo: ChunkRepoDep)
+        (store: EntityStore)
         (tileId: int)
         =
-        let tileCountId = tileRepo.GetCountIdById tileId
+        let tile = store.GetEntityById tileId
+        let tileCountId = tile.GetComponent<TileCountId>()
         let ids = Vector3.One * float32 tileCountId.CountId
-        let tileCorners = tileRepo.GetUnitCornersById tileId
-        let tileFaceIds = tileRepo.GetHexFaceIdsById tileId
-        let tileValue = tileRepo.GetValueById tileId
-        let tileUnitCentroid = tileRepo.GetUnitCentroidById tileId
+        let tileCorners = tile.GetComponent<TileUnitCorners>()
+        let tileFaceIds = tile.GetComponent<TileHexFaceIds>()
+        let tileValue = tile.GetComponent<TileValue>()
+        let tileUnitCentroid = tile.GetComponent<TileUnitCentroid>()
         let height = getHeight catlikeCodingNoise tileValue tileUnitCentroid
         let waterHeight = tileValue.WaterSurfaceY planet.UnitHeight
 
@@ -270,10 +266,10 @@ module private ChunkTriangulation =
             let vw2 =
                 tileCorners.GetSecondCorner(tileUnitCentroid.UnitCentroid, i, planet.Radius + waterHeight)
 
-            let neighbor = pointRepo.GetNeighborByIdAndIdx tileId i |> Option.get
+            let neighbor = PointRepo.getNeighborByIdAndIdx store tileId i |> Option.get
             let nIds = Vector3(float32 tileId, float32 neighbor.Id, float32 tileId)
-            let neighborValue = tileRepo.GetValueById neighbor.Id
-            let neighborUnitCentroid = tileRepo.GetUnitCentroidById neighbor.Id
+            let neighborValue = neighbor.GetComponent<TileValue>()
+            let neighborUnitCentroid = neighbor.GetComponent<TileUnitCentroid>()
             let neighborHeight = getHeight catlikeCodingNoise neighborValue neighborUnitCentroid
             let neighborWaterHeight = neighborValue.WaterSurfaceY planet.UnitHeight
             // 绘制陆地立面（由高的地块绘制）
@@ -301,15 +297,15 @@ module private ChunkTriangulation =
                         tis = nIds
                     )
             // 处理接缝（目前很粗暴的对所有相邻地块的分块的 LOD 是 SimpleHex 以上时向外绘制到 Solid 边界）
-            let neighborChunkId = tileRepo.GetChunkIdById neighbor.Id
-            let tileChunkId = tileRepo.GetChunkIdById tileId
+            let neighborChunkId = neighbor.GetComponent<TileChunkId>()
+            let tileChunkId = tile.GetComponent<TileChunkId>()
 
             if
                 neighborChunkId <> tileChunkId
-                && chunkRepo.GetLodEnumById neighborChunkId.ChunkId >= ChunkLodEnum.SimpleHex
+                && store.GetEntityById(neighborChunkId.ChunkId).GetComponent<ChunkLod>().Lod
+                   >= ChunkLodEnum.SimpleHex
             then
-                let tileFaceIds = tileRepo.GetHexFaceIdsById tileId
-                let n1Face = faceRepo.GetComponentById <| tileFaceIds[i]
+                let n1Face = store.GetEntityById(tileFaceIds[i]).GetComponent<FaceComponent>()
 
                 let vn1 =
                     neighborUnitCentroid.GetCornerByFaceCenter(
@@ -319,8 +315,9 @@ module private ChunkTriangulation =
                     )
 
                 let n2Face =
-                    faceRepo.GetComponentById
-                    <| tileFaceIds[HexIndexUtil.next2Idx tileFaceIds.Length i]
+                    store
+                        .GetEntityById(tileFaceIds[HexIndexUtil.next2Idx tileFaceIds.Length i])
+                        .GetComponent<FaceComponent>()
 
                 let vn2 =
                     neighborUnitCentroid.GetCornerByFaceCenter(
@@ -1380,22 +1377,20 @@ module private ChunkTriangulation =
         (planet: IPlanet)
         (catlikeCodingNoise: ICatlikeCodingNoise)
         (chunk: IChunk)
-        (pointRepo: PointRepoDep)
-        (faceRepo: FaceRepoDep)
-        (tileRepo: TileRepoDep)
-        (chunkRepo: ChunkRepoDep)
+        (store: EntityStore)
         (tileId: int)
         (idx: int)
         (e: EdgeVertices)
         (simple: bool)
         =
-        let tileValue = tileRepo.GetValueById tileId
-        let tileFlag = tileRepo.GetFlagById tileId
-        let tileUnitCentroid = tileRepo.GetUnitCentroidById tileId
+        let tile = store.GetEntityById tileId
+        let tileValue = tile.GetComponent<TileValue>()
+        let tileFlag = tile.GetComponent<TileFlag>()
+        let tileUnitCentroid = tile.GetComponent<TileUnitCentroid>()
         let tileHeight = getHeight catlikeCodingNoise tileValue tileUnitCentroid
-        let neighbor = pointRepo.GetNeighborByIdAndIdx tileId idx |> Option.get
-        let neighborValue = tileRepo.GetValueById neighbor.Id
-        let neighborUnitCentroid = tileRepo.GetUnitCentroidById neighbor.Id
+        let neighbor = PointRepo.getNeighborByIdAndIdx store tileId idx |> Option.get
+        let neighborValue = neighbor.GetComponent<TileValue>()
+        let neighborUnitCentroid = neighbor.GetComponent<TileUnitCentroid>()
         let neighborHeight = getHeight catlikeCodingNoise neighborValue neighborUnitCentroid
         // 连接将由更低的地块或相同高度时 Id 更大的地块生成，或者是编辑地块与非编辑地块间的连接
         if
@@ -1405,8 +1400,8 @@ module private ChunkTriangulation =
         then
             () // 忽略
         else
-            let tileFaceIds = tileRepo.GetHexFaceIdsById tileId
-            let n1Face = faceRepo.GetComponentById tileFaceIds[idx]
+            let tileFaceIds = tile.GetComponent<TileHexFaceIds>()
+            let n1Face = store.GetEntityById(tileFaceIds[idx]).GetComponent<FaceComponent>()
 
             let vn1 =
                 neighborUnitCentroid.GetCornerByFaceCenter(
@@ -1416,8 +1411,9 @@ module private ChunkTriangulation =
                 )
 
             let n2Face =
-                faceRepo.GetComponentById
-                <| tileFaceIds[HexIndexUtil.nextIdx tileFaceIds.Length idx]
+                store
+                    .GetEntityById(tileFaceIds[HexIndexUtil.nextIdx tileFaceIds.Length idx])
+                    .GetComponent<FaceComponent>()
 
             let vn2 =
                 neighborUnitCentroid.GetCornerByFaceCenter(
@@ -1429,8 +1425,8 @@ module private ChunkTriangulation =
             let mutable en = EdgeVertices(vn1, vn2)
             let hasRiver = tileFlag.HasRiverThroughEdge idx
             let hasRoad = tileFlag.HasRoadThroughEdge idx
-            let tileCountId = tileRepo.GetCountIdById tileId
-            let neighborCountId = tileRepo.GetCountIdById neighbor.Id
+            let tileCountId = tile.GetComponent<TileCountId>()
+            let neighborCountId = neighbor.GetComponent<TileCountId>()
 
             if hasRiver then
                 en.V3 <- Math3dUtil.ProjectToSphere(en.V3, planet.Radius + neighborValue.StreamBedY planet.UnitHeight)
@@ -1489,8 +1485,8 @@ module private ChunkTriangulation =
                         tileWaterHeight
                         ids
 
-            let tileChunkId = tileRepo.GetChunkIdById tileId
-            let chunkLod = chunkRepo.GetLodEnumById tileChunkId.ChunkId
+            let tileChunkId = tile.GetComponent<TileChunkId>()
+            let chunkLod = store.GetEntityById(tileChunkId.ChunkId).GetComponent<ChunkLod>().Lod
 
             if
                 chunkLod > ChunkLodEnum.SimpleHex
@@ -1519,9 +1515,9 @@ module private ChunkTriangulation =
                     (not hasRiver && simple)
 
             let preIdx = HexIndexUtil.previousIdx tileFaceIds.Length idx
-            let preNeighbor = pointRepo.GetNeighborByIdAndIdx tileId preIdx |> Option.get
-            let preNeighborValue = tileRepo.GetValueById preNeighbor.Id
-            let preNeighborUnitCentroid = tileRepo.GetUnitCentroidById preNeighbor.Id
+            let preNeighbor = PointRepo.getNeighborByIdAndIdx store tileId preIdx |> Option.get
+            let preNeighborValue = preNeighbor.GetComponent<TileValue>()
+            let preNeighborUnitCentroid = preNeighbor.GetComponent<TileUnitCentroid>()
 
             let preNeighborHeight =
                 getHeight catlikeCodingNoise preNeighborValue preNeighborUnitCentroid
@@ -1635,9 +1631,7 @@ module private ChunkTriangulation =
         (planet: IPlanet)
         (catlikeCodingNoise: ICatlikeCodingNoise)
         (chunk: IChunk)
-        (pointRepo: PointRepoDep)
-        (faceRepo: FaceRepoDep)
-        (tileRepo: TileRepoDep)
+        (store: EntityStore)
         (tileId: int)
         (neighborId: int)
         (centroid: Vector3)
@@ -1645,8 +1639,9 @@ module private ChunkTriangulation =
         (waterHeight: float32)
         (simple: bool)
         =
-        let tileUnitCorners = tileRepo.GetUnitCornersById tileId
-        let tileUnitCentroid = tileRepo.GetUnitCentroidById tileId
+        let tile = store.GetEntityById tileId
+        let tileUnitCorners = tile.GetComponent<TileUnitCorners>()
+        let tileUnitCentroid = tile.GetComponent<TileUnitCentroid>()
 
         let e1 =
             EdgeVertices(
@@ -1654,8 +1649,9 @@ module private ChunkTriangulation =
                 tileUnitCorners.GetSecondWaterCorner(tileUnitCentroid.UnitCentroid, idx, planet.Radius + waterHeight)
             )
 
-        let tileCountId = float32 <| (tileRepo.GetCountIdById tileId).CountId
-        let neighborCountId = float32 <| (tileRepo.GetCountIdById neighborId).CountId
+        let tileCountId = float32 <| tile.GetComponent<TileCountId>().CountId
+        let neighbor = store.GetEntityById neighborId
+        let neighborCountId = float32 <| neighbor.GetComponent<TileCountId>().CountId
         let mutable ids = Vector3(tileCountId, neighborCountId, tileCountId)
         let water = chunk.GetWater()
 
@@ -1674,11 +1670,11 @@ module private ChunkTriangulation =
             addWaterTriangle [| centroid; e1.V3; e1.V4 |]
             addWaterTriangle [| centroid; e1.V4; e1.V5 |]
         // 使用邻居的水表面高度的话，就是希望考虑岸边地块的实际水位。(不然强行拉平岸边的话，角落两个水面不一样高时太多复杂逻辑，bug 太多)
-        let neighborValue = tileRepo.GetValueById neighborId
-        let neighborUnitCentroid = tileRepo.GetUnitCentroidById neighborId
+        let neighborValue = neighbor.GetComponent<TileValue>()
+        let neighborUnitCentroid = neighbor.GetComponent<TileUnitCentroid>()
         let neighborWaterHeight = neighborValue.WaterSurfaceY planet.UnitHeight
-        let tileFaceIds = tileRepo.GetHexFaceIdsById tileId
-        let n1Face = faceRepo.GetComponentById <| tileFaceIds[idx]
+        let tileFaceIds = tile.GetComponent<TileHexFaceIds>()
+        let n1Face = store.GetEntityById(tileFaceIds[idx]).GetComponent<FaceComponent>()
 
         let cn1 =
             neighborUnitCentroid.GetCornerByFaceCenter(
@@ -1688,8 +1684,9 @@ module private ChunkTriangulation =
             )
 
         let n2Face =
-            faceRepo.GetComponentById
-            <| tileFaceIds[HexIndexUtil.nextIdx tileFaceIds.Length idx]
+            store
+                .GetEntityById(tileFaceIds[HexIndexUtil.nextIdx tileFaceIds.Length idx])
+                .GetComponent<FaceComponent>()
 
         let cn2 =
             neighborUnitCentroid.GetCornerByFaceCenter(
@@ -1699,9 +1696,9 @@ module private ChunkTriangulation =
             )
 
         let e2 = EdgeVertices(cn1, cn2)
-        let neighborIdx = pointRepo.GetNeighborIdx tileId neighborId
+        let neighborIdx = PointRepo.getNeighborIdx store tileId neighborId
         let waterShore = chunk.GetWaterShore()
-        let tileFlag = tileRepo.GetFlagById tileId
+        let tileFlag = tile.GetComponent<TileFlag>()
 
         let addWaterShoreQuad verticesArr =
             waterShore.AddQuad(
@@ -1722,13 +1719,13 @@ module private ChunkTriangulation =
             addWaterShoreQuad [| e1.V4; e1.V5; e2.V4; e2.V5 |]
 
         let nextNeighbor =
-            pointRepo.GetNeighborByIdAndIdx tileId
+            PointRepo.getNeighborByIdAndIdx store tileId
             <| HexIndexUtil.nextIdx tileFaceIds.Length idx
             |> Option.get
 
-        let nextNeighborValue = tileRepo.GetValueById nextNeighbor.Id
+        let nextNeighborValue = nextNeighbor.GetComponent<TileValue>()
         let nextNeighborWaterHeight = nextNeighborValue.WaterSurfaceY planet.UnitHeight
-        let nextNeighborUnitCentroid = tileRepo.GetUnitCentroidById nextNeighbor.Id
+        let nextNeighborUnitCentroid = nextNeighbor.GetComponent<TileUnitCentroid>()
 
         let cnn =
             nextNeighborUnitCentroid.GetCornerByFaceCenter(
@@ -1740,7 +1737,7 @@ module private ChunkTriangulation =
                     HexMetrics.SolidFactor
             )
 
-        let nextNeighborCountId = tileRepo.GetCountIdById nextNeighbor.Id
+        let nextNeighborCountId = nextNeighbor.GetComponent<TileCountId>()
         ids.Z <- float32 nextNeighborCountId.CountId
 
         chunk
@@ -1760,18 +1757,17 @@ module private ChunkTriangulation =
         (planet: IPlanet)
         (catlikeCodingNoise: ICatlikeCodingNoise)
         (chunk: IChunk)
-        (pointRepo: PointRepoDep)
-        (faceRepo: FaceRepoDep)
-        (tileRepo: TileRepoDep)
+        (store: EntityStore)
         (tileId: int)
         (neighborId: int)
         (centroid: Vector3)
         (idx: int)
         (waterHeight: float32)
         =
-        let tileCountId = tileRepo.GetCountIdById tileId
-        let tileUnitCorners = tileRepo.GetUnitCornersById tileId
-        let tileUnitCentroid = tileRepo.GetUnitCentroidById tileId
+        let tile = store.GetEntityById tileId
+        let tileCountId = tile.GetComponent<TileCountId>()
+        let tileUnitCorners = tile.GetComponent<TileUnitCorners>()
+        let tileUnitCentroid = tile.GetComponent<TileUnitCentroid>()
 
         let c1 =
             tileUnitCorners.GetFirstWaterCorner(tileUnitCentroid.UnitCentroid, idx, planet.Radius + waterHeight)
@@ -1789,11 +1785,12 @@ module private ChunkTriangulation =
         )
         // 由更大 Id 的地块绘制水域连接，或者是由编辑地块绘制和不编辑的邻接地块间的连接
         if tileId > neighborId then
-            let neighborUnitCentroid = tileRepo.GetUnitCentroidById neighborId
-            let neighborValue = tileRepo.GetValueById neighborId
+            let neighbor = store.GetEntityById neighborId
+            let neighborUnitCentroid = neighbor.GetComponent<TileUnitCentroid>()
+            let neighborValue = neighbor.GetComponent<TileValue>()
             let neighborWaterHeight = neighborValue.WaterSurfaceY planet.UnitHeight
-            let tileFaceIds = tileRepo.GetHexFaceIdsById tileId
-            let n1Face = faceRepo.GetComponentById <| tileFaceIds[idx]
+            let tileFaceIds = tile.GetComponent<TileHexFaceIds>()
+            let n1Face = store.GetEntityById(tileFaceIds[idx]).GetComponent<FaceComponent>()
 
             let cn1 =
                 neighborUnitCentroid.GetCornerByFaceCenter(
@@ -1803,8 +1800,9 @@ module private ChunkTriangulation =
                 )
 
             let n2Face =
-                faceRepo.GetComponentById
-                <| tileFaceIds[HexIndexUtil.nextIdx tileFaceIds.Length idx]
+                store
+                    .GetEntityById(tileFaceIds[HexIndexUtil.nextIdx tileFaceIds.Length idx])
+                    .GetComponent<FaceComponent>()
 
             let cn2 =
                 neighborUnitCentroid.GetCornerByFaceCenter(
@@ -1813,7 +1811,7 @@ module private ChunkTriangulation =
                     HexMetrics.waterFactor
                 )
 
-            let neighborCountId = tileRepo.GetCountIdById neighborId
+            let neighborCountId = neighbor.GetComponent<TileCountId>()
             ids.Y <- float32 neighborCountId.CountId
 
             water.AddQuad(
@@ -1823,14 +1821,14 @@ module private ChunkTriangulation =
             )
             // 由最大 Id 的地块绘制水域角落三角形，或者是由编辑地块绘制和不编辑的两个邻接地块间的连接
             let nextNeighbor =
-                pointRepo.GetNeighborByIdAndIdx tileId
+                PointRepo.getNeighborByIdAndIdx store tileId
                 <| HexIndexUtil.nextIdx tileFaceIds.Length idx
                 |> Option.get
 
-            let nextNeighborValue = tileRepo.GetValueById nextNeighbor.Id
+            let nextNeighborValue = nextNeighbor.GetComponent<TileValue>()
 
             if tileId > nextNeighbor.Id && nextNeighborValue.IsUnderwater then
-                let nextNeighborUnitCentroid = tileRepo.GetUnitCentroidById nextNeighbor.Id
+                let nextNeighborUnitCentroid = nextNeighbor.GetComponent<TileUnitCentroid>()
 
                 let cnn =
                     nextNeighborUnitCentroid.GetCornerByFaceCenter(
@@ -1839,7 +1837,7 @@ module private ChunkTriangulation =
                         HexMetrics.waterFactor
                     )
 
-                let nextNeighborCountId = tileRepo.GetCountIdById nextNeighbor.Id
+                let nextNeighborCountId = nextNeighbor.GetComponent<TileCountId>()
                 ids.Z <- float32 nextNeighborCountId.CountId
 
                 water.AddTriangle(
@@ -1854,28 +1852,25 @@ module private ChunkTriangulation =
         (planet: IPlanet)
         (catlikeCodingNoise: ICatlikeCodingNoise)
         (chunk: IChunk)
-        (pointRepo: PointRepoDep)
-        (faceRepo: FaceRepoDep)
-        (tileRepo: TileRepoDep)
+        (store: EntityStore)
         (tileId: int)
         (idx: int)
         (centroid: Vector3)
         (simple: bool)
         =
-        let tileValue = tileRepo.GetValueById tileId
+        let tile = store.GetEntityById tileId
+        let tileValue = tile.GetComponent<TileValue>()
         let waterHeight = tileValue.WaterSurfaceY planet.UnitHeight
         let centroid = Math3dUtil.ProjectToSphere(centroid, planet.Radius + waterHeight)
-        let neighbor = pointRepo.GetNeighborByIdAndIdx tileId idx |> Option.get
-        let neighborValue = tileRepo.GetValueById neighbor.Id
+        let neighbor = PointRepo.getNeighborByIdAndIdx store tileId idx |> Option.get
+        let neighborValue = neighbor.GetComponent<TileValue>()
 
         if not neighborValue.IsUnderwater then
             triangulateWaterShore
                 planet
                 catlikeCodingNoise
                 chunk
-                pointRepo
-                faceRepo
-                tileRepo
+                store
                 tileId
                 neighbor.Id
                 centroid
@@ -1883,35 +1878,22 @@ module private ChunkTriangulation =
                 waterHeight
                 simple
         else
-            triangulateOpenWater
-                planet
-                catlikeCodingNoise
-                chunk
-                pointRepo
-                faceRepo
-                tileRepo
-                tileId
-                neighbor.Id
-                centroid
-                idx
-                waterHeight
+            triangulateOpenWater planet catlikeCodingNoise chunk store tileId neighbor.Id centroid idx waterHeight
 
     /// Godot 缠绕顺序是正面顺时针，所以从 i1 对应角落到 i2 对应角落相对于 tile 重心需要是顺时针
     let private triangulateHex
         (planet: IPlanet)
         (catlikeCodingNoise: ICatlikeCodingNoise)
         (chunk: IChunk)
-        (pointRepo: PointRepoDep)
-        (faceRepo: FaceRepoDep)
-        (tileRepo: TileRepoDep)
-        (chunkRepo: ChunkRepoDep)
+        (store: EntityStore)
         (tileId: int)
         (idx: int)
         =
-        let tileCountId = tileRepo.GetCountIdById tileId
-        let tileUnitCorners = tileRepo.GetUnitCornersById tileId
-        let tileValue = tileRepo.GetValueById tileId
-        let tileUnitCentroid = tileRepo.GetUnitCentroidById tileId
+        let tile = store.GetEntityById tileId
+        let tileCountId = tile.GetComponent<TileCountId>()
+        let tileUnitCorners = tile.GetComponent<TileUnitCorners>()
+        let tileValue = tile.GetComponent<TileValue>()
+        let tileUnitCentroid = tile.GetComponent<TileUnitCentroid>()
         let height = getHeight catlikeCodingNoise tileValue tileUnitCentroid
 
         let v1 =
@@ -1922,24 +1904,25 @@ module private ChunkTriangulation =
 
         let mutable e = EdgeVertices(v1, v2)
         let centroid = tileUnitCentroid.Scaled <| planet.Radius + height
-        let tileChunkId = tileRepo.GetChunkIdById tileId
-        let chunkLod = chunkRepo.GetLodEnumById tileChunkId.ChunkId
+        let tileChunkId = tile.GetComponent<TileChunkId>()
+        let chunkLod = store.GetEntityById(tileChunkId.ChunkId).GetComponent<ChunkLod>().Lod
 
         let simple =
             if chunkLod = ChunkLodEnum.Full then
                 false
             else
-                let neighbor = pointRepo.GetNeighborByIdAndIdx tileId idx |> Option.get
-                let neighborChunkId = tileRepo.GetChunkIdById neighbor.Id
-                let tileChunkId = tileRepo.GetChunkIdById tileId
+                let neighbor = PointRepo.getNeighborByIdAndIdx store tileId idx |> Option.get
+                let neighborChunkId = neighbor.GetComponent<TileChunkId>()
+                let tileChunkId = tile.GetComponent<TileChunkId>()
 
                 if neighborChunkId = tileChunkId then
                     true
                 else
-                    let neighborChunkLod = chunkRepo.GetLodEnumById neighborChunkId.ChunkId
+                    let neighborChunk = store.GetEntityById neighborChunkId.ChunkId
+                    let neighborChunkLod = neighborChunk.GetComponent<ChunkLod>().Lod
                     neighborChunkLod < ChunkLodEnum.Full
 
-        let tileFlag = tileRepo.GetFlagById tileId
+        let tileFlag = tile.GetComponent<TileFlag>()
 
         if tileFlag.HasRivers then
             if tileFlag.HasRiverThroughEdge idx then
@@ -1986,33 +1969,32 @@ module private ChunkTriangulation =
         else
             triangulateWithoutRiver catlikeCodingNoise chunk tileCountId tileFlag tileUnitCorners idx centroid e simple
 
-        triangulateConnection planet catlikeCodingNoise chunk pointRepo faceRepo tileRepo chunkRepo tileId idx e simple
+        triangulateConnection planet catlikeCodingNoise chunk store tileId idx e simple
 
         if tileValue.IsUnderwater then
-            triangulateWater planet catlikeCodingNoise chunk pointRepo faceRepo tileRepo tileId idx centroid simple
+            triangulateWater planet catlikeCodingNoise chunk store tileId idx centroid simple
 
     let triangulate
         (planet: IPlanet)
         (catlikeCodingNoise: ICatlikeCodingNoise)
         (chunk: IChunk)
-        (pointRepo: PointRepoDep)
-        (faceRepo: FaceRepoDep)
-        (tileRepo: TileRepoDep)
-        (chunkRepo: ChunkRepoDep)
+        (store: EntityStore)
         (tileId: int)
         =
-        let tileChunkId = tileRepo.GetChunkIdById tileId
-        let chunkLod = chunkRepo.GetLodEnumById tileChunkId.ChunkId
+        let tile = store.GetEntityById tileId
+        let tileChunkId = tile.GetComponent<TileChunkId>()
+        let tileChunk = store.GetEntityById tileChunkId.ChunkId
+        let chunkLod = tileChunk.GetComponent<ChunkLod>().Lod
 
         if chunkLod = ChunkLodEnum.JustHex then
-            triangulateJustHex planet catlikeCodingNoise chunk pointRepo tileRepo tileId
+            triangulateJustHex planet catlikeCodingNoise chunk store tileId
         elif chunkLod = ChunkLodEnum.PlaneHex then
-            triangulatePlaneHex planet catlikeCodingNoise chunk pointRepo faceRepo tileRepo chunkRepo tileId
+            triangulatePlaneHex planet catlikeCodingNoise chunk store tileId
         else
-            let tileFaceIds = tileRepo.GetHexFaceIdsById tileId
+            let tileFaceIds = tile.GetComponent<TileHexFaceIds>()
 
             for i in 0 .. tileFaceIds.Length - 1 do
-                triangulateHex planet catlikeCodingNoise chunk pointRepo faceRepo tileRepo chunkRepo tileId i
+                triangulateHex planet catlikeCodingNoise chunk store tileId i
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
@@ -2021,8 +2003,7 @@ module HexGridChunkService =
     let onChunkLoaderProcessed
         (chunkLoader: IChunkLoader)
         (lodMeshCache: LodMeshCache)
-        (pointRepo: PointRepoDep)
-        (chunkRepo: ChunkRepoDep)
+        (store: EntityStore)
         : OnChunkLoaderProcessed =
         fun () ->
             chunkLoader.Stopwatch.Restart()
@@ -2035,7 +2016,7 @@ module HexGridChunkService =
             while limitCount > 0 && chunkLoader.Stopwatch.ElapsedMilliseconds <= 14 do
                 let chunkId = chunkLoader.LoadSet |> Seq.head
                 chunkLoader.LoadSet.Remove chunkId |> ignore
-                ChunkLoaderProcess.showChunk chunkLoader lodMeshCache pointRepo chunkRepo chunkId
+                ChunkLoaderProcess.showChunk chunkLoader lodMeshCache store chunkId
                 limitCount <- limitCount - 1
 #if MY_DEBUG
                 loadCount <- loadCount + 1
@@ -2054,7 +2035,7 @@ module HexGridChunkService =
             while limitCount > 0 && totalTime + chunkLoader.Stopwatch.ElapsedMilliseconds <= 14 do
                 let chunkId = chunkLoader.RefreshSet |> Seq.head
                 chunkLoader.RefreshSet.Remove chunkId |> ignore
-                ChunkLoaderProcess.showChunk chunkLoader lodMeshCache pointRepo chunkRepo chunkId
+                ChunkLoaderProcess.showChunk chunkLoader lodMeshCache store chunkId
                 limitCount <- limitCount - 1
 #if MY_DEBUG
                 refreshCount <- refreshCount + 1
@@ -2094,26 +2075,23 @@ module HexGridChunkService =
             if allClear then
                 chunkLoader.SetProcess false
 
-    let initChunkNodes
-        (chunkLoader: IChunkLoader)
-        (pointRepo: PointRepoDep)
-        (chunkRepo: ChunkRepoDep)
-        : InitChunkNodes =
+    let initChunkNodes (chunkLoader: IChunkLoader) (store: EntityStore) : InitChunkNodes =
         fun () ->
             let time = Time.GetTicksMsec()
             let camera = chunkLoader.GetViewport().GetCamera3D()
 
-            chunkRepo.ForEachPos
-            <| ForEachEntity<ChunkPos>(fun chunkPos chunkEntity ->
-                let id = chunkEntity.Id
-                // 此时拿不到真正 focusBase 的位置，暂且用相机自己的代替
-                if chunkLoader.IsChunkInsight(chunkPos.Pos, camera) then
-                    chunkLoader.LoadSet.Add id |> ignore
-                    ChunkInitializer.updateChunkInsightAndLod chunkLoader camera chunkRepo id true true
-                    chunkLoader.InsightChunkIdsNow.Add id |> ignore)
+            store
+                .Query<ChunkPos>()
+                .ForEachEntity(fun chunkPos chunkEntity ->
+                    let id = chunkEntity.Id
+                    // 此时拿不到真正 focusBase 的位置，暂且用相机自己的代替
+                    if chunkLoader.IsChunkInsight(chunkPos.Pos, camera) then
+                        chunkLoader.LoadSet.Add id |> ignore
+                        ChunkInitializer.updateChunkInsightAndLod chunkLoader camera store id true true
+                        chunkLoader.InsightChunkIdsNow.Add id |> ignore)
 
-            chunkRepo.CommitCommands()
-            ChunkInitializer.InitOutRimChunks chunkLoader camera pointRepo chunkRepo
+            FrifloEcsUtil.commitCommands store
+            ChunkInitializer.InitOutRimChunks chunkLoader camera store
             chunkLoader.SetProcess true
             GD.Print $"InitChunkNodes cost: {Time.GetTicksMsec() - time} ms"
 
@@ -2121,34 +2099,22 @@ module HexGridChunkService =
         (planet: IPlanet)
         (catlikeCodingNoise: ICatlikeCodingNoise)
         (lodMeshCache: LodMeshCache)
-        (pointRepo: PointRepoDep)
-        (faceRepo: FaceRepoDep)
-        (tileRepo: TileRepoDep)
-        (chunkRepo: ChunkRepoDep)
+        (store: EntityStore)
         : OnHexGridChunkProcessed =
         fun (instance: IHexGridChunk) ->
             if instance.Id > 0 then
                 // let time = Time.GetTicksMsec()
                 instance.ClearOldData()
 
-                tileRepo.ForEachByChunkId instance.Id
-                <| ForEachEntity<TileChunkId>(fun tileChunkId tileEntity ->
-                    ChunkTriangulation.triangulate
-                        planet
-                        catlikeCodingNoise
-                        instance
-                        pointRepo
-                        faceRepo
-                        tileRepo
-                        chunkRepo
-                        tileEntity.Id)
+                store
+                    .Query<TileChunkId>()
+                    .HasValue<TileChunkId, ChunkId>(instance.Id)
+                    .ForEachEntity(fun tileChunkId tileEntity ->
+                        ChunkTriangulation.triangulate planet catlikeCodingNoise instance store tileEntity.Id)
 
                 instance.ApplyNewData()
 
-                if
-                    not
-                    <| ChunkLoaderProcess.isHandlingLodGaps pointRepo chunkRepo instance.Lod instance.Id
-                then
+                if not <| ChunkLoaderProcess.isHandlingLodGaps store instance.Lod instance.Id then
                     lodMeshCache.AddLodMeshes instance.Lod instance.Id <| instance.GetMeshes()
 
             instance.SetProcess false
@@ -2165,7 +2131,7 @@ module HexGridChunkService =
     // 动态卸载：
     // 建立一个清理队列，每次终止上次任务时，把所有分块加入到这个清理队列中。
     // 每帧从清理队列中出队一部分，校验它们当前的 LOD 状态，如果 LOD 状态不对，则卸载。
-    let updateInsightChunks (chunkLoader: IChunkLoader) (pointRepo: PointRepoDep) (chunkRepo: ChunkRepoDep) =
+    let updateInsightChunks (chunkLoader: IChunkLoader) (store: EntityStore) =
         fun () ->
             // var time = Time.GetTicksMsec();
             // 未能卸载的分块，说明本轮依然是在显示的分块
@@ -2183,21 +2149,23 @@ module HexGridChunkService =
                 chunkLoader.RimChunkIds
                 |> Seq.filter (fun id -> chunkLoader.UsingChunks.ContainsKey id) do
                 chunkLoader.UnloadSet.Add chunkId |> ignore
-                ChunkInitializer.updateChunkInsightAndLod chunkLoader camera chunkRepo chunkId false false
+                ChunkInitializer.updateChunkInsightAndLod chunkLoader camera store chunkId false false
 
             chunkLoader.RimChunkIds.Clear()
 
             for preInsightChunkId in chunkLoader.InsightChunkIdsNow do
-                let preInsightChunkPos = chunkRepo.GetPosById preInsightChunkId
+                let preInsightChunkPos =
+                    store.GetEntityById(preInsightChunkId).GetComponent<ChunkPos>().Pos
+
                 chunkLoader.VisitedChunkIds.Add preInsightChunkId |> ignore
 
                 if not <| chunkLoader.IsChunkInsight(preInsightChunkPos, camera) then
                     // 分块不在视野范围内，隐藏它
                     chunkLoader.UnloadSet.Add preInsightChunkId |> ignore
-                    ChunkInitializer.updateChunkInsightAndLod chunkLoader camera chunkRepo preInsightChunkId false false
+                    ChunkInitializer.updateChunkInsightAndLod chunkLoader camera store preInsightChunkId false false
                 else
                     chunkLoader.InsightChunkIdsNext.Add preInsightChunkId |> ignore
-                    ChunkInitializer.updateChunkInsightAndLod chunkLoader camera chunkRepo preInsightChunkId true false
+                    ChunkInitializer.updateChunkInsightAndLod chunkLoader camera store preInsightChunkId true false
                     // 刷新 Lod
                     if chunkLoader.UsingChunks.ContainsKey preInsightChunkId then
                         chunkLoader.RefreshSet.Add preInsightChunkId |> ignore
@@ -2205,47 +2173,43 @@ module HexGridChunkService =
                         chunkLoader.LoadSet.Add preInsightChunkId |> ignore
                     // 分块在视野内，他的邻居才比较可能是在视野内
                     // 将之前不在但现在可能在视野范围内的 id 加入带查询队列
-                    ChunkLoaderProcess.searchNeighbor
-                        chunkLoader
-                        pointRepo
-                        preInsightChunkId
-                        chunkLoader.InsightChunkIdsNow
+                    ChunkLoaderProcess.searchNeighbor chunkLoader store preInsightChunkId chunkLoader.InsightChunkIdsNow
             // 有种极端情况，就是新的视野范围内一个旧视野范围分块都没有！
             // 这时放开限制进行 BFS，直到找到第一个可见的分块
             // （因为我们认为新位置还是会具有空间上的相近性，BFS 应该会比随便找可见分块更好）
             if chunkLoader.InsightChunkIdsNext.Count = 0 then
                 for chunkId in chunkLoader.InsightChunkIdsNow do
-                    ChunkLoaderProcess.searchNeighbor chunkLoader pointRepo chunkId chunkLoader.VisitedChunkIds // 搜索所有外缘邻居
+                    ChunkLoaderProcess.searchNeighbor chunkLoader store chunkId chunkLoader.VisitedChunkIds // 搜索所有外缘邻居
 
                 let mutable breakNow = false
 
                 while chunkLoader.ChunkQueryQueue.Count > 0 && not breakNow do
                     let chunkId = chunkLoader.ChunkQueryQueue.Dequeue()
-                    let chunkPos = chunkRepo.GetPosById chunkId
+                    let chunkPos = store.GetEntityById(chunkId).GetComponent<ChunkPos>().Pos
 
                     if chunkLoader.IsChunkInsight(chunkPos, camera) then
                         // 找到第一个可见分块，重新入队，后面进行真正的处理
                         chunkLoader.ChunkQueryQueue.Enqueue chunkId
                         breakNow <- true
                     else
-                        ChunkLoaderProcess.searchNeighbor chunkLoader pointRepo chunkId null
+                        ChunkLoaderProcess.searchNeighbor chunkLoader store chunkId null
             // BFS 查询那些原来不在视野范围内的分块
             while chunkLoader.ChunkQueryQueue.Count > 0 do
                 let chunkId = chunkLoader.ChunkQueryQueue.Dequeue()
-                let chunkPos = chunkRepo.GetPosById chunkId
+                let chunkPos = store.GetEntityById(chunkId).GetComponent<ChunkPos>().Pos
 
                 if chunkLoader.IsChunkInsight(chunkPos, camera) then
                     if chunkLoader.InsightChunkIdsNext.Add chunkId then
                         chunkLoader.LoadSet.Add chunkId |> ignore
-                        ChunkInitializer.updateChunkInsightAndLod chunkLoader camera chunkRepo chunkId true false
-                        ChunkLoaderProcess.searchNeighbor chunkLoader pointRepo chunkId null
+                        ChunkInitializer.updateChunkInsightAndLod chunkLoader camera store chunkId true false
+                        ChunkLoaderProcess.searchNeighbor chunkLoader store chunkId null
             // 清理好各个数据结构，等下一次调用直接使用
             chunkLoader.ChunkQueryQueue.Clear()
             chunkLoader.VisitedChunkIds.Clear()
             chunkLoader.InsightChunkIdsNow.Clear()
             chunkLoader.UpdateInsightSetNextIdx()
             // 显示外缘分块
-            ChunkInitializer.InitOutRimChunks chunkLoader camera pointRepo chunkRepo
+            ChunkInitializer.InitOutRimChunks chunkLoader camera store
             chunkLoader.SetProcess true
     // GD.Print($"ChunkLoader UpdateInsightChunks cost {Time.GetTicksMsec() - time} ms");
 
@@ -2254,13 +2218,9 @@ module HexGridChunkService =
         (catlikeCodingNoise: ICatlikeCodingNoise)
         (chunkLoader: IChunkLoader)
         (lodMeshCache: LodMeshCache)
-        (pointRepo: PointRepoDep)
-        (faceRepo: FaceRepoDep)
-        (tileRepo: TileRepoDep)
-        (chunkRepo: ChunkRepoDep)
+        (store: EntityStore)
         : HexGridChunkServiceDep =
-        { OnChunkLoaderProcessed = onChunkLoaderProcessed chunkLoader lodMeshCache pointRepo chunkRepo
-          OnHexGridChunkProcessed =
-            onHexGridChunkProcessed planet catlikeCodingNoise lodMeshCache pointRepo faceRepo tileRepo chunkRepo
-          InitChunkNodes = initChunkNodes chunkLoader pointRepo chunkRepo
-          UpdateInsightChunks = updateInsightChunks chunkLoader pointRepo chunkRepo }
+        { OnChunkLoaderProcessed = onChunkLoaderProcessed chunkLoader lodMeshCache store
+          OnHexGridChunkProcessed = onHexGridChunkProcessed planet catlikeCodingNoise lodMeshCache store
+          InitChunkNodes = initChunkNodes chunkLoader store
+          UpdateInsightChunks = updateInsightChunks chunkLoader store }

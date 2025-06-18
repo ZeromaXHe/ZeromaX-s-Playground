@@ -75,3 +75,8 @@ module FrifloEcsUtil =
 
     let truncate<'T when 'T: (new: unit -> 'T) and 'T: struct and 'T :> System.ValueType> (query: 'T ArchetypeQuery) =
         query.ForEachEntity(fun _ tileEntity -> tileEntity.DeleteEntity())
+
+    let commitCommands (store: EntityStore) =
+        let cb = store.GetCommandBuffer()
+        cb.Playback()
+        cb.Clear()
