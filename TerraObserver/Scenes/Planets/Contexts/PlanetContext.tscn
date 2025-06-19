@@ -92,16 +92,6 @@ haloWidth = 0.06
 streakStrength = 0.8
 metadata/_custom_type_script = "uid://voxnbptif4nk"
 
-[node name="OrbitCameraRig" parent="." node_paths=PackedStringArray("Camera") instance=ExtResource("3_s1lu0")]
-unique_name_in_owner = true
-Camera = NodePath("Camera3D")
-
-[node name="Camera3D" type="Camera3D" parent="OrbitCameraRig"]
-transform = Transform3D(-1, -6.18173e-08, 6.18173e-08, -8.74228e-08, 0.707107, -0.707107, 3.82137e-15, -0.707107, -0.707107, 7.03524e-07, -8.04738, -108.047)
-
-[node name="LonLatGrid" parent="." instance=ExtResource("4_v27gh")]
-unique_name_in_owner = true
-
 [node name="PlanetAthmosphere" parent="." instance=ExtResource("6_mvjou")]
 planet_radius = 100.0
 atmosphere_height = 25.0
@@ -119,6 +109,16 @@ shader_params/u_cloud_coverage_bias = 0.0
 shader_params/u_cloud_shape_factor = 0.1
 shader_params/u_cloud_shape_scale = 1.0
 shader_params/u_cloud_coverage_cubemap = SubResource("Cubemap_opj56")
+
+[node name="OrbitCameraRig" parent="." node_paths=PackedStringArray("Camera") instance=ExtResource("3_s1lu0")]
+unique_name_in_owner = true
+Camera = NodePath("Camera3D")
+
+[node name="Camera3D" type="Camera3D" parent="OrbitCameraRig"]
+transform = Transform3D(-1, -6.18173e-08, 6.18173e-08, -8.74228e-08, 0.707107, -0.707107, 3.82137e-15, -0.707107, -0.707107, 7.03524e-07, -8.04738, -108.047)
+
+[node name="LonLatGrid" parent="." instance=ExtResource("4_v27gh")]
+unique_name_in_owner = true
 
 [node name="CelestialMotion" parent="." node_paths=PackedStringArray("Sun", "Moon") instance=ExtResource("9_ex45l")]
 unique_name_in_owner = true

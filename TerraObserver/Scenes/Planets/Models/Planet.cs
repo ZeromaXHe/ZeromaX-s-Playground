@@ -1,8 +1,8 @@
 using System;
 using Godot;
 using Godot.Abstractions.Extensions.Planets;
-using TO.FSharp.Commons.Constants.Shaders;
-using TO.FSharp.Commons.Utils;
+using TO.FSharp.Domains.Shaders;
+using TO.FSharp.Domains.Utils.HexSpheres;
 
 namespace TerraObserver.Scenes.Planets.Models;
 

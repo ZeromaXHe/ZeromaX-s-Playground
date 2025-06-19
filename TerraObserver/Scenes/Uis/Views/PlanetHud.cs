@@ -3,10 +3,11 @@ using Godot;
 using Godot.Abstractions.Extensions.Cameras;
 using Godot.Abstractions.Extensions.Geos;
 using Godot.Abstractions.Extensions.Planets;
-using TO.FSharp.Commons.Constants.Shaders;
-using TO.FSharp.Commons.Structs.HexSphereGrid;
-using TO.FSharp.Commons.Utils;
-using TO.FSharp.Repos.Models.Meshes;
+using TO.FSharp.Domains.Enums.Meshes;
+using TO.FSharp.Domains.Shaders;
+using TO.FSharp.Domains.Structs.HexSphereGrids;
+using TO.FSharp.Domains.Utils.Commons;
+using TO.FSharp.Repos.Data.Meshes;
 
 namespace TerraObserver.Scenes.Uis.Views;
 
@@ -311,7 +312,7 @@ public partial class PlanetHud : Control
         WaterVSlider!.MaxValue = Planet.ElevationStep;
         WaterVSlider.TickCount = Planet.ElevationStep + 1;
     }
-    
+
     private void SetEditMode(bool toggle)
     {
         var editMode = TileOverrider.EditMode;
@@ -329,7 +330,7 @@ public partial class PlanetHud : Control
         // if (before != intMode)
         //     LabelModeChanged?.Invoke(intMode);
     }
-    
+
     private void SetTerrain(long index)
     {
         TileOverrider.ApplyTerrain = index > 0;
