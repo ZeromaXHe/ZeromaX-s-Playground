@@ -1,9 +1,9 @@
 namespace TO.FSharp.Repos.Data.Meshes
 
 open System.Collections.Generic
-open TO.FSharp.Domains.Components.HexSpheres.Tiles
-open TO.FSharp.Domains.Enums.Meshes
-open TO.FSharp.Domains.Utils.HexSpheres
+open TO.Domains.Components.HexSpheres.Tiles
+open TO.Domains.Enums.Meshes
+open TO.Domains.Utils.HexSpheres
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)

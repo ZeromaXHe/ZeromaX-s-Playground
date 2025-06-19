@@ -1,8 +1,9 @@
 using Godot;
-using Godot.Abstractions.Extensions.Planets;
-using TO.FSharp.Domains.Structs.Tiles;
-using TO.FSharp.Domains.Utils.Commons;
-using TO.FSharp.Domains.Utils.HexSpheres;
+using TO.Abstractions.Planets;
+using TO.Domains.Components.HexSpheres.Tiles;
+using TO.Domains.Structs.Tiles;
+using TO.Domains.Utils.Commons;
+using TO.Domains.Utils.HexSpheres;
 
 namespace TerraObserver.Scenes.Planets.Models;
 
@@ -126,8 +127,14 @@ public partial class CatlikeCodingNoise : Resource, ICatlikeCodingNoise
         return HashGrid[x + z * HashGridSize];
     }
 
-    public float GetHeight(int elevation, Vector3 centroid) =>
+    private float GetHeight(int elevation, Vector3 centroid) =>
         (elevation + GetPerturbHeight(centroid)) * Planet.UnitHeight;
+
+    public float GetHeight(TileValue tileValue, TileUnitCentroid tileUnitCentroid)
+    {
+        var centroid = tileUnitCentroid.Scaled(HexMetrics.StandardRadius);
+        return GetHeight(tileValue.Elevation, centroid);
+    }
 
     private float GetPerturbHeight(Vector3 centroid) =>
         (SampleNoise(centroid).Y * 2f - 1f) * ElevationPerturbStrength;

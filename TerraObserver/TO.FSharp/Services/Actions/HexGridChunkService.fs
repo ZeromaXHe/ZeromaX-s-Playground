@@ -3,37 +3,29 @@ namespace TO.FSharp.Services.Actions
 open System.Collections.Generic
 open Friflo.Engine.ECS
 open Godot
-open Godot.Abstractions.Extensions.Chunks
-open Godot.Abstractions.Extensions.Planets
-open TO.FSharp.Domains.Alias.HexSpheres.Chunks
-open TO.FSharp.Domains.Alias.HexSpheres.Points
-open TO.FSharp.Domains.Components.HexSpheres.Chunks
-open TO.FSharp.Domains.Components.HexSpheres.Faces
-open TO.FSharp.Domains.Components.HexSpheres.Points
-open TO.FSharp.Domains.Components.HexSpheres.Tiles
-open TO.FSharp.Domains.Constants.Meshes
-open TO.FSharp.Domains.Enums.Tiles
-open TO.FSharp.Domains.Structs.Tiles
-open TO.FSharp.Domains.Utils.Commons
-open TO.FSharp.Domains.Utils.HexSpheres
+open TO.Abstractions.Chunks
+open TO.Abstractions.Planets
+open TO.Domains.Alias.HexSpheres.Chunks
+open TO.Domains.Alias.HexSpheres.Points
+open TO.Domains.Components.HexSpheres.Chunks
+open TO.Domains.Components.HexSpheres.Faces
+open TO.Domains.Components.HexSpheres.Points
+open TO.Domains.Components.HexSpheres.Tiles
+open TO.Domains.Constants.Meshes
+open TO.Domains.Enums.HexSpheres.Chunks
+open TO.Domains.Enums.Tiles
+open TO.Domains.Structs.Tiles
+open TO.Domains.Utils.Commons
+open TO.Domains.Utils.HexSpheres
+open TO.FSharp.Repos.Commands.Friflos
 open TO.FSharp.Repos.Data.Commons
 open TO.FSharp.Repos.Data.Meshes
 open TO.FSharp.Repos.Queries.HexSpheres
 
 module private ChunkLoaderProcess =
-    let isHandlingLodGaps env (lod: ChunkLodEnum) (chunkId: ChunkId) =
-        (lod = ChunkLodEnum.PlaneHex
-         && PointQuery.getNeighborIdsById env chunkId
-            |> Seq.exists (fun id ->
-                env.EntityStore.GetEntityById(id).GetComponent<ChunkLod>().Lod
-                >= ChunkLodEnum.SimpleHex))
-        || (lod = ChunkLodEnum.TerracesHex
-            && PointQuery.getNeighborIdsById env chunkId
-               |> Seq.exists (fun id -> env.EntityStore.GetEntityById(id).GetComponent<ChunkLod>().Lod = ChunkLodEnum.Full))
-
-    let private updateLod<'E when 'E :> ILodMeshCache and 'E :> IEntityStore>
+    let private updateLod
+        (dataEnv: 'DE when 'DE :> ILodMeshCache and 'DE :> IEntityStore)
         (hexGridChunk: IHexGridChunk)
-        (env: 'E)
         (lod: ChunkLodEnum)
         (chunkId: ChunkId)
         (idChanged: bool)
@@ -43,60 +35,66 @@ module private ChunkLoaderProcess =
         else
             hexGridChunk.Lod <- lod
 
-            if isHandlingLodGaps env lod chunkId then
+            if ChunkQuery.isHandlingLodGaps dataEnv lod chunkId then
                 // 对于需要处理接缝的情况，不使用缓存
                 hexGridChunk.SetProcess true
             else
-                let meshes = env.LodMeshCache.GetLodMeshes lod chunkId
+                let meshes = dataEnv.LodMeshCache.GetLodMeshes lod chunkId
                 // 如果之前生成过 Lod 网格，直接应用；否则重新生成
                 match meshes with
                 | Some meshes -> hexGridChunk.ShowMesh meshes
                 | None -> hexGridChunk.SetProcess true
 
-    let private usedBy (hexGridChunk: IHexGridChunk) env (lod: ChunkLodEnum) (chunkId: ChunkId) =
+    let private usedBy dataEnv (hexGridChunk: IHexGridChunk) (lod: ChunkLodEnum) (chunkId: ChunkId) =
         hexGridChunk.Id <- chunkId
         // 默认不生成网格，而是先查缓存
         hexGridChunk.SetProcess false
         hexGridChunk.Show()
-        updateLod hexGridChunk env lod chunkId true
+        updateLod dataEnv hexGridChunk lod chunkId true
 
-    let showChunk<'E when 'E :> ILodMeshCache and 'E :> IEntityStore>
-        (chunkLoader: IChunkLoader)
-        (env: 'E)
+    let showChunk
+        (viewEnv: #IChunkLoaderEnv)
+        (dataEnv: 'DE when 'DE :> ILodMeshCache and 'DE :> IEntityStore)
         (chunkId: ChunkId)
         =
-        let chunkLodEnum = env.EntityStore.GetEntityById(chunkId).GetComponent<ChunkLod>().Lod
+        let chunkLoader = viewEnv.ChunkLoader
+
+        let chunkLodEnum =
+            dataEnv.EntityStore.GetEntityById(chunkId).GetComponent<ChunkLod>().Lod
 
         match chunkLoader.TryGetUsingChunk chunkId with
-        | true, usingChunk -> updateLod usingChunk env chunkLodEnum chunkId false
+        | true, usingChunk -> updateLod dataEnv usingChunk chunkLodEnum chunkId false
         | false, _ ->
             // 没有空闲分块的话，初始化新的
             let hexGridChunk = chunkLoader.GetUnusedChunk()
-            usedBy hexGridChunk env chunkLodEnum chunkId
+            usedBy dataEnv hexGridChunk chunkLodEnum chunkId
             chunkLoader.AddUsingChunk(chunkId, hexGridChunk)
 
-    let searchNeighbor (chunkLoader: IChunkLoader) env (chunkId: ChunkId) (filter: int HashSet) =
-        for neighborId in PointQuery.getNeighborIdsById env chunkId do
+    let searchNeighbor (viewEnv: #IChunkLoaderEnv) dataEnv (chunkId: ChunkId) (filter: int HashSet) =
+        let chunkLoader = viewEnv.ChunkLoader
+
+        for neighborId in PointQuery.getNeighborIdsById dataEnv chunkId do
             if filter = null || not <| filter.Contains neighborId then
                 if chunkLoader.VisitedChunkIds.Add neighborId then
                     chunkLoader.ChunkQueryQueue.Enqueue neighborId
 
 module private ChunkInitializer =
     /// 如果 inLoop，需要在更新后调用 FrifloEcsUtil.commitCommands store
+    /// TODO: 这种实现方式不太好，后续优化
     let updateChunkInsightAndLod
-        (chunkLoader: IChunkLoader)
-        (env: #IEntityStore)
+        (viewEnv: #IChunkLoaderEnv)
+        (dataEnv: #IEntityStore)
         (camera: Camera3D)
         (chunkId: ChunkId)
         (insight: bool)
         (inLoop: bool)
         =
-        let store = env.EntityStore
+        let store = dataEnv.EntityStore
         let chunkPos = store.GetEntityById(chunkId).GetComponent<ChunkPos>().Pos
 
         let lodEnum =
             if insight then
-                chunkLoader.CalcLod <| chunkPos.DistanceTo camera.GlobalPosition
+                viewEnv.ChunkLoader.CalcLod <| chunkPos.DistanceTo camera.GlobalPosition
             else
                 ChunkLodEnum.JustHex
 
@@ -112,8 +110,10 @@ module private ChunkInitializer =
             chunk.AddComponent<ChunkInsight>(&chunkInsight) |> ignore
             chunk.AddComponent<ChunkLod>(&chunkLod) |> ignore
 
-    let InitOutRimChunks (chunkLoader: IChunkLoader) (env: #IEntityStore) (camera: Camera3D) =
-        let store = env.EntityStore
+    let InitOutRimChunks (viewEnv: #IChunkLoaderEnv) (dataEnv: #IEntityStore) (camera: Camera3D) =
+        let store = dataEnv.EntityStore
+        let chunkLoader = viewEnv.ChunkLoader
+
         chunkLoader.InsightChunkIdsNow
         |> Seq.collect (fun chunkId ->
             store.GetEntityById(chunkId).GetComponent<PointNeighborCenterIds>()
@@ -123,7 +123,7 @@ module private ChunkInitializer =
         |> Seq.filter (fun neighborId -> not <| chunkLoader.InsightChunkIdsNow.Contains neighborId)
         |> Seq.iter (fun rimId ->
             if chunkLoader.RimChunkIds.Add rimId then
-                updateChunkInsightAndLod chunkLoader env camera rimId true false
+                updateChunkInsightAndLod viewEnv dataEnv camera rimId true false
 
                 if chunkLoader.UnloadSet.Contains rimId then
                     chunkLoader.UnloadSet.Remove rimId |> ignore
@@ -132,41 +132,35 @@ module private ChunkInitializer =
                     chunkLoader.LoadSet.Add rimId |> ignore)
 
 module private ChunkTriangulation =
-    let private getHeight
-        (catlikeCodingNoise: ICatlikeCodingNoise)
-        (tileValue: TileValue)
-        (tileUnitCentroid: TileUnitCentroid)
-        =
-        let centroid = tileUnitCentroid.Scaled HexMetrics.StandardRadius
-        catlikeCodingNoise.GetHeight(tileValue.Elevation, centroid)
-
     /// 仅绘制六边形（无扰动，点平均周围地块高度）
     let private triangulateJustHex
-        (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (viewEnv: 'VE when 'VE :> IPlanetEnv and 'VE :> ICatlikeCodingNoiseEnv)
+        (dataEnv: #IEntityStore)
         (chunk: IChunk)
-        (env: #IEntityStore)
         (tileId: int)
         =
-        let tile = env.EntityStore.GetEntityById tileId
+        let planet = viewEnv.Planet
+        let catlikeCodingNoise = viewEnv.CatlikeCodingNoise
+        let tile = dataEnv.EntityStore.GetEntityById tileId
         let tileCountId = tile.GetComponent<TileCountId>()
         let ids = Vector3.One * float32 tileCountId.CountId
         let tileCorners = tile.GetComponent<TileUnitCorners>()
         let tileFaceIds = tile.GetComponent<TileHexFaceIds>()
         let tileValue = tile.GetComponent<TileValue>()
         let tileUnitCentroid = tile.GetComponent<TileUnitCentroid>()
-        let height = getHeight catlikeCodingNoise tileValue tileUnitCentroid
+        let height = catlikeCodingNoise.GetHeight(tileValue, tileUnitCentroid)
         let waterHeight = tileValue.WaterSurfaceY planet.UnitHeight
 
         let mutable preNeighbor =
-            PointQuery.getNeighborByIdAndIdx env tileId
+            PointQuery.getNeighborByIdAndIdx dataEnv tileId
             <| HexIndexUtil.previousIdx tileFaceIds.Length 0
             |> Option.get
 
-        let mutable neighbor = PointQuery.getNeighborByIdAndIdx env tileId 0 |> Option.get
+        let mutable neighbor =
+            PointQuery.getNeighborByIdAndIdx dataEnv tileId 0 |> Option.get
 
         let mutable nextNeighbor =
-            PointQuery.getNeighborByIdAndIdx env tileId
+            PointQuery.getNeighborByIdAndIdx dataEnv tileId
             <| HexIndexUtil.nextIdx tileFaceIds.Length 0
             |> Option.get
 
@@ -176,17 +170,20 @@ module private ChunkTriangulation =
         for i in 0 .. tileFaceIds.Length - 1 do
             let neighborValue = neighbor.GetComponent<TileValue>()
             let neighborUnitCentroid = neighbor.GetComponent<TileUnitCentroid>()
-            let neighborHeight = getHeight catlikeCodingNoise neighborValue neighborUnitCentroid
+
+            let neighborHeight =
+                catlikeCodingNoise.GetHeight(neighborValue, neighborUnitCentroid)
+
             let neighborWaterHeight = neighborValue.WaterSurfaceY planet.UnitHeight
 
             let preValue = preNeighbor.GetComponent<TileValue>()
             let preUnitCentroid = preNeighbor.GetComponent<TileUnitCentroid>()
-            let preHeight = getHeight catlikeCodingNoise preValue preUnitCentroid
+            let preHeight = catlikeCodingNoise.GetHeight(preValue, preUnitCentroid)
             let preWaterHeight = preValue.WaterSurfaceY planet.UnitHeight
 
             let nextValue = nextNeighbor.GetComponent<TileValue>()
             let nextUnitCentroid = nextNeighbor.GetComponent<TileUnitCentroid>()
-            let nextHeight = getHeight catlikeCodingNoise nextValue nextUnitCentroid
+            let nextHeight = catlikeCodingNoise.GetHeight(nextValue, nextUnitCentroid)
             let nextWaterHeight = nextValue.WaterSurfaceY planet.UnitHeight
 
             let avgHeight1 = (preHeight + neighborHeight + height) / 3f
@@ -218,32 +215,33 @@ module private ChunkTriangulation =
                     .GetTerrain()
                     .AddTriangle(
                         [| v0; v1; v2 |],
-                        HexMeshConstant.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
+                        MeshUtil.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
                         tis = ids
                     )
                 // 绘制水面
                 if tileValue.IsUnderwater then
                     chunk
                         .GetWater()
-                        .AddTriangle([| vw0; vw1; vw2 |], HexMeshConstant.triArr HexMeshConstant.weights1, tis = ids)
+                        .AddTriangle([| vw0; vw1; vw2 |], MeshUtil.triArr HexMeshConstant.weights1, tis = ids)
 
             preNeighbor <- neighbor
             neighbor <- nextNeighbor
 
             nextNeighbor <-
-                PointQuery.getNeighborByIdAndIdx env tileId
+                PointQuery.getNeighborByIdAndIdx dataEnv tileId
                 <| HexIndexUtil.next2Idx tileFaceIds.Length i
                 |> Option.get
 
     /// 绘制平面六边形（有高度立面、处理接缝、但无特征、无河流）
     let private triangulatePlaneHex
-        (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (viewEnv: 'VE when 'VE :> IPlanetEnv and 'VE :> ICatlikeCodingNoiseEnv)
+        (dataEnv: #IEntityStore)
         (chunk: IChunk)
-        (env: #IEntityStore)
         (tileId: int)
         =
-        let store = env.EntityStore
+        let planet = viewEnv.Planet
+        let catlikeCodingNoise = viewEnv.CatlikeCodingNoise
+        let store = dataEnv.EntityStore
         let tile = store.GetEntityById tileId
         let tileCountId = tile.GetComponent<TileCountId>()
         let ids = Vector3.One * float32 tileCountId.CountId
@@ -251,7 +249,7 @@ module private ChunkTriangulation =
         let tileFaceIds = tile.GetComponent<TileHexFaceIds>()
         let tileValue = tile.GetComponent<TileValue>()
         let tileUnitCentroid = tile.GetComponent<TileUnitCentroid>()
-        let height = getHeight catlikeCodingNoise tileValue tileUnitCentroid
+        let height = catlikeCodingNoise.GetHeight(tileValue, tileUnitCentroid)
         let waterHeight = tileValue.WaterSurfaceY planet.UnitHeight
 
         let v0 =
@@ -271,11 +269,14 @@ module private ChunkTriangulation =
             let vw2 =
                 tileCorners.GetSecondCorner(tileUnitCentroid.UnitCentroid, i, planet.Radius + waterHeight)
 
-            let neighbor = PointQuery.getNeighborByIdAndIdx env tileId i |> Option.get
+            let neighbor = PointQuery.getNeighborByIdAndIdx dataEnv tileId i |> Option.get
             let nIds = Vector3(float32 tileId, float32 neighbor.Id, float32 tileId)
             let neighborValue = neighbor.GetComponent<TileValue>()
             let neighborUnitCentroid = neighbor.GetComponent<TileUnitCentroid>()
-            let neighborHeight = getHeight catlikeCodingNoise neighborValue neighborUnitCentroid
+
+            let neighborHeight =
+                catlikeCodingNoise.GetHeight(neighborValue, neighborUnitCentroid)
+
             let neighborWaterHeight = neighborValue.WaterSurfaceY planet.UnitHeight
             // 绘制陆地立面（由高的地块绘制）
             if neighborHeight < height then
@@ -286,7 +287,7 @@ module private ChunkTriangulation =
                     .GetTerrain()
                     .AddQuad(
                         [| v1; v2; vn1; vn2 |] |> Array.map catlikeCodingNoise.Perturb,
-                        HexMeshConstant.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
+                        MeshUtil.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
                         tis = nIds
                     )
             // 绘制水面立面（由高的水面绘制）
@@ -298,7 +299,7 @@ module private ChunkTriangulation =
                     .GetWater()
                     .AddQuad(
                         [| vw1; vw2; vnw1; vnw2 |] |> Array.map catlikeCodingNoise.Perturb,
-                        HexMeshConstant.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
+                        MeshUtil.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
                         tis = nIds
                     )
             // 处理接缝（目前很粗暴的对所有相邻地块的分块的 LOD 是 SimpleHex 以上时向外绘制到 Solid 边界）
@@ -335,7 +336,7 @@ module private ChunkTriangulation =
                     .GetTerrain()
                     .AddQuad(
                         [| v1; v2; vn1; vn2 |] |> Array.map catlikeCodingNoise.Perturb,
-                        HexMeshConstant.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
+                        MeshUtil.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
                         tis = nIds
                     )
 
@@ -358,7 +359,7 @@ module private ChunkTriangulation =
                         .GetWater()
                         .AddQuad(
                             [| vw1; vw2; vnw1; vnw2 |] |> Array.map catlikeCodingNoise.Perturb,
-                            HexMeshConstant.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
+                            MeshUtil.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
                             tis = nIds
                         )
 
@@ -368,7 +369,7 @@ module private ChunkTriangulation =
                     .GetTerrain()
                     .AddTriangle(
                         [| v0; v1; v2 |] |> Array.map catlikeCodingNoise.Perturb,
-                        HexMeshConstant.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
+                        MeshUtil.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
                         tis = ids
                     )
                 // 绘制水面
@@ -377,21 +378,15 @@ module private ChunkTriangulation =
                         .GetWater()
                         .AddTriangle(
                             [| vw0; vw1; vw2 |] |> Array.map catlikeCodingNoise.Perturb,
-                            HexMeshConstant.triArr HexMeshConstant.weights1,
+                            MeshUtil.triArr HexMeshConstant.weights1,
                             tis = ids
                         )
 
             v1 <- v2
             vw1 <- vw2
 
-    let private quadUv (uMin: float32) (uMax: float32) (vMin: float32) (vMax: float32) =
-        [| Vector2(uMin, vMin)
-           Vector2(uMax, vMin)
-           Vector2(uMin, vMax)
-           Vector2(uMax, vMax) |]
-
     let private triangulateRoadSegment
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (viewEnv: #ICatlikeCodingNoiseEnv)
         (chunk: IChunk)
         (v1: Vector3)
         (v2: Vector3)
@@ -403,24 +398,25 @@ module private ChunkTriangulation =
         (w2: Color)
         (ids: Vector3)
         =
+        let catlikeCodingNoise = viewEnv.CatlikeCodingNoise
         let roads = chunk.GetRoads()
 
         roads.AddQuad(
             [| v1; v2; v4; v5 |] |> Array.map catlikeCodingNoise.Perturb,
-            HexMeshConstant.quad2Arr w1 w2,
-            quadUv 0f 1f 0f 0f,
+            MeshUtil.quad2Arr w1 w2,
+            MeshUtil.quadUv 0f 1f 0f 0f,
             tis = ids
         )
 
         roads.AddQuad(
             [| v2; v3; v5; v6 |] |> Array.map catlikeCodingNoise.Perturb,
-            HexMeshConstant.quad2Arr w1 w2,
-            quadUv 1f 0f 0f 0f,
+            MeshUtil.quad2Arr w1 w2,
+            MeshUtil.quadUv 1f 0f 0f 0f,
             tis = ids
         )
 
     let private triangulateEdgeStrip
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (viewEnv: #ICatlikeCodingNoiseEnv)
         (chunk: IChunk)
         (e1: EdgeVertices)
         (w1: Color)
@@ -432,14 +428,11 @@ module private ChunkTriangulation =
         (simple: bool)
         =
         let ids = Vector3(float32 id1.CountId, float32 id2.CountId, float32 id1.CountId)
+        let catlikeCodingNoise = viewEnv.CatlikeCodingNoise
         let terrain = chunk.GetTerrain()
 
         let addTerrainQuad verticesArr =
-            terrain.AddQuad(
-                verticesArr |> Array.map catlikeCodingNoise.Perturb,
-                HexMeshConstant.quad2Arr w1 w2,
-                tis = ids
-            )
+            terrain.AddQuad(verticesArr |> Array.map catlikeCodingNoise.Perturb, MeshUtil.quad2Arr w1 w2, tis = ids)
 
         if simple then
             addTerrainQuad [| e1.V1; e1.V5; e2.V1; e2.V5 |]
@@ -450,10 +443,10 @@ module private ChunkTriangulation =
             addTerrainQuad [| e1.V4; e1.V5; e2.V4; e2.V5 |]
 
         if hasRoad then
-            triangulateRoadSegment catlikeCodingNoise chunk e1.V2 e1.V3 e1.V4 e2.V2 e2.V3 e2.V4 w1 w2 ids
+            triangulateRoadSegment viewEnv chunk e1.V2 e1.V3 e1.V4 e2.V2 e2.V3 e2.V4 w1 w2 ids
 
     let private triangulateEdgeFan
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (viewEnv: #ICatlikeCodingNoiseEnv)
         (chunk: IChunk)
         (center: Vector3)
         (edge: EdgeVertices)
@@ -461,12 +454,13 @@ module private ChunkTriangulation =
         (simple: bool)
         =
         let ids = Vector3.One * float32 tileCountId.CountId
+        let catlikeCodingNoise = viewEnv.CatlikeCodingNoise
         let terrain = chunk.GetTerrain()
 
         let addTerrainTriangle verticesArr =
             terrain.AddTriangle(
                 verticesArr |> Array.map catlikeCodingNoise.Perturb,
-                HexMeshConstant.triArr HexMeshConstant.weights1,
+                MeshUtil.triArr HexMeshConstant.weights1,
                 tis = ids
             )
 
@@ -479,7 +473,7 @@ module private ChunkTriangulation =
             addTerrainTriangle [| center; edge.V4; edge.V5 |]
 
     let private triangulateRiverQuad
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (viewEnv: #ICatlikeCodingNoiseEnv)
         (chunk: IChunk)
         (v1: Vector3)
         (v2: Vector3)
@@ -491,6 +485,7 @@ module private ChunkTriangulation =
         (reversed: bool)
         (ids: Vector3)
         =
+        let catlikeCodingNoise = viewEnv.CatlikeCodingNoise
         let v1 = Math3dUtil.ProjectToSphere(v1, height1)
         let v2 = Math3dUtil.ProjectToSphere(v2, height1)
         let v3 = Math3dUtil.ProjectToSphere(v3, height2)
@@ -500,17 +495,16 @@ module private ChunkTriangulation =
             .GetRivers()
             .AddQuad(
                 [| v1; v2; v3; v4 |] |> Array.map catlikeCodingNoise.Perturb,
-                HexMeshConstant.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
+                MeshUtil.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
                 (if reversed then
-                     quadUv 1f 0f <| 0.8f - v <| 0.6f - v
+                     MeshUtil.quadUv 1f 0f <| 0.8f - v <| 0.6f - v
                  else
-                     quadUv 0f 1f v <| v + 0.2f),
+                     MeshUtil.quadUv 0f 1f v <| v + 0.2f),
                 tis = ids
             )
 
     let private triangulateWithRiverBeginOrEnd
-        (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (viewEnv: 'VE when 'VE :> IPlanetEnv and 'VE :> ICatlikeCodingNoiseEnv)
         (chunk: IChunk)
         (tileCountId: TileCountId)
         (tileValue: TileValue)
@@ -522,7 +516,7 @@ module private ChunkTriangulation =
         m.V3 <- Math3dUtil.ProjectToSphere(m.V3, e.V3.Length())
 
         triangulateEdgeStrip
-            catlikeCodingNoise
+            viewEnv
             chunk
             m
             HexMeshConstant.weights1
@@ -533,13 +527,14 @@ module private ChunkTriangulation =
             false
             false
 
-        triangulateEdgeFan catlikeCodingNoise chunk centroid m tileCountId false
+        triangulateEdgeFan viewEnv chunk centroid m tileCountId false
 
         if not tileValue.IsUnderwater then
+            let planet = viewEnv.Planet
             let reversed = tileFlag.HasIncomingRiver
             let ids = Vector3.One * float32 tileCountId.CountId
             let riverHeight = planet.Radius + tileValue.RiverSurfaceY planet.UnitHeight
-            triangulateRiverQuad catlikeCodingNoise chunk m.V2 m.V4 e.V2 e.V4 riverHeight riverHeight 0.6f reversed ids
+            triangulateRiverQuad viewEnv chunk m.V2 m.V4 e.V2 e.V4 riverHeight riverHeight 0.6f reversed ids
             let centroid = Math3dUtil.ProjectToSphere(centroid, riverHeight)
             m.V2 <- Math3dUtil.ProjectToSphere(m.V2, riverHeight)
             m.V4 <- Math3dUtil.ProjectToSphere(m.V4, riverHeight)
@@ -547,8 +542,8 @@ module private ChunkTriangulation =
             chunk
                 .GetRivers()
                 .AddTriangle(
-                    [| centroid; m.V2; m.V4 |] |> Array.map catlikeCodingNoise.Perturb,
-                    HexMeshConstant.triArr HexMeshConstant.weights1,
+                    [| centroid; m.V2; m.V4 |] |> Array.map viewEnv.CatlikeCodingNoise.Perturb,
+                    MeshUtil.triArr HexMeshConstant.weights1,
                     (if reversed then
                          [| Vector2(0.5f, 0.4f); Vector2(1f, 0.2f); Vector2(0f, 0.2f) |]
                      else
@@ -557,8 +552,7 @@ module private ChunkTriangulation =
                 )
 
     let private triangulateWithRiver
-        (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (viewEnv: 'VE when 'VE :> IPlanetEnv and 'VE :> ICatlikeCodingNoiseEnv)
         (chunk: IChunk)
         (tileCountId: TileCountId)
         (tileValue: TileValue)
@@ -570,6 +564,8 @@ module private ChunkTriangulation =
         (centroid: Vector3)
         (e: EdgeVertices)
         =
+        let planet = viewEnv.Planet
+
         let centerL, centerR =
             // 注意五边形没有对边的情况
             if
@@ -632,7 +628,7 @@ module private ChunkTriangulation =
         centroid <- Math3dUtil.ProjectToSphere(centroid, e.V3.Length())
 
         triangulateEdgeStrip
-            catlikeCodingNoise
+            viewEnv
             chunk
             m
             HexMeshConstant.weights1
@@ -644,29 +640,30 @@ module private ChunkTriangulation =
             false
 
         let ids = Vector3.One * float32 tileCountId.CountId
+        let catlikeCodingNoise = viewEnv.CatlikeCodingNoise
         let terrain = chunk.GetTerrain()
 
         terrain.AddTriangle(
             [| centerL; m.V1; m.V2 |] |> Array.map catlikeCodingNoise.Perturb,
-            HexMeshConstant.triArr HexMeshConstant.weights1,
+            MeshUtil.triArr HexMeshConstant.weights1,
             tis = ids
         )
 
         terrain.AddQuad(
             [| centerL; centroid; m.V2; m.V3 |] |> Array.map catlikeCodingNoise.Perturb,
-            HexMeshConstant.quadArr HexMeshConstant.weights1,
+            MeshUtil.quadArr HexMeshConstant.weights1,
             tis = ids
         )
 
         terrain.AddQuad(
             [| centroid; centerR; m.V3; m.V4 |] |> Array.map catlikeCodingNoise.Perturb,
-            HexMeshConstant.quadArr HexMeshConstant.weights1,
+            MeshUtil.quadArr HexMeshConstant.weights1,
             tis = ids
         )
 
         terrain.AddTriangle(
             [| centerR; m.V4; m.V5 |] |> Array.map catlikeCodingNoise.Perturb,
-            HexMeshConstant.triArr HexMeshConstant.weights1,
+            MeshUtil.triArr HexMeshConstant.weights1,
             tis = ids
         )
 
@@ -676,7 +673,7 @@ module private ChunkTriangulation =
             let riverTotalHeight = planet.Radius + riverHeight
 
             triangulateRiverQuad
-                catlikeCodingNoise
+                viewEnv
                 chunk
                 centerL
                 centerR
@@ -688,36 +685,10 @@ module private ChunkTriangulation =
                 reversed
                 ids
 
-            triangulateRiverQuad
-                catlikeCodingNoise
-                chunk
-                m.V2
-                m.V4
-                e.V2
-                e.V4
-                riverTotalHeight
-                riverTotalHeight
-                0.6f
-                reversed
-                ids
-
-    let private getRoadInterpolator (tileFlag: TileFlag) (length: int) (idx: int) =
-        if tileFlag.HasRoadThroughEdge idx then
-            Vector2(0.5f, 0.5f)
-        else
-            Vector2(
-                (if tileFlag.HasRoadThroughEdge <| HexIndexUtil.previousIdx length idx then
-                     0.5f
-                 else
-                     0.25f),
-                (if tileFlag.HasRoadThroughEdge <| HexIndexUtil.nextIdx length idx then
-                     0.5f
-                 else
-                     0.25f)
-            )
+            triangulateRiverQuad viewEnv chunk m.V2 m.V4 e.V2 e.V4 riverTotalHeight riverTotalHeight 0.6f reversed ids
 
     let private triangulateRoadEdge
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (viewEnv: #ICatlikeCodingNoiseEnv)
         (chunk: IChunk)
         (centroid: Vector3)
         (mL: Vector3)
@@ -729,14 +700,14 @@ module private ChunkTriangulation =
         chunk
             .GetRoads()
             .AddTriangle(
-                [| centroid; mL; mR |] |> Array.map catlikeCodingNoise.Perturb,
-                HexMeshConstant.triArr HexMeshConstant.weights1,
+                [| centroid; mL; mR |] |> Array.map viewEnv.CatlikeCodingNoise.Perturb,
+                MeshUtil.triArr HexMeshConstant.weights1,
                 [| Vector2(1f, 0f); Vector2(0f, 0f); Vector2(0f, 0f) |],
                 tis = ids
             )
 
     let private triangulateRoad
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        viewEnv
         (chunk: IChunk)
         (centroid: Vector3)
         (mL: Vector3)
@@ -750,7 +721,7 @@ module private ChunkTriangulation =
             let mC = mL.Lerp(mR, 0.5f)
 
             triangulateRoadSegment
-                catlikeCodingNoise
+                viewEnv
                 chunk
                 mL
                 mC
@@ -762,27 +733,27 @@ module private ChunkTriangulation =
                 HexMeshConstant.weights2
                 ids
 
+            let catlikeCodingNoise = viewEnv.CatlikeCodingNoise
             let roads = chunk.GetRoads()
 
             roads.AddTriangle(
                 [| centroid; mL; mC |] |> Array.map catlikeCodingNoise.Perturb,
-                HexMeshConstant.triArr HexMeshConstant.weights1,
+                MeshUtil.triArr HexMeshConstant.weights1,
                 [| Vector2(1f, 0f); Vector2(0f, 0f); Vector2(1f, 0f) |],
                 tis = ids
             )
 
             roads.AddTriangle(
                 [| centroid; mC; mR |] |> Array.map catlikeCodingNoise.Perturb,
-                HexMeshConstant.triArr HexMeshConstant.weights1,
+                MeshUtil.triArr HexMeshConstant.weights1,
                 [| Vector2(1f, 0f); Vector2(1f, 0f); Vector2(0f, 0f) |],
                 tis = ids
             )
         else
-            triangulateRoadEdge catlikeCodingNoise chunk centroid mL mR tileCountId
+            triangulateRoadEdge viewEnv chunk centroid mL mR tileCountId
 
     let private triangulateRoadAdjacentToRiver
-        (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (viewEnv: 'VE when 'VE :> IPlanetEnv and 'VE :> ICatlikeCodingNoiseEnv)
         (chunk: IChunk)
         (tileCountId: TileCountId)
         (tileFlag: TileFlag)
@@ -793,6 +764,7 @@ module private ChunkTriangulation =
         (centroid: Vector3)
         (e: EdgeVertices)
         =
+        let planet = viewEnv.Planet
         let cornerCount = tileUnitCorners.Length
         let hasRoadThroughEdge = tileFlag.HasRoadThroughEdge idx
 
@@ -926,20 +898,19 @@ module private ChunkTriangulation =
                 roadCenter <- roadCenter + (offset - centroid) * 0.25f
 
         if not returnNow then
-            let interpolator = getRoadInterpolator tileFlag cornerCount idx
+            let interpolator = tileFlag.GetRoadInterpolator cornerCount idx
             let mL = roadCenter.Lerp(e.V1, interpolator.X)
             let mR = roadCenter.Lerp(e.V5, interpolator.Y)
-            triangulateRoad catlikeCodingNoise chunk roadCenter mL mR e hasRoadThroughEdge tileCountId
+            triangulateRoad viewEnv chunk roadCenter mL mR e hasRoadThroughEdge tileCountId
 
             if previousHasRiver then
-                triangulateRoadEdge catlikeCodingNoise chunk roadCenter centroid mL tileCountId
+                triangulateRoadEdge viewEnv chunk roadCenter centroid mL tileCountId
 
             if nextHasRiver then
-                triangulateRoadEdge catlikeCodingNoise chunk roadCenter mR centroid tileCountId
+                triangulateRoadEdge viewEnv chunk roadCenter mR centroid tileCountId
 
     let private triangulateAdjacentToRiver
-        (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        viewEnv
         (chunk: IChunk)
         (tileCountId: TileCountId)
         (tileFlag: TileFlag)
@@ -953,8 +924,7 @@ module private ChunkTriangulation =
         =
         if tileFlag.HasRoads then
             triangulateRoadAdjacentToRiver
-                planet
-                catlikeCodingNoise
+                viewEnv
                 chunk
                 tileCountId
                 tileFlag
@@ -964,6 +934,8 @@ module private ChunkTriangulation =
                 unitCentroid
                 centroid
                 e
+
+        let planet = viewEnv.Planet
 
         let centroid =
             if tileFlag.HasRiverThroughEdge <| HexIndexUtil.nextIdx tileUnitCorners.Length idx then
@@ -1000,7 +972,7 @@ module private ChunkTriangulation =
         let m = EdgeVertices(centroid.Lerp(e.V1, 0.5f), centroid.Lerp(e.V5, 0.5f))
 
         triangulateEdgeStrip
-            catlikeCodingNoise
+            viewEnv
             chunk
             m
             HexMeshConstant.weights1
@@ -1011,10 +983,10 @@ module private ChunkTriangulation =
             false
             simple
 
-        triangulateEdgeFan catlikeCodingNoise chunk centroid m tileCountId simple
+        triangulateEdgeFan viewEnv chunk centroid m tileCountId simple
 
     let private triangulateWithoutRiver
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        viewEnv
         (chunk: IChunk)
         (tileCountId: TileCountId)
         (tileFlag: TileFlag)
@@ -1024,17 +996,17 @@ module private ChunkTriangulation =
         (e: EdgeVertices)
         (simple: bool)
         =
-        triangulateEdgeFan catlikeCodingNoise chunk centroid e tileCountId simple
+        triangulateEdgeFan viewEnv chunk centroid e tileCountId simple
 
         if tileFlag.HasRoads then
-            let interpolator = getRoadInterpolator tileFlag tileUnitCorners.Length idx
+            let interpolator = tileFlag.GetRoadInterpolator tileUnitCorners.Length idx
             let mL = centroid.Lerp(e.V1, interpolator.X)
             let mR = centroid.Lerp(e.V5, interpolator.Y)
             let hasRoadThroughEdge = tileFlag.HasRoadThroughEdge idx
-            triangulateRoad catlikeCodingNoise chunk centroid mL mR e hasRoadThroughEdge tileCountId
+            triangulateRoad viewEnv chunk centroid mL mR e hasRoadThroughEdge tileCountId
 
     let private triangulateWaterfallInWater
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (viewEnv: #ICatlikeCodingNoiseEnv)
         (chunk: IChunk)
         (v1: Vector3)
         (v2: Vector3)
@@ -1045,6 +1017,7 @@ module private ChunkTriangulation =
         (waterHeight: float32)
         (ids: Vector3)
         =
+        let catlikeCodingNoise = viewEnv.CatlikeCodingNoise
         let t = (waterHeight - height2) / (height1 - height2)
         let v1 = catlikeCodingNoise.Perturb <| Math3dUtil.ProjectToSphere(v1, height1)
         let v2 = catlikeCodingNoise.Perturb <| Math3dUtil.ProjectToSphere(v2, height1)
@@ -1061,13 +1034,13 @@ module private ChunkTriangulation =
             .GetRivers()
             .AddQuad(
                 [| v1; v2; v3; v4 |],
-                HexMeshConstant.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
-                quadUv 0f 1f 0.8f 1f,
+                MeshUtil.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
+                MeshUtil.quadUv 0f 1f 0.8f 1f,
                 tis = ids
             )
 
     let private triangulateEdgeTerraces
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        viewEnv
         (chunk: IChunk)
         (beginE: EdgeVertices)
         (beginTileCountId: TileCountId)
@@ -1084,11 +1057,11 @@ module private ChunkTriangulation =
             let w1 = w2
             e2 <- HexMetrics.terraceLerpEdgeV beginE endE i
             w2 <- HexMetrics.terraceLerpColor HexMeshConstant.weights1 HexMeshConstant.weights2 i
-            triangulateEdgeStrip catlikeCodingNoise chunk e1 w1 beginTileCountId e2 w2 endTileCountId hasRoad simple
+            triangulateEdgeStrip viewEnv chunk e1 w1 beginTileCountId e2 w2 endTileCountId hasRoad simple
 
     /// 处理高度不同的 beginTile 和两个高度相同的 endTile（即三角形两边是等高阶地，一边是平地）的情况
     let private triangulateCornerTerraces
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (viewEnv: #ICatlikeCodingNoiseEnv)
         (chunk: IChunk)
         (beginV: Vector3)
         (beginTileId: int)
@@ -1102,6 +1075,7 @@ module private ChunkTriangulation =
         let mutable w3 = HexMeshConstant.weights1
         let mutable w4 = HexMeshConstant.weights1
         let ids = Vector3(float32 beginTileId, float32 leftTileId, float32 rightTileId)
+        let catlikeCodingNoise = viewEnv.CatlikeCodingNoise
         let terrain = chunk.GetTerrain()
 
         for i in 1 .. HexMetrics.terraceSteps do
@@ -1122,7 +1096,7 @@ module private ChunkTriangulation =
 
     /// 阶地和悬崖中间的半三角形
     let private triangulateBoundaryTriangle
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (viewEnv: #ICatlikeCodingNoiseEnv)
         (chunk: IChunk)
         (beginV: Vector3)
         (beginWeight: Color)
@@ -1132,6 +1106,7 @@ module private ChunkTriangulation =
         (boundaryWeight: Color)
         (ids: Vector3)
         =
+        let catlikeCodingNoise = viewEnv.CatlikeCodingNoise
         let mutable v2 = catlikeCodingNoise.Perturb beginV
         let mutable w2 = beginWeight
         let terrain = chunk.GetTerrain()
@@ -1145,7 +1120,7 @@ module private ChunkTriangulation =
 
     /// 三角形靠近 tile 的左边是阶地，右边是悬崖，另一边任意的情况
     let private triangulateCornerTerracesCliff
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (viewEnv: #ICatlikeCodingNoiseEnv)
         (chunk: IChunk)
         (beginV: Vector3)
         (beginTileId: int)
@@ -1157,6 +1132,7 @@ module private ChunkTriangulation =
         (rightTileId: int)
         (rightValue: TileValue)
         =
+        let catlikeCodingNoise = viewEnv.CatlikeCodingNoise
         let b = 1f / Mathf.Abs(float32 <| rightValue.Elevation - beginValue.Elevation)
 
         let boundary =
@@ -1166,7 +1142,7 @@ module private ChunkTriangulation =
         let ids = Vector3(float32 beginTileId, float32 leftTileId, float32 rightTileId)
 
         triangulateBoundaryTriangle
-            catlikeCodingNoise
+            viewEnv
             chunk
             beginV
             HexMeshConstant.weights1
@@ -1178,7 +1154,7 @@ module private ChunkTriangulation =
 
         if HexMetrics.getEdgeType leftValue.Elevation rightValue.Elevation = HexEdgeType.Slope then
             triangulateBoundaryTriangle
-                catlikeCodingNoise
+                viewEnv
                 chunk
                 leftV
                 HexMeshConstant.weights2
@@ -1200,7 +1176,7 @@ module private ChunkTriangulation =
 
     /// 三角形靠近 tile 的左边是悬崖，右边是阶地，另一边任意的情况
     let private triangulateCornerCliffTerraces
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (viewEnv: #ICatlikeCodingNoiseEnv)
         (chunk: IChunk)
         (beginV: Vector3)
         (beginTileId: int)
@@ -1212,6 +1188,7 @@ module private ChunkTriangulation =
         (rightTileId: int)
         (rightValue: TileValue)
         =
+        let catlikeCodingNoise = viewEnv.CatlikeCodingNoise
         let b = 1f / Mathf.Abs(float32 <| leftValue.Elevation - beginValue.Elevation)
 
         let boundary =
@@ -1221,7 +1198,7 @@ module private ChunkTriangulation =
         let ids = Vector3(float32 beginTileId, float32 leftTileId, float32 rightTileId)
 
         triangulateBoundaryTriangle
-            catlikeCodingNoise
+            viewEnv
             chunk
             rightV
             HexMeshConstant.weights3
@@ -1233,7 +1210,7 @@ module private ChunkTriangulation =
 
         if HexMetrics.getEdgeType leftValue.Elevation rightValue.Elevation = HexEdgeType.Slope then
             triangulateBoundaryTriangle
-                catlikeCodingNoise
+                viewEnv
                 chunk
                 leftV
                 HexMeshConstant.weights2
@@ -1255,7 +1232,7 @@ module private ChunkTriangulation =
 
     /// 需要保证入参 bottom -> left -> right 是顺时针
     let private triangulateCorner
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (viewEnv: #ICatlikeCodingNoiseEnv)
         (chunk: IChunk)
         (chunkLod: ChunkLodEnum)
         (bottom: Vector3)
@@ -1268,34 +1245,19 @@ module private ChunkTriangulation =
         (rightTileId: int)
         (rightValue: TileValue)
         =
+        let catlikeCodingNoise = viewEnv.CatlikeCodingNoise
         let edgeType1 = HexMetrics.getEdgeType bottomValue.Elevation leftValue.Elevation
         let edgeType2 = HexMetrics.getEdgeType bottomValue.Elevation rightValue.Elevation
 
         if chunkLod > ChunkLodEnum.SimpleHex then
             if edgeType1 = HexEdgeType.Slope then
                 if edgeType2 = HexEdgeType.Slope then
-                    triangulateCornerTerraces
-                        catlikeCodingNoise
-                        chunk
-                        bottom
-                        bottomTileId
-                        left
-                        leftTileId
-                        right
-                        rightTileId
+                    triangulateCornerTerraces viewEnv chunk bottom bottomTileId left leftTileId right rightTileId
                 elif edgeType2 = HexEdgeType.Flat then
-                    triangulateCornerTerraces
-                        catlikeCodingNoise
-                        chunk
-                        left
-                        leftTileId
-                        right
-                        rightTileId
-                        bottom
-                        bottomTileId
+                    triangulateCornerTerraces viewEnv chunk left leftTileId right rightTileId bottom bottomTileId
                 else
                     triangulateCornerTerracesCliff
-                        catlikeCodingNoise
+                        viewEnv
                         chunk
                         bottom
                         bottomTileId
@@ -1308,18 +1270,10 @@ module private ChunkTriangulation =
                         rightValue
             elif edgeType2 = HexEdgeType.Slope then
                 if edgeType1 = HexEdgeType.Flat then
-                    triangulateCornerTerraces
-                        catlikeCodingNoise
-                        chunk
-                        right
-                        rightTileId
-                        bottom
-                        bottomTileId
-                        left
-                        leftTileId
+                    triangulateCornerTerraces viewEnv chunk right rightTileId bottom bottomTileId left leftTileId
                 else
                     triangulateCornerCliffTerraces
-                        catlikeCodingNoise
+                        viewEnv
                         chunk
                         bottom
                         bottomTileId
@@ -1333,7 +1287,7 @@ module private ChunkTriangulation =
             elif HexMetrics.getEdgeType leftValue.Elevation rightValue.Elevation = HexEdgeType.Slope then
                 if leftValue.Elevation < rightValue.Elevation then
                     triangulateCornerCliffTerraces
-                        catlikeCodingNoise
+                        viewEnv
                         chunk
                         right
                         rightTileId
@@ -1346,7 +1300,7 @@ module private ChunkTriangulation =
                         leftValue
                 else
                     triangulateCornerTerracesCliff
-                        catlikeCodingNoise
+                        viewEnv
                         chunk
                         left
                         leftTileId
@@ -1379,25 +1333,28 @@ module private ChunkTriangulation =
                 )
 
     let private triangulateConnection
-        (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (viewEnv: 'VE when 'VE :> IPlanetEnv and 'VE :> ICatlikeCodingNoiseEnv)
+        (dataEnv: #IEntityStore)
         (chunk: IChunk)
-        (env: #IEntityStore)
         (tileId: int)
         (idx: int)
         (e: EdgeVertices)
         (simple: bool)
         =
-        let store = env.EntityStore
+        let planet = viewEnv.Planet
+        let catlikeCodingNoise = viewEnv.CatlikeCodingNoise
+        let store = dataEnv.EntityStore
         let tile = store.GetEntityById tileId
         let tileValue = tile.GetComponent<TileValue>()
         let tileFlag = tile.GetComponent<TileFlag>()
         let tileUnitCentroid = tile.GetComponent<TileUnitCentroid>()
-        let tileHeight = getHeight catlikeCodingNoise tileValue tileUnitCentroid
-        let neighbor = PointQuery.getNeighborByIdAndIdx env tileId idx |> Option.get
+        let tileHeight = catlikeCodingNoise.GetHeight(tileValue, tileUnitCentroid)
+        let neighbor = PointQuery.getNeighborByIdAndIdx dataEnv tileId idx |> Option.get
         let neighborValue = neighbor.GetComponent<TileValue>()
         let neighborUnitCentroid = neighbor.GetComponent<TileUnitCentroid>()
-        let neighborHeight = getHeight catlikeCodingNoise neighborValue neighborUnitCentroid
+
+        let neighborHeight =
+            catlikeCodingNoise.GetHeight(neighborValue, neighborUnitCentroid)
         // 连接将由更低的地块或相同高度时 Id 更大的地块生成，或者是编辑地块与非编辑地块间的连接
         if
             tileHeight > neighborHeight
@@ -1450,7 +1407,7 @@ module private ChunkTriangulation =
                         let reversed = tileFlag.HasIncomingRiver && tileFlag.HasIncomingRiverThoughEdge idx
 
                         triangulateRiverQuad
-                            catlikeCodingNoise
+                            viewEnv
                             chunk
                             e.V2
                             e.V4
@@ -1466,7 +1423,7 @@ module private ChunkTriangulation =
                             planet.Radius + neighborValue.WaterSurfaceY planet.UnitHeight
 
                         triangulateWaterfallInWater
-                            catlikeCodingNoise
+                            viewEnv
                             chunk
                             e.V2
                             e.V4
@@ -1480,7 +1437,7 @@ module private ChunkTriangulation =
                     let tileWaterHeight = planet.Radius + tileValue.WaterSurfaceY planet.UnitHeight
 
                     triangulateWaterfallInWater
-                        catlikeCodingNoise
+                        viewEnv
                         chunk
                         en.V4
                         en.V2
@@ -1493,25 +1450,16 @@ module private ChunkTriangulation =
 
             let tileChunkId = tile.GetComponent<TileChunkId>()
 
-            let chunkLod =
-                store.GetEntityById(tileChunkId.ChunkId).GetComponent<ChunkLod>().Lod
+            let chunkLod = store.GetEntityById(tileChunkId.ChunkId).GetComponent<ChunkLod>().Lod
 
             if
                 chunkLod > ChunkLodEnum.SimpleHex
                 && tileValue.GetEdgeType neighborValue = HexEdgeType.Slope
             then
-                triangulateEdgeTerraces
-                    catlikeCodingNoise
-                    chunk
-                    e
-                    tileCountId
-                    en
-                    neighborCountId
-                    hasRoad
-                    (not hasRiver && simple)
+                triangulateEdgeTerraces viewEnv chunk e tileCountId en neighborCountId hasRoad (not hasRiver && simple)
             else
                 triangulateEdgeStrip
-                    catlikeCodingNoise
+                    viewEnv
                     chunk
                     e
                     HexMeshConstant.weights1
@@ -1523,12 +1471,15 @@ module private ChunkTriangulation =
                     (not hasRiver && simple)
 
             let preIdx = HexIndexUtil.previousIdx tileFaceIds.Length idx
-            let preNeighbor = PointQuery.getNeighborByIdAndIdx env tileId preIdx |> Option.get
+
+            let preNeighbor =
+                PointQuery.getNeighborByIdAndIdx dataEnv tileId preIdx |> Option.get
+
             let preNeighborValue = preNeighbor.GetComponent<TileValue>()
             let preNeighborUnitCentroid = preNeighbor.GetComponent<TileUnitCentroid>()
 
             let preNeighborHeight =
-                getHeight catlikeCodingNoise preNeighborValue preNeighborUnitCentroid
+                catlikeCodingNoise.GetHeight(preNeighborValue, preNeighborUnitCentroid)
             // 连接角落的三角形由周围 3 个地块中最低或者一样高时 Id 最大的生成，或者是编辑地块与非编辑地块间的连接三角形
             if
                 tileHeight < preNeighborHeight
@@ -1543,7 +1494,7 @@ module private ChunkTriangulation =
                     )
 
                 triangulateCorner
-                    catlikeCodingNoise
+                    viewEnv
                     chunk
                     chunkLod
                     e.V1
@@ -1557,13 +1508,14 @@ module private ChunkTriangulation =
                     neighborValue
 
     let private triangulateEstuary
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (viewEnv: #ICatlikeCodingNoiseEnv)
         (chunk: IChunk)
         (e1: EdgeVertices)
         (e2: EdgeVertices)
         (incomingRiver: bool)
         (ids: Vector3)
         =
+        let catlikeCodingNoise = viewEnv.CatlikeCodingNoise
         let waterShore = chunk.GetWaterShore()
         let estuary = chunk.GetEstuary()
 
@@ -1620,7 +1572,7 @@ module private ChunkTriangulation =
 
         estuary.AddQuad(
             [| e1.V3; e1.V4; e2.V4; e2.V5 |] |> Array.map catlikeCodingNoise.Perturb,
-            HexMeshConstant.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
+            MeshUtil.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
             [| Vector2(0f, 0f); Vector2(0f, 0f); Vector2(1f, 1f); Vector2(0f, 1f) |],
             (if incomingRiver then
                  [| Vector2(0.5f, 1.1f)
@@ -1636,10 +1588,9 @@ module private ChunkTriangulation =
         )
 
     let private triangulateWaterShore
-        (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (viewEnv: 'VE when 'VE :> IPlanetEnv and 'VE :> ICatlikeCodingNoiseEnv)
+        (dataEnv: #IEntityStore)
         (chunk: IChunk)
-        (env: #IEntityStore)
         (tileId: int)
         (neighborId: int)
         (centroid: Vector3)
@@ -1647,7 +1598,9 @@ module private ChunkTriangulation =
         (waterHeight: float32)
         (simple: bool)
         =
-        let store = env.EntityStore
+        let planet = viewEnv.Planet
+        let catlikeCodingNoise = viewEnv.CatlikeCodingNoise
+        let store = dataEnv.EntityStore
         let tile = store.GetEntityById tileId
         let tileUnitCorners = tile.GetComponent<TileUnitCorners>()
         let tileUnitCentroid = tile.GetComponent<TileUnitCentroid>()
@@ -1667,7 +1620,7 @@ module private ChunkTriangulation =
         let addWaterTriangle verticesArr =
             water.AddTriangle(
                 verticesArr |> Array.map catlikeCodingNoise.Perturb,
-                HexMeshConstant.triArr HexMeshConstant.weights1,
+                MeshUtil.triArr HexMeshConstant.weights1,
                 tis = ids
             )
 
@@ -1705,22 +1658,22 @@ module private ChunkTriangulation =
             )
 
         let e2 = EdgeVertices(cn1, cn2)
-        let neighborIdx = PointQuery.getNeighborIdx env tileId neighborId
+        let neighborIdx = PointQuery.getNeighborIdx dataEnv tileId neighborId
         let waterShore = chunk.GetWaterShore()
         let tileFlag = tile.GetComponent<TileFlag>()
 
         let addWaterShoreQuad verticesArr =
             waterShore.AddQuad(
                 verticesArr |> Array.map catlikeCodingNoise.Perturb,
-                HexMeshConstant.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
-                quadUv 0f 0f 0f 1f,
+                MeshUtil.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
+                MeshUtil.quadUv 0f 0f 0f 1f,
                 tis = ids
             )
 
         if simple then
             addWaterShoreQuad [| e1.V1; e1.V5; e2.V1; e2.V5 |]
         elif tileFlag.HasRiverThroughEdge neighborIdx then
-            triangulateEstuary catlikeCodingNoise chunk e1 e2 (tileFlag.HasIncomingRiverThoughEdge neighborIdx) ids
+            triangulateEstuary viewEnv chunk e1 e2 (tileFlag.HasIncomingRiverThoughEdge neighborIdx) ids
         else
             addWaterShoreQuad [| e1.V1; e1.V2; e2.V1; e2.V2 |]
             addWaterShoreQuad [| e1.V2; e1.V3; e2.V2; e2.V3 |]
@@ -1728,7 +1681,7 @@ module private ChunkTriangulation =
             addWaterShoreQuad [| e1.V4; e1.V5; e2.V4; e2.V5 |]
 
         let nextNeighbor =
-            PointQuery.getNeighborByIdAndIdx env tileId
+            PointQuery.getNeighborByIdAndIdx dataEnv tileId
             <| HexIndexUtil.nextIdx tileFaceIds.Length idx
             |> Option.get
 
@@ -1763,17 +1716,18 @@ module private ChunkTriangulation =
             )
 
     let private triangulateOpenWater
-        (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (viewEnv: 'VE when 'VE :> IPlanetEnv and 'VE :> ICatlikeCodingNoiseEnv)
+        (dataEnv: #IEntityStore)
         (chunk: IChunk)
-        (env: #IEntityStore)
         (tileId: int)
         (neighborId: int)
         (centroid: Vector3)
         (idx: int)
         (waterHeight: float32)
         =
-        let store = env.EntityStore
+        let planet = viewEnv.Planet
+        let catlikeCodingNoise = viewEnv.CatlikeCodingNoise
+        let store = dataEnv.EntityStore
         let tile = store.GetEntityById tileId
         let tileCountId = tile.GetComponent<TileCountId>()
         let tileUnitCorners = tile.GetComponent<TileUnitCorners>()
@@ -1790,7 +1744,7 @@ module private ChunkTriangulation =
 
         water.AddTriangle(
             [| centroid; c1; c2 |] |> Array.map catlikeCodingNoise.Perturb,
-            HexMeshConstant.triArr HexMeshConstant.weights1,
+            MeshUtil.triArr HexMeshConstant.weights1,
             tis = ids
         )
         // 由更大 Id 的地块绘制水域连接，或者是由编辑地块绘制和不编辑的邻接地块间的连接
@@ -1826,12 +1780,12 @@ module private ChunkTriangulation =
 
             water.AddQuad(
                 [| c1; c2; cn1; cn2 |] |> Array.map catlikeCodingNoise.Perturb,
-                HexMeshConstant.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
+                MeshUtil.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
                 tis = ids
             )
             // 由最大 Id 的地块绘制水域角落三角形，或者是由编辑地块绘制和不编辑的两个邻接地块间的连接
             let nextNeighbor =
-                PointQuery.getNeighborByIdAndIdx env tileId
+                PointQuery.getNeighborByIdAndIdx dataEnv tileId
                 <| HexIndexUtil.nextIdx tileFaceIds.Length idx
                 |> Option.get
 
@@ -1859,43 +1813,43 @@ module private ChunkTriangulation =
                 )
 
     let private triangulateWater
-        (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (viewEnv: 'VE when 'VE :> IPlanetEnv and 'VE :> ICatlikeCodingNoiseEnv)
+        (dataEnv: #IEntityStore)
         (chunk: IChunk)
-        (env: #IEntityStore)
         (tileId: int)
         (idx: int)
         (centroid: Vector3)
         (simple: bool)
         =
-        let tile = env.EntityStore.GetEntityById tileId
+        let planet = viewEnv.Planet
+        let tile = dataEnv.EntityStore.GetEntityById tileId
         let tileValue = tile.GetComponent<TileValue>()
         let waterHeight = tileValue.WaterSurfaceY planet.UnitHeight
         let centroid = Math3dUtil.ProjectToSphere(centroid, planet.Radius + waterHeight)
-        let neighbor = PointQuery.getNeighborByIdAndIdx env tileId idx |> Option.get
+        let neighbor = PointQuery.getNeighborByIdAndIdx dataEnv tileId idx |> Option.get
         let neighborValue = neighbor.GetComponent<TileValue>()
 
         if not neighborValue.IsUnderwater then
-            triangulateWaterShore planet catlikeCodingNoise chunk env tileId neighbor.Id centroid idx waterHeight simple
+            triangulateWaterShore viewEnv dataEnv chunk tileId neighbor.Id centroid idx waterHeight simple
         else
-            triangulateOpenWater planet catlikeCodingNoise chunk env tileId neighbor.Id centroid idx waterHeight
+            triangulateOpenWater viewEnv dataEnv chunk tileId neighbor.Id centroid idx waterHeight
 
     /// Godot 缠绕顺序是正面顺时针，所以从 i1 对应角落到 i2 对应角落相对于 tile 重心需要是顺时针
     let private triangulateHex
-        (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (viewEnv: 'VE when 'VE :> IPlanetEnv and 'VE :> ICatlikeCodingNoiseEnv)
+        (dataEnv: #IEntityStore)
         (chunk: IChunk)
-        (env: #IEntityStore)
         (tileId: int)
         (idx: int)
         =
-        let store = env.EntityStore
+        let planet = viewEnv.Planet
+        let store = dataEnv.EntityStore
         let tile = store.GetEntityById tileId
         let tileCountId = tile.GetComponent<TileCountId>()
         let tileUnitCorners = tile.GetComponent<TileUnitCorners>()
         let tileValue = tile.GetComponent<TileValue>()
         let tileUnitCentroid = tile.GetComponent<TileUnitCentroid>()
-        let height = getHeight catlikeCodingNoise tileValue tileUnitCentroid
+        let height = viewEnv.CatlikeCodingNoise.GetHeight(tileValue, tileUnitCentroid)
 
         let v1 =
             tileUnitCorners.GetFirstSolidCorner(tileUnitCentroid.UnitCentroid, idx, planet.Radius + height)
@@ -1907,14 +1861,13 @@ module private ChunkTriangulation =
         let centroid = tileUnitCentroid.Scaled <| planet.Radius + height
         let tileChunkId = tile.GetComponent<TileChunkId>()
 
-        let chunkLod =
-            store.GetEntityById(tileChunkId.ChunkId).GetComponent<ChunkLod>().Lod
+        let chunkLod = store.GetEntityById(tileChunkId.ChunkId).GetComponent<ChunkLod>().Lod
 
         let simple =
             if chunkLod = ChunkLodEnum.Full then
                 false
             else
-                let neighbor = PointQuery.getNeighborByIdAndIdx env tileId idx |> Option.get
+                let neighbor = PointQuery.getNeighborByIdAndIdx dataEnv tileId idx |> Option.get
                 let neighborChunkId = neighbor.GetComponent<TileChunkId>()
                 let tileChunkId = tile.GetComponent<TileChunkId>()
 
@@ -1932,19 +1885,10 @@ module private ChunkTriangulation =
                 e.V3 <- Math3dUtil.ProjectToSphere(e.V3, planet.Radius + tileValue.StreamBedY planet.UnitHeight)
 
                 if tileFlag.HasRiverBeginOrEnd then
-                    triangulateWithRiverBeginOrEnd
-                        planet
-                        catlikeCodingNoise
-                        chunk
-                        tileCountId
-                        tileValue
-                        tileFlag
-                        centroid
-                        e
+                    triangulateWithRiverBeginOrEnd viewEnv chunk tileCountId tileValue tileFlag centroid e
                 else
                     triangulateWithRiver
-                        planet
-                        catlikeCodingNoise
+                        viewEnv
                         chunk
                         tileCountId
                         tileValue
@@ -1957,8 +1901,7 @@ module private ChunkTriangulation =
                         e
             else
                 triangulateAdjacentToRiver
-                    planet
-                    catlikeCodingNoise
+                    viewEnv
                     chunk
                     tileCountId
                     tileFlag
@@ -1970,41 +1913,36 @@ module private ChunkTriangulation =
                     e
                     simple
         else
-            triangulateWithoutRiver catlikeCodingNoise chunk tileCountId tileFlag tileUnitCorners idx centroid e simple
+            triangulateWithoutRiver viewEnv chunk tileCountId tileFlag tileUnitCorners idx centroid e simple
 
-        triangulateConnection planet catlikeCodingNoise chunk env tileId idx e simple
+        triangulateConnection viewEnv dataEnv chunk tileId idx e simple
 
         if tileValue.IsUnderwater then
-            triangulateWater planet catlikeCodingNoise chunk env tileId idx centroid simple
+            triangulateWater viewEnv dataEnv chunk tileId idx centroid simple
 
-    let triangulate
-        (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
-        (chunk: IChunk)
-        (env: #IEntityStore)
-        (tileId: int)
-        =
-        let store = env.EntityStore
+    let triangulate viewEnv (dataEnv: #IEntityStore) (chunk: IChunk) (tileId: int) =
+        let store = dataEnv.EntityStore
         let tile = store.GetEntityById tileId
         let tileChunkId = tile.GetComponent<TileChunkId>()
         let tileChunk = store.GetEntityById tileChunkId.ChunkId
         let chunkLod = tileChunk.GetComponent<ChunkLod>().Lod
 
         if chunkLod = ChunkLodEnum.JustHex then
-            triangulateJustHex planet catlikeCodingNoise chunk env tileId
+            triangulateJustHex viewEnv dataEnv chunk tileId
         elif chunkLod = ChunkLodEnum.PlaneHex then
-            triangulatePlaneHex planet catlikeCodingNoise chunk env tileId
+            triangulatePlaneHex viewEnv dataEnv chunk tileId
         else
             let tileFaceIds = tile.GetComponent<TileHexFaceIds>()
 
             for i in 0 .. tileFaceIds.Length - 1 do
-                triangulateHex planet catlikeCodingNoise chunk env tileId i
+                triangulateHex viewEnv dataEnv chunk tileId i
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-06-08 07:59:08
 module HexGridChunkService =
-    let onChunkLoaderProcessed (chunkLoader: IChunkLoader) env =
+    let onChunkLoaderProcessed (viewEnv: #IChunkLoaderEnv) dataEnv =
+        let chunkLoader = viewEnv.ChunkLoader
         chunkLoader.Stopwatch.Restart()
         let mutable allClear = true
         let mutable limitCount = Mathf.Min(20, chunkLoader.LoadSet.Count)
@@ -2015,7 +1953,7 @@ module HexGridChunkService =
         while limitCount > 0 && chunkLoader.Stopwatch.ElapsedMilliseconds <= 14 do
             let chunkId = chunkLoader.LoadSet |> Seq.head
             chunkLoader.LoadSet.Remove chunkId |> ignore
-            ChunkLoaderProcess.showChunk chunkLoader env chunkId
+            ChunkLoaderProcess.showChunk viewEnv dataEnv chunkId
             limitCount <- limitCount - 1
 #if MY_DEBUG
             loadCount <- loadCount + 1
@@ -2034,7 +1972,7 @@ module HexGridChunkService =
         while limitCount > 0 && totalTime + chunkLoader.Stopwatch.ElapsedMilliseconds <= 14 do
             let chunkId = chunkLoader.RefreshSet |> Seq.head
             chunkLoader.RefreshSet.Remove chunkId |> ignore
-            ChunkLoaderProcess.showChunk chunkLoader env chunkId
+            ChunkLoaderProcess.showChunk viewEnv dataEnv chunkId
             limitCount <- limitCount - 1
 #if MY_DEBUG
             refreshCount <- refreshCount + 1
@@ -2074,10 +2012,12 @@ module HexGridChunkService =
         if allClear then
             chunkLoader.SetProcess false
 
-    let initChunkNodes (chunkLoader: IChunkLoader) (env: #IEntityStore) =
+    let initChunkNodes (viewEnv: #IChunkLoaderEnv) (dataEnv: #IEntityStore) =
         let time = Time.GetTicksMsec()
+        let chunkLoader = viewEnv.ChunkLoader
         let camera = chunkLoader.GetViewport().GetCamera3D()
-        let store = env.EntityStore
+        let store = dataEnv.EntityStore
+
         store
             .Query<ChunkPos>()
             .ForEachEntity(fun chunkPos chunkEntity ->
@@ -2085,34 +2025,32 @@ module HexGridChunkService =
                 // 此时拿不到真正 focusBase 的位置，暂且用相机自己的代替
                 if chunkLoader.IsChunkInsight(chunkPos.Pos, camera) then
                     chunkLoader.LoadSet.Add id |> ignore
-                    ChunkInitializer.updateChunkInsightAndLod chunkLoader env camera id true true
+                    ChunkInitializer.updateChunkInsightAndLod viewEnv dataEnv camera id true true
                     chunkLoader.InsightChunkIdsNow.Add id |> ignore)
 
-        FrifloEcsUtil.commitCommands store
-        ChunkInitializer.InitOutRimChunks chunkLoader env camera
+        EntityStoreCommand.commitCommands dataEnv
+        ChunkInitializer.InitOutRimChunks viewEnv dataEnv camera
         chunkLoader.SetProcess true
         GD.Print $"InitChunkNodes cost: {Time.GetTicksMsec() - time} ms"
 
-    let onHexGridChunkProcessed<'E when 'E :> ILodMeshCache and 'E :> IEntityStore>
-        (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
-        (env: 'E)
-        =
+    let onHexGridChunkProcessed viewEnv (dataEnv: 'DE when 'DE :> ILodMeshCache and 'DE :> IEntityStore) =
         fun (instance: IHexGridChunk) ->
             if instance.Id > 0 then
                 // let time = Time.GetTicksMsec()
                 instance.ClearOldData()
+                let dataEnv' = dataEnv :> IEntityStore
 
-                env.EntityStore
+                dataEnv.EntityStore
                     .Query<TileChunkId>()
                     .HasValue<TileChunkId, ChunkId>(instance.Id)
                     .ForEachEntity(fun tileChunkId tileEntity ->
-                        ChunkTriangulation.triangulate planet catlikeCodingNoise instance env tileEntity.Id)
+                        ChunkTriangulation.triangulate viewEnv dataEnv' instance tileEntity.Id)
 
                 instance.ApplyNewData()
 
-                if not <| ChunkLoaderProcess.isHandlingLodGaps env instance.Lod instance.Id then
-                    env.LodMeshCache.AddLodMeshes instance.Lod instance.Id <| instance.GetMeshes()
+                if not <| ChunkQuery.isHandlingLodGaps dataEnv instance.Lod instance.Id then
+                    dataEnv.LodMeshCache.AddLodMeshes instance.Lod instance.Id
+                    <| instance.GetMeshes()
 
             instance.SetProcess false
 
@@ -2128,9 +2066,11 @@ module HexGridChunkService =
     // 动态卸载：
     // 建立一个清理队列，每次终止上次任务时，把所有分块加入到这个清理队列中。
     // 每帧从清理队列中出队一部分，校验它们当前的 LOD 状态，如果 LOD 状态不对，则卸载。
-    let updateInsightChunks (chunkLoader: IChunkLoader) env =
+    let updateInsightChunks (viewEnv: #IChunkLoaderEnv) dataEnv =
         // var time = Time.GetTicksMsec();
         // 未能卸载的分块，说明本轮依然是在显示的分块
+        let chunkLoader = viewEnv.ChunkLoader
+
         for unloadId in
             chunkLoader.UnloadSet
             |> Seq.filter (fun id -> chunkLoader.UsingChunks.ContainsKey id) do
@@ -2145,23 +2085,26 @@ module HexGridChunkService =
             chunkLoader.RimChunkIds
             |> Seq.filter (fun id -> chunkLoader.UsingChunks.ContainsKey id) do
             chunkLoader.UnloadSet.Add chunkId |> ignore
-            ChunkInitializer.updateChunkInsightAndLod chunkLoader env camera chunkId false false
+            ChunkInitializer.updateChunkInsightAndLod viewEnv dataEnv camera chunkId false false
 
         chunkLoader.RimChunkIds.Clear()
 
         for preInsightChunkId in chunkLoader.InsightChunkIdsNow do
             let preInsightChunkPos =
-                env.EntityStore.GetEntityById(preInsightChunkId).GetComponent<ChunkPos>().Pos
+                dataEnv.EntityStore
+                    .GetEntityById(preInsightChunkId)
+                    .GetComponent<ChunkPos>()
+                    .Pos
 
             chunkLoader.VisitedChunkIds.Add preInsightChunkId |> ignore
 
             if not <| chunkLoader.IsChunkInsight(preInsightChunkPos, camera) then
                 // 分块不在视野范围内，隐藏它
                 chunkLoader.UnloadSet.Add preInsightChunkId |> ignore
-                ChunkInitializer.updateChunkInsightAndLod chunkLoader env camera preInsightChunkId false false
+                ChunkInitializer.updateChunkInsightAndLod viewEnv dataEnv camera preInsightChunkId false false
             else
                 chunkLoader.InsightChunkIdsNext.Add preInsightChunkId |> ignore
-                ChunkInitializer.updateChunkInsightAndLod chunkLoader env camera preInsightChunkId true false
+                ChunkInitializer.updateChunkInsightAndLod viewEnv dataEnv camera preInsightChunkId true false
                 // 刷新 Lod
                 if chunkLoader.UsingChunks.ContainsKey preInsightChunkId then
                     chunkLoader.RefreshSet.Add preInsightChunkId |> ignore
@@ -2169,42 +2112,46 @@ module HexGridChunkService =
                     chunkLoader.LoadSet.Add preInsightChunkId |> ignore
                 // 分块在视野内，他的邻居才比较可能是在视野内
                 // 将之前不在但现在可能在视野范围内的 id 加入带查询队列
-                ChunkLoaderProcess.searchNeighbor chunkLoader env preInsightChunkId chunkLoader.InsightChunkIdsNow
+                ChunkLoaderProcess.searchNeighbor viewEnv dataEnv preInsightChunkId chunkLoader.InsightChunkIdsNow
         // 有种极端情况，就是新的视野范围内一个旧视野范围分块都没有！
         // 这时放开限制进行 BFS，直到找到第一个可见的分块
         // （因为我们认为新位置还是会具有空间上的相近性，BFS 应该会比随便找可见分块更好）
         if chunkLoader.InsightChunkIdsNext.Count = 0 then
             for chunkId in chunkLoader.InsightChunkIdsNow do
-                ChunkLoaderProcess.searchNeighbor chunkLoader env chunkId chunkLoader.VisitedChunkIds // 搜索所有外缘邻居
+                ChunkLoaderProcess.searchNeighbor viewEnv dataEnv chunkId chunkLoader.VisitedChunkIds // 搜索所有外缘邻居
 
             let mutable breakNow = false
 
             while chunkLoader.ChunkQueryQueue.Count > 0 && not breakNow do
                 let chunkId = chunkLoader.ChunkQueryQueue.Dequeue()
-                let chunkPos = env.EntityStore.GetEntityById(chunkId).GetComponent<ChunkPos>().Pos
+
+                let chunkPos =
+                    dataEnv.EntityStore.GetEntityById(chunkId).GetComponent<ChunkPos>().Pos
 
                 if chunkLoader.IsChunkInsight(chunkPos, camera) then
                     // 找到第一个可见分块，重新入队，后面进行真正的处理
                     chunkLoader.ChunkQueryQueue.Enqueue chunkId
                     breakNow <- true
                 else
-                    ChunkLoaderProcess.searchNeighbor chunkLoader env chunkId null
+                    ChunkLoaderProcess.searchNeighbor viewEnv dataEnv chunkId null
         // BFS 查询那些原来不在视野范围内的分块
         while chunkLoader.ChunkQueryQueue.Count > 0 do
             let chunkId = chunkLoader.ChunkQueryQueue.Dequeue()
-            let chunkPos = env.EntityStore.GetEntityById(chunkId).GetComponent<ChunkPos>().Pos
+
+            let chunkPos =
+                dataEnv.EntityStore.GetEntityById(chunkId).GetComponent<ChunkPos>().Pos
 
             if chunkLoader.IsChunkInsight(chunkPos, camera) then
                 if chunkLoader.InsightChunkIdsNext.Add chunkId then
                     chunkLoader.LoadSet.Add chunkId |> ignore
-                    ChunkInitializer.updateChunkInsightAndLod chunkLoader env camera chunkId true false
-                    ChunkLoaderProcess.searchNeighbor chunkLoader env chunkId null
+                    ChunkInitializer.updateChunkInsightAndLod viewEnv dataEnv camera chunkId true false
+                    ChunkLoaderProcess.searchNeighbor viewEnv dataEnv chunkId null
         // 清理好各个数据结构，等下一次调用直接使用
         chunkLoader.ChunkQueryQueue.Clear()
         chunkLoader.VisitedChunkIds.Clear()
         chunkLoader.InsightChunkIdsNow.Clear()
         chunkLoader.UpdateInsightSetNextIdx()
         // 显示外缘分块
-        ChunkInitializer.InitOutRimChunks chunkLoader env camera
+        ChunkInitializer.InitOutRimChunks viewEnv dataEnv camera
         chunkLoader.SetProcess true
 // GD.Print($"ChunkLoader UpdateInsightChunks cost {Time.GetTicksMsec() - time} ms");

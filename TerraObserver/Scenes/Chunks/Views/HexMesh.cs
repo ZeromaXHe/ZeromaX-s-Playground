@@ -1,7 +1,6 @@
 using System.Linq;
 using Godot;
-using Godot.Abstractions.Extensions.Chunks;
-using Godot.Abstractions.Extensions.Planets;
+using TO.Abstractions.Chunks;
 
 namespace TerraObserver.Scenes.Chunks.Views;
 

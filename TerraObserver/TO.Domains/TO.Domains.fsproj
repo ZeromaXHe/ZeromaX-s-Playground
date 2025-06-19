@@ -1,0 +1,63 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="Enums\Meshes\MeshType.fs"/>
+        <Compile Include="Enums\Meshes\OptionalToggle.fs"/>
+        <Compile Include="Enums\HexSpheres\Tiles\HexEdgeType.fs"/>
+        <Compile Include="Enums\HexSpheres\Tiles\TileFlagEnum.fs"/>
+        <Compile Include="Enums\HexSpheres\Chunks\ChunkLodEnum.fs"/>
+        <Compile Include="Constants\HexSpheres\IcosahedronConstant.fs"/>
+        <Compile Include="Constants\Meshes\HexMeshConstant.fs"/>
+        <Compile Include="Constants\Shaders\GlobalShaderParam.fs"/>
+        <Compile Include="Structs\HexPlaneGrids\AxialCoords.fs"/>
+        <Compile Include="Structs\HexSphereGrids\LonLatCoords.fs"/>
+        <Compile Include="Structs\HexSphereGrids\SphereAxial.fs"/>
+        <Compile Include="Structs\Tiles\HexHash.fs"/>
+        <Compile Include="Structs\Tiles\EdgeVertices.fs"/>
+        <Compile Include="Structs\PathFindings\TileSearchData.fs"/>
+        <Compile Include="Interfaces\Commons\WithLength.fs"/>
+        <Compile Include="Alias\HexSpheres\Points.fs"/>
+        <Compile Include="Alias\HexSpheres\Faces.fs"/>
+        <Compile Include="Alias\HexSpheres\Tiles.fs"/>
+        <Compile Include="Alias\HexSpheres\Chunks.fs"/>
+        <Compile Include="Utils\Commons\Math3dUtil.fs"/>
+        <Compile Include="Utils\Commons\FrifloEcsUtil.fs"/>
+        <Compile Include="Utils\Commons\MeshUtil.fs"/>
+        <Compile Include="Utils\HexSpheres\HexMetrics.fs"/>
+        <Compile Include="Utils\HexSpheres\HexSphereUtil.fs"/>
+        <Compile Include="Utils\HexSpheres\HexIndexUtil.fs"/>
+        <Compile Include="Components\HexSpheres\Points\PointComponent.fs"/>
+        <Compile Include="Components\HexSpheres\Points\PointCenterId.fs"/>
+        <Compile Include="Components\HexSpheres\Points\PointNeighborCenterIds.fs"/>
+        <Compile Include="Components\HexSpheres\Faces\FaceComponent.fs"/>
+        <Compile Include="Components\HexSpheres\Tiles\TileCountId.fs"/>
+        <Compile Include="Components\HexSpheres\Tiles\TileChunkId.fs"/>
+        <Compile Include="Components\HexSpheres\Tiles\TileUnitCentroid.fs"/>
+        <Compile Include="Components\HexSpheres\Tiles\TileUnitCorners.fs"/>
+        <Compile Include="Components\HexSpheres\Tiles\TileHexFaceIds.fs"/>
+        <Compile Include="Components\HexSpheres\Tiles\TileFlag.fs"/>
+        <Compile Include="Components\HexSpheres\Tiles\TileValue.fs"/>
+        <Compile Include="Components\HexSpheres\Tiles\TileCivId.fs"/>
+        <Compile Include="Components\HexSpheres\Tiles\TileVisibility.fs"/>
+        <Compile Include="Components\HexSpheres\Chunks\ChunkPos.fs"/>
+        <Compile Include="Components\HexSpheres\Chunks\ChunkLod.fs"/>
+        <Compile Include="Components\HexSpheres\Chunks\ChunkInsight.fs"/>
+        <Compile Include="Relations\HexSpheres\Points\PointToFaceId.fs"/>
+        <Compile Include="Relations\HexSpheres\Chunks\ChunkToTileId.fs"/>
+        <Compile Include="Tags\HexSphere\Tiles\TagTile.fs"/>
+        <Compile Include="Tags\HexSphere\Chunks\TagChunk.fs"/>
+        <Compile Include="Functions\HexSpheres\FaceFunction.fs"/>
+        <Compile Include="Functions\HexSpheres\ChunkFunction.fs"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Friflo.Engine.ECS" Version="3.4.2"/>
+        <PackageReference Include="GodotSharp" Version="4.4.1"/>
+    </ItemGroup>
+
+</Project>

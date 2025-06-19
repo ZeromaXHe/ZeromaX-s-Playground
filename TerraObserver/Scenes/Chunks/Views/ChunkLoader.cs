@@ -4,9 +4,9 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Godot;
-using Godot.Abstractions.Extensions.Cameras;
-using Godot.Abstractions.Extensions.Chunks;
-using Godot.Abstractions.Extensions.Planets;
+using TO.Abstractions.Chunks;
+using TO.Abstractions.Planets;
+using TO.Domains.Enums.HexSpheres.Chunks;
 
 namespace TerraObserver.Scenes.Chunks.Views;
 

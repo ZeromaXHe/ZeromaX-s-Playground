@@ -1,10 +1,10 @@
 namespace TO.FSharp.Repos.Data.Shaders
 
 open Godot
-open Godot.Abstractions.Extensions.Planets
-open TO.FSharp.Domains.Components.HexSpheres.Tiles
-open TO.FSharp.Domains.Alias.HexSpheres.Tiles
-open TO.FSharp.Domains.Shaders
+open TO.Abstractions.Planets
+open TO.Domains.Components.HexSpheres.Tiles
+open TO.Domains.Alias.HexSpheres.Tiles
+open TO.Domains.Shaders
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)

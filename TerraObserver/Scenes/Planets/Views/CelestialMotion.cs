@@ -1,6 +1,6 @@
 using Godot;
-using Godot.Abstractions.Extensions.Planets;
-using TO.FSharp.Domains.Shaders;
+using TO.Abstractions.Planets;
+using TO.Domains.Shaders;
 
 namespace TerraObserver.Scenes.Planets.Views;
 

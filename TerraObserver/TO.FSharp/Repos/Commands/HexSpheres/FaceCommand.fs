@@ -2,8 +2,8 @@ namespace TO.FSharp.Repos.Commands.HexSpheres
 
 open Godot
 open Friflo.Engine.ECS
-open TO.FSharp.Domains.Components.HexSpheres.Faces
-open TO.FSharp.Domains.Functions.HexSpheres
+open TO.Domains.Components.HexSpheres.Faces
+open TO.Domains.Functions.HexSpheres
 open TO.FSharp.Repos.Data.Commons
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)

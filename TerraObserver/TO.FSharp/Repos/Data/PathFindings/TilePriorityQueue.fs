@@ -1,8 +1,8 @@
 namespace TO.FSharp.Repos.Data.PathFindings
 
 open System
-open TO.FSharp.Domains.Alias.HexSpheres.Tiles
-open TO.FSharp.Domains.Structs.PathFindings
+open TO.Domains.Alias.HexSpheres.Tiles
+open TO.Domains.Structs.PathFindings
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)

@@ -3,7 +3,7 @@ namespace TO.FSharp.Repos.Data.MapGenerators
 open System
 open System.Diagnostics
 open Godot
-open Godot.Abstractions.Extensions.Maps
+open TO.Abstractions.Maps
 
 type MapRegion() =
     member val IcosahedronIds: int array = null with get, set

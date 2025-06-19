@@ -2,10 +2,10 @@ namespace TO.FSharp.Repos.Commands.HexSpheres
 
 open Godot
 open Friflo.Engine.ECS
-open TO.FSharp.Domains.Components.HexSpheres.Points
-open TO.FSharp.Domains.Functions.HexSpheres
-open TO.FSharp.Domains.Structs.HexSphereGrids
-open TO.FSharp.Domains.Utils.Commons
+open TO.Domains.Components.HexSpheres.Points
+open TO.Domains.Functions.HexSpheres
+open TO.Domains.Structs.HexSphereGrids
+open TO.Domains.Utils.Commons
 open TO.FSharp.Repos.Data.Commons
 open TO.FSharp.Repos.Data.HexSpheres
 
@@ -19,7 +19,7 @@ module PointCommand =
             let point = env.EntityStore.CreateEntity(PointComponent(pos, coords), &tag)
             point.Id
 
-    let createVpTree<'E when 'E :> IEntityStore and 'E :> IChunkyVpTrees> (env: 'E) =
+    let createVpTree (env: 'E when 'E :> IEntityStore and 'E :> IChunkyVpTrees) =
         fun chunky ->
             let tag = ChunkFunction.chunkyTag chunky
             let pointQuery = env.EntityStore.Query<PointComponent>().AllTags(&tag)

@@ -1,7 +1,8 @@
 using System;
 using Godot;
-using Godot.Abstractions.Extensions.Chunks;
-using TO.FSharp.Domains.Enums.Meshes;
+using TO.Abstractions.Chunks;
+using TO.Domains.Enums.HexSpheres.Chunks;
+using TO.Domains.Enums.Meshes;
 
 namespace TerraObserver.Scenes.Chunks.Views;
 

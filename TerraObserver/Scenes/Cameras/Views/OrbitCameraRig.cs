@@ -1,7 +1,7 @@
 using System;
 using Godot;
-using Godot.Abstractions.Extensions.Cameras;
-using Godot.Abstractions.Extensions.Planets;
+using TO.Abstractions.Cameras;
+using TO.Abstractions.Planets;
 
 namespace TerraObserver.Scenes.Cameras.Views;
 

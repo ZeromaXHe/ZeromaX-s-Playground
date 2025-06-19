@@ -2,7 +2,7 @@ namespace TO.FSharp.Repos.Data.Meshes
 
 open System.Collections.Generic
 open Godot
-open Godot.Abstractions.Extensions.Chunks
+open TO.Domains.Enums.HexSpheres.Chunks
 open TO.FSharp.Repos.Data.Commons
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)

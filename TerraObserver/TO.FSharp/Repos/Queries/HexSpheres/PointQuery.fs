@@ -2,12 +2,12 @@ namespace TO.FSharp.Repos.Queries.HexSpheres
 
 open Friflo.Engine.ECS
 open Godot
-open TO.FSharp.Domains.Components.HexSpheres.Faces
-open TO.FSharp.Domains.Components.HexSpheres.Points
-open TO.FSharp.Domains.Functions.HexSpheres
-open TO.FSharp.Domains.Alias.HexSpheres.Chunks
-open TO.FSharp.Domains.Alias.HexSpheres.Points
-open TO.FSharp.Domains.Utils.Commons
+open TO.Domains.Components.HexSpheres.Faces
+open TO.Domains.Components.HexSpheres.Points
+open TO.Domains.Functions.HexSpheres
+open TO.Domains.Alias.HexSpheres.Chunks
+open TO.Domains.Alias.HexSpheres.Points
+open TO.Domains.Utils.Commons
 open TO.FSharp.Repos.Data.Commons
 open TO.FSharp.Repos.Data.HexSpheres
 
