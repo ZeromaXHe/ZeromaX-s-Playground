@@ -7,8 +7,7 @@ using TerraObserver.Scenes.Planets.Models;
 using TerraObserver.Scenes.Planets.Views;
 using TerraObserver.Scenes.Uis.Views;
 using TO.Abstractions.Chunks;
-using TO.FSharp.Apps.Envs;
-using TO.FSharp.Apps.Planets;
+using TO.Controllers.Apps.Planets;
 
 namespace TerraObserver.Scenes.Planets.Contexts;
 
@@ -112,8 +111,7 @@ public partial class PlanetContext : Node
         }
 
         // App
-        var planetViewEnv = new PlanetViewEnv(planet, _catlikeCodingNoise, _chunkLoader);
-        _planetApp = new PlanetApp(planetViewEnv);
+        _planetApp = new PlanetApp(planet, _catlikeCodingNoise, _chunkLoader);
 
         _planetApp.DrawHexSphereMesh();
         Planet!.ParamsChanged += DrawHexSphereMesh;

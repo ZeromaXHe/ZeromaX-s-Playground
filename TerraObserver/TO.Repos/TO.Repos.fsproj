@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\TO.Domains\TO.Domains.fsproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Include="Data\Commons\VpTree.fs"/>
+        <Compile Include="Data\Commons\LruCache.fs"/>
+        <Compile Include="Data\Commons\IEntityStore.fs"/>
+        <Compile Include="Data\HexSpheres\ChunkyVpTrees.fs"/>
+        <Compile Include="Data\Meshes\LodMeshCache.fs"/>
+        <Compile Include="Data\Meshes\HexTileDataOverrider.fs"/>
+        <Compile Include="Data\PathFindings\TilePriorityQueue.fs"/>
+        <Compile Include="Data\PathFindings\TileSearcher.fs"/>
+        <Compile Include="Data\Shaders\TileShaderData.fs"/>
+        <Compile Include="Data\MapGenerators\MapGenerator.fs"/>
+        <Compile Include="Queries\HexSpheres\PointQuery.fs"/>
+        <Compile Include="Queries\HexSpheres\FaceQuery.fs"/>
+        <Compile Include="Queries\HexSpheres\ChunkQuery.fs"/>
+        <Compile Include="Queries\HexSpheres\HexSphereQuery.fs"/>
+        <Compile Include="Commands\HexSpheres\PointCommand.fs"/>
+        <Compile Include="Commands\HexSpheres\FaceCommand.fs"/>
+        <Compile Include="Commands\HexSpheres\TileCommand.fs"/>
+        <Compile Include="Commands\HexSpheres\ChunkCommand.fs"/>
+        <Compile Include="Commands\HexSpheres\HexSphereInitCommand.fs"/>
+    </ItemGroup>
+
+</Project>

@@ -7,7 +7,7 @@ using TO.Domains.Enums.Meshes;
 using TO.Domains.Shaders;
 using TO.Domains.Structs.HexSphereGrids;
 using TO.Domains.Utils.Commons;
-using TO.FSharp.Repos.Data.Meshes;
+using TO.Repos.Data.Meshes;
 
 namespace TerraObserver.Scenes.Uis.Views;
 

@@ -1,8 +1,8 @@
 namespace Test.FSharp.Commons
 
 open Godot
-open TO.FSharp.Commons.Structs.Planets
-open TO.FSharp.Commons.Utils
+open TO.Domains.Structs.Tiles
+open TO.Domains.Utils.HexSpheres
 open Xunit
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)

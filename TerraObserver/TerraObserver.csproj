@@ -15,6 +15,6 @@
         <EmbeddedResource Remove="Godot.*\**"/>
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="TO.FSharp\TO.FSharp.fsproj" />
+        <ProjectReference Include="TO.Controllers\TO.Controllers.fsproj" />
     </ItemGroup>
 </Project>

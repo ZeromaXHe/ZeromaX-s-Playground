@@ -1,6 +1,6 @@
 namespace Test.FSharp.Commons
 
-open TO.FSharp.Commons.Structs.HexSphereGrid
+open TO.Domains.Structs.HexSphereGrids
 open Xunit
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)

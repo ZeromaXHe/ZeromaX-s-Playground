@@ -1,6 +1,6 @@
 namespace Test.FSharp.Commons
 
-open TO.FSharp.Commons.Structs.HexPlaneGrid
+open TO.Domains.Structs.HexPlaneGrids
 open Xunit
 
 module AxialCoordsTest =

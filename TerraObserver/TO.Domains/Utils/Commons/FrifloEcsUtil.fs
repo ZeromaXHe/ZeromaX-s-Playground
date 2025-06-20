@@ -49,3 +49,9 @@ module FrifloEcsUtil =
             |> Option.map (fun chunk ->
                 let _, entities = chunk.Deconstruct()
                 entities.EntityAt(0)) // 只返回第一个
+
+    let executeInCommandBuffer (store: EntityStore) (execution: CommandBuffer -> unit) =
+        let cb = store.GetCommandBuffer()
+        execution cb
+        cb.Playback()
+        cb.Clear()
