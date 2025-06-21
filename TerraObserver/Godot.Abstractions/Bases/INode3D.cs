@@ -26,4 +26,5 @@ public interface INode3D : INode
     void Rotate(Vector3 axis, float angle);
     void GlobalRotate(Vector3 axis, float angle);
     void RotateX(float angle);
+    void LookAt(Vector3 target, Nullable<Vector3> up = null, bool useModelFront = false); // 1031
 }

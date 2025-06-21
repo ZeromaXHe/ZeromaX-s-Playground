@@ -144,10 +144,3 @@ type TileShaderData() =
     //     changePixel tileTexture countId tileTextureData[countId]
     //     this.NeedsVisibilityReset <- true
     //     this.Enabled <- true
-
-/// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
-/// Author: Zhu XH (ZeromaXHe)
-/// Date: 2025-06-19 16:32:19
-[<Interface>]
-type ITileShaderData =
-    abstract TileShaderData: TileShaderData

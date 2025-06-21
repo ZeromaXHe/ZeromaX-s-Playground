@@ -41,10 +41,3 @@ type LodMeshCache() =
             match cache.TryGetValue lod with
             | true, cache -> cache.Remove id
             | _ -> ()
-
-/// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
-/// Author: Zhu XH (ZeromaXHe)
-/// Date: 2025-06-19 16:31:19
-[<Interface>]
-type ILodMeshCache =
-    abstract LodMeshCache: LodMeshCache

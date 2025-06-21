@@ -12,7 +12,6 @@
     <ItemGroup>
         <Compile Include="Data\Commons\VpTree.fs"/>
         <Compile Include="Data\Commons\LruCache.fs"/>
-        <Compile Include="Data\Commons\IEntityStore.fs"/>
         <Compile Include="Data\HexSpheres\ChunkyVpTrees.fs"/>
         <Compile Include="Data\Meshes\LodMeshCache.fs"/>
         <Compile Include="Data\Meshes\HexTileDataOverrider.fs"/>

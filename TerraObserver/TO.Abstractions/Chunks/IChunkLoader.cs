@@ -33,8 +33,3 @@ public interface IChunkLoader : INode3D
     ChunkLodEnum CalcLod(float distance);
     bool IsChunkInsight(Vector3 chunkPos, Camera3D camera);
 }
-
-public interface IChunkLoaderEnv
-{
-    IChunkLoader ChunkLoader { get; }
-}

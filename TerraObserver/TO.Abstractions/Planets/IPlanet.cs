@@ -17,8 +17,3 @@ public interface IPlanet : IResource
     float StandardScale { get; }
     int ElevationStep { get; }
 }
-
-public interface IPlanetEnv
-{
-    IPlanet Planet { get; }
-}

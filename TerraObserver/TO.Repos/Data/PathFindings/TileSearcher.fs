@@ -19,10 +19,3 @@ type TileSearcher() =
         searchFrontier <- None
 
     member this.RefreshTileSearchData(tileId: TileId) = searchData[tileId].SearchPhase <- 0
-
-/// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
-/// Author: Zhu XH (ZeromaXHe)
-/// Date: 2025-06-19 16:31:19
-[<Interface>]
-type ITileSearcher =
-    abstract TileSearcher: TileSearcher

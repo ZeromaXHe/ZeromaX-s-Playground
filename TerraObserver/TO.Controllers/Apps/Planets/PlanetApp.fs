@@ -2,8 +2,11 @@ namespace TO.Controllers.Apps.Planets
 
 open Friflo.Engine.ECS
 open Godot
+open TO.Abstractions.Cameras
 open TO.Abstractions.Chunks
 open TO.Abstractions.Planets
+open TO.Controllers.Apps.Envs
+open TO.Presenters.Commands.Cameras
 open TO.Repos.Commands.HexSpheres
 open TO.Repos.Data.Commons
 open TO.Controllers.Services.Planets
@@ -15,7 +18,8 @@ open TO.Repos.Data.Shaders
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-05-30 19:41:30
-type PlanetApp(planet: IPlanet, catlikeCodingNoise: ICatlikeCodingNoise, chunkLoader: IChunkLoader) =
+type PlanetApp
+    (planet: IPlanet, catlikeCodingNoise: ICatlikeCodingNoise, cameraRig: IOrbitCameraRig, chunkLoader: IChunkLoader) =
     let store = EntityStore()
 
     let chunkyVpTrees =
@@ -26,6 +30,16 @@ type PlanetApp(planet: IPlanet, catlikeCodingNoise: ICatlikeCodingNoise, chunkLo
     let tileSearcher = TileSearcher()
     let lodMeshCache = LodMeshCache()
     let repoEnv = PlanetRepoEnv(store, chunkyVpTrees)
+    let preEnv = PlanetPreEnv(planet, cameraRig)
+    let orbitCameraRigCommand = preEnv :> IOrbitCameraRigCommand
+    member this.InitOrbitCameraRig() = orbitCameraRigCommand.Reset()
+
+    member this.OnOrbitCameraRigPlanetParamsChanged() =
+        orbitCameraRigCommand.OnPlanetParamsChanged()
+        orbitCameraRigCommand.OnZoomChanged()
+
+    member this.OnOrbitCameraRigProcessed(delta: float32) = orbitCameraRigCommand.OnProcessed delta
+    member this.OnOrbitCameraRigZoomChanged() = orbitCameraRigCommand.OnZoomChanged()
 
     member this.DrawHexSphereMesh() =
         let time = Time.GetTicksMsec()

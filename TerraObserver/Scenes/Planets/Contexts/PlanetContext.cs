@@ -17,12 +17,6 @@ namespace TerraObserver.Scenes.Planets.Contexts;
 [Tool]
 public partial class PlanetContext : Node
 {
-    #region 依赖
-
-    private PlanetApp _planetApp = null!;
-
-    #endregion
-
     #region 事件和 Export 属性
 
     [Export]
@@ -71,6 +65,7 @@ public partial class PlanetContext : Node
     private CelestialMotion _celestialMotion = null!;
     private ChunkLoader _chunkLoader = null!;
     private PlanetHud _planetHud = null!;
+    private PlanetApp _planetApp = null!;
 
     #endregion
 
@@ -92,8 +87,6 @@ public partial class PlanetContext : Node
         var planet = Planet!;
         // Catlike Coding 的噪声实现
         CatlikeCodingNoise!.Planet = planet;
-        // 轨道相机架
-        _orbitCameraRig.Planet = planet;
         // 经纬网
         _lonLatGrid.Planet = planet;
         _lonLatGrid.OrbitCameraRig = _orbitCameraRig;
@@ -111,13 +104,17 @@ public partial class PlanetContext : Node
         }
 
         // App
-        _planetApp = new PlanetApp(planet, _catlikeCodingNoise, _chunkLoader);
+        _planetApp = new PlanetApp(planet, _catlikeCodingNoise, _orbitCameraRig, _chunkLoader);
 
         _planetApp.DrawHexSphereMesh();
-        Planet!.ParamsChanged += DrawHexSphereMesh;
+        Planet!.ParamsChanged += _planetApp.DrawHexSphereMesh;
+        Planet.ParamsChanged += _planetApp.OnOrbitCameraRigPlanetParamsChanged;
         _planetApp.UpdateInsightChunks();
+        _planetApp.InitOrbitCameraRig();
         _orbitCameraRig.Transformed += UpdateInsightChunks;
-        _chunkLoader.Processed += OnChunkLoaderProcessed;
+        _orbitCameraRig.Processed += _planetApp.OnOrbitCameraRigProcessed;
+        _orbitCameraRig.ZoomChanged += _planetApp.OnOrbitCameraRigZoomChanged;
+        _chunkLoader.Processed += _planetApp.OnChunkLoaderProcessed;
         _chunkLoader.HexGridChunkGenerated += OnHexGridChunkGenerated;
     }
 
@@ -125,30 +122,24 @@ public partial class PlanetContext : Node
     {
         if (what == (int)NotificationPredelete)
         {
-            Planet!.ParamsChanged -= DrawHexSphereMesh;
             _orbitCameraRig.Transformed -= UpdateInsightChunks;
-            _chunkLoader.Processed -= OnChunkLoaderProcessed;
             _chunkLoader.HexGridChunkGenerated -= OnHexGridChunkGenerated;
-            _orbitCameraRig.PreDelete();
+            if (_planetApp != null!)
+            {
+                // 首次编译后重载场景时会为空…… 没理解原因
+                // 而且绑定和解绑逻辑不能下沉到 F# 层，否则就解绑失败，同样没理解原因
+                Planet!.ParamsChanged -= _planetApp.DrawHexSphereMesh;
+                Planet.ParamsChanged -= _planetApp.OnOrbitCameraRigPlanetParamsChanged;
+                _orbitCameraRig.Processed -= _planetApp.OnOrbitCameraRigProcessed;
+                _orbitCameraRig.ZoomChanged -= _planetApp.OnOrbitCameraRigZoomChanged;
+                _chunkLoader.Processed -= _planetApp.OnChunkLoaderProcessed;
+            }
+
             _lonLatGrid.PreDelete();
         }
     }
 
     #endregion
-
-    private void DrawHexSphereMesh()
-    {
-        if (!NodeReady)
-            return;
-        _planetApp.DrawHexSphereMesh();
-    }
-
-    private void OnChunkLoaderProcessed()
-    {
-        if (!NodeReady)
-            return;
-        _planetApp.OnChunkLoaderProcessed();
-    }
 
     private void UpdateInsightChunks(Transform3D transform, float delta)
     {
