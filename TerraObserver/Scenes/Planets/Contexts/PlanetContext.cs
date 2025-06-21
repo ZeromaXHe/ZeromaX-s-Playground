@@ -85,8 +85,6 @@ public partial class PlanetContext : Node
         NodeReady = true;
 
         var planet = Planet!;
-        // Catlike Coding 的噪声实现
-        CatlikeCodingNoise!.Planet = planet;
         // 经纬网
         _lonLatGrid.Planet = planet;
         _lonLatGrid.OrbitCameraRig = _orbitCameraRig;

@@ -10,9 +10,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Folder Include="Models\"/>
-        <Compile Include="Views\OrbitCameraRigFS.fs" />
-        <Folder Include="Queries\"/>
+        <Compile Include="Models\Planets\PlanetFS.fs" />
+        <Compile Include="Models\Planets\CatlikeCodingNoiseFS.fs" />
+        <Compile Include="Views\Cameras\OrbitCameraRigFS.fs" />
+        <Compile Include="Queries\Planets\CatlikeCodingNoiseQuery.fs" />
         <Compile Include="Commands\Cameras\OrbitCameraRigCommand.fs"/>
     </ItemGroup>
 

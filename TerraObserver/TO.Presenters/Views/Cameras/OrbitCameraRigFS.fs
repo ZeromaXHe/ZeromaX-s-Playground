@@ -1,4 +1,4 @@
-namespace TO.Presenters.Views
+namespace TO.Presenters.Views.Cameras
 
 open Godot
 

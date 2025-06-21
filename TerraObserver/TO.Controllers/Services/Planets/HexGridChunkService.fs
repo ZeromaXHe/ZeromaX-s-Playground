@@ -17,6 +17,7 @@ open TO.Domains.Enums.Tiles
 open TO.Domains.Structs.Tiles
 open TO.Domains.Utils.Commons
 open TO.Domains.Utils.HexSpheres
+open TO.Presenters.Queries.Planets
 open TO.Repos.Data.Meshes
 open TO.Repos.Queries.HexSpheres
 
@@ -127,7 +128,7 @@ module private ChunkTriangulation =
     /// 仅绘制六边形（无扰动，点平均周围地块高度）
     let private triangulateJustHex
         (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (store: EntityStore)
         (repoEnv: #IPointQuery)
         (chunk: IChunk)
@@ -140,7 +141,7 @@ module private ChunkTriangulation =
         let tileFaceIds = tile.GetComponent<TileHexFaceIds>()
         let tileValue = tile.GetComponent<TileValue>()
         let tileUnitCentroid = tile.GetComponent<TileUnitCentroid>()
-        let height = catlikeCodingNoise.GetHeight(tileValue, tileUnitCentroid)
+        let height = preEnv.GetHeight tileValue tileUnitCentroid
         let waterHeight = tileValue.WaterSurfaceY planet.UnitHeight
 
         let mutable preNeighbor =
@@ -161,22 +162,16 @@ module private ChunkTriangulation =
         for i in 0 .. tileFaceIds.Length - 1 do
             let neighborValue = neighbor.GetComponent<TileValue>()
             let neighborUnitCentroid = neighbor.GetComponent<TileUnitCentroid>()
-
-            let neighborHeight =
-                catlikeCodingNoise.GetHeight(neighborValue, neighborUnitCentroid)
-
+            let neighborHeight = preEnv.GetHeight neighborValue neighborUnitCentroid
             let neighborWaterHeight = neighborValue.WaterSurfaceY planet.UnitHeight
-
             let preValue = preNeighbor.GetComponent<TileValue>()
             let preUnitCentroid = preNeighbor.GetComponent<TileUnitCentroid>()
-            let preHeight = catlikeCodingNoise.GetHeight(preValue, preUnitCentroid)
+            let preHeight = preEnv.GetHeight preValue preUnitCentroid
             let preWaterHeight = preValue.WaterSurfaceY planet.UnitHeight
-
             let nextValue = nextNeighbor.GetComponent<TileValue>()
             let nextUnitCentroid = nextNeighbor.GetComponent<TileUnitCentroid>()
-            let nextHeight = catlikeCodingNoise.GetHeight(nextValue, nextUnitCentroid)
+            let nextHeight = preEnv.GetHeight nextValue nextUnitCentroid
             let nextWaterHeight = nextValue.WaterSurfaceY planet.UnitHeight
-
             let avgHeight1 = (preHeight + neighborHeight + height) / 3f
             let avgHeight2 = (neighborHeight + nextHeight + height) / 3f
             let avgWaterHeight1 = (preWaterHeight + neighborWaterHeight + waterHeight) / 3f
@@ -226,7 +221,7 @@ module private ChunkTriangulation =
     /// 绘制平面六边形（有高度立面、处理接缝、但无特征、无河流）
     let private triangulatePlaneHex
         (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (store: EntityStore)
         (repoEnv: #IPointQuery)
         (chunk: IChunk)
@@ -239,7 +234,7 @@ module private ChunkTriangulation =
         let tileFaceIds = tile.GetComponent<TileHexFaceIds>()
         let tileValue = tile.GetComponent<TileValue>()
         let tileUnitCentroid = tile.GetComponent<TileUnitCentroid>()
-        let height = catlikeCodingNoise.GetHeight(tileValue, tileUnitCentroid)
+        let height = preEnv.GetHeight tileValue tileUnitCentroid
         let waterHeight = tileValue.WaterSurfaceY planet.UnitHeight
 
         let v0 =
@@ -263,10 +258,7 @@ module private ChunkTriangulation =
             let nIds = Vector3(float32 tileId, float32 neighbor.Id, float32 tileId)
             let neighborValue = neighbor.GetComponent<TileValue>()
             let neighborUnitCentroid = neighbor.GetComponent<TileUnitCentroid>()
-
-            let neighborHeight =
-                catlikeCodingNoise.GetHeight(neighborValue, neighborUnitCentroid)
-
+            let neighborHeight = preEnv.GetHeight neighborValue neighborUnitCentroid
             let neighborWaterHeight = neighborValue.WaterSurfaceY planet.UnitHeight
             // 绘制陆地立面（由高的地块绘制）
             if neighborHeight < height then
@@ -276,7 +268,7 @@ module private ChunkTriangulation =
                 chunk
                     .GetTerrain()
                     .AddQuad(
-                        [| v1; v2; vn1; vn2 |] |> Array.map catlikeCodingNoise.Perturb,
+                        [| v1; v2; vn1; vn2 |] |> Array.map preEnv.Perturb,
                         MeshUtil.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
                         tis = nIds
                     )
@@ -288,7 +280,7 @@ module private ChunkTriangulation =
                 chunk
                     .GetWater()
                     .AddQuad(
-                        [| vw1; vw2; vnw1; vnw2 |] |> Array.map catlikeCodingNoise.Perturb,
+                        [| vw1; vw2; vnw1; vnw2 |] |> Array.map preEnv.Perturb,
                         MeshUtil.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
                         tis = nIds
                     )
@@ -325,7 +317,7 @@ module private ChunkTriangulation =
                 chunk
                     .GetTerrain()
                     .AddQuad(
-                        [| v1; v2; vn1; vn2 |] |> Array.map catlikeCodingNoise.Perturb,
+                        [| v1; v2; vn1; vn2 |] |> Array.map preEnv.Perturb,
                         MeshUtil.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
                         tis = nIds
                     )
@@ -348,7 +340,7 @@ module private ChunkTriangulation =
                     chunk
                         .GetWater()
                         .AddQuad(
-                            [| vw1; vw2; vnw1; vnw2 |] |> Array.map catlikeCodingNoise.Perturb,
+                            [| vw1; vw2; vnw1; vnw2 |] |> Array.map preEnv.Perturb,
                             MeshUtil.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
                             tis = nIds
                         )
@@ -358,7 +350,7 @@ module private ChunkTriangulation =
                 chunk
                     .GetTerrain()
                     .AddTriangle(
-                        [| v0; v1; v2 |] |> Array.map catlikeCodingNoise.Perturb,
+                        [| v0; v1; v2 |] |> Array.map preEnv.Perturb,
                         MeshUtil.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
                         tis = ids
                     )
@@ -367,7 +359,7 @@ module private ChunkTriangulation =
                     chunk
                         .GetWater()
                         .AddTriangle(
-                            [| vw0; vw1; vw2 |] |> Array.map catlikeCodingNoise.Perturb,
+                            [| vw0; vw1; vw2 |] |> Array.map preEnv.Perturb,
                             MeshUtil.triArr HexMeshConstant.weights1,
                             tis = ids
                         )
@@ -376,7 +368,7 @@ module private ChunkTriangulation =
             vw1 <- vw2
 
     let private triangulateRoadSegment
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (v1: Vector3)
         (v2: Vector3)
@@ -391,21 +383,21 @@ module private ChunkTriangulation =
         let roads = chunk.GetRoads()
 
         roads.AddQuad(
-            [| v1; v2; v4; v5 |] |> Array.map catlikeCodingNoise.Perturb,
+            [| v1; v2; v4; v5 |] |> Array.map preEnv.Perturb,
             MeshUtil.quad2Arr w1 w2,
             MeshUtil.quadUv 0f 1f 0f 0f,
             tis = ids
         )
 
         roads.AddQuad(
-            [| v2; v3; v5; v6 |] |> Array.map catlikeCodingNoise.Perturb,
+            [| v2; v3; v5; v6 |] |> Array.map preEnv.Perturb,
             MeshUtil.quad2Arr w1 w2,
             MeshUtil.quadUv 1f 0f 0f 0f,
             tis = ids
         )
 
     let private triangulateEdgeStrip
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (e1: EdgeVertices)
         (w1: Color)
@@ -420,7 +412,7 @@ module private ChunkTriangulation =
         let terrain = chunk.GetTerrain()
 
         let addTerrainQuad verticesArr =
-            terrain.AddQuad(verticesArr |> Array.map catlikeCodingNoise.Perturb, MeshUtil.quad2Arr w1 w2, tis = ids)
+            terrain.AddQuad(verticesArr |> Array.map preEnv.Perturb, MeshUtil.quad2Arr w1 w2, tis = ids)
 
         if simple then
             addTerrainQuad [| e1.V1; e1.V5; e2.V1; e2.V5 |]
@@ -431,10 +423,10 @@ module private ChunkTriangulation =
             addTerrainQuad [| e1.V4; e1.V5; e2.V4; e2.V5 |]
 
         if hasRoad then
-            triangulateRoadSegment catlikeCodingNoise chunk e1.V2 e1.V3 e1.V4 e2.V2 e2.V3 e2.V4 w1 w2 ids
+            triangulateRoadSegment preEnv chunk e1.V2 e1.V3 e1.V4 e2.V2 e2.V3 e2.V4 w1 w2 ids
 
     let private triangulateEdgeFan
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (center: Vector3)
         (edge: EdgeVertices)
@@ -446,7 +438,7 @@ module private ChunkTriangulation =
 
         let addTerrainTriangle verticesArr =
             terrain.AddTriangle(
-                verticesArr |> Array.map catlikeCodingNoise.Perturb,
+                verticesArr |> Array.map preEnv.Perturb,
                 MeshUtil.triArr HexMeshConstant.weights1,
                 tis = ids
             )
@@ -460,7 +452,7 @@ module private ChunkTriangulation =
             addTerrainTriangle [| center; edge.V4; edge.V5 |]
 
     let private triangulateRiverQuad
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (v1: Vector3)
         (v2: Vector3)
@@ -480,7 +472,7 @@ module private ChunkTriangulation =
         chunk
             .GetRivers()
             .AddQuad(
-                [| v1; v2; v3; v4 |] |> Array.map catlikeCodingNoise.Perturb,
+                [| v1; v2; v3; v4 |] |> Array.map preEnv.Perturb,
                 MeshUtil.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
                 (if reversed then
                      MeshUtil.quadUv 1f 0f <| 0.8f - v <| 0.6f - v
@@ -491,7 +483,7 @@ module private ChunkTriangulation =
 
     let private triangulateWithRiverBeginOrEnd
         (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (tileCountId: TileCountId)
         (tileValue: TileValue)
@@ -503,7 +495,7 @@ module private ChunkTriangulation =
         m.V3 <- Math3dUtil.ProjectToSphere(m.V3, e.V3.Length())
 
         triangulateEdgeStrip
-            catlikeCodingNoise
+            preEnv
             chunk
             m
             HexMeshConstant.weights1
@@ -514,13 +506,13 @@ module private ChunkTriangulation =
             false
             false
 
-        triangulateEdgeFan catlikeCodingNoise chunk centroid m tileCountId false
+        triangulateEdgeFan preEnv chunk centroid m tileCountId false
 
         if not tileValue.IsUnderwater then
             let reversed = tileFlag.HasIncomingRiver
             let ids = Vector3.One * float32 tileCountId.CountId
             let riverHeight = planet.Radius + tileValue.RiverSurfaceY planet.UnitHeight
-            triangulateRiverQuad catlikeCodingNoise chunk m.V2 m.V4 e.V2 e.V4 riverHeight riverHeight 0.6f reversed ids
+            triangulateRiverQuad preEnv chunk m.V2 m.V4 e.V2 e.V4 riverHeight riverHeight 0.6f reversed ids
             let centroid = Math3dUtil.ProjectToSphere(centroid, riverHeight)
             m.V2 <- Math3dUtil.ProjectToSphere(m.V2, riverHeight)
             m.V4 <- Math3dUtil.ProjectToSphere(m.V4, riverHeight)
@@ -528,7 +520,7 @@ module private ChunkTriangulation =
             chunk
                 .GetRivers()
                 .AddTriangle(
-                    [| centroid; m.V2; m.V4 |] |> Array.map catlikeCodingNoise.Perturb,
+                    [| centroid; m.V2; m.V4 |] |> Array.map preEnv.Perturb,
                     MeshUtil.triArr HexMeshConstant.weights1,
                     (if reversed then
                          [| Vector2(0.5f, 0.4f); Vector2(1f, 0.2f); Vector2(0f, 0.2f) |]
@@ -539,7 +531,7 @@ module private ChunkTriangulation =
 
     let private triangulateWithRiver
         (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (tileCountId: TileCountId)
         (tileValue: TileValue)
@@ -613,7 +605,7 @@ module private ChunkTriangulation =
         centroid <- Math3dUtil.ProjectToSphere(centroid, e.V3.Length())
 
         triangulateEdgeStrip
-            catlikeCodingNoise
+            preEnv
             chunk
             m
             HexMeshConstant.weights1
@@ -628,25 +620,25 @@ module private ChunkTriangulation =
         let terrain = chunk.GetTerrain()
 
         terrain.AddTriangle(
-            [| centerL; m.V1; m.V2 |] |> Array.map catlikeCodingNoise.Perturb,
+            [| centerL; m.V1; m.V2 |] |> Array.map preEnv.Perturb,
             MeshUtil.triArr HexMeshConstant.weights1,
             tis = ids
         )
 
         terrain.AddQuad(
-            [| centerL; centroid; m.V2; m.V3 |] |> Array.map catlikeCodingNoise.Perturb,
+            [| centerL; centroid; m.V2; m.V3 |] |> Array.map preEnv.Perturb,
             MeshUtil.quadArr HexMeshConstant.weights1,
             tis = ids
         )
 
         terrain.AddQuad(
-            [| centroid; centerR; m.V3; m.V4 |] |> Array.map catlikeCodingNoise.Perturb,
+            [| centroid; centerR; m.V3; m.V4 |] |> Array.map preEnv.Perturb,
             MeshUtil.quadArr HexMeshConstant.weights1,
             tis = ids
         )
 
         terrain.AddTriangle(
-            [| centerR; m.V4; m.V5 |] |> Array.map catlikeCodingNoise.Perturb,
+            [| centerR; m.V4; m.V5 |] |> Array.map preEnv.Perturb,
             MeshUtil.triArr HexMeshConstant.weights1,
             tis = ids
         )
@@ -657,7 +649,7 @@ module private ChunkTriangulation =
             let riverTotalHeight = planet.Radius + riverHeight
 
             triangulateRiverQuad
-                catlikeCodingNoise
+                preEnv
                 chunk
                 centerL
                 centerR
@@ -669,21 +661,10 @@ module private ChunkTriangulation =
                 reversed
                 ids
 
-            triangulateRiverQuad
-                catlikeCodingNoise
-                chunk
-                m.V2
-                m.V4
-                e.V2
-                e.V4
-                riverTotalHeight
-                riverTotalHeight
-                0.6f
-                reversed
-                ids
+            triangulateRiverQuad preEnv chunk m.V2 m.V4 e.V2 e.V4 riverTotalHeight riverTotalHeight 0.6f reversed ids
 
     let private triangulateRoadEdge
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (centroid: Vector3)
         (mL: Vector3)
@@ -695,14 +676,14 @@ module private ChunkTriangulation =
         chunk
             .GetRoads()
             .AddTriangle(
-                [| centroid; mL; mR |] |> Array.map catlikeCodingNoise.Perturb,
+                [| centroid; mL; mR |] |> Array.map preEnv.Perturb,
                 MeshUtil.triArr HexMeshConstant.weights1,
                 [| Vector2(1f, 0f); Vector2(0f, 0f); Vector2(0f, 0f) |],
                 tis = ids
             )
 
     let private triangulateRoad
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (centroid: Vector3)
         (mL: Vector3)
@@ -716,7 +697,7 @@ module private ChunkTriangulation =
             let mC = mL.Lerp(mR, 0.5f)
 
             triangulateRoadSegment
-                catlikeCodingNoise
+                preEnv
                 chunk
                 mL
                 mC
@@ -731,24 +712,24 @@ module private ChunkTriangulation =
             let roads = chunk.GetRoads()
 
             roads.AddTriangle(
-                [| centroid; mL; mC |] |> Array.map catlikeCodingNoise.Perturb,
+                [| centroid; mL; mC |] |> Array.map preEnv.Perturb,
                 MeshUtil.triArr HexMeshConstant.weights1,
                 [| Vector2(1f, 0f); Vector2(0f, 0f); Vector2(1f, 0f) |],
                 tis = ids
             )
 
             roads.AddTriangle(
-                [| centroid; mC; mR |] |> Array.map catlikeCodingNoise.Perturb,
+                [| centroid; mC; mR |] |> Array.map preEnv.Perturb,
                 MeshUtil.triArr HexMeshConstant.weights1,
                 [| Vector2(1f, 0f); Vector2(1f, 0f); Vector2(0f, 0f) |],
                 tis = ids
             )
         else
-            triangulateRoadEdge catlikeCodingNoise chunk centroid mL mR tileCountId
+            triangulateRoadEdge preEnv chunk centroid mL mR tileCountId
 
     let private triangulateRoadAdjacentToRiver
         (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (tileCountId: TileCountId)
         (tileFlag: TileFlag)
@@ -895,17 +876,17 @@ module private ChunkTriangulation =
             let interpolator = tileFlag.GetRoadInterpolator cornerCount idx
             let mL = roadCenter.Lerp(e.V1, interpolator.X)
             let mR = roadCenter.Lerp(e.V5, interpolator.Y)
-            triangulateRoad catlikeCodingNoise chunk roadCenter mL mR e hasRoadThroughEdge tileCountId
+            triangulateRoad preEnv chunk roadCenter mL mR e hasRoadThroughEdge tileCountId
 
             if previousHasRiver then
-                triangulateRoadEdge catlikeCodingNoise chunk roadCenter centroid mL tileCountId
+                triangulateRoadEdge preEnv chunk roadCenter centroid mL tileCountId
 
             if nextHasRiver then
-                triangulateRoadEdge catlikeCodingNoise chunk roadCenter mR centroid tileCountId
+                triangulateRoadEdge preEnv chunk roadCenter mR centroid tileCountId
 
     let private triangulateAdjacentToRiver
         (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (tileCountId: TileCountId)
         (tileFlag: TileFlag)
@@ -920,7 +901,7 @@ module private ChunkTriangulation =
         if tileFlag.HasRoads then
             triangulateRoadAdjacentToRiver
                 planet
-                catlikeCodingNoise
+                preEnv
                 chunk
                 tileCountId
                 tileFlag
@@ -966,7 +947,7 @@ module private ChunkTriangulation =
         let m = EdgeVertices(centroid.Lerp(e.V1, 0.5f), centroid.Lerp(e.V5, 0.5f))
 
         triangulateEdgeStrip
-            catlikeCodingNoise
+            preEnv
             chunk
             m
             HexMeshConstant.weights1
@@ -977,10 +958,10 @@ module private ChunkTriangulation =
             false
             simple
 
-        triangulateEdgeFan catlikeCodingNoise chunk centroid m tileCountId simple
+        triangulateEdgeFan preEnv chunk centroid m tileCountId simple
 
     let private triangulateWithoutRiver
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (tileCountId: TileCountId)
         (tileFlag: TileFlag)
@@ -990,17 +971,17 @@ module private ChunkTriangulation =
         (e: EdgeVertices)
         (simple: bool)
         =
-        triangulateEdgeFan catlikeCodingNoise chunk centroid e tileCountId simple
+        triangulateEdgeFan preEnv chunk centroid e tileCountId simple
 
         if tileFlag.HasRoads then
             let interpolator = tileFlag.GetRoadInterpolator tileUnitCorners.Length idx
             let mL = centroid.Lerp(e.V1, interpolator.X)
             let mR = centroid.Lerp(e.V5, interpolator.Y)
             let hasRoadThroughEdge = tileFlag.HasRoadThroughEdge idx
-            triangulateRoad catlikeCodingNoise chunk centroid mL mR e hasRoadThroughEdge tileCountId
+            triangulateRoad preEnv chunk centroid mL mR e hasRoadThroughEdge tileCountId
 
     let private triangulateWaterfallInWater
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (v1: Vector3)
         (v2: Vector3)
@@ -1012,16 +993,10 @@ module private ChunkTriangulation =
         (ids: Vector3)
         =
         let t = (waterHeight - height2) / (height1 - height2)
-        let v1 = catlikeCodingNoise.Perturb <| Math3dUtil.ProjectToSphere(v1, height1)
-        let v2 = catlikeCodingNoise.Perturb <| Math3dUtil.ProjectToSphere(v2, height1)
-
-        let v3 =
-            (catlikeCodingNoise.Perturb <| Math3dUtil.ProjectToSphere(v3, height2))
-                .Lerp(v1, t)
-
-        let v4 =
-            (catlikeCodingNoise.Perturb <| Math3dUtil.ProjectToSphere(v4, height2))
-                .Lerp(v2, t)
+        let v1 = preEnv.Perturb <| Math3dUtil.ProjectToSphere(v1, height1)
+        let v2 = preEnv.Perturb <| Math3dUtil.ProjectToSphere(v2, height1)
+        let v3 = (preEnv.Perturb <| Math3dUtil.ProjectToSphere(v3, height2)).Lerp(v1, t)
+        let v4 = (preEnv.Perturb <| Math3dUtil.ProjectToSphere(v4, height2)).Lerp(v2, t)
 
         chunk
             .GetRivers()
@@ -1033,7 +1008,7 @@ module private ChunkTriangulation =
             )
 
     let private triangulateEdgeTerraces
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (beginE: EdgeVertices)
         (beginTileCountId: TileCountId)
@@ -1050,11 +1025,11 @@ module private ChunkTriangulation =
             let w1 = w2
             e2 <- HexMetrics.terraceLerpEdgeV beginE endE i
             w2 <- HexMetrics.terraceLerpColor HexMeshConstant.weights1 HexMeshConstant.weights2 i
-            triangulateEdgeStrip catlikeCodingNoise chunk e1 w1 beginTileCountId e2 w2 endTileCountId hasRoad simple
+            triangulateEdgeStrip preEnv chunk e1 w1 beginTileCountId e2 w2 endTileCountId hasRoad simple
 
     /// 处理高度不同的 beginTile 和两个高度相同的 endTile（即三角形两边是等高阶地，一边是平地）的情况
     let private triangulateCornerTerraces
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (beginV: Vector3)
         (beginTileId: int)
@@ -1080,15 +1055,11 @@ module private ChunkTriangulation =
             w3 <- HexMetrics.terraceLerpColor HexMeshConstant.weights1 HexMeshConstant.weights2 i
             w4 <- HexMetrics.terraceLerpColor HexMeshConstant.weights1 HexMeshConstant.weights3 i
 
-            terrain.AddQuad(
-                [| v1; v2; v3; v4 |] |> Array.map catlikeCodingNoise.Perturb,
-                [| w1; w2; w3; w4 |],
-                tis = ids
-            )
+            terrain.AddQuad([| v1; v2; v3; v4 |] |> Array.map preEnv.Perturb, [| w1; w2; w3; w4 |], tis = ids)
 
     /// 阶地和悬崖中间的半三角形
     let private triangulateBoundaryTriangle
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (beginV: Vector3)
         (beginWeight: Color)
@@ -1098,20 +1069,20 @@ module private ChunkTriangulation =
         (boundaryWeight: Color)
         (ids: Vector3)
         =
-        let mutable v2 = catlikeCodingNoise.Perturb beginV
+        let mutable v2 = preEnv.Perturb beginV
         let mutable w2 = beginWeight
         let terrain = chunk.GetTerrain()
 
         for i in 1 .. HexMetrics.terraceSteps do
             let v1 = v2
             let w1 = w2
-            v2 <- catlikeCodingNoise.Perturb <| HexMetrics.terraceLerp beginV leftV i
+            v2 <- preEnv.Perturb <| HexMetrics.terraceLerp beginV leftV i
             w2 <- HexMetrics.terraceLerpColor beginWeight leftWeight i
             terrain.AddTriangle([| v1; v2; boundaryV |], [| w1; w2; boundaryWeight |], tis = ids)
 
     /// 三角形靠近 tile 的左边是阶地，右边是悬崖，另一边任意的情况
     let private triangulateCornerTerracesCliff
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (beginV: Vector3)
         (beginTileId: int)
@@ -1124,15 +1095,12 @@ module private ChunkTriangulation =
         (rightValue: TileValue)
         =
         let b = 1f / Mathf.Abs(float32 <| rightValue.Elevation - beginValue.Elevation)
-
-        let boundary =
-            catlikeCodingNoise.Perturb(beginV).Lerp(catlikeCodingNoise.Perturb(rightV), b)
-
+        let boundary = preEnv.Perturb(beginV).Lerp(preEnv.Perturb(rightV), b)
         let boundaryWeights = HexMeshConstant.weights1.Lerp(HexMeshConstant.weights3, b)
         let ids = Vector3(float32 beginTileId, float32 leftTileId, float32 rightTileId)
 
         triangulateBoundaryTriangle
-            catlikeCodingNoise
+            preEnv
             chunk
             beginV
             HexMeshConstant.weights1
@@ -1144,7 +1112,7 @@ module private ChunkTriangulation =
 
         if HexMetrics.getEdgeType leftValue.Elevation rightValue.Elevation = HexEdgeType.Slope then
             triangulateBoundaryTriangle
-                catlikeCodingNoise
+                preEnv
                 chunk
                 leftV
                 HexMeshConstant.weights2
@@ -1157,16 +1125,14 @@ module private ChunkTriangulation =
             chunk
                 .GetTerrain()
                 .AddTriangle(
-                    [| catlikeCodingNoise.Perturb leftV
-                       catlikeCodingNoise.Perturb rightV
-                       boundary |],
+                    [| preEnv.Perturb leftV; preEnv.Perturb rightV; boundary |],
                     [| HexMeshConstant.weights2; HexMeshConstant.weights3; boundaryWeights |],
                     tis = ids
                 )
 
     /// 三角形靠近 tile 的左边是悬崖，右边是阶地，另一边任意的情况
     let private triangulateCornerCliffTerraces
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (beginV: Vector3)
         (beginTileId: int)
@@ -1179,15 +1145,12 @@ module private ChunkTriangulation =
         (rightValue: TileValue)
         =
         let b = 1f / Mathf.Abs(float32 <| leftValue.Elevation - beginValue.Elevation)
-
-        let boundary =
-            catlikeCodingNoise.Perturb(beginV).Lerp(catlikeCodingNoise.Perturb(leftV), b)
-
+        let boundary = preEnv.Perturb(beginV).Lerp(preEnv.Perturb(leftV), b)
         let boundaryWeights = HexMeshConstant.weights1.Lerp(HexMeshConstant.weights2, b)
         let ids = Vector3(float32 beginTileId, float32 leftTileId, float32 rightTileId)
 
         triangulateBoundaryTriangle
-            catlikeCodingNoise
+            preEnv
             chunk
             rightV
             HexMeshConstant.weights3
@@ -1199,7 +1162,7 @@ module private ChunkTriangulation =
 
         if HexMetrics.getEdgeType leftValue.Elevation rightValue.Elevation = HexEdgeType.Slope then
             triangulateBoundaryTriangle
-                catlikeCodingNoise
+                preEnv
                 chunk
                 leftV
                 HexMeshConstant.weights2
@@ -1212,16 +1175,14 @@ module private ChunkTriangulation =
             chunk
                 .GetTerrain()
                 .AddTriangle(
-                    [| catlikeCodingNoise.Perturb leftV
-                       catlikeCodingNoise.Perturb rightV
-                       boundary |],
+                    [| preEnv.Perturb leftV; preEnv.Perturb rightV; boundary |],
                     [| HexMeshConstant.weights2; HexMeshConstant.weights3; boundaryWeights |],
                     tis = ids
                 )
 
     /// 需要保证入参 bottom -> left -> right 是顺时针
     let private triangulateCorner
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (chunkLod: ChunkLodEnum)
         (bottom: Vector3)
@@ -1240,28 +1201,12 @@ module private ChunkTriangulation =
         if chunkLod > ChunkLodEnum.SimpleHex then
             if edgeType1 = HexEdgeType.Slope then
                 if edgeType2 = HexEdgeType.Slope then
-                    triangulateCornerTerraces
-                        catlikeCodingNoise
-                        chunk
-                        bottom
-                        bottomTileId
-                        left
-                        leftTileId
-                        right
-                        rightTileId
+                    triangulateCornerTerraces preEnv chunk bottom bottomTileId left leftTileId right rightTileId
                 elif edgeType2 = HexEdgeType.Flat then
-                    triangulateCornerTerraces
-                        catlikeCodingNoise
-                        chunk
-                        left
-                        leftTileId
-                        right
-                        rightTileId
-                        bottom
-                        bottomTileId
+                    triangulateCornerTerraces preEnv chunk left leftTileId right rightTileId bottom bottomTileId
                 else
                     triangulateCornerTerracesCliff
-                        catlikeCodingNoise
+                        preEnv
                         chunk
                         bottom
                         bottomTileId
@@ -1274,18 +1219,10 @@ module private ChunkTriangulation =
                         rightValue
             elif edgeType2 = HexEdgeType.Slope then
                 if edgeType1 = HexEdgeType.Flat then
-                    triangulateCornerTerraces
-                        catlikeCodingNoise
-                        chunk
-                        right
-                        rightTileId
-                        bottom
-                        bottomTileId
-                        left
-                        leftTileId
+                    triangulateCornerTerraces preEnv chunk right rightTileId bottom bottomTileId left leftTileId
                 else
                     triangulateCornerCliffTerraces
-                        catlikeCodingNoise
+                        preEnv
                         chunk
                         bottom
                         bottomTileId
@@ -1299,7 +1236,7 @@ module private ChunkTriangulation =
             elif HexMetrics.getEdgeType leftValue.Elevation rightValue.Elevation = HexEdgeType.Slope then
                 if leftValue.Elevation < rightValue.Elevation then
                     triangulateCornerCliffTerraces
-                        catlikeCodingNoise
+                        preEnv
                         chunk
                         right
                         rightTileId
@@ -1312,7 +1249,7 @@ module private ChunkTriangulation =
                         leftValue
                 else
                     triangulateCornerTerracesCliff
-                        catlikeCodingNoise
+                        preEnv
                         chunk
                         left
                         leftTileId
@@ -1327,7 +1264,7 @@ module private ChunkTriangulation =
                 chunk
                     .GetTerrain()
                     .AddTriangle(
-                        [| bottom; left; right |] |> Array.map catlikeCodingNoise.Perturb,
+                        [| bottom; left; right |] |> Array.map preEnv.Perturb,
                         [| HexMeshConstant.weights1
                            HexMeshConstant.weights2
                            HexMeshConstant.weights3 |],
@@ -1337,7 +1274,7 @@ module private ChunkTriangulation =
             chunk
                 .GetTerrain()
                 .AddTriangle(
-                    [| bottom; left; right |] |> Array.map catlikeCodingNoise.Perturb,
+                    [| bottom; left; right |] |> Array.map preEnv.Perturb,
                     [| HexMeshConstant.weights1
                        HexMeshConstant.weights2
                        HexMeshConstant.weights3 |],
@@ -1346,7 +1283,7 @@ module private ChunkTriangulation =
 
     let private triangulateConnection
         (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (store: EntityStore)
         (repoEnv: #IPointQuery)
         (chunk: IChunk)
@@ -1359,13 +1296,11 @@ module private ChunkTriangulation =
         let tileValue = tile.GetComponent<TileValue>()
         let tileFlag = tile.GetComponent<TileFlag>()
         let tileUnitCentroid = tile.GetComponent<TileUnitCentroid>()
-        let tileHeight = catlikeCodingNoise.GetHeight(tileValue, tileUnitCentroid)
+        let tileHeight = preEnv.GetHeight tileValue tileUnitCentroid
         let neighbor = repoEnv.GetNeighborByIdAndIdx tileId idx |> Option.get
         let neighborValue = neighbor.GetComponent<TileValue>()
         let neighborUnitCentroid = neighbor.GetComponent<TileUnitCentroid>()
-
-        let neighborHeight =
-            catlikeCodingNoise.GetHeight(neighborValue, neighborUnitCentroid)
+        let neighborHeight = preEnv.GetHeight neighborValue neighborUnitCentroid
         // 连接将由更低的地块或相同高度时 Id 更大的地块生成，或者是编辑地块与非编辑地块间的连接
         if
             tileHeight > neighborHeight
@@ -1418,7 +1353,7 @@ module private ChunkTriangulation =
                         let reversed = tileFlag.HasIncomingRiver && tileFlag.HasIncomingRiverThoughEdge idx
 
                         triangulateRiverQuad
-                            catlikeCodingNoise
+                            preEnv
                             chunk
                             e.V2
                             e.V4
@@ -1434,7 +1369,7 @@ module private ChunkTriangulation =
                             planet.Radius + neighborValue.WaterSurfaceY planet.UnitHeight
 
                         triangulateWaterfallInWater
-                            catlikeCodingNoise
+                            preEnv
                             chunk
                             e.V2
                             e.V4
@@ -1448,7 +1383,7 @@ module private ChunkTriangulation =
                     let tileWaterHeight = planet.Radius + tileValue.WaterSurfaceY planet.UnitHeight
 
                     triangulateWaterfallInWater
-                        catlikeCodingNoise
+                        preEnv
                         chunk
                         en.V4
                         en.V2
@@ -1467,18 +1402,10 @@ module private ChunkTriangulation =
                 chunkLod > ChunkLodEnum.SimpleHex
                 && tileValue.GetEdgeType neighborValue = HexEdgeType.Slope
             then
-                triangulateEdgeTerraces
-                    catlikeCodingNoise
-                    chunk
-                    e
-                    tileCountId
-                    en
-                    neighborCountId
-                    hasRoad
-                    (not hasRiver && simple)
+                triangulateEdgeTerraces preEnv chunk e tileCountId en neighborCountId hasRoad (not hasRiver && simple)
             else
                 triangulateEdgeStrip
-                    catlikeCodingNoise
+                    preEnv
                     chunk
                     e
                     HexMeshConstant.weights1
@@ -1490,14 +1417,10 @@ module private ChunkTriangulation =
                     (not hasRiver && simple)
 
             let preIdx = HexIndexUtil.previousIdx tileFaceIds.Length idx
-
             let preNeighbor = repoEnv.GetNeighborByIdAndIdx tileId preIdx |> Option.get
-
             let preNeighborValue = preNeighbor.GetComponent<TileValue>()
             let preNeighborUnitCentroid = preNeighbor.GetComponent<TileUnitCentroid>()
-
-            let preNeighborHeight =
-                catlikeCodingNoise.GetHeight(preNeighborValue, preNeighborUnitCentroid)
+            let preNeighborHeight = preEnv.GetHeight preNeighborValue preNeighborUnitCentroid
             // 连接角落的三角形由周围 3 个地块中最低或者一样高时 Id 最大的生成，或者是编辑地块与非编辑地块间的连接三角形
             if
                 tileHeight < preNeighborHeight
@@ -1512,7 +1435,7 @@ module private ChunkTriangulation =
                     )
 
                 triangulateCorner
-                    catlikeCodingNoise
+                    preEnv
                     chunk
                     chunkLod
                     e.V1
@@ -1526,7 +1449,7 @@ module private ChunkTriangulation =
                     neighborValue
 
     let private triangulateEstuary
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (e1: EdgeVertices)
         (e2: EdgeVertices)
@@ -1537,7 +1460,7 @@ module private ChunkTriangulation =
         let estuary = chunk.GetEstuary()
 
         waterShore.AddTriangle(
-            [| e2.V1; e1.V2; e1.V1 |] |> Array.map catlikeCodingNoise.Perturb,
+            [| e2.V1; e1.V2; e1.V1 |] |> Array.map preEnv.Perturb,
             [| HexMeshConstant.weights2
                HexMeshConstant.weights1
                HexMeshConstant.weights1 |],
@@ -1546,7 +1469,7 @@ module private ChunkTriangulation =
         )
 
         waterShore.AddTriangle(
-            [| e2.V5; e1.V5; e1.V4 |] |> Array.map catlikeCodingNoise.Perturb,
+            [| e2.V5; e1.V5; e1.V4 |] |> Array.map preEnv.Perturb,
             [| HexMeshConstant.weights2
                HexMeshConstant.weights1
                HexMeshConstant.weights1 |],
@@ -1555,7 +1478,7 @@ module private ChunkTriangulation =
         )
 
         estuary.AddQuad(
-            [| e2.V1; e1.V2; e2.V2; e1.V3 |] |> Array.map catlikeCodingNoise.Perturb,
+            [| e2.V1; e1.V2; e2.V2; e1.V3 |] |> Array.map preEnv.Perturb,
             [| HexMeshConstant.weights2
                HexMeshConstant.weights1
                HexMeshConstant.weights2
@@ -1575,7 +1498,7 @@ module private ChunkTriangulation =
         )
 
         estuary.AddTriangle(
-            [| e1.V3; e2.V2; e2.V4 |] |> Array.map catlikeCodingNoise.Perturb,
+            [| e1.V3; e2.V2; e2.V4 |] |> Array.map preEnv.Perturb,
             [| HexMeshConstant.weights1
                HexMeshConstant.weights2
                HexMeshConstant.weights2 |],
@@ -1588,7 +1511,7 @@ module private ChunkTriangulation =
         )
 
         estuary.AddQuad(
-            [| e1.V3; e1.V4; e2.V4; e2.V5 |] |> Array.map catlikeCodingNoise.Perturb,
+            [| e1.V3; e1.V4; e2.V4; e2.V5 |] |> Array.map preEnv.Perturb,
             MeshUtil.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
             [| Vector2(0f, 0f); Vector2(0f, 0f); Vector2(1f, 1f); Vector2(0f, 1f) |],
             (if incomingRiver then
@@ -1606,7 +1529,7 @@ module private ChunkTriangulation =
 
     let private triangulateWaterShore
         (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (store: EntityStore)
         (repoEnv: #IPointQuery)
         (chunk: IChunk)
@@ -1635,7 +1558,7 @@ module private ChunkTriangulation =
 
         let addWaterTriangle verticesArr =
             water.AddTriangle(
-                verticesArr |> Array.map catlikeCodingNoise.Perturb,
+                verticesArr |> Array.map preEnv.Perturb,
                 MeshUtil.triArr HexMeshConstant.weights1,
                 tis = ids
             )
@@ -1680,7 +1603,7 @@ module private ChunkTriangulation =
 
         let addWaterShoreQuad verticesArr =
             waterShore.AddQuad(
-                verticesArr |> Array.map catlikeCodingNoise.Perturb,
+                verticesArr |> Array.map preEnv.Perturb,
                 MeshUtil.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
                 MeshUtil.quadUv 0f 0f 0f 1f,
                 tis = ids
@@ -1689,7 +1612,7 @@ module private ChunkTriangulation =
         if simple then
             addWaterShoreQuad [| e1.V1; e1.V5; e2.V1; e2.V5 |]
         elif tileFlag.HasRiverThroughEdge neighborIdx then
-            triangulateEstuary catlikeCodingNoise chunk e1 e2 (tileFlag.HasIncomingRiverThoughEdge neighborIdx) ids
+            triangulateEstuary preEnv chunk e1 e2 (tileFlag.HasIncomingRiverThoughEdge neighborIdx) ids
         else
             addWaterShoreQuad [| e1.V1; e1.V2; e2.V1; e2.V2 |]
             addWaterShoreQuad [| e1.V2; e1.V3; e2.V2; e2.V3 |]
@@ -1721,7 +1644,7 @@ module private ChunkTriangulation =
         chunk
             .GetWaterShore()
             .AddTriangle(
-                [| e1.V5; e2.V5; cnn |] |> Array.map catlikeCodingNoise.Perturb,
+                [| e1.V5; e2.V5; cnn |] |> Array.map preEnv.Perturb,
                 [| HexMeshConstant.weights1
                    HexMeshConstant.weights2
                    HexMeshConstant.weights3 |],
@@ -1733,7 +1656,7 @@ module private ChunkTriangulation =
 
     let private triangulateOpenWater
         (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (store: EntityStore)
         (repoEnv: #IPointQuery)
         (chunk: IChunk)
@@ -1758,7 +1681,7 @@ module private ChunkTriangulation =
         let water = chunk.GetWater()
 
         water.AddTriangle(
-            [| centroid; c1; c2 |] |> Array.map catlikeCodingNoise.Perturb,
+            [| centroid; c1; c2 |] |> Array.map preEnv.Perturb,
             MeshUtil.triArr HexMeshConstant.weights1,
             tis = ids
         )
@@ -1794,7 +1717,7 @@ module private ChunkTriangulation =
             ids.Y <- float32 neighborCountId.CountId
 
             water.AddQuad(
-                [| c1; c2; cn1; cn2 |] |> Array.map catlikeCodingNoise.Perturb,
+                [| c1; c2; cn1; cn2 |] |> Array.map preEnv.Perturb,
                 MeshUtil.quad2Arr HexMeshConstant.weights1 HexMeshConstant.weights2,
                 tis = ids
             )
@@ -1820,7 +1743,7 @@ module private ChunkTriangulation =
                 ids.Z <- float32 nextNeighborCountId.CountId
 
                 water.AddTriangle(
-                    [| c2; cn2; cnn |] |> Array.map catlikeCodingNoise.Perturb,
+                    [| c2; cn2; cnn |] |> Array.map preEnv.Perturb,
                     [| HexMeshConstant.weights1
                        HexMeshConstant.weights2
                        HexMeshConstant.weights3 |],
@@ -1829,7 +1752,7 @@ module private ChunkTriangulation =
 
     let private triangulateWater
         (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (store: EntityStore)
         (repoEnv: #IPointQuery)
         (chunk: IChunk)
@@ -1846,35 +1769,14 @@ module private ChunkTriangulation =
         let neighborValue = neighbor.GetComponent<TileValue>()
 
         if not neighborValue.IsUnderwater then
-            triangulateWaterShore
-                planet
-                catlikeCodingNoise
-                store
-                repoEnv
-                chunk
-                tileId
-                neighbor.Id
-                centroid
-                idx
-                waterHeight
-                simple
+            triangulateWaterShore planet preEnv store repoEnv chunk tileId neighbor.Id centroid idx waterHeight simple
         else
-            triangulateOpenWater
-                planet
-                catlikeCodingNoise
-                store
-                repoEnv
-                chunk
-                tileId
-                neighbor.Id
-                centroid
-                idx
-                waterHeight
+            triangulateOpenWater planet preEnv store repoEnv chunk tileId neighbor.Id centroid idx waterHeight
 
     /// Godot 缠绕顺序是正面顺时针，所以从 i1 对应角落到 i2 对应角落相对于 tile 重心需要是顺时针
     let private triangulateHex
         (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (store: EntityStore)
         (repoEnv: #IPointQuery)
         (chunk: IChunk)
@@ -1886,7 +1788,7 @@ module private ChunkTriangulation =
         let tileUnitCorners = tile.GetComponent<TileUnitCorners>()
         let tileValue = tile.GetComponent<TileValue>()
         let tileUnitCentroid = tile.GetComponent<TileUnitCentroid>()
-        let height = catlikeCodingNoise.GetHeight(tileValue, tileUnitCentroid)
+        let height = preEnv.GetHeight tileValue tileUnitCentroid
 
         let v1 =
             tileUnitCorners.GetFirstSolidCorner(tileUnitCentroid.UnitCentroid, idx, planet.Radius + height)
@@ -1922,19 +1824,11 @@ module private ChunkTriangulation =
                 e.V3 <- Math3dUtil.ProjectToSphere(e.V3, planet.Radius + tileValue.StreamBedY planet.UnitHeight)
 
                 if tileFlag.HasRiverBeginOrEnd then
-                    triangulateWithRiverBeginOrEnd
-                        planet
-                        catlikeCodingNoise
-                        chunk
-                        tileCountId
-                        tileValue
-                        tileFlag
-                        centroid
-                        e
+                    triangulateWithRiverBeginOrEnd planet preEnv chunk tileCountId tileValue tileFlag centroid e
                 else
                     triangulateWithRiver
                         planet
-                        catlikeCodingNoise
+                        preEnv
                         chunk
                         tileCountId
                         tileValue
@@ -1948,7 +1842,7 @@ module private ChunkTriangulation =
             else
                 triangulateAdjacentToRiver
                     planet
-                    catlikeCodingNoise
+                    preEnv
                     chunk
                     tileCountId
                     tileFlag
@@ -1960,16 +1854,16 @@ module private ChunkTriangulation =
                     e
                     simple
         else
-            triangulateWithoutRiver catlikeCodingNoise chunk tileCountId tileFlag tileUnitCorners idx centroid e simple
+            triangulateWithoutRiver preEnv chunk tileCountId tileFlag tileUnitCorners idx centroid e simple
 
-        triangulateConnection planet catlikeCodingNoise store repoEnv chunk tileId idx e simple
+        triangulateConnection planet preEnv store repoEnv chunk tileId idx e simple
 
         if tileValue.IsUnderwater then
-            triangulateWater planet catlikeCodingNoise store repoEnv chunk tileId idx centroid simple
+            triangulateWater planet preEnv store repoEnv chunk tileId idx centroid simple
 
     let triangulate
         (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (store: EntityStore)
         (repoEnv: #IPointQuery)
         (chunk: IChunk)
@@ -1981,14 +1875,14 @@ module private ChunkTriangulation =
         let chunkLod = tileChunk.GetComponent<ChunkLod>().Lod
 
         if chunkLod = ChunkLodEnum.JustHex then
-            triangulateJustHex planet catlikeCodingNoise store repoEnv chunk tileId
+            triangulateJustHex planet preEnv store repoEnv chunk tileId
         elif chunkLod = ChunkLodEnum.PlaneHex then
-            triangulatePlaneHex planet catlikeCodingNoise store repoEnv chunk tileId
+            triangulatePlaneHex planet preEnv store repoEnv chunk tileId
         else
             let tileFaceIds = tile.GetComponent<TileHexFaceIds>()
 
             for i in 0 .. tileFaceIds.Length - 1 do
-                triangulateHex planet catlikeCodingNoise store repoEnv chunk tileId i
+                triangulateHex planet preEnv store repoEnv chunk tileId i
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
@@ -2093,7 +1987,7 @@ module HexGridChunkService =
 
     let onHexGridChunkProcessed
         (planet: IPlanet)
-        (catlikeCodingNoise: ICatlikeCodingNoise)
+        (preEnv: #ICatlikeCodingNoiseQuery)
         (lodMeshCache: LodMeshCache)
         (store: EntityStore)
         (repoEnv: #IPointQuery)
@@ -2107,7 +2001,7 @@ module HexGridChunkService =
                     .Query<TileChunkId>()
                     .HasValue<TileChunkId, ChunkId>(instance.Id)
                     .ForEachEntity(fun tileChunkId tileEntity ->
-                        ChunkTriangulation.triangulate planet catlikeCodingNoise store repoEnv instance tileEntity.Id)
+                        ChunkTriangulation.triangulate planet preEnv store repoEnv instance tileEntity.Id)
 
                 instance.ApplyNewData()
 

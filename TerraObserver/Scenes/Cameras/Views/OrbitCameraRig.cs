@@ -1,7 +1,7 @@
 using System;
 using Godot;
 using TO.Abstractions.Cameras;
-using TO.Presenters.Views;
+using TO.Presenters.Views.Cameras;
 
 namespace TerraObserver.Scenes.Cameras.Views;
 
@@ -11,6 +11,15 @@ namespace TerraObserver.Scenes.Cameras.Views;
 [Tool]
 public partial class OrbitCameraRig : OrbitCameraRigFS, IOrbitCameraRig
 {
+    #region 生命周期
+
+    // 需要忽略 IDE 省略 partial、_Ready 等的提示，必须保留它们
+    public override void _Ready() => base._Ready();
+    public override void _Process(double delta) => base._Process(delta);
+    public override void _UnhandledInput(InputEvent @event) => base._UnhandledInput(@event);
+
+    #endregion
+
     #region 事件与 Export 属性
 
     public event Action<float>? Processed;
@@ -50,15 +59,6 @@ public partial class OrbitCameraRig : OrbitCameraRigFS, IOrbitCameraRig
     // 自动导航速度。该值的倒数，对应自动移动时间：比如 2f 对应 0.5s 抵达
     [Export(PropertyHint.Range, "0.01, 10")]
     public override float AutoPilotSpeed { get; set; } = 1f;
-
-    #endregion
-
-    #region 生命周期
-
-    // 需要忽略 IDE 省略 partial、_Ready 等的提示，必须保留它们
-    public override void _Ready() => base._Ready();
-    public override void _Process(double delta) => base._Process(delta);
-    public override void _UnhandledInput(InputEvent @event) => base._UnhandledInput(@event);
 
     #endregion
 }

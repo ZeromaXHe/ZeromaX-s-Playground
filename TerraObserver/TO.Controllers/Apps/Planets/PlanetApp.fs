@@ -30,7 +30,7 @@ type PlanetApp
     let tileSearcher = TileSearcher()
     let lodMeshCache = LodMeshCache()
     let repoEnv = PlanetRepoEnv(store, chunkyVpTrees)
-    let preEnv = PlanetPreEnv(planet, cameraRig)
+    let preEnv = PlanetPreEnv(planet, catlikeCodingNoise, cameraRig)
     let orbitCameraRigCommand = preEnv :> IOrbitCameraRigCommand
     member this.InitOrbitCameraRig() = orbitCameraRigCommand.Reset()
 
@@ -52,7 +52,7 @@ type PlanetApp
         HexGridChunkService.onChunkLoaderProcessed chunkLoader lodMeshCache store repoEnv
 
     member this.OnHexGridChunkProcessed(chunk: IHexGridChunk) =
-        HexGridChunkService.onHexGridChunkProcessed planet catlikeCodingNoise lodMeshCache store repoEnv chunk
+        HexGridChunkService.onHexGridChunkProcessed planet preEnv lodMeshCache store repoEnv chunk
 
     member this.UpdateInsightChunks() =
         HexGridChunkService.updateInsightChunks chunkLoader store

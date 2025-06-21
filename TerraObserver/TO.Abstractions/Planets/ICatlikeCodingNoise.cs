@@ -1,6 +1,5 @@
 using Godot;
 using Godot.Abstractions.Bases;
-using TO.Domains.Components.HexSpheres.Tiles;
 
 namespace TO.Abstractions.Planets;
 
@@ -9,6 +8,5 @@ namespace TO.Abstractions.Planets;
 /// Date: 2025-06-06 17:20:06
 public interface ICatlikeCodingNoise : IResource
 {
-    Vector3 Perturb(Vector3 position);
-    float GetHeight(TileValue tileValue, TileUnitCentroid tileUnitCentroid);
+    Image? NoiseSourceImage { get; }
 }
