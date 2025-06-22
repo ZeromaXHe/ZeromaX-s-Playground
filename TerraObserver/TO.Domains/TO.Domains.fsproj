@@ -32,6 +32,7 @@
         <Compile Include="Utils\HexSpheres\HexMetrics.fs"/>
         <Compile Include="Utils\HexSpheres\HexSphereUtil.fs"/>
         <Compile Include="Utils\HexSpheres\HexIndexUtil.fs"/>
+        <Compile Include="Utils\Chunks\ChunkLodUtil.fs" />
         <Compile Include="Components\HexSpheres\Points\PointComponent.fs"/>
         <Compile Include="Components\HexSpheres\Points\PointCenterId.fs"/>
         <Compile Include="Components\HexSpheres\Points\PointNeighborCenterIds.fs"/>

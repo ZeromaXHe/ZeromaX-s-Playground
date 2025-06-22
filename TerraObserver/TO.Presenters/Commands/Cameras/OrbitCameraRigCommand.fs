@@ -1,8 +1,8 @@
 namespace TO.Presenters.Commands.Cameras
 
 open Godot
-open TO.Abstractions.Cameras
-open TO.Abstractions.Planets
+open TO.Abstractions.Views.Cameras
+open TO.Abstractions.Models.Planets
 
 type OnOrbitCameraRigZoomChanged = unit -> unit
 type OnOrbitCameraRigPlanetParamsChanged = unit -> unit

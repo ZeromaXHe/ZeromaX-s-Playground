@@ -1,7 +1,7 @@
 using Godot;
 using Godot.Abstractions.Bases;
 
-namespace TO.Abstractions.Planets;
+namespace TO.Abstractions.Models.Planets;
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)

@@ -1,7 +1,7 @@
 using Godot;
 using Godot.Abstractions.Bases;
 
-namespace TO.Abstractions.Geos;
+namespace TO.Abstractions.Views.Geos;
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)

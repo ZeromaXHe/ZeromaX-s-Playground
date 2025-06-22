@@ -1,7 +1,7 @@
 namespace TO.Controllers.Services.Planets
 
 open Friflo.Engine.ECS
-open TO.Abstractions.Planets
+open TO.Abstractions.Models.Planets
 open TO.Domains.Components.HexSpheres.Tiles
 open TO.Repos.Commands.HexSpheres
 open TO.Repos.Data.PathFindings

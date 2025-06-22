@@ -1,6 +1,6 @@
 using System;
 using Godot;
-using TO.Abstractions.Planets;
+using TO.Abstractions.Models.Planets;
 using TO.Presenters.Models.Planets;
 
 namespace TerraObserver.Scenes.Planets.Models;

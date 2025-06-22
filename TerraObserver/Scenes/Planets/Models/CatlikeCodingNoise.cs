@@ -1,9 +1,5 @@
 using Godot;
-using TO.Abstractions.Planets;
-using TO.Domains.Components.HexSpheres.Tiles;
-using TO.Domains.Structs.Tiles;
-using TO.Domains.Utils.Commons;
-using TO.Domains.Utils.HexSpheres;
+using TO.Abstractions.Models.Planets;
 using TO.Presenters.Models.Planets;
 
 namespace TerraObserver.Scenes.Planets.Models;
@@ -34,6 +30,7 @@ public partial class CatlikeCodingNoise : CatlikeCodingNoiseFS, ICatlikeCodingNo
 
     private Texture2D? _noiseSource;
 
+    [ExportGroup("哈希配置")]
     [Export]
     public override ulong Seed
     {

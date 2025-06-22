@@ -1,6 +1,6 @@
 using System;
 using Godot;
-using TO.Abstractions.Cameras;
+using TO.Abstractions.Views.Cameras;
 using TO.Presenters.Views.Cameras;
 
 namespace TerraObserver.Scenes.Cameras.Views;
@@ -20,7 +20,7 @@ public partial class OrbitCameraRig : OrbitCameraRigFS, IOrbitCameraRig
 
     #endregion
 
-    #region 事件与 Export 属性
+    #region 事件
 
     public event Action<float>? Processed;
     public override void EmitProcessed(float delta) => Processed?.Invoke(delta);
@@ -30,6 +30,11 @@ public partial class OrbitCameraRig : OrbitCameraRigFS, IOrbitCameraRig
     public void EmitMoved(Vector3 pos, float delta) => Moved?.Invoke(pos, delta);
     public event IOrbitCameraRig.TransformedEvent? Transformed;
     public override void EmitTransformed(Transform3D trans, float delta) => Transformed?.Invoke(trans, delta);
+
+    #endregion
+
+    #region Export 属性
+
     [Export] public override Camera3D? Camera { get; set; } // 设置摄像机节点
 
     [Export(PropertyHint.Range, "0.01, 10")]

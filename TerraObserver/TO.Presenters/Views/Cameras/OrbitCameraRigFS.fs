@@ -10,11 +10,20 @@ type OrbitCameraRigFS() =
     inherit Node3D()
     let mutable ready = false
     let mutable zoom = 1f
-    // 事件
+    // =====【on-ready】=====
+    let mutable focusBase: Node3D = null
+    let mutable focusBox: CsgBox3D = null
+    let mutable focusBackStick: Node3D = null
+    let mutable backBox: CsgBox3D = null
+    let mutable light: SpotLight3D = null
+    let mutable swivel: Node3D = null
+    let mutable stick: Node3D = null
+    let mutable camRig: RemoteTransform3D = null
+    // =====【事件】=====
     abstract EmitZoomChanged: unit -> unit
     abstract EmitProcessed: float32 -> unit
     abstract EmitTransformed: Transform3D * float32 -> unit
-    // Export
+    // =====【Export】=====
     abstract Camera: Camera3D with get, set // 设置摄像机节点
     abstract StickMinZoom: float32 with get, set
     abstract StickMaxZoom: float32 with get, set
@@ -25,15 +34,15 @@ type OrbitCameraRigFS() =
     abstract RotationSpeed: float32 with get, set
     abstract Sun: Node3D with get, set
     abstract AutoPilotSpeed: float32 with get, set
-    // 外部属性
-    member val FocusBase: Node3D = null with get, set
-    member val FocusBox: CsgBox3D = null with get, set
-    member val FocusBackStick: Node3D = null with get, set
-    member val BackBox: CsgBox3D = null with get, set
-    member val Light: SpotLight3D = null with get, set
-    member val Swivel: Node3D = null with get, set
-    member val Stick: Node3D = null with get, set
-    member val CamRig: RemoteTransform3D = null with get, set
+    // =====【属性】=====
+    member this.FocusBase: Node3D = focusBase
+    member this.FocusBox: CsgBox3D = focusBox
+    member this.FocusBackStick: Node3D = focusBackStick
+    member this.BackBox: CsgBox3D = backBox
+    member this.Light: SpotLight3D = light
+    member this.Swivel: Node3D = swivel
+    member this.Stick: Node3D = stick
+    member this.CamRig: RemoteTransform3D = camRig
 
     member this.Zoom
         with get () = zoom
@@ -47,16 +56,16 @@ type OrbitCameraRigFS() =
     member val AutoPilotProgress = 0f with get, set
     member val FromDirection = Vector3.Zero with get, set
     member val DestinationDirection = Vector3.Zero with get, set
-
+    // =====【生命周期】=====
     override this._Ready() : unit =
-        this.FocusBase <- this.GetNode<Node3D>("%FocusBase")
-        this.FocusBox <- this.GetNode<CsgBox3D>("%FocusBox")
-        this.FocusBackStick <- this.GetNode<Node3D>("%FocusBackStick")
-        this.BackBox <- this.GetNode<CsgBox3D>("%BackBox")
-        this.Light <- this.GetNode<SpotLight3D>("%Light")
-        this.Swivel <- this.GetNode<Node3D>("%Swivel")
-        this.Stick <- this.GetNode<Node3D>("%Stick")
-        this.CamRig <- this.GetNode<RemoteTransform3D>("%CamRig")
+        focusBase <- this.GetNode<Node3D>("%FocusBase")
+        focusBox <- this.GetNode<CsgBox3D>("%FocusBox")
+        focusBackStick <- this.GetNode<Node3D>("%FocusBackStick")
+        backBox <- this.GetNode<CsgBox3D>("%BackBox")
+        light <- this.GetNode<SpotLight3D>("%Light")
+        swivel <- this.GetNode<Node3D>("%Swivel")
+        stick <- this.GetNode<Node3D>("%Stick")
+        camRig <- this.GetNode<RemoteTransform3D>("%CamRig")
 
         if this.Camera <> null then
             this.CamRig.RemotePath <- this.CamRig.GetPathTo this.Camera

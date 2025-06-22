@@ -14,10 +14,10 @@ type CatlikeCodingNoiseFS() =
     let hashGridSize = 256
     let hashGrid = Array.zeroCreate<HexHash> <| hashGridSize * hashGridSize
     let rng = new RandomNumberGenerator()
-    // Export
+    // =====【Export】=====
     abstract NoiseSource: Texture2D with get, set
     abstract Seed: uint64 with get, set
-    // 外部属性
+    // =====【属性】=====
     member val NoiseSourceImage: Image = null with get, set
 
     member this.InitializeHashGrid(seed: uint64) =

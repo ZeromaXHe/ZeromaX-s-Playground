@@ -4,7 +4,7 @@ using Godot;
 using Godot.Abstractions.Bases;
 using TO.Domains.Enums.HexSpheres.Chunks;
 
-namespace TO.Abstractions.Chunks;
+namespace TO.Abstractions.Views.Chunks;
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
@@ -26,10 +26,9 @@ public interface IChunkLoader : INode3D
 
     Stopwatch Stopwatch { get; }
 
+    void ClearOldData();
     void AddUsingChunk(int chunkId, IHexGridChunk chunk);
     bool TryGetUsingChunk(int chunkId, [MaybeNullWhen(false)] out IHexGridChunk chunk);
     IHexGridChunk GetUnusedChunk();
     void HideChunk(int chunkId);
-    ChunkLodEnum CalcLod(float distance);
-    bool IsChunkInsight(Vector3 chunkPos, Camera3D camera);
 }

@@ -11,13 +11,13 @@ open TO.Domains.Utils.HexSpheres
 type PlanetFS() =
     inherit Resource()
     let maxHeightRadiusRatio = 0.2f
-    // 事件
+    // =====【事件】=====
     abstract EmitParamsChanged: unit -> unit
-    // Export
+    // =====【Export】=====
     abstract Radius: float32 with get, set
     abstract Divisions: int with get, set
     abstract ChunkDivisions: int with get, set
-    // 外部属性
+    // =====【属性】=====
     member val UnitHeight = 1.5f with get, set // 单位高度
     member val MaxHeight = 15f with get, set
     member val MaxHeightRatio = 0.1f with get, set

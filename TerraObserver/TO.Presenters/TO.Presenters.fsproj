@@ -12,9 +12,19 @@
     <ItemGroup>
         <Compile Include="Models\Planets\PlanetFS.fs" />
         <Compile Include="Models\Planets\CatlikeCodingNoiseFS.fs" />
+        <Compile Include="Models\Uis\HexTileDataOverrider.fs" />
         <Compile Include="Views\Cameras\OrbitCameraRigFS.fs" />
+        <Compile Include="Views\Geos\LonLatGridFS.fs" />
+        <Compile Include="Views\Planets\CelestialMotionFS.fs" />
+        <Compile Include="Views\Chunks\HexMeshFS.fs" />
+        <Compile Include="Views\Chunks\HexGridChunkFS.fs" />
+        <Compile Include="Views\Chunks\ChunkLoaderFS.fs" />
+        <Compile Include="Views\Uis\PlanetHudFS.fs" />
         <Compile Include="Queries\Planets\CatlikeCodingNoiseQuery.fs" />
         <Compile Include="Commands\Cameras\OrbitCameraRigCommand.fs"/>
+        <Compile Include="Commands\Geos\LonLatGridCommand.fs" />
+        <Compile Include="Commands\Planets\CelestialMotionCommand.fs" />
+        <Compile Include="Commands\Uis\PlanetHudCommand.fs" />
     </ItemGroup>
 
 </Project>

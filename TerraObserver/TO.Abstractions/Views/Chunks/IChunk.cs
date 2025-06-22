@@ -2,7 +2,7 @@ using Godot;
 using Godot.Abstractions.Bases;
 using TO.Domains.Enums.HexSpheres.Chunks;
 
-namespace TO.Abstractions.Chunks;
+namespace TO.Abstractions.Views.Chunks;
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)

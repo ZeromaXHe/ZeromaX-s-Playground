@@ -1,4 +1,4 @@
-namespace TO.Abstractions.Maps;
+namespace TO.Abstractions.Views.Maps;
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)

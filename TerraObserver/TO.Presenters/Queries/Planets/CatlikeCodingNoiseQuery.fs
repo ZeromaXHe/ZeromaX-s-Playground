@@ -1,7 +1,7 @@
 namespace TO.Presenters.Queries.Planets
 
 open Godot
-open TO.Abstractions.Planets
+open TO.Abstractions.Models.Planets
 open TO.Domains.Components.HexSpheres.Tiles
 open TO.Domains.Utils.Commons
 open TO.Domains.Utils.HexSpheres

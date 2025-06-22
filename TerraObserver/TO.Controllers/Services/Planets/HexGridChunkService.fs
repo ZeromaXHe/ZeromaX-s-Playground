@@ -3,8 +3,8 @@ namespace TO.Controllers.Services.Planets
 open System.Collections.Generic
 open Friflo.Engine.ECS
 open Godot
-open TO.Abstractions.Chunks
-open TO.Abstractions.Planets
+open TO.Abstractions.Views.Chunks
+open TO.Abstractions.Models.Planets
 open TO.Domains.Alias.HexSpheres.Chunks
 open TO.Domains.Alias.HexSpheres.Points
 open TO.Domains.Components.HexSpheres.Chunks
@@ -15,6 +15,7 @@ open TO.Domains.Constants.Meshes
 open TO.Domains.Enums.HexSpheres.Chunks
 open TO.Domains.Enums.Tiles
 open TO.Domains.Structs.Tiles
+open TO.Domains.Utils.Chunks
 open TO.Domains.Utils.Commons
 open TO.Domains.Utils.HexSpheres
 open TO.Presenters.Queries.Planets
@@ -45,7 +46,7 @@ module private ChunkLoaderProcess =
                 | Some meshes -> hexGridChunk.ShowMesh meshes
                 | None -> hexGridChunk.SetProcess true
 
-    let private usedBy lodMeshCache store repoEnv (hexGridChunk: IHexGridChunk) (lod: ChunkLodEnum) (chunkId: ChunkId) =
+    let private usedBy lodMeshCache repoEnv (hexGridChunk: IHexGridChunk) (lod: ChunkLodEnum) (chunkId: ChunkId) =
         hexGridChunk.Id <- chunkId
         // 默认不生成网格，而是先查缓存
         hexGridChunk.SetProcess false
@@ -66,7 +67,7 @@ module private ChunkLoaderProcess =
         | false, _ ->
             // 没有空闲分块的话，初始化新的
             let hexGridChunk = chunkLoader.GetUnusedChunk()
-            usedBy lodMeshCache store repoEnv hexGridChunk chunkLodEnum chunkId
+            usedBy lodMeshCache repoEnv hexGridChunk chunkLodEnum chunkId
             chunkLoader.AddUsingChunk(chunkId, hexGridChunk)
 
     let searchNeighbor (chunkLoader: IChunkLoader) store (chunkId: ChunkId) (filter: int HashSet) =
@@ -79,7 +80,7 @@ module private ChunkInitializer =
     /// 如果 inLoop，需要在更新后调用 FrifloEcsUtil.commitCommands store
     /// TODO: 这种实现方式不太好，可能忘记提交 CommandBuffer，后续优化
     let updateChunkInsightAndLod
-        (chunkLoader: IChunkLoader)
+        (planet: IPlanet)
         (store: EntityStore)
         (camera: Camera3D)
         (chunkId: ChunkId)
@@ -90,7 +91,8 @@ module private ChunkInitializer =
 
         let lodEnum =
             if insight then
-                chunkLoader.CalcLod <| chunkPos.DistanceTo camera.GlobalPosition
+                let tileLen = planet.Radius / float32 planet.Divisions
+                ChunkLodUtil.calcLod tileLen <| chunkPos.DistanceTo camera.GlobalPosition
             else
                 ChunkLodEnum.JustHex
 
@@ -106,7 +108,7 @@ module private ChunkInitializer =
             chunk.AddComponent<ChunkInsight>(&chunkInsight) |> ignore
             chunk.AddComponent<ChunkLod>(&chunkLod) |> ignore
 
-    let InitOutRimChunks (chunkLoader: IChunkLoader) (store: EntityStore) (camera: Camera3D) =
+    let InitOutRimChunks (planet: IPlanet) (chunkLoader: IChunkLoader) (store: EntityStore) (camera: Camera3D) =
         chunkLoader.InsightChunkIdsNow
         |> Seq.collect (fun chunkId ->
             store.GetEntityById(chunkId).GetComponent<PointNeighborCenterIds>()
@@ -116,7 +118,7 @@ module private ChunkInitializer =
         |> Seq.filter (fun neighborId -> not <| chunkLoader.InsightChunkIdsNow.Contains neighborId)
         |> Seq.iter (fun rimId ->
             if chunkLoader.RimChunkIds.Add rimId then
-                updateChunkInsightAndLod chunkLoader store camera rimId true None
+                updateChunkInsightAndLod planet store camera rimId true None
 
                 if chunkLoader.UnloadSet.Contains rimId then
                     chunkLoader.UnloadSet.Remove rimId |> ignore
@@ -1963,7 +1965,7 @@ module HexGridChunkService =
         if allClear then
             chunkLoader.SetProcess false
 
-    let initChunkNodes (chunkLoader: IChunkLoader) (store: EntityStore) =
+    let initChunkNodes (planet: IPlanet) (chunkLoader: IChunkLoader) (store: EntityStore) =
         let time = Time.GetTicksMsec()
         let camera = chunkLoader.GetViewport().GetCamera3D()
 
@@ -1973,15 +1975,14 @@ module HexGridChunkService =
                 .ForEachEntity(fun chunkPos chunkEntity ->
                     let id = chunkEntity.Id
                     // 此时拿不到真正 focusBase 的位置，暂且用相机自己的代替
-                    if chunkLoader.IsChunkInsight(chunkPos.Pos, camera) then
+                    if ChunkLodUtil.isChunkInsight chunkPos.Pos camera planet.Radius then
                         chunkLoader.LoadSet.Add id |> ignore
 
-                        ChunkInitializer.updateChunkInsightAndLod chunkLoader store camera id true
-                        <| Some cb
+                        ChunkInitializer.updateChunkInsightAndLod planet store camera id true <| Some cb
 
                         chunkLoader.InsightChunkIdsNow.Add id |> ignore))
 
-        ChunkInitializer.InitOutRimChunks chunkLoader store camera
+        ChunkInitializer.InitOutRimChunks planet chunkLoader store camera
         chunkLoader.SetProcess true
         GD.Print $"InitChunkNodes cost: {Time.GetTicksMsec() - time} ms"
 
@@ -2022,7 +2023,7 @@ module HexGridChunkService =
     // 动态卸载：
     // 建立一个清理队列，每次终止上次任务时，把所有分块加入到这个清理队列中。
     // 每帧从清理队列中出队一部分，校验它们当前的 LOD 状态，如果 LOD 状态不对，则卸载。
-    let updateInsightChunks (chunkLoader: IChunkLoader) store =
+    let updateInsightChunks (planet: IPlanet) (chunkLoader: IChunkLoader) store =
         // var time = Time.GetTicksMsec();
         // 未能卸载的分块，说明本轮依然是在显示的分块
         for unloadId in
@@ -2039,7 +2040,7 @@ module HexGridChunkService =
             chunkLoader.RimChunkIds
             |> Seq.filter (fun id -> chunkLoader.UsingChunks.ContainsKey id) do
             chunkLoader.UnloadSet.Add chunkId |> ignore
-            ChunkInitializer.updateChunkInsightAndLod chunkLoader store camera chunkId false None
+            ChunkInitializer.updateChunkInsightAndLod planet store camera chunkId false None
 
         chunkLoader.RimChunkIds.Clear()
 
@@ -2049,13 +2050,13 @@ module HexGridChunkService =
 
             chunkLoader.VisitedChunkIds.Add preInsightChunkId |> ignore
 
-            if not <| chunkLoader.IsChunkInsight(preInsightChunkPos, camera) then
+            if not <| ChunkLodUtil.isChunkInsight preInsightChunkPos camera planet.Radius then
                 // 分块不在视野范围内，隐藏它
                 chunkLoader.UnloadSet.Add preInsightChunkId |> ignore
-                ChunkInitializer.updateChunkInsightAndLod chunkLoader store camera preInsightChunkId false None
+                ChunkInitializer.updateChunkInsightAndLod planet store camera preInsightChunkId false None
             else
                 chunkLoader.InsightChunkIdsNext.Add preInsightChunkId |> ignore
-                ChunkInitializer.updateChunkInsightAndLod chunkLoader store camera preInsightChunkId true None
+                ChunkInitializer.updateChunkInsightAndLod planet store camera preInsightChunkId true None
                 // 刷新 Lod
                 if chunkLoader.UsingChunks.ContainsKey preInsightChunkId then
                     chunkLoader.RefreshSet.Add preInsightChunkId |> ignore
@@ -2078,7 +2079,7 @@ module HexGridChunkService =
 
                 let chunkPos = store.GetEntityById(chunkId).GetComponent<ChunkPos>().Pos
 
-                if chunkLoader.IsChunkInsight(chunkPos, camera) then
+                if ChunkLodUtil.isChunkInsight chunkPos camera planet.Radius then
                     // 找到第一个可见分块，重新入队，后面进行真正的处理
                     chunkLoader.ChunkQueryQueue.Enqueue chunkId
                     breakNow <- true
@@ -2090,10 +2091,10 @@ module HexGridChunkService =
 
             let chunkPos = store.GetEntityById(chunkId).GetComponent<ChunkPos>().Pos
 
-            if chunkLoader.IsChunkInsight(chunkPos, camera) then
+            if ChunkLodUtil.isChunkInsight chunkPos camera planet.Radius then
                 if chunkLoader.InsightChunkIdsNext.Add chunkId then
                     chunkLoader.LoadSet.Add chunkId |> ignore
-                    ChunkInitializer.updateChunkInsightAndLod chunkLoader store camera chunkId true None
+                    ChunkInitializer.updateChunkInsightAndLod planet store camera chunkId true None
                     ChunkLoaderProcess.searchNeighbor chunkLoader store chunkId null
         // 清理好各个数据结构，等下一次调用直接使用
         chunkLoader.ChunkQueryQueue.Clear()
@@ -2101,6 +2102,6 @@ module HexGridChunkService =
         chunkLoader.InsightChunkIdsNow.Clear()
         chunkLoader.UpdateInsightSetNextIdx()
         // 显示外缘分块
-        ChunkInitializer.InitOutRimChunks chunkLoader store camera
+        ChunkInitializer.InitOutRimChunks planet chunkLoader store camera
         chunkLoader.SetProcess true
 // GD.Print($"ChunkLoader UpdateInsightChunks cost {Time.GetTicksMsec() - time} ms");
