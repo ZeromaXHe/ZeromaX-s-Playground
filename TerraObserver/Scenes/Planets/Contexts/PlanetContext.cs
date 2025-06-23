@@ -95,7 +95,7 @@ public partial class PlanetContext : Node
         _planetApp.UpdateInsightChunks();
         _planetApp.Init();
         _orbitCameraRig.Transformed += UpdateInsightChunks;
-        _orbitCameraRig.Transformed += _planetApp.OnOrbitCameraRigTransformed;
+        _orbitCameraRig.Transformed += _planetApp.OnPlanetHudOrbitCameraRigTransformed;
         _orbitCameraRig.Processed += _planetApp.OnOrbitCameraRigProcessed;
         _orbitCameraRig.ZoomChanged += _planetApp.OnOrbitCameraRigZoomChanged;
         _orbitCameraRig.Moved += _lonLatGrid.OnCameraMoved;
@@ -107,23 +107,34 @@ public partial class PlanetContext : Node
         // HUD
         if (!inEditor)
         {
-            _planetHud.Planet = planet;
-            _planetHud.OnOrbitCameraRigMoved(_orbitCameraRig.GetFocusBasePos(), 0f);
-            _planetApp.OnOrbitCameraRigTransformed(_orbitCameraRig.GetViewport().GetCamera3D().GetGlobalTransform(), 0f);
+            _planetApp.OnPlanetHudOrbitCameraRigTransformed(_orbitCameraRig.GetViewport().GetCamera3D().GetGlobalTransform(), 0f);
             _orbitCameraRig.Moved += _planetHud.OnOrbitCameraRigMoved;
-            _planetHud.LonLatGrid = _lonLatGrid;
-            _planetHud.CelestialMotion = _celestialMotion;
+            _planetHud.OnOrbitCameraRigMoved(_orbitCameraRig.GetFocusBasePos(), 0f);
+            _planetHud.LonLatFixCheckButtonToggled += _lonLatGrid.ToggleFixFullVisibility;
+            _planetHud.CelestialMotionCheckButtonToggled += _celestialMotion.ToggleAllMotions;
+            _planetHud.RadiusLineEditTextSubmitted += _planetApp.OnPlanetHudRadiusLineEditTextSubmitted;
+            _planetHud.DivisionLineEditTextSubmitted += _planetApp.OnPlanetHudDivisionLineEditTextSubmitted;
+            _planetHud.ChunkDivisionLineEditTextSubmitted += _planetApp.OnPlanetHudChunkDivisionLineEditTextSubmitted;
         }
     }
 
     public override void _Notification(int what)
     {
+        // 根节点的 pre-delete 会在所有子节点的 pre-delete 前执行
         if (what == (int)NotificationPredelete)
         {
             _orbitCameraRig.Transformed -= UpdateInsightChunks;
             _orbitCameraRig.Moved -= _lonLatGrid.OnCameraMoved;
-            if (_planetHud != null!) 
+            if (_planetHud != null!)
+            {
                 _orbitCameraRig.Moved -= _planetHud.OnOrbitCameraRigMoved;
+                _planetHud.LonLatFixCheckButtonToggled -= _lonLatGrid.ToggleFixFullVisibility;
+                _planetHud.CelestialMotionCheckButtonToggled -= _celestialMotion.ToggleAllMotions;
+                _planetHud.RadiusLineEditTextSubmitted -= _planetApp.OnPlanetHudRadiusLineEditTextSubmitted;
+                _planetHud.DivisionLineEditTextSubmitted -= _planetApp.OnPlanetHudDivisionLineEditTextSubmitted;
+                _planetHud.ChunkDivisionLineEditTextSubmitted -= _planetApp.OnPlanetHudChunkDivisionLineEditTextSubmitted;
+            }
+
             _lonLatGrid.FixFullVisibilityChanged -= OnLonLatGridFixFullVisibilityChanged;
             _chunkLoader.HexGridChunkGenerated -= OnHexGridChunkGenerated;
             if (_planetApp != null!)
@@ -132,7 +143,7 @@ public partial class PlanetContext : Node
                 // 而且绑定和解绑逻辑不能下沉到 F# 层，否则就解绑失败，同样没理解原因
                 Planet!.ParamsChanged -= _planetApp.DrawHexSphereMesh;
                 Planet.ParamsChanged -= _planetApp.OnPlanetParamsChanged;
-                _orbitCameraRig.Transformed -= _planetApp.OnOrbitCameraRigTransformed;
+                _orbitCameraRig.Transformed -= _planetApp.OnPlanetHudOrbitCameraRigTransformed;
                 _orbitCameraRig.Processed -= _planetApp.OnOrbitCameraRigProcessed;
                 _orbitCameraRig.ZoomChanged -= _planetApp.OnOrbitCameraRigZoomChanged;
                 _celestialMotion.SatelliteRadiusRatioChanged -= _planetApp.OnCelestialMotionSatelliteRadiusRatioChanged;

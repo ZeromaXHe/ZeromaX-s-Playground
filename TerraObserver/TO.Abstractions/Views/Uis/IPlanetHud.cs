@@ -12,4 +12,7 @@ public interface IPlanetHud : IControl
     TextureRect? RectMap { get; }
     VSlider? ElevationVSlider { get; }
     VSlider? WaterVSlider { get; }
+
+    void UpdateRadiusLineEdit(float radius);
+    void UpdateDivisionLineEdit(int division, int chunkDivision);
 }

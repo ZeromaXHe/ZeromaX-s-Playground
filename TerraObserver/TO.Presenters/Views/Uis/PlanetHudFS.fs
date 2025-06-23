@@ -80,6 +80,11 @@ type PlanetHudFS() =
     member this.WaterVSlider = waterVSlider
     // =====【事件】=====
     abstract EmitChosenTileIdChanged: int Nullable -> unit
+    abstract EmitCelestialMotionCheckButtonToggled: bool -> unit
+    abstract EmitLonLatFixCheckButtonToggled: bool -> unit
+    abstract EmitRadiusLineEditTextSubmitted: string -> unit
+    abstract EmitDivisionLineEditTextSubmitted: string -> unit
+    abstract EmitChunkDivisionLineEditTextSubmitted: string -> unit
     // =====【属性】=====
     member this.ChosenTileId
         with get () = chosenTileId
@@ -162,7 +167,13 @@ type PlanetHudFS() =
                         Viewport.DebugDrawEnum.Disabled
                 ))
 
+        celestialMotionCheckButton.add_Toggled (fun toggle -> this.EmitCelestialMotionCheckButtonToggled toggle)
+        lonLatFixCheckButton.add_Toggled (fun toggle -> this.EmitLonLatFixCheckButtonToggled toggle)
+
         planetTabBar.add_TabClicked (fun _ -> planetGrid.Visible <- not planetGrid.Visible)
+        radiusLineEdit.add_TextSubmitted (fun text -> this.EmitRadiusLineEditTextSubmitted text)
+        divisionLineEdit.add_TextSubmitted (fun text -> this.EmitDivisionLineEditTextSubmitted text)
+        chunkDivisionLineEdit.add_TextSubmitted (fun text -> this.EmitChunkDivisionLineEditTextSubmitted text)
 
         tileTabBar.add_TabClicked (fun _ ->
             let vis = not tileGrid.Visible
@@ -203,6 +214,12 @@ type PlanetHudFS() =
     member this.OnOrbitCameraRigMoved(pos: Vector3, _) =
         let lonLat = LonLatCoords.From pos
         camLonLatLabel.Text <- $"相机位置：{lonLat}"
+
+    member this.UpdateRadiusLineEdit(radius: float32) = radiusLineEdit.Text <- $"{radius:F2}"
+
+    member this.UpdateDivisionLineEdit (division: int) (chunkDivision: int) =
+        divisionLineEdit.Text <- $"{division}"
+        chunkDivisionLineEdit.Text <- $"{chunkDivision}"
 
     member private this.SetEditMode(toggle: bool) =
         let editMode = this.TileOverrider.EditMode

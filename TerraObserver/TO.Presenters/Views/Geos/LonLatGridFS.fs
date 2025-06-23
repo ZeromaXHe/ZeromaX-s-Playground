@@ -79,6 +79,8 @@ type LonLatGridFS() =
                 this.Visibility <- 0f
                 this.Hide()
                 this.SetProcess false
+    member this.ToggleFixFullVisibility toggle =
+        this.FixFullVisibility <- toggle
 
     member this.OnCameraMoved(pos: Vector3, delta: float32) =
         if this.FixFullVisibility then

@@ -69,15 +69,24 @@ type PlanetApp
     member this.OnOrbitCameraRigProcessed(delta: float32) = orbitCameraRigCommand.OnProcessed delta
     member this.OnOrbitCameraRigZoomChanged() = orbitCameraRigCommand.OnZoomChanged()
 
-    member this.OnOrbitCameraRigTransformed(transform: Transform3D, delta: float32) =
-        planetHudCommand.OnOrbitCameraRigTransformed transform
-
     member this.OnCelestialMotionSatelliteRadiusRatioChanged() =
         celestialMotionCommand.UpdateMoonMeshRadius()
         celestialMotionCommand.UpdateLunarDist()
 
     member this.OnCelestialMotionSatelliteDistRatioChanged() =
         celestialMotionCommand.UpdateLunarDist()
+
+    member this.OnPlanetHudOrbitCameraRigTransformed(transform: Transform3D, delta: float32) =
+        planetHudCommand.OnOrbitCameraRigTransformed transform
+
+    member this.OnPlanetHudRadiusLineEditTextSubmitted(text: string) =
+        planetHudCommand.UpdateRadiusLineEdit text
+
+    member this.OnPlanetHudDivisionLineEditTextSubmitted(text: string) =
+        planetHudCommand.UpdateDivisionLineEdit text false
+
+    member this.OnPlanetHudChunkDivisionLineEditTextSubmitted(text: string) =
+        planetHudCommand.UpdateDivisionLineEdit text true
 
     member this.DrawHexSphereMesh() =
         let time = Time.GetTicksMsec()

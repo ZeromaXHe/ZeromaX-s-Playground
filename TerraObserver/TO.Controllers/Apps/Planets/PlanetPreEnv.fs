@@ -46,8 +46,14 @@ type PlanetPreEnv
             CelestialMotionCommand.updateMoonMeshRadius planet celestialMotion
 
     interface IPlanetHudCommand with
+        member this.OnOrbitCameraRigTransformed =
+            PlanetHudCommand.onOrbitCameraRigMoved cameraRig planetHud
+
         member this.InitElevationAndWaterVSlider =
             PlanetHudCommand.initElevationAndWaterVSlider planet planetHud
 
-        member this.OnOrbitCameraRigTransformed =
-            PlanetHudCommand.onOrbitCameraRigMoved cameraRig planetHud
+        member this.UpdateRadiusLineEdit =
+            PlanetHudCommand.updateRadiusLineEdit planet planetHud
+
+        member this.UpdateDivisionLineEdit =
+            PlanetHudCommand.updateDivisionLineEdit planet planetHud
