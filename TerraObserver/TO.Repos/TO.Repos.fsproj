@@ -22,6 +22,7 @@
         <Compile Include="Queries\HexSpheres\FaceQuery.fs"/>
         <Compile Include="Queries\HexSpheres\ChunkQuery.fs"/>
         <Compile Include="Queries\HexSpheres\HexSphereQuery.fs"/>
+        <Compile Include="Queries\Meshes\LodMeshCacheQuery.fs" />
         <Compile Include="Commands\HexSpheres\PointCommand.fs"/>
         <Compile Include="Commands\HexSpheres\FaceCommand.fs"/>
         <Compile Include="Commands\HexSpheres\TileCommand.fs"/>

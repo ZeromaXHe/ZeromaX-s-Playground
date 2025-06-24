@@ -2,17 +2,13 @@ namespace TO.Controllers.Apps.Planets
 
 open Friflo.Engine.ECS
 open Godot
-open TO.Abstractions.Views.Cameras
 open TO.Abstractions.Views.Chunks
-open TO.Abstractions.Models.Planets
-open TO.Abstractions.Views.Geos
-open TO.Abstractions.Views.Planets
-open TO.Abstractions.Views.Uis
 open TO.Controllers.Apps.Envs
-open TO.Presenters.Commands.Cameras
-open TO.Presenters.Commands.Geos
-open TO.Presenters.Commands.Planets
-open TO.Presenters.Commands.Uis
+open TO.Presenters.Views.Cameras
+open TO.Presenters.Views.Chunks
+open TO.Presenters.Views.Geos
+open TO.Presenters.Views.Planets
+open TO.Presenters.Views.Uis
 open TO.Repos.Commands.HexSpheres
 open TO.Repos.Data.Commons
 open TO.Controllers.Services.Planets
@@ -24,16 +20,7 @@ open TO.Repos.Data.Shaders
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-05-30 19:41:30
-type PlanetApp
-    (
-        planet: IPlanet,
-        catlikeCodingNoise: ICatlikeCodingNoise,
-        cameraRig: IOrbitCameraRig,
-        lonLatGrid: ILonLatGrid,
-        celestialMotion: ICelestialMotion,
-        chunkLoader: IChunkLoader,
-        planetHud: IPlanetHud
-    ) =
+type PlanetApp(planet, catlikeCodingNoise, cameraRig, lonLatGrid, celestialMotion, chunkLoader, planetHud) =
     let store = EntityStore()
 
     let chunkyVpTrees =
@@ -43,20 +30,27 @@ type PlanetApp
     let tileShaderData = TileShaderData()
     let tileSearcher = TileSearcher()
     let lodMeshCache = LodMeshCache()
-    let repoEnv = PlanetRepoEnv(store, chunkyVpTrees)
+    let repoEnv = PlanetRepoEnv(store, chunkyVpTrees, lodMeshCache)
 
     let preEnv =
-        PlanetPreEnv(planet, catlikeCodingNoise, cameraRig, lonLatGrid, celestialMotion, planetHud)
+        PlanetPreEnv(planet, catlikeCodingNoise, cameraRig, lonLatGrid, celestialMotion, chunkLoader, planetHud)
 
     let orbitCameraRigCommand = preEnv :> IOrbitCameraRigCommand
     let lonLatGridCommand = preEnv :> ILonLatGridCommand
     let celestialMotionCommand = preEnv :> ICelestialMotionCommand
+    let chunkLoaderCommand = preEnv :> IChunkLoaderCommand
     let planetHudCommand = preEnv :> IPlanetHudCommand
 
     member this.Init() =
         orbitCameraRigCommand.Reset()
         lonLatGridCommand.DrawOnPlanet()
-        planetHudCommand.InitElevationAndWaterVSlider()
+
+        if not <| Engine.IsEditorHint() then
+            planetHudCommand.InitElevationAndWaterVSlider()
+
+            planetHudCommand.OnOrbitCameraRigMoved
+            <| (preEnv :> IOrbitCameraRigQuery).GetFocusBasePos() // TODO: 临时措施，待优化
+            <| 0f
 
     member this.OnPlanetParamsChanged() =
         orbitCameraRigCommand.OnPlanetParamsChanged()
@@ -66,8 +60,15 @@ type PlanetApp
         celestialMotionCommand.UpdateMoonMeshRadius()
         celestialMotionCommand.UpdateLunarDist()
 
-    member this.OnOrbitCameraRigProcessed(delta: float32) = orbitCameraRigCommand.OnProcessed delta
+    member this.OnOrbitCameraRigProcessed delta = orbitCameraRigCommand.OnProcessed delta
     member this.OnOrbitCameraRigZoomChanged() = orbitCameraRigCommand.OnZoomChanged()
+    member this.OnLonLatGridDoDrawRequested() = lonLatGridCommand.DoDraw()
+
+    member this.OnLonLatGridCameraMoved(pos, delta) =
+        lonLatGridCommand.OnCameraMoved pos delta
+
+    member this.LonLatGridToggleFixFullVisibility toggle =
+        lonLatGridCommand.ToggleFixFullVisibility toggle
 
     member this.OnCelestialMotionSatelliteRadiusRatioChanged() =
         celestialMotionCommand.UpdateMoonMeshRadius()
@@ -76,32 +77,39 @@ type PlanetApp
     member this.OnCelestialMotionSatelliteDistRatioChanged() =
         celestialMotionCommand.UpdateLunarDist()
 
-    member this.OnPlanetHudOrbitCameraRigTransformed(transform: Transform3D, delta: float32) =
+    member this.CelestialMotionToggleAllMotions toggle =
+        celestialMotionCommand.ToggleAllMotions toggle
+
+    member this.OnPlanetHudOrbitCameraRigTransformed(transform, delta: float32) =
         planetHudCommand.OnOrbitCameraRigTransformed transform
 
-    member this.OnPlanetHudRadiusLineEditTextSubmitted(text: string) =
+    member this.OnPlanetHudRadiusLineEditTextSubmitted text =
         planetHudCommand.UpdateRadiusLineEdit text
 
-    member this.OnPlanetHudDivisionLineEditTextSubmitted(text: string) =
-        planetHudCommand.UpdateDivisionLineEdit text false
+    member this.OnPlanetHudDivisionLineEditTextSubmitted text =
+        planetHudCommand.UpdateDivisionLineEdit false text
 
-    member this.OnPlanetHudChunkDivisionLineEditTextSubmitted(text: string) =
-        planetHudCommand.UpdateDivisionLineEdit text true
+    member this.OnPlanetHudChunkDivisionLineEditTextSubmitted text =
+        planetHudCommand.UpdateDivisionLineEdit true text
+
+    member this.OnPlanetHudOrbitCameraRigMoved pos delta =
+        planetHudCommand.OnOrbitCameraRigMoved pos delta
 
     member this.DrawHexSphereMesh() =
         let time = Time.GetTicksMsec()
         GD.Print $"[===DrawHexSphereMesh===] radius {planet.Radius}, divisions {planet.Divisions}, start at: {time}"
         HexSphereInitCommand.clearOldData store ()
-        chunkLoader.ClearOldData()
+        chunkLoaderCommand.ClearOldData()
         lodMeshCache.RemoveAllLodMeshes()
-        HexSphereService.initHexSphere planet store tileShaderData tileSearcher repoEnv
-        HexGridChunkService.initChunkNodes planet chunkLoader store
+        HexSphereService.initHexSphere planet repoEnv store tileShaderData tileSearcher
+        HexGridChunkService.initChunkNodes planet preEnv repoEnv store
 
     member this.OnChunkLoaderProcessed() =
-        HexGridChunkService.onChunkLoaderProcessed chunkLoader lodMeshCache store repoEnv
+
+        HexGridChunkService.onChunkLoaderProcessed preEnv repoEnv
 
     member this.OnHexGridChunkProcessed(chunk: IHexGridChunk) =
         HexGridChunkService.onHexGridChunkProcessed planet preEnv lodMeshCache store repoEnv chunk
 
     member this.UpdateInsightChunks() =
-        HexGridChunkService.updateInsightChunks planet chunkLoader store
+        HexGridChunkService.updateInsightChunks preEnv planet chunkLoader repoEnv store

@@ -13,10 +13,10 @@ open TO.Repos.Data.Shaders
 module HexSphereService =
     let initHexSphere
         (planet: IPlanet)
+        (repoEnv: #IHexSphereInitCommand)
         (store: EntityStore)
         (tileShaderData: TileShaderData)
         (tileSearcher: TileSearcher)
-        (repoEnv: #IHexSphereInitCommand)
         =
         repoEnv.InitChunks planet.ChunkDivisions <| planet.Radius + planet.MaxHeight
         repoEnv.InitTiles planet.Divisions

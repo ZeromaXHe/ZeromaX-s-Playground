@@ -1,13 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using Godot;
-using TO.Abstractions.Models.Planets;
 using TO.Abstractions.Views.Chunks;
-using TO.Domains.Enums.HexSpheres.Chunks;
-using TO.Presenters.Views.Chunks;
 
 namespace TerraObserver.Scenes.Chunks.Views;
 
@@ -15,18 +10,14 @@ namespace TerraObserver.Scenes.Chunks.Views;
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-06-06 16:24:42
 [Tool]
-public partial class ChunkLoader : ChunkLoaderFS, IChunkLoader
+public partial class ChunkLoader : Node3D, IChunkLoader
 {
-    #region 生命周期
-
-    public override void _Process(double delta) => Processed?.Invoke();
-
-    #endregion
-
     #region 事件
 
     public event Action? Processed;
     public event Action<IHexGridChunk>? HexGridChunkGenerated;
+
+    #endregion
 
     #region Export 属性
 
@@ -34,11 +25,46 @@ public partial class ChunkLoader : ChunkLoaderFS, IChunkLoader
 
     #endregion
 
+    #region 普通属性
+
+    private readonly HashSet<int>[] _insightChunkIds = [[], []];
+
+    // 表示当前可视分块 Set 的 _insightChunkIds 索引
+    private int _insightSetIdx;
+    public HashSet<int> InsightChunkIdsNow => _insightChunkIds[_insightSetIdx];
+    public HashSet<int> InsightChunkIdsNext => _insightChunkIds[_insightSetIdx ^ 1];
+    public Queue<int> ChunkQueryQueue { get; } = new();
+    public HashSet<int> VisitedChunkIds { get; } = [];
+
+    public HashSet<int> RimChunkIds { get; } = [];
+
+    // 待卸载的分块 Id 集合（上轮显示本轮不显示的分块，包括边缘分块中不再显示的）
+    public HashSet<int> UnloadSet { get; } = [];
+
+    // 待刷新的分块 Id 集合（包括上轮显示本轮继续显示的分块，包括边缘分块中继续显示的）
+    public HashSet<int> RefreshSet { get; } = [];
+
+    // 待加载的分块 Id 集合（新显示分块）
+    public HashSet<int> LoadSet { get; } = [];
+    public Dictionary<int, IHexGridChunk> UsingChunks { get; } = new();
+    public Queue<IHexGridChunk> UnusedChunks { get; } = new();
+    public Stopwatch Stopwatch { get; } = new();
+
     #endregion
-    public override IHexGridChunk GetUnusedChunk()
+
+    #region 生命周期
+
+    public override void _Process(double delta) => Processed?.Invoke();
+
+    #endregion
+
+    public void ResetInsightSetIdx() => _insightSetIdx = 0;
+    public void UpdateInsightSetNextIdx() => _insightSetIdx ^= 1;
+
+    public IHexGridChunk GetUnusedChunk()
     {
-        if (UnusedChunks is not null && UnusedChunks.Count != 0)
-            return UnusedChunks!.Dequeue();
+        if (UnusedChunks.Count != 0)
+            return UnusedChunks.Dequeue();
         // 没有空闲分块的话，初始化新的
         var hexGridChunk = _gridChunkScene!.Instantiate<HexGridChunk>();
         hexGridChunk.Name = $"HexGridChunk{GetChildCount()}";

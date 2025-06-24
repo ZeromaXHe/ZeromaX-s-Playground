@@ -8,11 +8,17 @@ namespace TO.Abstractions.Views.Uis;
 /// Date: 2025-06-22 20:01:22
 public interface IPlanetHud : IControl
 {
-    PanelContainer? CompassPanel { get; }
-    TextureRect? RectMap { get; }
-    VSlider? ElevationVSlider { get; }
-    VSlider? WaterVSlider { get; }
+    #region on-ready
 
-    void UpdateRadiusLineEdit(float radius);
-    void UpdateDivisionLineEdit(int division, int chunkDivision);
+    Label CamLonLatLabel { get; }
+    PanelContainer CompassPanel { get; }
+    TextureRect RectMap { get; }
+    LineEdit RadiusLineEdit { get; }
+    LineEdit DivisionLineEdit { get; }
+
+    LineEdit ChunkDivisionLineEdit { get; }
+    VSlider ElevationVSlider { get; }
+    VSlider WaterVSlider { get; }
+
+    #endregion
 }

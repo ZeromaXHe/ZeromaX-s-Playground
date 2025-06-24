@@ -1,8 +1,5 @@
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using Godot;
 using Godot.Abstractions.Bases;
-using TO.Domains.Enums.HexSpheres.Chunks;
 
 namespace TO.Abstractions.Views.Chunks;
 
@@ -11,9 +8,15 @@ namespace TO.Abstractions.Views.Chunks;
 /// Date: 2025-06-06 17:50:06
 public interface IChunkLoader : INode3D
 {
+    #region 事件
+
     event Action Processed;
     event Action<IHexGridChunk>? HexGridChunkGenerated;
-    void UpdateInsightSetNextIdx();
+
+    #endregion 事件
+
+    #region 普通属性
+
     HashSet<int> InsightChunkIdsNow { get; }
     HashSet<int> InsightChunkIdsNext { get; }
     Queue<int> ChunkQueryQueue { get; }
@@ -23,12 +26,13 @@ public interface IChunkLoader : INode3D
     HashSet<int> RefreshSet { get; }
     HashSet<int> LoadSet { get; }
     Dictionary<int, IHexGridChunk>? UsingChunks { get; }
+    Queue<IHexGridChunk>? UnusedChunks { get; }
 
     Stopwatch Stopwatch { get; }
 
-    void ClearOldData();
-    void AddUsingChunk(int chunkId, IHexGridChunk chunk);
-    bool TryGetUsingChunk(int chunkId, [MaybeNullWhen(false)] out IHexGridChunk chunk);
+    #endregion
+
+    void ResetInsightSetIdx();
+    void UpdateInsightSetNextIdx();
     IHexGridChunk GetUnusedChunk();
-    void HideChunk(int chunkId);
 }

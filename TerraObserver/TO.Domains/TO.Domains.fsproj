@@ -28,11 +28,11 @@
         <Compile Include="Utils\Commons\Math3dUtil.fs"/>
         <Compile Include="Utils\Commons\FrifloEcsUtil.fs"/>
         <Compile Include="Utils\Commons\MeshUtil.fs"/>
-        <Compile Include="Utils\Commons\TextureUtil.fs" />
+        <Compile Include="Utils\Commons\TextureUtil.fs"/>
         <Compile Include="Utils\HexSpheres\HexMetrics.fs"/>
         <Compile Include="Utils\HexSpheres\HexSphereUtil.fs"/>
         <Compile Include="Utils\HexSpheres\HexIndexUtil.fs"/>
-        <Compile Include="Utils\Chunks\ChunkLodUtil.fs" />
+        <Compile Include="Utils\Chunks\ChunkLodUtil.fs"/>
         <Compile Include="Components\HexSpheres\Points\PointComponent.fs"/>
         <Compile Include="Components\HexSpheres\Points\PointCenterId.fs"/>
         <Compile Include="Components\HexSpheres\Points\PointNeighborCenterIds.fs"/>

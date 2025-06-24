@@ -8,6 +8,8 @@ namespace TO.Abstractions.Views.Planets;
 /// Date: 2025-06-05 19:50:05
 public interface ICelestialMotion : INode3D
 {
+    #region Export
+
     Node3D? Moon { get; }
     bool PlanetRevolution { get; set; }
     bool PlanetRotation { get; set; }
@@ -15,5 +17,12 @@ public interface ICelestialMotion : INode3D
     bool SatelliteRotation { get; set; }
     float SatelliteRadiusRatio { get; }
     float SatelliteDistRatio { get; }
-    Node3D? LunarDist { get; }
+
+    #endregion
+
+    #region on-ready
+
+    Node3D LunarDist { get; }
+
+    #endregion
 }

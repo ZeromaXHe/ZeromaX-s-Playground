@@ -1,20 +1,27 @@
-namespace TO.Presenters.Commands.Cameras
+namespace TO.Presenters.Views.Cameras
 
 open Godot
 open TO.Abstractions.Views.Cameras
 open TO.Abstractions.Models.Planets
+open TO.Presenters.Views.Cameras
 
-type OnOrbitCameraRigZoomChanged = unit -> unit
-type OnOrbitCameraRigPlanetParamsChanged = unit -> unit
-type ResetOrbitCameraRig = unit -> unit
-type OnOrbitCameraRigProcessed = float32 -> unit
+type OnZoomChanged = unit -> unit
+type OnPlanetParamsChanged = unit -> unit
+type Reset = unit -> unit
+type SetAutoPilot = Vector3 -> unit
+type CancelAutoPilot = unit -> unit
+type RotateCamera = float32 -> bool
+type OnProcessed = float32 -> unit
 
 [<Interface>]
 type IOrbitCameraRigCommand =
-    abstract OnZoomChanged: OnOrbitCameraRigZoomChanged
-    abstract OnPlanetParamsChanged: OnOrbitCameraRigPlanetParamsChanged
-    abstract Reset: ResetOrbitCameraRig
-    abstract OnProcessed: OnOrbitCameraRigProcessed
+    abstract OnZoomChanged: OnZoomChanged
+    abstract OnPlanetParamsChanged: OnPlanetParamsChanged
+    abstract Reset: Reset
+    abstract SetAutoPilot: SetAutoPilot
+    abstract CancelAutoPilot: CancelAutoPilot
+    abstract RotateCamera: RotateCamera
+    abstract OnProcessed: OnProcessed
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
@@ -22,7 +29,7 @@ type IOrbitCameraRigCommand =
 module OrbitCameraRigCommand =
     let private focusBackZoom = 0.2f
 
-    let onZoomChanged (planet: IPlanet) (cameraRig: IOrbitCameraRig) : OnOrbitCameraRigZoomChanged =
+    let onZoomChanged (planet: IPlanet) (cameraRig: IOrbitCameraRig) : OnZoomChanged =
         fun () ->
             cameraRig.FocusBackStick.Position <-
                 cameraRig.FocusBackStick.Basis
@@ -43,7 +50,7 @@ module OrbitCameraRigCommand =
     let private boxSizeMultiplier = 0.01f
     let private lightRangeMultiplier = 1f
 
-    let onPlanetParamsChanged (planet: IPlanet) (cameraRig: IOrbitCameraRig) : OnOrbitCameraRigPlanetParamsChanged =
+    let onPlanetParamsChanged (planet: IPlanet) (cameraRig: IOrbitCameraRig) : OnPlanetParamsChanged =
         fun () ->
             GD.Print("onPlanetParamsChanged")
             cameraRig.FocusBase.Position <- Vector3.Forward * (planet.Radius + planet.MaxHeight)
@@ -52,10 +59,40 @@ module OrbitCameraRigCommand =
             cameraRig.Light.SpotRange <- planet.Radius * lightRangeMultiplier
             cameraRig.Light.Position <- Vector3.Up * planet.Radius * lightRangeMultiplier
 
-    let reset (planet: IPlanet) (cameraRig: IOrbitCameraRig) : ResetOrbitCameraRig =
+    let reset (planet: IPlanet) (cameraRig: IOrbitCameraRig) : Reset =
         fun () ->
             onPlanetParamsChanged planet cameraRig ()
             cameraRig.Zoom <- 1f
+
+    let setAutoPilot (camRig: IOrbitCameraRig) : SetAutoPilot =
+        fun (destinationDirection: Vector3) ->
+            let fromDirection = (OrbitCameraRigQuery.getFocusBasePos camRig ()).Normalized()
+
+            if fromDirection.IsEqualApprox destinationDirection then
+                GD.Print "设置的自动跳转位置就是当前位置"
+            else
+                camRig.FromDirection <- fromDirection
+                camRig.DestinationDirection <- destinationDirection
+                camRig.AutoPilotProgress <- 0f
+
+    // 取消自动跳转目的地
+    let cancelAutoPilot (camRig: IOrbitCameraRig) : CancelAutoPilot =
+        fun () ->
+            camRig.FromDirection <- Vector3.Zero
+            camRig.DestinationDirection <- Vector3.Zero
+            camRig.AutoPilotProgress <- 0f
+
+    let rotateCamera (camRig: IOrbitCameraRig) : RotateCamera =
+        fun (rotationDelta: float32) ->
+            // 旋转
+            if rotationDelta = 0f then
+                false
+            else
+                camRig.FocusBackStick.RotateY
+                <| - Mathf.DegToRad(rotationDelta * camRig.RotationSpeed)
+
+                camRig.Zoom <- camRig.Zoom // 更新 FocusBackStick 方向
+                true
 
     let private move (planet: IPlanet) (cameraRig: IOrbitCameraRig) =
         fun (xDelta: float32) (zDelta: float32) (delta: float32) ->
@@ -73,31 +110,31 @@ module OrbitCameraRigCommand =
                     * delta
 
                 let target =
-                    cameraRig.GetFocusBasePos() - cameraRig.GlobalPosition
+                    OrbitCameraRigQuery.getFocusBasePos cameraRig () - cameraRig.GlobalPosition
                     + cameraRig.FocusBackStick.GlobalBasis * (direction * distance)
                 // 现在在速度很慢，半径很大的时候，容易在南北极卡住（游戏开始后，只按 WS 即可走到南北极）
                 // 所以检查一下按下移动键后，是否没能真正移动。如果没移动，则每帧放大速度 1.5 倍
-                let prePos = cameraRig.GetFocusBasePos()
+                let prePos = OrbitCameraRigQuery.getFocusBasePos cameraRig ()
                 cameraRig.LookAt(target, cameraRig.FocusBase.GlobalBasis.Z)
 
                 cameraRig.AntiStuckSpeedMultiplier <-
-                    if prePos.IsEqualApprox <| cameraRig.GetFocusBasePos() then
+                    if prePos.IsEqualApprox <| OrbitCameraRigQuery.getFocusBasePos cameraRig () then
                         cameraRig.AntiStuckSpeedMultiplier * 1.5f
                     else
                         1f
 
-                cameraRig.EmitMoved(cameraRig.GetFocusBasePos(), delta)
+                cameraRig.EmitMoved(OrbitCameraRigQuery.getFocusBasePos cameraRig (), delta)
                 // 打断自动跳转
-                cameraRig.CancelAutoPilot()
+                cancelAutoPilot cameraRig ()
                 true
 
     let private mouseMoveSensitivity = 0.01f
 
-    let onProcessed (planet: IPlanet) (cameraRig: IOrbitCameraRig) : OnOrbitCameraRigProcessed =
+    let onProcessed (planet: IPlanet) (cameraRig: IOrbitCameraRig) : OnProcessed =
         fun (delta: float32) ->
             let mutable transformed = false // 变换是否发生过改变
             // 相机自动跳转
-            if cameraRig.IsAutoPiloting() then
+            if OrbitCameraRigQuery.isAutoPiloting cameraRig () then
                 // // 点击左键，打断相机自动跳转（不能这样写，因为点击小地图时左键也是按下的）
                 // if Input.IsMouseButtonPressed MouseButton.Left then
                 //     cameraRig.CancelAutoPilot()
@@ -113,16 +150,19 @@ module OrbitCameraRigCommand =
                 let lookDir =
                     cameraRig.FromDirection.Slerp(cameraRig.DestinationDirection, cameraRig.AutoPilotProgress)
                 // 有可能出现一帧内移动距离过短无法 LookAt 的情况
-                if not <| lookDir.IsEqualApprox(cameraRig.GetFocusBasePos().Normalized()) then
+                if
+                    not
+                    <| lookDir.IsEqualApprox((OrbitCameraRigQuery.getFocusBasePos cameraRig ()).Normalized())
+                then
                     cameraRig.LookAt(lookDir, cameraRig.FocusBase.GlobalBasis.Z)
-                    cameraRig.EmitMoved(cameraRig.GetFocusBasePos(), delta)
+                    cameraRig.EmitMoved(OrbitCameraRigQuery.getFocusBasePos cameraRig (), delta)
                     transformed <- true
                 // 抵达目的地，取消自动跳转
                 if arrived then
-                    cameraRig.CancelAutoPilot()
+                    cancelAutoPilot cameraRig ()
             // 旋转
             let rotationDelta = delta * Input.GetAxis("cam_rotate_left", "cam_rotate_right")
-            transformed <- cameraRig.RotateCamera rotationDelta || transformed
+            transformed <- rotateCamera cameraRig rotationDelta || transformed
             // 移动
             let mutable xDelta = Input.GetAxis("cam_move_left", "cam_move_right")
             let mutable zDelta = Input.GetAxis("cam_move_forward", "cam_move_back")

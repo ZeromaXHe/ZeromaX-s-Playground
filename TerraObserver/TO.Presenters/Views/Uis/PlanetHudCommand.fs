@@ -1,4 +1,4 @@
-namespace TO.Presenters.Commands.Uis
+namespace TO.Presenters.Views.Uis
 
 open System
 open Godot
@@ -7,28 +7,36 @@ open TO.Abstractions.Views.Cameras
 open TO.Abstractions.Views.Uis
 open TO.Domains.Structs.HexSphereGrids
 open TO.Domains.Utils.Commons
+open TO.Presenters.Views.Cameras
 
-type OnPlanetHudOrbitCameraRigTransformed = Transform3D -> unit
-type PlanetHudInitElevationAndWaterVSlider = unit -> unit
-type PlanetHudUpdateRadiusLineEdit = string -> unit
-type PlanetHudUpdateDivisionLineEdit = string -> bool -> unit
+type OnOrbitCameraRigMoved = Vector3 -> float32 -> unit
+type OnOrbitCameraRigTransformed = Transform3D -> unit
+type InitElevationAndWaterVSlider = unit -> unit
+type UpdateRadiusLineEdit = string -> unit
+type UpdateDivisionLineEdit = bool -> string -> unit
 
 [<Interface>]
 type IPlanetHudCommand =
-    abstract OnOrbitCameraRigTransformed: OnPlanetHudOrbitCameraRigTransformed
-    abstract InitElevationAndWaterVSlider: PlanetHudInitElevationAndWaterVSlider
-    abstract UpdateRadiusLineEdit: PlanetHudUpdateRadiusLineEdit
-    abstract UpdateDivisionLineEdit: PlanetHudUpdateDivisionLineEdit
+    abstract OnOrbitCameraRigMoved: OnOrbitCameraRigMoved
+    abstract OnOrbitCameraRigTransformed: OnOrbitCameraRigTransformed
+    abstract InitElevationAndWaterVSlider: InitElevationAndWaterVSlider
+    abstract UpdateRadiusLineEdit: UpdateRadiusLineEdit
+    abstract UpdateDivisionLineEdit: UpdateDivisionLineEdit
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-06-22 19:57:22
 module PlanetHudCommand =
-    let onOrbitCameraRigMoved
+    let onOrbitCameraRigMoved (planetHud: IPlanetHud) : OnOrbitCameraRigMoved =
+        fun pos _ ->
+            let lonLat = LonLatCoords.From pos
+            planetHud.CamLonLatLabel.Text <- $"相机位置：{lonLat}"
+
+    let onOrbitCameraRigTransformed
         (orbitCameraRig: IOrbitCameraRig)
         (planetHud: IPlanetHud)
-        : OnPlanetHudOrbitCameraRigTransformed =
-        fun (transform: Transform3D) ->
+        : OnOrbitCameraRigTransformed =
+        fun transform ->
             if planetHud <> null then
                 let northPolePoint = Vector3.Up
                 let posNormal = transform.Origin.Normalized()
@@ -38,7 +46,7 @@ module PlanetHudCommand =
                     transform.Basis.Y.Slide(posNormal).SignedAngleTo(dirNorth, -posNormal)
 
                 planetHud.CompassPanel.Rotation <- angleToNorth
-                let posLocal = orbitCameraRig.GetFocusBasePos()
+                let posLocal = OrbitCameraRigQuery.getFocusBasePos orbitCameraRig ()
                 let lonLat = LonLatCoords.From posLocal
 
                 match planetHud.RectMap.Material with
@@ -50,25 +58,24 @@ module PlanetHudCommand =
                 | _ -> ()
     // GD.Print($"lonLat: {longLat.Longitude}, {longLat.Latitude}; angleToNorth: {
     //     angleToNorth}; posNormal: {posNormal};");
-    let initElevationAndWaterVSlider (planet: IPlanet) (planetHud: IPlanetHud) : PlanetHudInitElevationAndWaterVSlider =
+    let initElevationAndWaterVSlider (planet: IPlanet) (planetHud: IPlanetHud) : InitElevationAndWaterVSlider =
         fun () ->
-            if planetHud <> null then // 编辑器内会为空
-                // 按照指定的高程分割数量确定 UI
-                planetHud.ElevationVSlider.MaxValue <- planet.ElevationStep
-                planetHud.ElevationVSlider.TickCount <- planet.ElevationStep + 1
-                planetHud.WaterVSlider.MaxValue <- planet.ElevationStep
-                planetHud.WaterVSlider.TickCount <- planet.ElevationStep + 1
+            // 按照指定的高程分割数量确定 UI
+            planetHud.ElevationVSlider.MaxValue <- planet.ElevationStep
+            planetHud.ElevationVSlider.TickCount <- planet.ElevationStep + 1
+            planetHud.WaterVSlider.MaxValue <- planet.ElevationStep
+            planetHud.WaterVSlider.TickCount <- planet.ElevationStep + 1
 
-    let updateRadiusLineEdit (planet: IPlanet) (planetHud: IPlanetHud) : PlanetHudUpdateRadiusLineEdit =
-        fun (text: string) ->
+    let updateRadiusLineEdit (planet: IPlanet) (planetHud: IPlanetHud) : UpdateRadiusLineEdit =
+        fun text ->
             match Single.TryParse text with
             | true, radius -> planet.Radius <- radius
             | false, _ -> ()
 
-            planetHud.UpdateRadiusLineEdit planet.Radius
+            planetHud.RadiusLineEdit.Text <- $"{planet.Radius:F2}"
 
-    let updateDivisionLineEdit (planet: IPlanet) (planetHud: IPlanetHud) : PlanetHudUpdateDivisionLineEdit =
-        fun (text: string) (chunky: bool) ->
+    let updateDivisionLineEdit (planet: IPlanet) (planetHud: IPlanetHud) : UpdateDivisionLineEdit =
+        fun chunky text ->
             match Int32.TryParse text with
             | true, division ->
                 if chunky then
@@ -77,4 +84,5 @@ module PlanetHudCommand =
                     planet.Divisions <- division
             | false, _ -> ()
 
-            planetHud.UpdateDivisionLineEdit(planet.Divisions, planet.ChunkDivisions)
+            planetHud.DivisionLineEdit.Text <- $"{planet.Divisions}"
+            planetHud.ChunkDivisionLineEdit.Text <- $"{planet.ChunkDivisions}"

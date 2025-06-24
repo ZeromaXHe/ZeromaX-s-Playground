@@ -8,7 +8,36 @@ namespace TO.Abstractions.Views.Geos;
 /// Date: 2025-06-04 10:53:04
 public interface ILonLatGrid : INode3D
 {
+    #region Export 属性
+
+    int LongitudeInterval { get; set; }
+    int LatitudeInterval { get; set; }
+    int Segments { get; set; }
+    Material? LineMaterial { get; set; }
+    Color NormalLineColor { get; set; }
+    Color DeeperLineColor { get; set; }
+    int DeeperLineInterval { get; set; }
+    Color TropicColor { get; set; }
+    Color CircleColor { get; set; }
+    Color EquatorColor { get; set; }
+    Color Degree90LongitudeColor { get; set; }
+    Color MeridianColor { get; set; }
+    bool DrawTropicOfCancer { get; set; }
+    bool DrawTropicOfCapricorn { get; set; }
+    bool DrawArcticCircle { get; set; }
+    bool DrawAntarcticCircle { get; set; }
+    float FullVisibilityTime { get; set; }
+
     bool FixFullVisibility { get; set; }
-    void OnCameraMoved(Vector3 pos, float delta);
-    void Draw(float radius);
+
+    #endregion
+
+    #region 普通属性
+
+    float Visibility { get; set; }
+    bool FadeVisibility { get; set; }
+    float Radius { get; set; }
+    MeshInstance3D? MeshIns { get; set; }
+
+    #endregion
 }

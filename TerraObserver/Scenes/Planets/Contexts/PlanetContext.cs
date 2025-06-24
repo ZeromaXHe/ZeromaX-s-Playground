@@ -17,7 +17,7 @@ namespace TerraObserver.Scenes.Planets.Contexts;
 [Tool]
 public partial class PlanetContext : Node
 {
-    #region 事件和 Export 属性
+    #region Export 属性
 
     [Export]
     public Planet? Planet
@@ -58,7 +58,7 @@ public partial class PlanetContext : Node
 
     #endregion
 
-    #region 内部变量、属性
+    #region 私有字段
 
     private OrbitCameraRig _orbitCameraRig = null!;
     private LonLatGrid _lonLatGrid = null!;
@@ -98,8 +98,9 @@ public partial class PlanetContext : Node
         _orbitCameraRig.Transformed += _planetApp.OnPlanetHudOrbitCameraRigTransformed;
         _orbitCameraRig.Processed += _planetApp.OnOrbitCameraRigProcessed;
         _orbitCameraRig.ZoomChanged += _planetApp.OnOrbitCameraRigZoomChanged;
-        _orbitCameraRig.Moved += _lonLatGrid.OnCameraMoved;
+        _orbitCameraRig.Moved += _planetApp.OnLonLatGridCameraMoved;
         _lonLatGrid.FixFullVisibilityChanged += OnLonLatGridFixFullVisibilityChanged;
+        _lonLatGrid.DoDrawRequested += _planetApp.OnLonLatGridDoDrawRequested;
         _celestialMotion.SatelliteRadiusRatioChanged += _planetApp.OnCelestialMotionSatelliteRadiusRatioChanged;
         _celestialMotion.SatelliteDistRatioChanged += _planetApp.OnCelestialMotionSatelliteDistRatioChanged;
         _chunkLoader.Processed += _planetApp.OnChunkLoaderProcessed;
@@ -107,11 +108,11 @@ public partial class PlanetContext : Node
         // HUD
         if (!inEditor)
         {
-            _planetApp.OnPlanetHudOrbitCameraRigTransformed(_orbitCameraRig.GetViewport().GetCamera3D().GetGlobalTransform(), 0f);
-            _orbitCameraRig.Moved += _planetHud.OnOrbitCameraRigMoved;
-            _planetHud.OnOrbitCameraRigMoved(_orbitCameraRig.GetFocusBasePos(), 0f);
-            _planetHud.LonLatFixCheckButtonToggled += _lonLatGrid.ToggleFixFullVisibility;
-            _planetHud.CelestialMotionCheckButtonToggled += _celestialMotion.ToggleAllMotions;
+            _planetApp.OnPlanetHudOrbitCameraRigTransformed(
+                _orbitCameraRig.GetViewport().GetCamera3D().GetGlobalTransform(), 0f);
+            _orbitCameraRig.Moved += _planetApp.OnPlanetHudOrbitCameraRigMoved;
+            _planetHud.LonLatFixCheckButtonToggled += _planetApp.LonLatGridToggleFixFullVisibility;
+            _planetHud.CelestialMotionCheckButtonToggled += _planetApp.CelestialMotionToggleAllMotions;
             _planetHud.RadiusLineEditTextSubmitted += _planetApp.OnPlanetHudRadiusLineEditTextSubmitted;
             _planetHud.DivisionLineEditTextSubmitted += _planetApp.OnPlanetHudDivisionLineEditTextSubmitted;
             _planetHud.ChunkDivisionLineEditTextSubmitted += _planetApp.OnPlanetHudChunkDivisionLineEditTextSubmitted;
@@ -124,19 +125,21 @@ public partial class PlanetContext : Node
         if (what == (int)NotificationPredelete)
         {
             _orbitCameraRig.Transformed -= UpdateInsightChunks;
-            _orbitCameraRig.Moved -= _lonLatGrid.OnCameraMoved;
+            _orbitCameraRig.Moved -= _planetApp.OnLonLatGridCameraMoved;
+            _lonLatGrid.FixFullVisibilityChanged -= OnLonLatGridFixFullVisibilityChanged;
+            _lonLatGrid.DoDrawRequested -= _planetApp.OnLonLatGridDoDrawRequested;
+            _chunkLoader.HexGridChunkGenerated -= OnHexGridChunkGenerated;
             if (_planetHud != null!)
             {
-                _orbitCameraRig.Moved -= _planetHud.OnOrbitCameraRigMoved;
-                _planetHud.LonLatFixCheckButtonToggled -= _lonLatGrid.ToggleFixFullVisibility;
-                _planetHud.CelestialMotionCheckButtonToggled -= _celestialMotion.ToggleAllMotions;
+                _orbitCameraRig.Moved -= _planetApp.OnPlanetHudOrbitCameraRigMoved;
+                _planetHud.LonLatFixCheckButtonToggled -= _planetApp.LonLatGridToggleFixFullVisibility;
+                _planetHud.CelestialMotionCheckButtonToggled -= _planetApp.CelestialMotionToggleAllMotions;
                 _planetHud.RadiusLineEditTextSubmitted -= _planetApp.OnPlanetHudRadiusLineEditTextSubmitted;
                 _planetHud.DivisionLineEditTextSubmitted -= _planetApp.OnPlanetHudDivisionLineEditTextSubmitted;
-                _planetHud.ChunkDivisionLineEditTextSubmitted -= _planetApp.OnPlanetHudChunkDivisionLineEditTextSubmitted;
+                _planetHud.ChunkDivisionLineEditTextSubmitted -=
+                    _planetApp.OnPlanetHudChunkDivisionLineEditTextSubmitted;
             }
 
-            _lonLatGrid.FixFullVisibilityChanged -= OnLonLatGridFixFullVisibilityChanged;
-            _chunkLoader.HexGridChunkGenerated -= OnHexGridChunkGenerated;
             if (_planetApp != null!)
             {
                 // 首次编译后重载场景时会为空…… 没理解原因
@@ -168,8 +171,8 @@ public partial class PlanetContext : Node
     private void OnLonLatGridFixFullVisibilityChanged(bool value)
     {
         if (value)
-            _orbitCameraRig.Moved -= _lonLatGrid.OnCameraMoved;
+            _orbitCameraRig.Moved -= _planetApp.OnLonLatGridCameraMoved;
         else
-            _orbitCameraRig.Moved += _lonLatGrid.OnCameraMoved;
+            _orbitCameraRig.Moved += _planetApp.OnLonLatGridCameraMoved;
     }
 }

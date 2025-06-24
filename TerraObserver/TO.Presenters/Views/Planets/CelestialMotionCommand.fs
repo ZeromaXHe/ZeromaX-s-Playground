@@ -1,22 +1,31 @@
-namespace TO.Presenters.Commands.Planets
+namespace TO.Presenters.Views.Planets
 
 open Godot
 open TO.Abstractions.Models.Planets
 open TO.Abstractions.Views.Planets
 
-type CelestialMotionUpdateLunarDist = unit -> unit
-type CelestialMotionUpdateMoonMeshRadius = unit -> unit
+type ToggleAllMotions = bool -> unit
+type UpdateLunarDist = unit -> unit
+type UpdateMoonMeshRadius = unit -> unit
 
 [<Interface>]
 type ICelestialMotionCommand =
-    abstract UpdateLunarDist: CelestialMotionUpdateLunarDist
-    abstract UpdateMoonMeshRadius: CelestialMotionUpdateMoonMeshRadius
+    abstract ToggleAllMotions: ToggleAllMotions
+    abstract UpdateLunarDist: UpdateLunarDist
+    abstract UpdateMoonMeshRadius: UpdateMoonMeshRadius
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-06-22 14:37:22
 module CelestialMotionCommand =
-    let updateLunarDist (planet: IPlanet) (celestialMotion: ICelestialMotion) : CelestialMotionUpdateLunarDist =
+    let toggleAllMotions (celestialMotion: ICelestialMotion) : ToggleAllMotions =
+        fun (toggle: bool) ->
+            celestialMotion.PlanetRevolution <- toggle
+            celestialMotion.PlanetRotation <- toggle
+            celestialMotion.SatelliteRevolution <- toggle
+            celestialMotion.SatelliteRotation <- toggle
+
+    let updateLunarDist (planet: IPlanet) (celestialMotion: ICelestialMotion) : UpdateLunarDist =
         fun () ->
             celestialMotion.LunarDist.Position <-
                 Vector3.Back
@@ -26,10 +35,7 @@ module CelestialMotionCommand =
                     800f
                 )
 
-    let updateMoonMeshRadius
-        (planet: IPlanet)
-        (celestialMotion: ICelestialMotion)
-        : CelestialMotionUpdateMoonMeshRadius =
+    let updateMoonMeshRadius (planet: IPlanet) (celestialMotion: ICelestialMotion) : UpdateMoonMeshRadius =
         fun () ->
             match celestialMotion.Moon with
             | :? MeshInstance3D as moon ->

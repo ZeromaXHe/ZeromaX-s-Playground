@@ -1,5 +1,6 @@
 using Godot;
 using Godot.Abstractions.Bases;
+using TO.Domains.Structs.Tiles;
 
 namespace TO.Abstractions.Models.Planets;
 
@@ -9,4 +10,7 @@ namespace TO.Abstractions.Models.Planets;
 public interface ICatlikeCodingNoise : IResource
 {
     Image? NoiseSourceImage { get; }
+    int HashGridSize { get; }
+    HexHash[] HashGrid { get; }
+    RandomNumberGenerator Rng { get; }
 }

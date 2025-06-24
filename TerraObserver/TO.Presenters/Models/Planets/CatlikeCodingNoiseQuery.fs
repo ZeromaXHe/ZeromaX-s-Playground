@@ -1,4 +1,4 @@
-namespace TO.Presenters.Queries.Planets
+namespace TO.Presenters.Models.Planets
 
 open Godot
 open TO.Abstractions.Models.Planets
@@ -6,18 +6,38 @@ open TO.Domains.Components.HexSpheres.Tiles
 open TO.Domains.Utils.Commons
 open TO.Domains.Utils.HexSpheres
 
-type CatlikeCodingNoisePerturb = Vector3 -> Vector3
-type CatlikeCodingNoiseGetHeight = TileValue -> TileUnitCentroid -> float32
+type Perturb = Vector3 -> Vector3
+type GetHeight = TileValue -> TileUnitCentroid -> float32
 
 [<Interface>]
 type ICatlikeCodingNoiseQuery =
-    abstract Perturb: CatlikeCodingNoisePerturb
-    abstract GetHeight: CatlikeCodingNoiseGetHeight
+    abstract Perturb: Perturb
+    abstract GetHeight: GetHeight
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-06-21 20:39:21
 module CatlikeCodingNoiseQuery =
+    let sampleHashGrid (noise: ICatlikeCodingNoise) =
+        fun (position: Vector3) ->
+            let position = Math3dUtil.ProjectToSphere(position, HexMetrics.StandardRadius)
+
+            let mutable x =
+                int
+                <| Mathf.PosMod(position.X - position.Y * 0.5f - position.Z * 0.5f, float32 noise.HashGridSize)
+
+            if x = noise.HashGridSize then // 前面噪声扰动那里说过 PosMod 文档返回 [0, b), 结果取到了 b，所以怕了…… 加个防御性处理
+                x <- 0
+
+            let mutable z =
+                int
+                <| Mathf.PosMod((position.Y - position.Z) * HexMetrics.OuterToInner, float32 noise.HashGridSize)
+
+            if z = noise.HashGridSize then
+                z <- 0
+
+            noise.HashGrid[x + z * noise.HashGridSize]
+
     let noiseScale = 0.003f
 
     let private sampleNoise (planet: IPlanet) (catlikeCodingNoise: ICatlikeCodingNoise) =
@@ -31,7 +51,7 @@ module CatlikeCodingNoiseQuery =
 
     let cellPerturbStrength = 4f
 
-    let perturb (planet: IPlanet) (catlikeCodingNoise: ICatlikeCodingNoise) =
+    let perturb (planet: IPlanet) (catlikeCodingNoise: ICatlikeCodingNoise) : Perturb =
         fun (position: Vector3) ->
             let sample =
                 sampleNoise planet catlikeCodingNoise
@@ -65,7 +85,7 @@ module CatlikeCodingNoiseQuery =
 
     let elevationPerturbStrength = 0.5f
 
-    let getHeight (planet: IPlanet) (catlikeCodingNoise: ICatlikeCodingNoise) =
+    let getHeight (planet: IPlanet) (catlikeCodingNoise: ICatlikeCodingNoise) : GetHeight =
         let getPerturbHeight (centroid: Vector3) =
             ((sampleNoise planet catlikeCodingNoise centroid).Y * 2f - 1f)
             * elevationPerturbStrength

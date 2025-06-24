@@ -1,7 +1,8 @@
 using System;
 using Godot;
 using TO.Abstractions.Models.Planets;
-using TO.Presenters.Models.Planets;
+using TO.Domains.Shaders;
+using TO.Domains.Utils.HexSpheres;
 
 namespace TerraObserver.Scenes.Planets.Models;
 
@@ -9,14 +10,11 @@ namespace TerraObserver.Scenes.Planets.Models;
 /// Author: Zhu XH
 [Tool]
 [GlobalClass]
-#pragma warning disable GD0401
-public partial class Planet : PlanetFS, IPlanet
-#pragma warning restore GD0401
+public partial class Planet : Resource, IPlanet
 {
     #region 事件
 
     public event Action? ParamsChanged;
-    public override void EmitParamsChanged() => ParamsChanged?.Invoke();
 
     #endregion
 
@@ -24,7 +22,7 @@ public partial class Planet : PlanetFS, IPlanet
 
     [ExportGroup("戈德堡多面体配置")]
     [Export(PropertyHint.Range, "5, 1000")]
-    public override float Radius
+    public float Radius
     {
         get => _radius;
         set
@@ -37,7 +35,7 @@ public partial class Planet : PlanetFS, IPlanet
     private float _radius = 100f;
 
     [Export(PropertyHint.Range, "1, 200")]
-    public override int Divisions
+    public int Divisions
     {
         get => _divisions;
         set
@@ -51,7 +49,7 @@ public partial class Planet : PlanetFS, IPlanet
     private int _divisions = 20;
 
     [Export(PropertyHint.Range, "1, 20")]
-    public override int ChunkDivisions
+    public int ChunkDivisions
     {
         get => _chunkDivisions;
         set
@@ -65,4 +63,36 @@ public partial class Planet : PlanetFS, IPlanet
     private int _chunkDivisions = 2;
 
     #endregion
+
+    #region 普通属性
+
+    // 单位高度
+    public float UnitHeight { get; private set; } = 1.5f;
+    public float MaxHeight { get; private set; } = 15f;
+    public float MaxHeightRatio { get; private set; } = 0.1f;
+    private const float MaxHeightRadiusRatio = 0.2f;
+
+    // [Export(PropertyHint.Range, "10, 15")]
+    public int ElevationStep { get; set; } = 10; // 这里对应含义是 Elevation 分为几级
+
+    public float StandardScale => Radius / HexMetrics.StandardRadius * HexMetrics.StandardDivisions / Divisions;
+
+    // 默认水面高度 [Export(PropertyHint.Range, "1, 5")]
+    public int DefaultWaterLevel { get; set; } = 5;
+
+    #endregion
+
+    private void OnParamsChanged()
+    {
+        CalcUnitHeight();
+        ParamsChanged?.Invoke();
+    }
+
+    private void CalcUnitHeight()
+    {
+        MaxHeightRatio = StandardScale * MaxHeightRadiusRatio;
+        MaxHeight = Radius * MaxHeightRatio;
+        RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.MaxHeight, MaxHeight);
+        UnitHeight = MaxHeight / ElevationStep;
+    }
 }

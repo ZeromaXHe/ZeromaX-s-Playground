@@ -7,12 +7,15 @@ open TO.Domains.Components.HexSpheres.Chunks
 open TO.Domains.Components.HexSpheres.Points
 open TO.Domains.Alias.HexSpheres.Points
 open TO.Domains.Enums.HexSpheres.Chunks
+open TO.Domains.Utils.Chunks
 
 type AddChunk = PointId -> Vector3 -> NeighborCenterIds -> ChunkId
+type UpdateChunkInsightAndLod = bool -> float32 -> CommandBuffer option -> Vector3 -> ChunkId -> unit
 
 [<Interface>]
 type IChunkCommand =
-    abstract add: EntityStore -> AddChunk
+    abstract Add: AddChunk
+    abstract UpdateInsightAndLod: UpdateChunkInsightAndLod
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
@@ -29,3 +32,25 @@ module ChunkCommand =
                     ChunkInsight false
                 )
                 .Id
+
+    let updateInsightAndLod (store: EntityStore) : UpdateChunkInsightAndLod =
+        fun (insight: bool) (tileLen: float32) (cbOpt: CommandBuffer option) (cameraPos: Vector3) (chunkId: ChunkId) ->
+            let chunkPos = store.GetEntityById(chunkId).GetComponent<ChunkPos>().Pos
+
+            let lodEnum =
+                if insight then
+                    ChunkLodUtil.calcLod tileLen <| chunkPos.DistanceTo cameraPos
+                else
+                    ChunkLodEnum.JustHex
+
+            let chunkInsight = ChunkInsight insight
+            let chunkLod = ChunkLod lodEnum
+            // 更新组件
+            match cbOpt with
+            | Some commandBuffer ->
+                commandBuffer.AddComponent<ChunkInsight>(chunkId, &chunkInsight)
+                commandBuffer.AddComponent<ChunkLod>(chunkId, &chunkLod)
+            | None ->
+                let chunk = store.GetEntityById(chunkId)
+                chunk.AddComponent<ChunkInsight>(&chunkInsight) |> ignore
+                chunk.AddComponent<ChunkLod>(&chunkLod) |> ignore

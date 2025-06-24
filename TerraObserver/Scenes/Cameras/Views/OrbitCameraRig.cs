@@ -9,61 +9,128 @@ namespace TerraObserver.Scenes.Cameras.Views;
 /// Author: Zhu XH
 /// 由于需要作为上下文的 Export 变量，必须添加 [Tool] 注解
 [Tool]
-public partial class OrbitCameraRig : OrbitCameraRigFS, IOrbitCameraRig
+public partial class OrbitCameraRig : Node3D, IOrbitCameraRig
 {
-    #region 生命周期
-
-    // 需要忽略 IDE 省略 partial、_Ready 等的提示，必须保留它们
-    public override void _Ready() => base._Ready();
-    public override void _Process(double delta) => base._Process(delta);
-    public override void _UnhandledInput(InputEvent @event) => base._UnhandledInput(@event);
-
-    #endregion
-
     #region 事件
 
     public event Action<float>? Processed;
-    public override void EmitProcessed(float delta) => Processed?.Invoke(delta);
     public event Action? ZoomChanged;
-    public override void EmitZoomChanged() => ZoomChanged?.Invoke();
     public event IOrbitCameraRig.MovedEvent? Moved;
     public void EmitMoved(Vector3 pos, float delta) => Moved?.Invoke(pos, delta);
     public event IOrbitCameraRig.TransformedEvent? Transformed;
-    public override void EmitTransformed(Transform3D trans, float delta) => Transformed?.Invoke(trans, delta);
+    public void EmitTransformed(Transform3D trans, float delta) => Transformed?.Invoke(trans, delta);
 
     #endregion
 
     #region Export 属性
 
-    [Export] public override Camera3D? Camera { get; set; } // 设置摄像机节点
+    [Export] public Camera3D? Camera { get; set; } // 设置摄像机节点
 
     [Export(PropertyHint.Range, "0.01, 10")]
-    public override float StickMinZoom { get; set; } = 1f;
+    public float StickMinZoom { get; set; } = 1f;
 
     [Export(PropertyHint.Range, "0.01, 10")]
-    public override float StickMaxZoom { get; set; } = 0.2f;
+    public float StickMaxZoom { get; set; } = 0.2f;
 
     [Export(PropertyHint.Range, "-180, 180")]
-    public override float SwivelMinZoom { get; set; } = -90f;
+    public float SwivelMinZoom { get; set; } = -90f;
 
     [Export(PropertyHint.Range, "-180, 180")]
-    public override float SwivelMaxZoom { get; set; } = -45f;
+    public float SwivelMaxZoom { get; set; } = -45f;
 
     [Export(PropertyHint.Range, "0.01, 10")]
-    public override float MoveSpeedMinZoom { get; set; } = 0.8f;
+    public float MoveSpeedMinZoom { get; set; } = 0.8f;
 
     [Export(PropertyHint.Range, "0.01, 10")]
-    public override float MoveSpeedMaxZoom { get; set; } = 0.2f;
+    public float MoveSpeedMaxZoom { get; set; } = 0.2f;
 
     [Export(PropertyHint.Range, "0.01, 3600, degrees")]
-    public override float RotationSpeed { get; set; } = 180f;
+    public float RotationSpeed { get; set; } = 180f;
 
-    [Export] public override Node3D? Sun { get; set; }
+    [Export] public Node3D? Sun { get; set; }
 
     [ExportGroup("自动导航设置")]
     // 自动导航速度。该值的倒数，对应自动移动时间：比如 2f 对应 0.5s 抵达
     [Export(PropertyHint.Range, "0.01, 10")]
-    public override float AutoPilotSpeed { get; set; } = 1f;
+    public float AutoPilotSpeed { get; set; } = 1f;
+
+    #endregion
+    
+    #region 普通属性
+
+    public float Zoom
+    {
+        get => _zoom;
+        set
+        {
+            _zoom = value;
+            if (!_ready) return;
+            ZoomChanged?.Invoke();
+        }
+    }
+
+    private float _zoom = 1f;
+    public float AntiStuckSpeedMultiplier { get; set; } = 1f; // 用于防止速度过低的时候相机卡死
+    public float AutoPilotProgress { get; set; }
+    public Vector3 FromDirection { get; set; } = Vector3.Zero;
+    public Vector3 DestinationDirection { get; set; } = Vector3.Zero;
+
+    #endregion
+
+    #region on-ready
+
+    public Node3D FocusBase { get; private set; } = null!;
+    public CsgBox3D FocusBox { get; private set; } = null!;
+    public Node3D FocusBackStick { get; private set; } = null!;
+    public CsgBox3D BackBox { get; private set; } = null!;
+    public SpotLight3D Light { get; private set; } = null!;
+    public Node3D Swivel { get; private set; } = null!;
+    public Node3D Stick { get; private set; } = null!;
+    public RemoteTransform3D CamRig { get; private set; } = null!; // 对应相机应该在的位置
+    
+    #endregion
+
+    #region 生命周期
+
+    private bool _ready;
+
+    public override void _Ready()
+    {
+        FocusBase = GetNode<Node3D>("%FocusBase");
+        FocusBox = GetNode<CsgBox3D>("%FocusBox");
+        FocusBackStick = GetNode<Node3D>("%FocusBackStick");
+        BackBox = GetNode<CsgBox3D>("%BackBox");
+        Light = GetNode<SpotLight3D>("%Light");
+        Swivel = GetNode<Node3D>("%Swivel");
+        Stick = GetNode<Node3D>("%Stick");
+        CamRig = GetNode<RemoteTransform3D>("%CamRig");
+        if (Camera != null)
+            CamRig.RemotePath = CamRig.GetPathTo(Camera);
+        _ready = true;
+    }
+
+    public override void _Process(double delta)
+    {
+        if (Engine.IsEditorHint())
+        {
+            SetProcess(false);
+            return;
+        }
+
+        Processed?.Invoke((float)delta);
+    }
+
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (Engine.IsEditorHint()) return;
+        // 缩放
+        if (@event is InputEventMouseButton { ButtonIndex: MouseButton.WheelDown or MouseButton.WheelUp } e)
+        {
+            var zoomDelta = 0.025f * e.Factor * (e.ButtonIndex == MouseButton.WheelUp ? 1f : -1f);
+            Zoom = Mathf.Clamp(Zoom + zoomDelta, 0f, 1f);
+            Transformed?.Invoke(CamRig.GlobalTransform, (float)GetProcessDeltaTime());
+        }
+    }
 
     #endregion
 }
