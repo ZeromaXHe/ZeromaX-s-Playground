@@ -18,8 +18,6 @@
         <Compile Include="Views\Cameras\OrbitCameraRigCommand.fs" />
         <Compile Include="Views\Geos\LonLatGridCommand.fs" />
         <Compile Include="Views\Planets\CelestialMotionCommand.fs" />
-        <Compile Include="Views\Chunks\HexMeshFS.fs"/>
-        <Compile Include="Views\Chunks\HexGridChunkFS.fs"/>
         <Compile Include="Views\Chunks\ChunkLoaderQuery.fs" />
         <Compile Include="Views\Chunks\ChunkLoaderCommand.fs" />
         <Compile Include="Views\Uis\PlanetHudCommand.fs" />
