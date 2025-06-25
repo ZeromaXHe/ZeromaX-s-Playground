@@ -30,7 +30,9 @@ type PlanetApp(planet, catlikeCodingNoise, cameraRig, lonLatGrid, celestialMotio
     let tileShaderData = TileShaderData()
     let tileSearcher = TileSearcher()
     let lodMeshCache = LodMeshCache()
-    let repoEnv = PlanetRepoEnv(store, chunkyVpTrees, lodMeshCache)
+
+    let repoEnv =
+        PlanetRepoEnv(store, chunkyVpTrees, lodMeshCache, tileSearcher, tileShaderData)
 
     let preEnv =
         PlanetPreEnv(planet, catlikeCodingNoise, cameraRig, lonLatGrid, celestialMotion, chunkLoader, planetHud)
@@ -101,15 +103,15 @@ type PlanetApp(planet, catlikeCodingNoise, cameraRig, lonLatGrid, celestialMotio
         HexSphereInitCommand.clearOldData store ()
         chunkLoaderCommand.ClearOldData()
         lodMeshCache.RemoveAllLodMeshes()
-        HexSphereService.initHexSphere planet repoEnv store tileShaderData tileSearcher
-        HexGridChunkService.initChunkNodes planet preEnv repoEnv store
+        HexSphereService.initHexSphere preEnv repoEnv
+        HexGridChunkService.initChunkNodes preEnv repoEnv
 
     member this.OnChunkLoaderProcessed() =
 
         HexGridChunkService.onChunkLoaderProcessed preEnv repoEnv
 
     member this.OnHexGridChunkProcessed(chunk: IHexGridChunk) =
-        HexGridChunkService.onHexGridChunkProcessed planet preEnv lodMeshCache store repoEnv chunk
+        HexGridChunkService.onHexGridChunkProcessed preEnv repoEnv chunk
 
     member this.UpdateInsightChunks() =
-        HexGridChunkService.updateInsightChunks preEnv planet chunkLoader repoEnv store
+        HexGridChunkService.updateInsightChunks preEnv repoEnv

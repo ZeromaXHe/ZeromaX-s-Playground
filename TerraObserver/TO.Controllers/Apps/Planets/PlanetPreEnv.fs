@@ -12,6 +12,12 @@ open TO.Presenters.Models.Planets
 /// Date: 2025-06-19 19:06:19
 type PlanetPreEnv(planet, catlikeCodingNoise, cameraRig, lonLatGrid, celestialMotion, chunkLoader, planetHud) =
     interface IPlanetQuery with
+        member this.GetRadius = PlanetQuery.getRadius planet
+        member this.GetDivisions = PlanetQuery.getDivisions planet
+        member this.GetChunkDivisions = PlanetQuery.getChunkDivisions planet
+        member this.GetUnitHeight = PlanetQuery.getUnitHeight planet
+        member this.GetMaxHeight = PlanetQuery.getMaxHeight planet
+        member this.GetStandardScale = PlanetQuery.getStandardScale planet
         member this.GetTileLen = PlanetQuery.getTileLen planet
 
     interface ICatlikeCodingNoiseQuery with
@@ -28,16 +34,22 @@ type PlanetPreEnv(planet, catlikeCodingNoise, cameraRig, lonLatGrid, celestialMo
         member this.GetInsightChunkIdsNext =
             ChunkLoaderQuery.getInsightChunkIdsNext chunkLoader
 
+        member this.GetChunkQueryQueue = ChunkLoaderQuery.getChunkQueryQueue chunkLoader
+        member this.GetVisitedChunkIds = ChunkLoaderQuery.getVisitedChunkIds chunkLoader
+        member this.GetRimChunkIds = ChunkLoaderQuery.getRimChunkIds chunkLoader
         member this.GetLoadSet = ChunkLoaderQuery.getLoadSet chunkLoader
         member this.GetRefreshSet = ChunkLoaderQuery.getRefreshSet chunkLoader
         member this.GetUnloadSet = ChunkLoaderQuery.getUnloadSet chunkLoader
-        member this.GetRimChunkIds = ChunkLoaderQuery.getRimChunkIds chunkLoader
         member this.GetUsingChunks = ChunkLoaderQuery.getUsingChunks chunkLoader
         member this.GetStopwatch = ChunkLoaderQuery.getStopwatch chunkLoader
+        member this.GetUnusedChunk = ChunkLoaderQuery.getUnusedChunk chunkLoader
+
+        member this.UpdateInsightSetNextIdx =
+            ChunkLoaderQuery.updateInsightSetNextIdx chunkLoader
+
         member this.TryGetUsingChunk = ChunkLoaderQuery.tryGetUsingChunk chunkLoader
         member this.GetAllUsingChunks = ChunkLoaderQuery.getAllUsingChunks chunkLoader
         member this.GetViewportCamera = ChunkLoaderQuery.getViewportCamera chunkLoader
-        member this.GetUnusedChunk = ChunkLoaderQuery.getUnusedChunk chunkLoader
 
     interface IOrbitCameraRigCommand with
         member this.OnPlanetParamsChanged =

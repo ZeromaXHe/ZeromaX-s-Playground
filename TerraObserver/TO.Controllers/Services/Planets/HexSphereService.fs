@@ -1,25 +1,26 @@
 namespace TO.Controllers.Services.Planets
 
-open Friflo.Engine.ECS
-open TO.Abstractions.Models.Planets
-open TO.Domains.Components.HexSpheres.Tiles
+open TO.Presenters.Models.Planets
 open TO.Repos.Commands.HexSpheres
-open TO.Repos.Data.PathFindings
-open TO.Repos.Data.Shaders
+open TO.Repos.Commands.PathFindings
+open TO.Repos.Commands.Shaders
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-05-30 12:46:30
 module HexSphereService =
     let initHexSphere
-        (planet: IPlanet)
-        (repoEnv: #IHexSphereInitCommand)
-        (store: EntityStore)
-        (tileShaderData: TileShaderData)
-        (tileSearcher: TileSearcher)
+        (preEnv: #IPlanetQuery)
+        (repoEnv:
+            'RE
+                when 'RE :> IHexSphereInitCommand
+                and 'RE :> ITileSearcherCommand
+                and 'RE :> ITileShaderDataCommand)
         =
-        repoEnv.InitChunks planet.ChunkDivisions <| planet.Radius + planet.MaxHeight
-        repoEnv.InitTiles planet.Divisions
-        tileShaderData.Initialize planet.Divisions
-        tileSearcher.InitSearchData
-        <| store.Query<TileUnitCentroid>().Count
+        repoEnv.InitChunks
+        <| preEnv.GetChunkDivisions()
+        <| preEnv.GetRadius() + preEnv.GetMaxHeight()
+
+        repoEnv.InitTiles <| preEnv.GetDivisions()
+        repoEnv.InitShaderData <| preEnv.GetDivisions()
+        repoEnv.InitSearchData()

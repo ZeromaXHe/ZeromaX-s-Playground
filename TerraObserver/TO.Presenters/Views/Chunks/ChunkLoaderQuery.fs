@@ -15,25 +15,29 @@ type GetUnloadSet = unit -> ChunkId HashSet
 type GetRefreshSet = unit -> ChunkId HashSet
 type GetLoadSet = unit -> ChunkId HashSet
 type GetUsingChunks = unit -> Dictionary<ChunkId, IHexGridChunk>
+type GetUnusedChunk = unit -> IHexGridChunk
 type GetStopwatch = unit -> Stopwatch
+type UpdateInsightSetNextIdx = unit -> unit
 type TryGetUsingChunk = ChunkId -> bool * IHexGridChunk
 type GetAllUsingChunks = unit -> IHexGridChunk seq
-type GetUnusedChunk = unit -> IHexGridChunk
 type GetViewportCamera = unit -> Camera3D
 
 [<Interface>]
 type IChunkLoaderQuery =
     abstract GetInsightChunkIdsNow: GetInsightChunkIdsNow
     abstract GetInsightChunkIdsNext: GetChunkIdsNext
+    abstract GetChunkQueryQueue: GetChunkQueryQueue
+    abstract GetVisitedChunkIds: GetVisitedChunkIds
+    abstract GetRimChunkIds: GetRimChunkIds
     abstract GetUnloadSet: GetUnloadSet
     abstract GetRefreshSet: GetRefreshSet
     abstract GetLoadSet: GetLoadSet
-    abstract GetRimChunkIds: GetRimChunkIds
     abstract GetUsingChunks: GetUsingChunks
     abstract GetStopwatch: GetStopwatch
+    abstract GetUnusedChunk: GetUnusedChunk
+    abstract UpdateInsightSetNextIdx: UpdateInsightSetNextIdx
     abstract TryGetUsingChunk: TryGetUsingChunk
     abstract GetAllUsingChunks: GetAllUsingChunks
-    abstract GetUnusedChunk: GetUnusedChunk
     abstract GetViewportCamera: GetViewportCamera
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
@@ -56,14 +60,14 @@ module ChunkLoaderQuery =
     let getLoadSet (chunkLoader: IChunkLoader) : GetLoadSet = fun () -> chunkLoader.LoadSet
     let getUsingChunks (chunkLoader: IChunkLoader) : GetUsingChunks = fun () -> chunkLoader.UsingChunks
     let getStopwatch (chunkLoader: IChunkLoader) : GetStopwatch = fun () -> chunkLoader.Stopwatch
+    let updateInsightSetNextIdx (chunkLoader: IChunkLoader) : UpdateInsightSetNextIdx = fun () -> chunkLoader.UpdateInsightSetNextIdx()
+    let getUnusedChunk (chunkLoader: IChunkLoader) : GetUnusedChunk = fun () -> chunkLoader.GetUnusedChunk()
 
     let tryGetUsingChunk (chunkLoader: IChunkLoader) : TryGetUsingChunk =
         fun chunkId -> chunkLoader.UsingChunks.TryGetValue(chunkId)
 
     let getAllUsingChunks (chunkLoader: IChunkLoader) : GetAllUsingChunks =
         fun () -> seq chunkLoader.UsingChunks.Values
-
-    let getUnusedChunk (chunkLoader: IChunkLoader) : GetUnusedChunk = fun () -> chunkLoader.GetUnusedChunk()
 
     let getViewportCamera (chunkLoader: IChunkLoader) : GetViewportCamera =
         fun () -> chunkLoader.GetViewport().GetCamera3D()
