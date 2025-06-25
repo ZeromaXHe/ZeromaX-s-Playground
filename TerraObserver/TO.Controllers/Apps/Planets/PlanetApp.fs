@@ -4,12 +4,15 @@ open Friflo.Engine.ECS
 open Godot
 open TO.Abstractions.Views.Chunks
 open TO.Controllers.Apps.Envs
+open TO.Domains.Components.HexSpheres.Tiles
 open TO.Presenters.Views.Cameras
 open TO.Presenters.Views.Chunks
 open TO.Presenters.Views.Geos
 open TO.Presenters.Views.Planets
 open TO.Presenters.Views.Uis
 open TO.Repos.Commands.HexSpheres
+open TO.Repos.Commands.PathFindings
+open TO.Repos.Commands.Shaders
 open TO.Repos.Data.Commons
 open TO.Controllers.Services.Planets
 open TO.Repos.Data.HexSpheres
@@ -97,14 +100,35 @@ type PlanetApp(planet, catlikeCodingNoise, cameraRig, lonLatGrid, celestialMotio
     member this.OnPlanetHudOrbitCameraRigMoved pos delta =
         planetHudCommand.OnOrbitCameraRigMoved pos delta
 
+    member this.OnProcessed delta =
+        TileShaderDataCommand.updateData store tileShaderData delta
+
     member this.DrawHexSphereMesh() =
         let time = Time.GetTicksMsec()
         GD.Print $"[===DrawHexSphereMesh===] radius {planet.Radius}, divisions {planet.Divisions}, start at: {time}"
+        // 清理旧数据
         HexSphereInitCommand.clearOldData store ()
         chunkLoaderCommand.ClearOldData()
         lodMeshCache.RemoveAllLodMeshes()
+        // 初始化新数据
         HexSphereService.initHexSphere preEnv repoEnv
         HexGridChunkService.initChunkNodes preEnv repoEnv
+
+        store
+            .Query<TileCountId, TileValue, TileFlag, TileVisibility>()
+            .ForEachEntity(fun tileCountId tileValue tileFlag tileVisibility tile ->
+                TileSearcherCommand.refreshTileSearchData tileSearcher tileCountId
+
+                TileShaderDataCommand.refreshTerrain
+                    tileShaderData
+                    planet.UnitHeight
+                    planet.MaxHeight
+                    tileCountId
+                    tileValue
+
+                TileShaderDataCommand.refreshVisibility tileShaderData tile.Id tileCountId tileFlag tileVisibility)
+
+        GD.Print $"[===DrawHexSphereMesh===] total cost: {Time.GetTicksMsec() - time} ms"
 
     member this.OnChunkLoaderProcessed() =
 

@@ -1007,17 +1007,20 @@ module private ChunkTriangulation =
         (preEnv: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (beginV: Vector3)
-        (beginTileId: int)
+        (beginTileCountId: TileCountId)
         (leftV: Vector3)
-        (leftTileId: int)
+        (leftTileCountId: TileCountId)
         (rightV: Vector3)
-        (rightTileId: int)
+        (rightTileCountId: TileCountId)
         =
         let mutable v3 = beginV
         let mutable v4 = beginV
         let mutable w3 = HexMeshConstant.weights1
         let mutable w4 = HexMeshConstant.weights1
-        let ids = Vector3(float32 beginTileId, float32 leftTileId, float32 rightTileId)
+
+        let ids =
+            Vector3(float32 beginTileCountId.CountId, float32 leftTileCountId.CountId, float32 rightTileCountId.CountId)
+
         let terrain = chunk.GetTerrain()
 
         for i in 1 .. HexMetrics.terraceSteps do
@@ -1060,19 +1063,21 @@ module private ChunkTriangulation =
         (preEnv: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (beginV: Vector3)
-        (beginTileId: int)
+        (beginTileCountId: TileCountId)
         (beginValue: TileValue)
         (leftV: Vector3)
-        (leftTileId: int)
+        (leftTileCountId: TileCountId)
         (leftValue: TileValue)
         (rightV: Vector3)
-        (rightTileId: int)
+        (rightTileCountId: TileCountId)
         (rightValue: TileValue)
         =
         let b = 1f / Mathf.Abs(float32 <| rightValue.Elevation - beginValue.Elevation)
         let boundary = preEnv.Perturb(beginV).Lerp(preEnv.Perturb(rightV), b)
         let boundaryWeights = HexMeshConstant.weights1.Lerp(HexMeshConstant.weights3, b)
-        let ids = Vector3(float32 beginTileId, float32 leftTileId, float32 rightTileId)
+
+        let ids =
+            Vector3(float32 beginTileCountId.CountId, float32 leftTileCountId.CountId, float32 rightTileCountId.CountId)
 
         triangulateBoundaryTriangle
             preEnv
@@ -1110,19 +1115,21 @@ module private ChunkTriangulation =
         (preEnv: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (beginV: Vector3)
-        (beginTileId: int)
+        (beginTileCountId: TileCountId)
         (beginValue: TileValue)
         (leftV: Vector3)
-        (leftTileId: int)
+        (leftTileCountId: TileCountId)
         (leftValue: TileValue)
         (rightV: Vector3)
-        (rightTileId: int)
+        (rightTileCountId: TileCountId)
         (rightValue: TileValue)
         =
         let b = 1f / Mathf.Abs(float32 <| leftValue.Elevation - beginValue.Elevation)
         let boundary = preEnv.Perturb(beginV).Lerp(preEnv.Perturb(leftV), b)
         let boundaryWeights = HexMeshConstant.weights1.Lerp(HexMeshConstant.weights2, b)
-        let ids = Vector3(float32 beginTileId, float32 leftTileId, float32 rightTileId)
+
+        let ids =
+            Vector3(float32 beginTileCountId.CountId, float32 leftTileCountId.CountId, float32 rightTileCountId.CountId)
 
         triangulateBoundaryTriangle
             preEnv
@@ -1161,13 +1168,13 @@ module private ChunkTriangulation =
         (chunk: IChunk)
         (chunkLod: ChunkLodEnum)
         (bottom: Vector3)
-        (bottomTileId: int)
+        (bottomTileCountId: TileCountId)
         (bottomValue: TileValue)
         (left: Vector3)
-        (leftTileId: int)
+        (leftTileCountId: TileCountId)
         (leftValue: TileValue)
         (right: Vector3)
-        (rightTileId: int)
+        (rightTileCountId: TileCountId)
         (rightValue: TileValue)
         =
         let edgeType1 = HexMetrics.getEdgeType bottomValue.Elevation leftValue.Elevation
@@ -1176,37 +1183,61 @@ module private ChunkTriangulation =
         if chunkLod > ChunkLodEnum.SimpleHex then
             if edgeType1 = HexEdgeType.Slope then
                 if edgeType2 = HexEdgeType.Slope then
-                    triangulateCornerTerraces preEnv chunk bottom bottomTileId left leftTileId right rightTileId
+                    triangulateCornerTerraces
+                        preEnv
+                        chunk
+                        bottom
+                        bottomTileCountId
+                        left
+                        leftTileCountId
+                        right
+                        rightTileCountId
                 elif edgeType2 = HexEdgeType.Flat then
-                    triangulateCornerTerraces preEnv chunk left leftTileId right rightTileId bottom bottomTileId
+                    triangulateCornerTerraces
+                        preEnv
+                        chunk
+                        left
+                        leftTileCountId
+                        right
+                        rightTileCountId
+                        bottom
+                        bottomTileCountId
                 else
                     triangulateCornerTerracesCliff
                         preEnv
                         chunk
                         bottom
-                        bottomTileId
+                        bottomTileCountId
                         bottomValue
                         left
-                        leftTileId
+                        leftTileCountId
                         leftValue
                         right
-                        rightTileId
+                        rightTileCountId
                         rightValue
             elif edgeType2 = HexEdgeType.Slope then
                 if edgeType1 = HexEdgeType.Flat then
-                    triangulateCornerTerraces preEnv chunk right rightTileId bottom bottomTileId left leftTileId
+                    triangulateCornerTerraces
+                        preEnv
+                        chunk
+                        right
+                        rightTileCountId
+                        bottom
+                        bottomTileCountId
+                        left
+                        leftTileCountId
                 else
                     triangulateCornerCliffTerraces
                         preEnv
                         chunk
                         bottom
-                        bottomTileId
+                        bottomTileCountId
                         bottomValue
                         left
-                        leftTileId
+                        leftTileCountId
                         leftValue
                         right
-                        rightTileId
+                        rightTileCountId
                         rightValue
             elif HexMetrics.getEdgeType leftValue.Elevation rightValue.Elevation = HexEdgeType.Slope then
                 if leftValue.Elevation < rightValue.Elevation then
@@ -1214,26 +1245,26 @@ module private ChunkTriangulation =
                         preEnv
                         chunk
                         right
-                        rightTileId
+                        rightTileCountId
                         rightValue
                         bottom
-                        bottomTileId
+                        bottomTileCountId
                         bottomValue
                         left
-                        leftTileId
+                        leftTileCountId
                         leftValue
                 else
                     triangulateCornerTerracesCliff
                         preEnv
                         chunk
                         left
-                        leftTileId
+                        leftTileCountId
                         leftValue
                         right
-                        rightTileId
+                        rightTileCountId
                         rightValue
                         bottom
-                        bottomTileId
+                        bottomTileCountId
                         bottomValue
             else
                 chunk
@@ -1243,7 +1274,12 @@ module private ChunkTriangulation =
                         [| HexMeshConstant.weights1
                            HexMeshConstant.weights2
                            HexMeshConstant.weights3 |],
-                        tis = Vector3(float32 bottomTileId, float32 leftTileId, float32 rightTileId)
+                        tis =
+                            Vector3(
+                                float32 bottomTileCountId.CountId,
+                                float32 leftTileCountId.CountId,
+                                float32 rightTileCountId.CountId
+                            )
                     )
         else
             chunk
@@ -1253,7 +1289,12 @@ module private ChunkTriangulation =
                     [| HexMeshConstant.weights1
                        HexMeshConstant.weights2
                        HexMeshConstant.weights3 |],
-                    tis = Vector3(float32 bottomTileId, float32 leftTileId, float32 rightTileId)
+                    tis =
+                        Vector3(
+                            float32 bottomTileCountId.CountId,
+                            float32 leftTileCountId.CountId,
+                            float32 rightTileCountId.CountId
+                        )
                 )
 
     let private triangulateConnection
@@ -1394,6 +1435,7 @@ module private ChunkTriangulation =
             let preNeighbor = repoEnv.GetNeighborByIdAndIdx tileId preIdx |> Option.get
             let preNeighborValue = preNeighbor.GetComponent<TileValue>()
             let preNeighborUnitCentroid = preNeighbor.GetComponent<TileUnitCentroid>()
+            let preNeighborCountId = preNeighbor.GetComponent<TileCountId>()
             let preNeighborHeight = preEnv.GetHeight preNeighborValue preNeighborUnitCentroid
             // 连接角落的三角形由周围 3 个地块中最低或者一样高时 Id 最大的生成，或者是编辑地块与非编辑地块间的连接三角形
             if
@@ -1413,13 +1455,13 @@ module private ChunkTriangulation =
                     chunk
                     chunkLod
                     e.V1
-                    tileId
+                    tileCountId
                     tileValue
                     vpn
-                    preNeighbor.Id
+                    preNeighborCountId
                     preNeighborValue
                     vn1
-                    neighbor.Id
+                    neighborCountId
                     neighborValue
 
     let private triangulateEstuary

@@ -75,7 +75,8 @@ void fragment() {
 	vec3 baseColor = ColorizeSubmergence(c.rgb, length(world_pos) - radius, terrain.w);
 	float explored = visibility.w;
 	// 设置漫反射颜色
-	ALBEDO = (0.03 * baseColor + 0.97 * civ.rgb) * color.rgb * explored;
+	ALBEDO = baseColor * color.rgb * explored; // 先显示纹理颜色
+	//ALBEDO = (0.03 * baseColor + 0.97 * civ.rgb) * color.rgb * explored;
 	SPECULAR = specular * explored;
 	AO = explored;
 	EMISSION = background_color * (1.0 - explored);

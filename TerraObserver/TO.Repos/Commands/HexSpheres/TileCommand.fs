@@ -11,7 +11,6 @@ open TO.Domains.Functions.HexSpheres
 open TO.Domains.Alias.HexSpheres.Chunks
 open TO.Domains.Alias.HexSpheres.Faces
 open TO.Domains.Alias.HexSpheres.Points
-open TO.Repos.Data.Shaders
 
 type AddTile = PointId -> ChunkId -> FaceComponent array -> HexFaceIds -> NeighborCenterIds -> TileId
 
@@ -46,56 +45,7 @@ module TileCommand =
                     (TileValue 0)
                         .WithElevation(GD.RandRange(3, 7))
                         .WithWaterLevel(5)
-                        .WithTerrainTypeIndex(GD.RandRange(0, 5)) // TODO: 临时测试用
+                        .WithTerrainTypeIndex(GD.RandRange(0, 5)), // TODO: 临时测试用
+                    TileVisibility 0
                 )
                 .Id
-
-    let private resetVisibility (store: EntityStore) (tileShaderData: TileShaderData) =
-        let cb = store.GetCommandBuffer()
-
-        store
-            .Query<TileCountId, TileFlag, TileVisibility>()
-            .ForEachEntity(fun tileCountId tileFlag tileVisibility tileEntity ->
-                if tileVisibility.Visibility > 0 then
-                    let vis = TileVisibility 0
-                    cb.AddComponent(tileEntity.Id, &vis)
-                    tileShaderData.RefreshVisibility tileEntity.Id tileCountId tileFlag tileVisibility)
-
-        cb.Playback()
-        cb.Clear()
-
-    let transitionSpeed = 255f
-
-    let updateShaderData (store: EntityStore) (data: TileShaderData) =
-        fun (delta: float32) ->
-            if data.Enabled then
-                if data.NeedsVisibilityReset then
-                    data.NeedsVisibilityReset <- false
-                    resetVisibility store data
-
-                let deltaSpeed = int <| delta * transitionSpeed
-                let deltaSpeed = if deltaSpeed = 0 then 1 else deltaSpeed
-                let mutable i = 0
-
-                while i < data.TransitioningTileIndices.Count do
-                    let tileId = data.TransitioningTileIndices[i]
-                    let tile = store.GetEntityById tileId
-                    let tileCountId = tile.GetComponent<TileCountId>()
-                    let tileFlag = tile.GetComponent<TileFlag>()
-                    let tileVisibility = tile.GetComponent<TileVisibility>()
-
-                    if data.UpdateTileData tileCountId tileFlag tileVisibility deltaSpeed then
-                        i <- i + 1
-                    else
-                        let lastIdx = data.TransitioningTileIndices.Count - 1
-                        data.TransitioningTileIndices[i] <- data.TransitioningTileIndices[lastIdx]
-                        data.TransitioningTileIndices.RemoveAt lastIdx
-                // 更新 Shader global uniform 变量（hex_cell_data）
-                // 不能用这里的方法：RenderingServer.global_shader_parameter_get() 就没法在游戏循环里用
-                // RenderingServer
-                //     .GlobalShaderParameterGet("hex_cell_data")
-                //     .As<ImageTexture>()
-                //     .Update(cellTexture)
-                data.HexTileData.Update data.TileTexture
-                data.HexTileCivData.Update data.TileCivTexture
-                data.Enabled <- data.TransitioningTileIndices.Count > 0

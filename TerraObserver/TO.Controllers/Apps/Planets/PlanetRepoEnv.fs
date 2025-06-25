@@ -47,5 +47,15 @@ type PlanetRepoEnv(store, chunkyVpTrees, lodMeshCache, tileSearcher, tileShaderD
     interface ITileSearcherCommand with
         member this.InitSearchData = TileSearcherCommand.initSearchData store tileSearcher
 
+        member this.RefreshTileSearchData =
+            TileSearcherCommand.refreshTileSearchData tileSearcher
+
     interface ITileShaderDataCommand with
         member this.InitShaderData = TileShaderDataCommand.initShaderData tileShaderData
+        member this.RefreshCiv = TileShaderDataCommand.refreshCiv tileShaderData
+        member this.RefreshTerrain = TileShaderDataCommand.refreshTerrain tileShaderData
+        member this.RefreshVisibility = TileShaderDataCommand.refreshVisibility tileShaderData
+        member this.UpdateData = TileShaderDataCommand.updateData store tileShaderData
+
+        member this.ViewElevationChanged =
+            TileShaderDataCommand.viewElevationChanged tileShaderData
