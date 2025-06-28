@@ -1,11 +1,8 @@
 namespace TO.Domains.Components.HexSpheres.Tiles
 
-open System.Collections
-open System.Collections.Generic
 open Friflo.Engine.ECS
 open Godot
 open TO.Domains.Components.HexSpheres.Points
-open TO.Domains.Interfaces.Commons.WithLength
 open TO.Domains.Alias.HexSpheres.Points
 open TO.Domains.Utils.Commons
 open TO.Domains.Utils.HexSpheres
@@ -53,16 +50,26 @@ type TileUnitCorners =
             | 5 -> this.Corner5
             | _ -> failwith "TileUnitCorners invalid index"
 
-    interface Vector3 IWithLength with
-        override this.Length = this.Length
-        override this.GetEnumerator() : Vector3 IEnumerator = new WithLengthEnumerator<Vector3>(this)
-        override this.GetEnumerator() : IEnumerator = new WithLengthEnumerator<Vector3>(this)
-        override this.Item idx = this[idx]
     // 获取地块的形状角落顶点（顺时针顺序）
     member this.GetCorners(unitCentroid: Vector3, radius: float32, ?size: float32) =
         let size = defaultArg size 1f
+        let c0 = this.Corner0
+        let c1 = this.Corner1
+        let c2 = this.Corner2
+        let c3 = this.Corner3
+        let c4 = this.Corner4
+        let c5 = this.Corner5
 
-        this
+        let s =
+            seq {
+                c0
+                c1
+                c2
+                c3
+                c4
+            }
+
+        (if this.Length > 5 then Seq.append s <| seq { c5 } else s)
         |> Seq.map (fun unitCorner -> Math3dUtil.ProjectToSphere(unitCentroid.Lerp(unitCorner, size), radius))
 
     // 按照 tile 高度查询 idx (顺时针第一个)角落的位置，相对于 Tile 中心进行插值 size 的缩放。
@@ -101,7 +108,10 @@ type TileUnitCorners =
     member this.GetNeighborCommonCorners
         (neighborCenterIds: PointNeighborCenterIds, unitCentroid: Vector3, queryingCenterId: PointId, ?radius: float32) =
         let radius = defaultArg radius 1f
-        let idx = neighborCenterIds |> Seq.findIndex (fun id -> id = queryingCenterId)
+
+        let idx =
+            PointNeighborCenterIds.getSeq neighborCenterIds
+            |> Seq.findIndex (fun id -> id = queryingCenterId)
 
         if idx = -1 then
             []

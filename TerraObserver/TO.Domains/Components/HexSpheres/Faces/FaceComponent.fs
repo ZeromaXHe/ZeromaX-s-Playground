@@ -23,12 +23,13 @@ type FaceComponent =
           Vertex2 = vertex2
           Vertex3 = vertex3 }
 
-    member this.Vertex i =
-        match i with
-        | 0 -> this.Vertex1
-        | 1 -> this.Vertex2
-        | 2 -> this.Vertex3
-        | _ -> failwith "Invalid index"
+    member this.Item
+        with get i =
+            match i with
+            | 0 -> this.Vertex1
+            | 1 -> this.Vertex2
+            | 2 -> this.Vertex3
+            | _ -> failwith "Invalid index"
 
     member this.IsAdjacentTo(face: FaceComponent) =
         // F# 没有 Enumerable.Intersect，因为我们只有三个顶点，所以直接数吧

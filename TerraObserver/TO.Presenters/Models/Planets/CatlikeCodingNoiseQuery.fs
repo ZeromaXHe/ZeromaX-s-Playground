@@ -3,14 +3,19 @@ namespace TO.Presenters.Models.Planets
 open Godot
 open TO.Abstractions.Models.Planets
 open TO.Domains.Components.HexSpheres.Tiles
+open TO.Domains.Structs.Tiles
 open TO.Domains.Utils.Commons
 open TO.Domains.Utils.HexSpheres
 
+type SampleHashGrid = Vector3 -> HexHash
+type SampleNoise = Vector3 -> Vector4
 type Perturb = Vector3 -> Vector3
 type GetHeight = TileValue -> TileUnitCentroid -> float32
 
 [<Interface>]
 type ICatlikeCodingNoiseQuery =
+    abstract SampleHashGrid: SampleHashGrid
+    abstract SampleNoise: SampleNoise
     abstract Perturb: Perturb
     abstract GetHeight: GetHeight
 
@@ -18,7 +23,7 @@ type ICatlikeCodingNoiseQuery =
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-06-21 20:39:21
 module CatlikeCodingNoiseQuery =
-    let sampleHashGrid (noise: ICatlikeCodingNoise) =
+    let sampleHashGrid (noise: ICatlikeCodingNoise) : SampleHashGrid =
         fun (position: Vector3) ->
             let position = Math3dUtil.ProjectToSphere(position, HexMetrics.StandardRadius)
 
@@ -40,7 +45,7 @@ module CatlikeCodingNoiseQuery =
 
     let noiseScale = 0.003f
 
-    let private sampleNoise (planet: IPlanet) (catlikeCodingNoise: ICatlikeCodingNoise) =
+    let sampleNoise (planet: IPlanet) (catlikeCodingNoise: ICatlikeCodingNoise) : SampleNoise =
         fun (position: Vector3) ->
             TextureUtil.GetPixelBilinear
             <| catlikeCodingNoise.NoiseSourceImage
@@ -51,10 +56,10 @@ module CatlikeCodingNoiseQuery =
 
     let cellPerturbStrength = 4f
 
-    let perturb (planet: IPlanet) (catlikeCodingNoise: ICatlikeCodingNoise) : Perturb =
+    let perturb (env: 'E when 'E :> IPlanetQuery and 'E :> ICatlikeCodingNoiseQuery) : Perturb =
         fun (position: Vector3) ->
             let sample =
-                sampleNoise planet catlikeCodingNoise
+                env.SampleNoise
                 <| Math3dUtil.ProjectToSphere(position, HexMetrics.StandardRadius)
 
             let vecX =
@@ -69,7 +74,7 @@ module CatlikeCodingNoiseQuery =
                 vecX
                 * (sample.X * 2f - 1f)
                 * cellPerturbStrength
-                * planet.StandardScale
+                * env.GetStandardScale()
                 * position.Length()
                 / HexMetrics.StandardRadius
 
@@ -77,7 +82,7 @@ module CatlikeCodingNoiseQuery =
                 vecZ
                 * (sample.Z * 2f - 1f)
                 * cellPerturbStrength
-                * planet.StandardScale
+                * env.GetStandardScale()
                 * position.Length()
                 / HexMetrics.StandardRadius
 
@@ -85,13 +90,12 @@ module CatlikeCodingNoiseQuery =
 
     let elevationPerturbStrength = 0.5f
 
-    let getHeight (planet: IPlanet) (catlikeCodingNoise: ICatlikeCodingNoise) : GetHeight =
+    let getHeight (env: 'E when 'E :> IPlanetQuery and 'E :> ICatlikeCodingNoiseQuery) : GetHeight =
         let getPerturbHeight (centroid: Vector3) =
-            ((sampleNoise planet catlikeCodingNoise centroid).Y * 2f - 1f)
-            * elevationPerturbStrength
+            ((env.SampleNoise centroid).Y * 2f - 1f) * elevationPerturbStrength
 
         let getHeightInner (elevation: int) (centroid: Vector3) =
-            (float32 elevation + getPerturbHeight centroid) * planet.UnitHeight
+            (float32 elevation + getPerturbHeight centroid) * env.GetUnitHeight()
 
         fun (tileValue: TileValue) (tileUnitCentroid: TileUnitCentroid) ->
             let centroid = tileUnitCentroid.Scaled HexMetrics.StandardRadius

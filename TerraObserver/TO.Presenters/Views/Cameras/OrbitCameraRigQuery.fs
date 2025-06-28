@@ -15,8 +15,8 @@ type IOrbitCameraRigQuery =
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-06-24 21:24:24
 module OrbitCameraRigQuery =
-    let getFocusBasePos (camRig: IOrbitCameraRig) =
+    let getFocusBasePos (camRig: IOrbitCameraRig): GetFocusBasePos =
         fun () -> camRig.FocusBase.GlobalPosition
 
-    let isAutoPiloting (camRig: IOrbitCameraRig) =
+    let isAutoPiloting (camRig: IOrbitCameraRig): IsAutoPiloting =
         fun () -> camRig.DestinationDirection <> Vector3.Zero

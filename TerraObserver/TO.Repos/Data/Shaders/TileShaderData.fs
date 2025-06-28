@@ -9,8 +9,6 @@ open TO.Domains.Shaders
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-06-06 20:40:06
 type TileShaderData() =
-    let changePixel (img: Image) tileId data =
-        img.SetPixel(tileId % img.GetWidth(), tileId / img.GetWidth(), data)
     member val X = 0 with get, set
     member val Z = 0 with get, set
     member val ImmediateMode = false with get, set

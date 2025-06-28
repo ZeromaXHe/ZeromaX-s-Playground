@@ -1,9 +1,6 @@
 namespace TO.Domains.Components.HexSpheres.Points
 
-open System.Collections
-open System.Collections.Generic
 open Friflo.Engine.ECS
-open TO.Domains.Interfaces.Commons.WithLength
 open TO.Domains.Alias.HexSpheres.Points
 
 
@@ -47,17 +44,25 @@ type PointNeighborCenterIds =
             | 5 -> this.NeighborCenterId5
             | _ -> failwith "TileNeighborCenterIds invalid index"
 
-    interface int IWithLength with
-        override this.Length = this.Length
+module PointNeighborCenterIds =
+    let getSeq (this: PointNeighborCenterIds) =
+        let s =
+            seq {
+                this.NeighborCenterId0
+                this.NeighborCenterId1
+                this.NeighborCenterId2
+                this.NeighborCenterId3
+                this.NeighborCenterId4
+            }
 
-        override this.GetEnumerator() : IEnumerator<PointId> = new WithLengthEnumerator<PointId>(this)
-
-        override this.GetEnumerator() : IEnumerator = new WithLengthEnumerator<PointId>(this)
-        // 只读的索引属性
-        override this.Item idx = this.Item idx
+        if this.Length > 5 then
+            Seq.append s <| seq { this.NeighborCenterId5 }
+        else
+            s
 
     // 邻居
-    member this.GetNeighborIdx(neighborCenterId: PointId) =
-        this |> Seq.findIndex (fun id -> id = neighborCenterId)
+    let getNeighborIdx (this: PointNeighborCenterIds) (neighborCenterId: PointId) =
+        getSeq this |> Seq.findIndex (fun id -> id = neighborCenterId)
 
-    member this.IsNeighbor(neighborCenterId: PointId) = this |> Seq.contains neighborCenterId
+    let isNeighbor (this: PointNeighborCenterIds) (neighborCenterId: PointId) =
+        getSeq this |> Seq.contains neighborCenterId

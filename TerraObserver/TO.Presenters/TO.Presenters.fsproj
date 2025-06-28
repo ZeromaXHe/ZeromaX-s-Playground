@@ -10,17 +10,18 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Compile Include="Models\Planets\PlanetQuery.fs" />
-        <Compile Include="Models\Planets\CatlikeCodingNoiseQuery.fs" />
-        <Compile Include="Models\Planets\CatlikeCodingNoiseCommand.fs" />
+        <Compile Include="Abstractions\Models\Planets\ICatlikeCodingNoise.fs" />
+        <Compile Include="Models\Planets\PlanetQuery.fs"/>
+        <Compile Include="Models\Planets\CatlikeCodingNoiseQuery.fs"/>
+        <Compile Include="Models\Planets\CatlikeCodingNoiseCommand.fs"/>
         <Compile Include="Models\Uis\HexTileDataOverrider.fs"/>
-        <Compile Include="Views\Cameras\OrbitCameraRigQuery.fs" />
-        <Compile Include="Views\Cameras\OrbitCameraRigCommand.fs" />
-        <Compile Include="Views\Geos\LonLatGridCommand.fs" />
-        <Compile Include="Views\Planets\CelestialMotionCommand.fs" />
-        <Compile Include="Views\Chunks\ChunkLoaderQuery.fs" />
-        <Compile Include="Views\Chunks\ChunkLoaderCommand.fs" />
-        <Compile Include="Views\Uis\PlanetHudCommand.fs" />
+        <Compile Include="Views\Cameras\OrbitCameraRigQuery.fs"/>
+        <Compile Include="Views\Cameras\OrbitCameraRigCommand.fs"/>
+        <Compile Include="Views\Geos\LonLatGridCommand.fs"/>
+        <Compile Include="Views\Planets\CelestialMotionCommand.fs"/>
+        <Compile Include="Views\Chunks\ChunkLoaderQuery.fs"/>
+        <Compile Include="Views\Chunks\ChunkLoaderCommand.fs"/>
+        <Compile Include="Views\Uis\PlanetHudCommand.fs"/>
     </ItemGroup>
 
 </Project>

@@ -95,7 +95,7 @@ metadata/_custom_type_script = "uid://voxnbptif4nk"
 [node name="PlanetAthmosphere" parent="." instance=ExtResource("6_mvjou")]
 planet_radius = 100.0
 atmosphere_height = 25.0
-sun_path = NodePath("../CelestialMotion/Sun")
+sun_path = NodePath("../Sun")
 custom_shader = ExtResource("7_ex45l")
 shader_params/u_density = 0.1
 shader_params/u_scattering_strength = 5.0
@@ -110,32 +110,30 @@ shader_params/u_cloud_shape_factor = 0.1
 shader_params/u_cloud_shape_scale = 1.0
 shader_params/u_cloud_coverage_cubemap = SubResource("Cubemap_opj56")
 
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(-1, -6.18173e-08, 6.18173e-08, -8.74228e-08, 0.707107, -0.707107, 3.82137e-15, -0.707107, -0.707107, 7.03524e-07, -8.04738, -108.047)
+
 [node name="OrbitCameraRig" parent="." node_paths=PackedStringArray("Camera", "Sun") instance=ExtResource("3_s1lu0")]
 unique_name_in_owner = true
-Camera = NodePath("Camera3D")
-Sun = NodePath("../CelestialMotion/Sun")
-
-[node name="Camera3D" type="Camera3D" parent="OrbitCameraRig"]
-transform = Transform3D(-1, -6.18173e-08, 6.18173e-08, -8.74228e-08, 0.707107, -0.707107, 3.82137e-15, -0.707107, -0.707107, 7.03524e-07, -8.04738, -108.047)
+Camera = NodePath("../Camera3D")
+Sun = NodePath("../Sun")
 
 [node name="LonLatGrid" parent="." instance=ExtResource("4_v27gh")]
 unique_name_in_owner = true
 
-[node name="CelestialMotion" parent="." node_paths=PackedStringArray("Sun", "Moon") instance=ExtResource("9_ex45l")]
-unique_name_in_owner = true
-Sun = NodePath("Sun")
-Moon = NodePath("Moon")
-
-[node name="Sun" type="MeshInstance3D" parent="CelestialMotion"]
+[node name="Sun" type="MeshInstance3D" parent="."]
 transform = Transform3D(-1, 0, 8.74228e-08, 3.47758e-08, 0.917477, 0.397789, -8.02084e-08, 0.397789, -0.917477, 0.000262268, 1193.37, -2752.43)
 cast_shadow = 0
 mesh = SubResource("SphereMesh_ioxuh")
-skeleton = NodePath("../..")
 
-[node name="Moon" type="MeshInstance3D" parent="CelestialMotion"]
+[node name="Moon" type="MeshInstance3D" parent="."]
 transform = Transform3D(-1, 1.01694e-08, 8.68294e-08, 4.18218e-08, 0.927837, 0.372988, -7.67704e-08, 0.372988, -0.927837, 6.55671e-05, 358.789, -658.613)
 mesh = SubResource("SphereMesh_jet37")
-skeleton = NodePath("../..")
+
+[node name="CelestialMotion" parent="." node_paths=PackedStringArray("Sun", "Moon") instance=ExtResource("9_ex45l")]
+unique_name_in_owner = true
+Sun = NodePath("../Sun")
+Moon = NodePath("../Moon")
 
 [node name="ChunkLoader" parent="." instance=ExtResource("11_ioxuh")]
 unique_name_in_owner = true

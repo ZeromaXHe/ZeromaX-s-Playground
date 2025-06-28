@@ -170,7 +170,7 @@ public partial class CelestialMotion : Node3D, ICelestialMotion
 
     #region on-ready
 
-    private WorldEnvironment? WorldEnvironment { get; set; }
+    private WorldEnvironment WorldEnvironment { get; set; } = null!;
 
     // 天体公转自转
     private Node3D EclipticPlane { get; set; } = null!;
@@ -221,21 +221,21 @@ public partial class CelestialMotion : Node3D, ICelestialMotion
         if (PlanetRevolution || PlanetRotation)
         {
             RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.DirToSun,
-                SunTransform!.GlobalPosition.Normalized());
+                SunTransform.GlobalPosition.Normalized());
             // 行星公转
             if (PlanetRevolution)
-                SunRevolution!.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
+                SunRevolution.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
                     SunRevolution.RotationDegrees.Y + PlanetRevolutionSpeed * deltaF, 0f, 360f);
             // 行星自转
             if (PlanetRotation)
             {
                 // 用黄道面整体旋转表示所有天体相对运动（所以 deltaF 取负）
-                var eclipticRotDeg = EclipticPlane!.RotationDegrees;
+                var eclipticRotDeg = EclipticPlane.RotationDegrees;
                 EclipticPlane.RotationDegrees = Vector3.Right * eclipticRotDeg.X + RotationTimeFactor * Vector3.Up *
                     Mathf.Wrap(
                         eclipticRotDeg.Y + PlanetRotationSpeed * -deltaF, 0f, 360f);
                 // 用天空盒的旋转表示银河背景的相对运动（所以 deltaF 取负）
-                var skyRotation = WorldEnvironment!.Environment.SkyRotation;
+                var skyRotation = WorldEnvironment.Environment.SkyRotation;
                 WorldEnvironment.Environment.SkyRotation = Vector3.Right * skyRotation.X + RotationTimeFactor *
                     Vector3.Up * Mathf.Wrap(
                         skyRotation.Y + Mathf.DegToRad(PlanetRotationSpeed) * -deltaF, 0f, Mathf.Tau);
@@ -244,11 +244,11 @@ public partial class CelestialMotion : Node3D, ICelestialMotion
 
         // 卫星公转
         if (SatelliteRevolution)
-            LunarRevolution!.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
+            LunarRevolution.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
                 LunarRevolution.RotationDegrees.Y + SatelliteRevolutionSpeed * deltaF, 0f, 360f);
         // 卫星自转
         if (SatelliteRotation)
-            MoonAxis!.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
+            MoonAxis.RotationDegrees = RotationTimeFactor * Vector3.Up * Mathf.Wrap(
                 MoonAxis.RotationDegrees.Y + SatelliteRotationSpeed * deltaF, 0f, 360f);
     }
 
@@ -259,9 +259,9 @@ public partial class CelestialMotion : Node3D, ICelestialMotion
         if (PlanetRevolution)
         {
             PlanetRevolution = false;
-            SunRevolution!.RotationDegrees = Vector3.Up * 180f;
+            SunRevolution.RotationDegrees = Vector3.Up * 180f;
             RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.DirToSun,
-                SunTransform!.GlobalPosition.Normalized());
+                SunTransform.GlobalPosition.Normalized());
         }
         else
             PlanetRevolution = true;
@@ -273,8 +273,8 @@ public partial class CelestialMotion : Node3D, ICelestialMotion
         {
             PlanetRotation = false;
             // 将黄道面和天空盒还原
-            EclipticPlane!.RotationDegrees = Vector3.Right * EclipticPlane.RotationDegrees.X;
-            WorldEnvironment!.Environment.SkyRotation = Vector3.Right * WorldEnvironment!.Environment.SkyRotation.X;
+            EclipticPlane.RotationDegrees = Vector3.Right * EclipticPlane.RotationDegrees.X;
+            WorldEnvironment.Environment.SkyRotation = Vector3.Right * WorldEnvironment.Environment.SkyRotation.X;
         }
         else
             PlanetRotation = true;
@@ -286,8 +286,8 @@ public partial class CelestialMotion : Node3D, ICelestialMotion
         {
             SatelliteRevolution = false;
             SatelliteRotation = false;
-            LunarRevolution!.RotationDegrees = Vector3.Up * 180f;
-            MoonAxis!.Rotation = Vector3.Zero;
+            LunarRevolution.RotationDegrees = Vector3.Up * 180f;
+            MoonAxis.Rotation = Vector3.Zero;
         }
         else
         {
@@ -298,23 +298,23 @@ public partial class CelestialMotion : Node3D, ICelestialMotion
 
     /// 更新月球轨道平面的旋转角度
     private void UpdateLunarOrbitPlaneRotation() =>
-        LunarOrbitPlane!.RotationDegrees = Vector3.Right * SatelliteOrbitInclination;
+        LunarOrbitPlane.RotationDegrees = Vector3.Right * SatelliteOrbitInclination;
 
     /// <summary>
     /// 更新黄道面的倾角。
     /// </summary>
-    private void UpdateEclipticPlaneRotation() => EclipticPlane!.RotationDegrees = Vector3.Right * PlanetObliquity;
+    private void UpdateEclipticPlaneRotation() => EclipticPlane.RotationDegrees = Vector3.Right * PlanetObliquity;
 
     /// <summary>
     /// 更新月球倾斜角。
     /// </summary>
     private void UpdateLunarObliquityRotation() =>
-        LunarObliquity!.RotationDegrees = Vector3.Right * SatelliteObliquity;
+        LunarObliquity.RotationDegrees = Vector3.Right * SatelliteObliquity;
 
     /// <summary>
     /// 更新银河星系天空盒的旋转角度。
     /// </summary>
     private void UpdateGalaxySkyRotation() =>
-        WorldEnvironment!.Environment.SkyRotation =
+        WorldEnvironment.Environment.SkyRotation =
             Vector3.Right * Mathf.DegToRad(PlanetObliquity - EclipticInclinationToGalactic);
 }

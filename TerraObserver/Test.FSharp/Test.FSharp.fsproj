@@ -11,6 +11,7 @@
     <ItemGroup>
         <Compile Include="Godots\GodotTests.fs" />
         <Compile Include="Grammars\FSharpTests.fs"/>
+        <Compile Include="Grammars\FlexibleTypeTests.fs" />
         <Compile Include="Friflos\FrifloEcsTests.fs"/>
         <Compile Include="Commons\AxialCoordsTest.fs"/>
         <Compile Include="Commons\LonLatCoordsTest.fs"/>

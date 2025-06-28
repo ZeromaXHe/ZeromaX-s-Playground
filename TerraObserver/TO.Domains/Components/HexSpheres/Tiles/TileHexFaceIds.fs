@@ -1,9 +1,6 @@
 namespace TO.Domains.Components.HexSpheres.Tiles
 
-open System.Collections
-open System.Collections.Generic
 open Friflo.Engine.ECS
-open TO.Domains.Interfaces.Commons.WithLength
 open TO.Domains.Alias.HexSpheres.Faces
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
@@ -45,10 +42,3 @@ type TileHexFaceIds =
             | 4 -> this.FaceId4
             | 5 -> this.FaceId5
             | _ -> failwith "TileHexFaceIds invalid index"
-
-    interface FaceId IWithLength with
-        override this.Length = this.Length
-        override this.GetEnumerator() : FaceId IEnumerator = new WithLengthEnumerator<FaceId>(this)
-        override this.GetEnumerator() : IEnumerator = new WithLengthEnumerator<FaceId>(this)
-        // 只读的索引属性
-        override this.Item idx = this.Item idx

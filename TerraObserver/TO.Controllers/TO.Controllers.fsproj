@@ -8,8 +8,7 @@
     <ItemGroup>
         <Compile Include="Services\Planets\HexSphereService.fs"/>
         <Compile Include="Services\Planets\HexGridChunkService.fs"/>
-        <Compile Include="Apps\Planets\PlanetPreEnv.fs" />
-        <Compile Include="Apps\Planets\PlanetRepoEnv.fs" />
+        <Compile Include="Apps\Planets\PlanetEnv.fs" />
         <Compile Include="Apps\Planets\PlanetApp.fs"/>
     </ItemGroup>
 

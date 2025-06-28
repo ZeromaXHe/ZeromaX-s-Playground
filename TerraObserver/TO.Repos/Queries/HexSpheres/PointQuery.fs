@@ -19,8 +19,8 @@ module private FacePointGetter =
             let idx = face.GetPointIdx &point
 
             seq {
-                tryHeadByPosition chunky <| face.Vertex((idx + 1) % 3)
-                tryHeadByPosition chunky <| face.Vertex((idx + 2) % 3)
+                tryHeadByPosition chunky <| face[(idx + 1) % 3]
+                tryHeadByPosition chunky <| face[(idx + 2) % 3]
             }
     // 顺时针第一个顶点
     let getLeftOtherPoint
@@ -30,7 +30,7 @@ module private FacePointGetter =
         (point: PointComponent inref)
         =
         let idx = face.GetPointIdx &point
-        tryHeadByPosition chunky <| face.Vertex((idx + 1) % 3)
+        tryHeadByPosition chunky <| face[(idx + 1) % 3]
     // 顺时针第二个顶点
     let getRightOtherPoint
         (tryHeadByPosition: TryHeadPointByPosition)
@@ -39,7 +39,7 @@ module private FacePointGetter =
         (point: PointComponent inref)
         =
         let idx = face.GetPointIdx &point
-        tryHeadByPosition chunky <| face.Vertex((idx + 2) % 3)
+        tryHeadByPosition chunky <| face[(idx + 2) % 3]
 
 type TryHeadPointByPosition = Chunky -> Vector3 -> Entity option
 type TryHeadEntityByPointCenterId = PointId -> Entity option
@@ -95,13 +95,14 @@ module PointQuery =
                 store.GetEntityById(id).GetComponent<PointNeighborCenterIds>()
 
             let neighborCenterId = store.GetEntityById(neighborId).GetComponent<PointCenterId>()
-
-            neighborCenterIds.GetNeighborIdx neighborCenterId.CenterId
+            PointNeighborCenterIds.getNeighborIdx neighborCenterIds neighborCenterId.CenterId
 
     let getNeighborIdsById (store: EntityStore) : GetPointNeighborIdsById =
         fun (id: int) ->
-            store.GetEntityById(id).GetComponent<PointNeighborCenterIds>()
-            |> Seq.collect (fun centerId ->
+            let neighborCenterIds = store.GetEntityById(id).GetComponent<PointNeighborCenterIds>()
+            {0..neighborCenterIds.Length - 1}
+            |> Seq.collect (fun i ->
+                let centerId = neighborCenterIds[i]
                 let entities = store.ComponentIndex<PointCenterId, PointId>()[centerId]
                 entities |> Seq.map _.Id)
 

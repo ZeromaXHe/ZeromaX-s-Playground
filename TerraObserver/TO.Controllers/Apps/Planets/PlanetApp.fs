@@ -3,7 +3,6 @@ namespace TO.Controllers.Apps.Planets
 open Friflo.Engine.ECS
 open Godot
 open TO.Abstractions.Views.Chunks
-open TO.Controllers.Apps.Envs
 open TO.Domains.Components.HexSpheres.Tiles
 open TO.Presenters.Views.Cameras
 open TO.Presenters.Views.Chunks
@@ -34,71 +33,87 @@ type PlanetApp(planet, catlikeCodingNoise, cameraRig, lonLatGrid, celestialMotio
     let tileSearcher = TileSearcher()
     let lodMeshCache = LodMeshCache()
 
-    let repoEnv =
-        PlanetRepoEnv(store, chunkyVpTrees, lodMeshCache, tileSearcher, tileShaderData)
-
-    let preEnv =
-        PlanetPreEnv(planet, catlikeCodingNoise, cameraRig, lonLatGrid, celestialMotion, chunkLoader, planetHud)
-
-    let orbitCameraRigCommand = preEnv :> IOrbitCameraRigCommand
-    let lonLatGridCommand = preEnv :> ILonLatGridCommand
-    let celestialMotionCommand = preEnv :> ICelestialMotionCommand
-    let chunkLoaderCommand = preEnv :> IChunkLoaderCommand
-    let planetHudCommand = preEnv :> IPlanetHudCommand
+    let env =
+        PlanetEnv(
+            // 前端
+            planet,
+            catlikeCodingNoise,
+            cameraRig,
+            lonLatGrid,
+            celestialMotion,
+            chunkLoader,
+            planetHud,
+            // 后端
+            store,
+            chunkyVpTrees,
+            lodMeshCache,
+            tileSearcher,
+            tileShaderData
+        )
 
     member this.Init() =
-        orbitCameraRigCommand.Reset()
-        lonLatGridCommand.DrawOnPlanet()
+        OrbitCameraRigCommand.reset planet cameraRig ()
+        LonLatGridCommand.drawOnPlanet planet lonLatGrid ()
 
         if not <| Engine.IsEditorHint() then
-            planetHudCommand.InitElevationAndWaterVSlider()
+            PlanetHudCommand.initElevationAndWaterVSlider planet planetHud ()
 
-            planetHudCommand.OnOrbitCameraRigMoved
-            <| (preEnv :> IOrbitCameraRigQuery).GetFocusBasePos() // TODO: 临时措施，待优化
+            PlanetHudCommand.onOrbitCameraRigMoved planetHud
+            <| OrbitCameraRigQuery.getFocusBasePos cameraRig ()
             <| 0f
 
     member this.OnPlanetParamsChanged() =
-        orbitCameraRigCommand.OnPlanetParamsChanged()
-        orbitCameraRigCommand.OnZoomChanged()
-        lonLatGridCommand.DrawOnPlanet()
+        OrbitCameraRigCommand.onPlanetParamsChanged planet cameraRig ()
+        OrbitCameraRigCommand.onZoomChanged planet cameraRig ()
+        LonLatGridCommand.drawOnPlanet planet lonLatGrid ()
         // TODO: 判断 Radius 变化时才调用
-        celestialMotionCommand.UpdateMoonMeshRadius()
-        celestialMotionCommand.UpdateLunarDist()
+        CelestialMotionCommand.updateMoonMeshRadius planet celestialMotion ()
+        CelestialMotionCommand.updateLunarDist planet celestialMotion ()
 
-    member this.OnOrbitCameraRigProcessed delta = orbitCameraRigCommand.OnProcessed delta
-    member this.OnOrbitCameraRigZoomChanged() = orbitCameraRigCommand.OnZoomChanged()
-    member this.OnLonLatGridDoDrawRequested() = lonLatGridCommand.DoDraw()
+    member this.OnOrbitCameraRigProcessed delta =
+        OrbitCameraRigCommand.onProcessed planet cameraRig delta
+
+    member this.OnOrbitCameraRigZoomChanged() =
+        OrbitCameraRigCommand.onZoomChanged planet cameraRig ()
+
+    member this.OnLonLatGridDoDrawRequested() = LonLatGridCommand.doDraw lonLatGrid ()
 
     member this.OnLonLatGridCameraMoved(pos, delta) =
-        lonLatGridCommand.OnCameraMoved pos delta
+        LonLatGridCommand.onCameraMoved lonLatGrid pos delta
 
     member this.LonLatGridToggleFixFullVisibility toggle =
-        lonLatGridCommand.ToggleFixFullVisibility toggle
+        LonLatGridCommand.toggleFixFullVisibility lonLatGrid toggle
 
     member this.OnCelestialMotionSatelliteRadiusRatioChanged() =
-        celestialMotionCommand.UpdateMoonMeshRadius()
-        celestialMotionCommand.UpdateLunarDist()
+        CelestialMotionCommand.updateMoonMeshRadius planet celestialMotion ()
+        CelestialMotionCommand.updateLunarDist planet celestialMotion ()
 
     member this.OnCelestialMotionSatelliteDistRatioChanged() =
-        celestialMotionCommand.UpdateLunarDist()
+        CelestialMotionCommand.updateLunarDist planet celestialMotion ()
 
     member this.CelestialMotionToggleAllMotions toggle =
-        celestialMotionCommand.ToggleAllMotions toggle
+        CelestialMotionCommand.toggleAllMotions celestialMotion toggle
+
+    member this.OnChunkLoaderProcessed() =
+        HexGridChunkService.onChunkLoaderProcessed env
+
+    member this.OnHexGridChunkProcessed(chunk: IHexGridChunk) =
+        HexGridChunkService.onHexGridChunkProcessed env chunk
 
     member this.OnPlanetHudOrbitCameraRigTransformed(transform, delta: float32) =
-        planetHudCommand.OnOrbitCameraRigTransformed transform
+        PlanetHudCommand.onOrbitCameraRigTransformed cameraRig planetHud transform
 
     member this.OnPlanetHudRadiusLineEditTextSubmitted text =
-        planetHudCommand.UpdateRadiusLineEdit text
+        PlanetHudCommand.updateRadiusLineEdit planet planetHud text
 
     member this.OnPlanetHudDivisionLineEditTextSubmitted text =
-        planetHudCommand.UpdateDivisionLineEdit false text
+        PlanetHudCommand.updateDivisionLineEdit planet planetHud false text
 
     member this.OnPlanetHudChunkDivisionLineEditTextSubmitted text =
-        planetHudCommand.UpdateDivisionLineEdit true text
+        PlanetHudCommand.updateDivisionLineEdit planet planetHud true text
 
     member this.OnPlanetHudOrbitCameraRigMoved pos delta =
-        planetHudCommand.OnOrbitCameraRigMoved pos delta
+        PlanetHudCommand.onOrbitCameraRigMoved planetHud pos delta
 
     member this.OnProcessed delta =
         TileShaderDataCommand.updateData store tileShaderData delta
@@ -108,11 +123,11 @@ type PlanetApp(planet, catlikeCodingNoise, cameraRig, lonLatGrid, celestialMotio
         GD.Print $"[===DrawHexSphereMesh===] radius {planet.Radius}, divisions {planet.Divisions}, start at: {time}"
         // 清理旧数据
         HexSphereInitCommand.clearOldData store ()
-        chunkLoaderCommand.ClearOldData()
+        ChunkLoaderCommand.clearOldData chunkLoader ()
         lodMeshCache.RemoveAllLodMeshes()
         // 初始化新数据
-        HexSphereService.initHexSphere preEnv repoEnv
-        HexGridChunkService.initChunkNodes preEnv repoEnv
+        HexSphereService.initHexSphere env
+        HexGridChunkService.initChunkNodes env
 
         store
             .Query<TileCountId, TileValue, TileFlag, TileVisibility>()
@@ -130,12 +145,5 @@ type PlanetApp(planet, catlikeCodingNoise, cameraRig, lonLatGrid, celestialMotio
 
         GD.Print $"[===DrawHexSphereMesh===] total cost: {Time.GetTicksMsec() - time} ms"
 
-    member this.OnChunkLoaderProcessed() =
-
-        HexGridChunkService.onChunkLoaderProcessed preEnv repoEnv
-
-    member this.OnHexGridChunkProcessed(chunk: IHexGridChunk) =
-        HexGridChunkService.onHexGridChunkProcessed preEnv repoEnv chunk
-
     member this.UpdateInsightChunks() =
-        HexGridChunkService.updateInsightChunks preEnv repoEnv
+        HexGridChunkService.updateInsightChunks env

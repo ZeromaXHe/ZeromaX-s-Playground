@@ -10,17 +10,17 @@ open TO.Repos.Commands.Shaders
 /// Date: 2025-05-30 12:46:30
 module HexSphereService =
     let initHexSphere
-        (preEnv: #IPlanetQuery)
-        (repoEnv:
-            'RE
-                when 'RE :> IHexSphereInitCommand
-                and 'RE :> ITileSearcherCommand
-                and 'RE :> ITileShaderDataCommand)
+        (env:
+            'E
+                when 'E :> IPlanetQuery
+                and 'E :> IHexSphereInitCommand
+                and 'E :> ITileSearcherCommand
+                and 'E :> ITileShaderDataCommand)
         =
-        repoEnv.InitChunks
-        <| preEnv.GetChunkDivisions()
-        <| preEnv.GetRadius() + preEnv.GetMaxHeight()
+        env.InitChunks
+        <| env.GetChunkDivisions()
+        <| env.GetRadius() + env.GetMaxHeight()
 
-        repoEnv.InitTiles <| preEnv.GetDivisions()
-        repoEnv.InitShaderData <| preEnv.GetDivisions()
-        repoEnv.InitSearchData()
+        env.InitTiles <| env.GetDivisions()
+        env.InitShaderData <| env.GetDivisions()
+        env.InitSearchData()

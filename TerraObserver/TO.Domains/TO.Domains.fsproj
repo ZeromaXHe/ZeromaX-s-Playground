@@ -20,7 +20,6 @@
         <Compile Include="Structs\Tiles\HexHash.fs"/>
         <Compile Include="Structs\Tiles\EdgeVertices.fs"/>
         <Compile Include="Structs\PathFindings\TileSearchData.fs"/>
-        <Compile Include="Interfaces\Commons\WithLength.fs"/>
         <Compile Include="Alias\HexSpheres\Points.fs"/>
         <Compile Include="Alias\HexSpheres\Faces.fs"/>
         <Compile Include="Alias\HexSpheres\Tiles.fs"/>
