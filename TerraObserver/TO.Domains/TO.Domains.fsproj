@@ -6,9 +6,19 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Compile Include="Types\Godots\IGodotObject.fs" />
+        <Compile Include="Types\Godots\IRefCounted.fs" />
+        <Compile Include="Types\Godots\IResource.fs" />
+        <Compile Include="Types\Godots\INode.fs" />
+        <Compile Include="Types\Godots\INode3D.fs" />
+        <Compile Include="Types\Godots\IVisualInstance3D.fs" />
+        <Compile Include="Types\Godots\IGeometryInstance3D.fs" />
+        <Compile Include="Types\Godots\IMeshInstance3D.fs" />
+        <Compile Include="Types\Godots\ICanvasItem.fs" />
+        <Compile Include="Types\Godots\IControl.fs" />
+        <Compile Include="Types\Friflos\EntityStoreT.fs"/>
         <Compile Include="Types\DataStructures\VpTreeT.fs"/>
         <Compile Include="Types\DataStructures\LruCacheT.fs"/>
-        <Compile Include="Types\Friflos\EntityStoreT.fs"/>
         <Compile Include="Types\HexGridCoords\PointyTopDirectionT.fs"/>
         <Compile Include="Types\HexGridCoords\AxialCoordsT.fs"/>
         <Compile Include="Types\HexGridCoords\LonLatCoordsT.fs"/>
@@ -75,13 +85,13 @@
         <Compile Include="Types\PlanetHuds\OptionalToggleT.fs"/>
         <Compile Include="Types\PlanetHuds\HexTileDataOverriderT.fs"/>
         <Compile Include="Types\PlanetHuds\PlanetHudT.fs"/>
+        <Compile Include="Functions\Friflos\EntityStore.fs"/>
+        <Compile Include="Functions\Friflos\ArchetypeQuery.fs"/>
         <Compile Include="Functions\Maths\MathConstant.fs"/>
         <Compile Include="Functions\Maths\Math3dUtil.fs"/>
         <Compile Include="Functions\Textures\TextureUtil.fs"/>
         <Compile Include="Functions\DataStructures\VpTree.fs"/>
         <Compile Include="Functions\DataStructures\LruCache.fs"/>
-        <Compile Include="Functions\Friflos\EntityStore.fs"/>
-        <Compile Include="Functions\Friflos\ArchetypeQuery.fs"/>
         <Compile Include="Functions\Icosahedrons\IcosahedronConstant.fs"/>
         <Compile Include="Functions\HexGridCoords\AxialCoords.fs"/>
         <Compile Include="Functions\HexGridCoords\LonLatCoords.fs"/>
@@ -120,6 +130,8 @@
         <Compile Include="Functions\Cameras\OrbitCameraRig.fs"/>
         <Compile Include="Functions\Geos\LonLatGrid.fs"/>
         <Compile Include="Functions\Planets\CelestialMotion.fs"/>
+        <Compile Include="Functions\Chunks\HexMesh.fs" />
+        <Compile Include="Functions\Chunks\HexGridChunk.fs" />
         <Compile Include="Functions\Chunks\ChunkLoader.fs"/>
         <Compile Include="Functions\Chunks\ChunkTriangulation.fs"/>
         <Compile Include="Functions\PlanetHuds\HexTileDataOverrider.fs"/>
@@ -131,10 +143,6 @@
     <ItemGroup>
         <PackageReference Include="Friflo.Engine.ECS" Version="3.4.2"/>
         <PackageReference Include="GodotSharp" Version="4.4.1"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\Godot.Abstractions\Godot.Abstractions.csproj"/>
     </ItemGroup>
 
 </Project>

@@ -1,7 +1,7 @@
 namespace TO.Domains.Types.Configs
 
 open Godot
-open Godot.Abstractions.Bases
+open TO.Domains.Types.Godots
 open TO.Domains.Types.Hashes
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)

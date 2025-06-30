@@ -14,7 +14,7 @@ public partial class HexGridChunk : Node3D, IHexGridChunk
 {
     #region 事件
 
-    public event Action<IHexGridChunk>? Processed;
+    public event Action<HexGridChunk>? Processed;
 
     #endregion
 
@@ -47,46 +47,4 @@ public partial class HexGridChunk : Node3D, IHexGridChunk
     public override void _Process(double delta) => Processed?.Invoke(this);
 
     #endregion
-
-    public void HideOutOfSight()
-    {
-        Hide();
-        Terrain!.Clear();
-        Rivers!.Clear();
-        Roads!.Clear();
-        Water!.Clear();
-        WaterShore!.Clear();
-        Estuary!.Clear();
-        Id = 0; // 重置 id，归还给池子
-    }
-
-    public void ShowMesh(Mesh[] meshes)
-    {
-        Terrain!.ShowMesh(meshes[(int)MeshType.Terrain]);
-        Water!.ShowMesh(meshes[(int)MeshType.Water]);
-        WaterShore!.ShowMesh(meshes[(int)MeshType.WaterShore]);
-        Estuary!.ShowMesh(meshes[(int)MeshType.Estuary]);
-    }
-
-    public Mesh[] GetMeshes() => [Terrain!.Mesh, Water!.Mesh, WaterShore!.Mesh, Estuary!.Mesh];
-
-    public void ApplyNewData()
-    {
-        Terrain!.Apply();
-        Rivers!.Apply(); // 河流暂时不支持 Lod
-        Roads!.Apply(); // 道路暂时不支持 Lod
-        Water!.Apply();
-        WaterShore!.Apply();
-        Estuary!.Apply();
-    }
-
-    public void ClearOldData()
-    {
-        Terrain!.Clear();
-        Rivers!.Clear();
-        Roads!.Clear();
-        Water!.Clear();
-        WaterShore!.Clear();
-        Estuary!.Clear();
-    }
 }

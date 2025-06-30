@@ -267,7 +267,7 @@ module HexSphereInitCommand =
         =
         env.ExecuteInCommandBuffer(fun cb -> env.Query<'T>().ForEachEntity(fun _ e -> cb.DeleteEntity(e.Id)))
 
-    let clearOldData (env: 'E) : ClearOldData =
+    let clearOldData (env: 'E) : ClearHexSphereOldData =
         fun () ->
             truncate<PointComponent, 'E> env
             truncate<FaceComponent, 'E> env

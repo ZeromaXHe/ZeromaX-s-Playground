@@ -1,8 +1,8 @@
-namespace Godot.Abstractions.Bases;
+namespace TO.Domains.Types.Godots
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-06-03 17:13:03
-public interface IRefCounted : IGodotObject
-{
-}
+[<Interface>]
+type IResource =
+    inherit IRefCounted

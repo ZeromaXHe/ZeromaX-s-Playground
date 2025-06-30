@@ -72,7 +72,8 @@ type PlanetApp(planet, catlikeCodingNoise, cameraRig, lonLatGrid, celestialMotio
 
     member this.OnCelestialMotionSatelliteDistRatioChanged() = env.UpdateLunarDist()
     member this.CelestialMotionToggleAllMotions toggle = env.ToggleAllMotions toggle
-    member this.OnChunkLoaderProcessed() = env.OnChunkLoaderProcessed()
+    member this.OnChunkLoaderProcessed() =
+        env.OnChunkLoaderProcessed()
     member this.OnHexGridChunkProcessed(chunk: IHexGridChunk) = env.OnHexGridChunkProcessed chunk
 
     member this.OnPlanetHudOrbitCameraRigTransformed(transform, delta: float32) =
@@ -109,4 +110,5 @@ type PlanetApp(planet, catlikeCodingNoise, cameraRig, lonLatGrid, celestialMotio
 
         GD.Print $"[===DrawHexSphereMesh===] total cost: {Time.GetTicksMsec() - time} ms"
 
-    member this.UpdateInsightChunks() = env.UpdateInsightChunks()
+    member this.UpdateInsightChunks() =
+        env.UpdateInsightChunks()

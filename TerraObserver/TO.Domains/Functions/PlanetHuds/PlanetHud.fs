@@ -17,7 +17,7 @@ module PlanetHudCommand =
             env.PlanetHudOpt
             |> Option.iter (fun hud ->
                 let lonLat = LonLatCoords.fromVector3 pos
-                hud.CamLonLatLabel.Text <- $"相机位置：{lonLat}")
+                hud.CamLonLatLabel.Text <- $"相机位置：{lonLat |> LonLatCoords.toString}")
 
     let onOrbitCameraRigTransformed
         (env: 'E when 'E :> IOrbitCameraRigQuery and 'E :> IPlanetHudQuery)

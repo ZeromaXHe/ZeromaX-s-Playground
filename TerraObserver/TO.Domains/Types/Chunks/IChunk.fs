@@ -1,7 +1,7 @@
 namespace TO.Domains.Types.Chunks
 
 open Godot
-open Godot.Abstractions.Bases
+open TO.Domains.Types.Godots
 open TO.Domains.Types.HexSpheres
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
@@ -17,5 +17,3 @@ type IChunk =
     abstract GetWaterShore: unit -> IHexMesh
     abstract GetEstuary: unit -> IHexMesh
     abstract Lod: ChunkLodEnum with get, set
-    abstract ShowMesh: Mesh array -> unit
-    abstract GetMeshes: unit -> Mesh array

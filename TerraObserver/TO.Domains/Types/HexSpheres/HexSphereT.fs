@@ -20,12 +20,12 @@ type IHexSphereQuery =
 
 type InitChunks = int -> float32 -> unit
 type InitTiles = int -> unit
-type ClearOldData = unit -> unit
+type ClearHexSphereOldData = unit -> unit
 type InitHexSphere = unit -> unit
 
 [<Interface>]
 type IHexSphereInitCommand =
     abstract InitChunks: InitChunks
     abstract InitTiles: InitTiles
-    abstract ClearHexSphereOldData: ClearOldData
+    abstract ClearHexSphereOldData: ClearHexSphereOldData
     abstract InitHexSphere: InitHexSphere

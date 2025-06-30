@@ -1,12 +1,14 @@
 namespace TO.Domains.Types.Maps
 
 open Godot
+open TO.Domains.Types.Godots
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-06-07 10:15:07
 [<Interface>]
 type IHexMapGenerator =
+    inherit IResource
     abstract MapBoardX: int
     abstract MapBoardZ: int
     abstract RegionBorder: int

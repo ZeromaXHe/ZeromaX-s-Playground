@@ -29,7 +29,13 @@ module ChunkLoaderQuery =
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-06-24 10:27:24
 module ChunkLoaderCommand =
-    let clearOldData (env: #IChunkLoaderQuery) : ClearOldData =
+    let resetInsightSetIdx (env: #IChunkLoaderQuery) : ResetInsightSetIdx =
+        fun () -> env.ChunkLoader.InsightSetIdx <- 0
+
+    let updateInsightSetNextIdx (env: #IChunkLoaderQuery) : UpdateInsightSetNextIdx =
+        fun () -> env.ChunkLoader.InsightSetIdx <- env.ChunkLoader.InsightSetIdx ^^^ 1
+
+    let clearOldData (env: 'E when 'E :> IChunkLoaderQuery and 'E :> IChunkLoaderCommand) : ClearChunkLoaderOldData =
         fun () ->
             let chunkLoader = env.ChunkLoader
             // 清空分块
@@ -43,7 +49,7 @@ module ChunkLoaderCommand =
             chunkLoader.VisitedChunkIds.Clear()
             chunkLoader.RimChunkIds.Clear()
             chunkLoader.InsightChunkIdsNow.Clear()
-            chunkLoader.ResetInsightSetIdx()
+            env.ResetInsightSetIdx()
 
     let addUsingChunk (env: #IChunkLoaderQuery) : AddUsingChunk =
         fun chunkId chunk -> env.ChunkLoader.UsingChunks.Add(chunkId, chunk)
@@ -68,7 +74,7 @@ module ChunkLoaderCommand =
                 let meshes = env.GetLodMeshes lod chunkId
                 // 如果之前生成过 Lod 网格，直接应用；否则重新生成
                 match meshes with
-                | Some meshes -> hexGridChunk.ShowMesh meshes
+                | Some meshes -> hexGridChunk |> HexGridChunkCommand.showMesh meshes
                 | None -> hexGridChunk.SetProcess true
 
     let private usedBy env (chunkId: ChunkId) (hexGridChunk: IHexGridChunk) =
@@ -102,12 +108,12 @@ module ChunkLoaderCommand =
         (env: 'E when 'E :> IChunkLoaderQuery and 'E :> IChunkLoaderCommand and 'E :> IPointQuery)
         =
         fun chunkId (filter: int HashSet) ->
+            let chunkLoader = env.ChunkLoader
+
             for neighborId in env.GetNeighborIdsById chunkId do
                 if filter = null || not <| filter.Contains neighborId then
-                    let chunkLoader = env.ChunkLoader
-
-                    if chunkLoader.VisitedChunkIds.Add chunkId then
-                        chunkLoader.ChunkQueryQueue.Enqueue chunkId
+                    if chunkLoader.VisitedChunkIds.Add neighborId then
+                        chunkLoader.ChunkQueryQueue.Enqueue neighborId
 
     let private initOutRimChunks (env: 'E when 'E :> IChunkLoaderQuery and 'E :> IPointQuery and 'E :> IChunkCommand) =
         fun camPos ->
@@ -236,9 +242,7 @@ module ChunkLoaderCommand =
                         // 此时拿不到真正 focusBase 的位置，暂且用相机自己的代替
                         if ChunkLodUtil.isChunkInsight chunkPos.Pos camera radius then
                             loadSet.Add id |> ignore
-
                             env.UpdateChunkInsightAndLod camera.GlobalPosition true <| Some cb <| id
-
                             insightChunkIdsNow.Add id |> ignore))
 
             initOutRimChunks env camera.GlobalPosition
@@ -256,17 +260,18 @@ module ChunkLoaderCommand =
         fun (instance: IHexGridChunk) ->
             if instance.Id > 0 then
                 // let time = Time.GetTicksMsec()
-                instance.ClearOldData()
+                instance |> HexGridChunkCommand.clearOldData
 
                 env
                     .Query<TileChunkId>()
                     .HasValue<TileChunkId, ChunkId>(instance.Id)
                     .ForEachEntity(fun tileChunkId tileEntity -> env.Triangulate instance tileEntity.Id)
 
-                instance.ApplyNewData()
+                instance |> HexGridChunkCommand.applyNewData
 
                 if not <| env.IsHandlingLodGaps instance.Lod instance.Id then
-                    env.AddLodMeshes instance.Lod instance.Id <| instance.GetMeshes()
+                    env.AddLodMeshes instance.Lod instance.Id
+                    <| HexGridChunkCommand.getMeshes instance
 
             instance.SetProcess false
 
@@ -288,6 +293,7 @@ module ChunkLoaderCommand =
                 when 'E :> IPlanetConfigQuery
                 and 'E :> IChunkCommand
                 and 'E :> IChunkLoaderQuery
+                and 'E :> IChunkLoaderCommand
                 and 'E :> IEntityStoreQuery)
         : UpdateInsightChunks =
         fun () ->
@@ -328,11 +334,9 @@ module ChunkLoaderCommand =
                 if not <| ChunkLodUtil.isChunkInsight preInsightChunkPos camera radius then
                     // 分块不在视野范围内，隐藏它
                     unloadSet.Add preInsightChunkId |> ignore
-
                     env.UpdateChunkInsightAndLod camera.GlobalPosition false None preInsightChunkId
                 else
                     insightChunkIdsNext.Add preInsightChunkId |> ignore
-
                     env.UpdateChunkInsightAndLod camera.GlobalPosition true None preInsightChunkId
                     // 刷新 Lod
                     if usingChunks.ContainsKey preInsightChunkId then
@@ -375,7 +379,7 @@ module ChunkLoaderCommand =
             chunkQueryQueue.Clear()
             visitedChunkIds.Clear()
             insightChunkIdsNow.Clear()
-            chunkLoader.UpdateInsightSetNextIdx()
+            env.UpdateInsightSetNextIdx()
             // 显示外缘分块
             initOutRimChunks env camera.GlobalPosition
             chunkLoader.SetProcess true

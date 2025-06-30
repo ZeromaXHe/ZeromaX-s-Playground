@@ -1,6 +1,6 @@
 namespace TO.Domains.Types.Configs
 
-open Godot.Abstractions.Bases
+open TO.Domains.Types.Godots
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)

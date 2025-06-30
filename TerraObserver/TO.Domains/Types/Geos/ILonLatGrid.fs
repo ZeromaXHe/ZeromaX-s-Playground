@@ -1,7 +1,7 @@
 namespace TO.Domains.Types.Geos
 
 open Godot
-open Godot.Abstractions.Bases
+open TO.Domains.Types.Godots
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)

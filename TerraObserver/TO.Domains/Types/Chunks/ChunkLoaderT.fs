@@ -18,7 +18,9 @@ type IChunkLoaderQuery =
     abstract GetAllUsingChunks: GetAllUsingChunks
     abstract GetViewportCamera: GetViewportCamera
 
-type ClearOldData = unit -> unit
+type ResetInsightSetIdx = unit -> unit
+type UpdateInsightSetNextIdx = unit -> unit
+type ClearChunkLoaderOldData = unit -> unit
 type AddUsingChunk = ChunkId -> IHexGridChunk -> unit
 type OnChunkLoaderProcessed = unit -> unit
 type InitChunkNodes = unit -> unit
@@ -27,7 +29,9 @@ type UpdateInsightChunks = unit -> unit
 
 [<Interface>]
 type IChunkLoaderCommand =
-    abstract ClearChunkLoaderOldData: ClearOldData
+    abstract ResetInsightSetIdx: ResetInsightSetIdx
+    abstract UpdateInsightSetNextIdx: UpdateInsightSetNextIdx
+    abstract ClearChunkLoaderOldData: ClearChunkLoaderOldData
     abstract AddUsingChunk: AddUsingChunk
     abstract OnChunkLoaderProcessed: OnChunkLoaderProcessed
     abstract InitChunkNodes: InitChunkNodes

@@ -2,7 +2,7 @@ namespace TO.Domains.Types.Chunks
 
 open System.Runtime.InteropServices
 open Godot
-open Godot.Abstractions.Bases
+open TO.Domains.Types.Godots
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
@@ -10,9 +10,15 @@ open Godot.Abstractions.Bases
 [<Interface>]
 type IHexMesh =
     inherit IMeshInstance3D
-    abstract Clear: unit -> unit
-    abstract Apply: unit -> unit
-    abstract ShowMesh: Mesh -> unit
+    // =====【Export】=====
+    abstract UseCollider: bool with get
+    abstract UseCellData: bool with get
+    abstract UseUvCoordinates: bool with get
+    abstract UseUv2Coordinates: bool with get
+    abstract Smooth: bool with get
+    // =====【普通属性】=====
+    abstract SurfaceTool: SurfaceTool with get, set
+    abstract VIdx: int with get, set
 
     abstract AddTriangle:
         vs: Vector3 array *

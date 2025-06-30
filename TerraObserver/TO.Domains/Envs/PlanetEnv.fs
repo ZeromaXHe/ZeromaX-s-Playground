@@ -277,6 +277,8 @@ type PlanetEnv
     interface IChunkTriangulationCommand with
         member this.Triangulate = this.Triangulate
 
+    member this.ResetInsightSetIdx = ChunkLoaderCommand.resetInsightSetIdx this
+    member this.UpdateInsightSetNextIdx = ChunkLoaderCommand.updateInsightSetNextIdx this
     member this.ClearChunkLoaderOldData = ChunkLoaderCommand.clearOldData this
     member this.AddUsingChunk = ChunkLoaderCommand.addUsingChunk this
     member this.OnChunkLoaderProcessed = ChunkLoaderCommand.onChunkLoaderProcessed this
@@ -285,6 +287,8 @@ type PlanetEnv
     member this.UpdateInsightChunks = ChunkLoaderCommand.updateInsightChunks this
 
     interface IChunkLoaderCommand with
+        member this.ResetInsightSetIdx = this.ResetInsightSetIdx
+        member this.UpdateInsightSetNextIdx = this.UpdateInsightSetNextIdx
         member this.ClearChunkLoaderOldData = this.ClearChunkLoaderOldData
         member this.AddUsingChunk = this.AddUsingChunk
         member this.OnChunkLoaderProcessed = this.OnChunkLoaderProcessed

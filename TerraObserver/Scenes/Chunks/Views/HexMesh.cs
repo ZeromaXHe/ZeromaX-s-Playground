@@ -19,58 +19,12 @@ public partial class HexMesh : MeshInstance3D, IHexMesh
 
     #endregion
 
-    #region 内部字段
+    #region 普通属性
 
-    private SurfaceTool _surfaceTool = new();
-    private int _vIdx;
+    public SurfaceTool SurfaceTool { get; set; } = new();
+    public int VIdx { get; set; }
 
     #endregion
-
-    public void Clear()
-    {
-        // 清理之前的碰撞体
-        foreach (var child in GetChildren())
-            child.QueueFree();
-        _surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
-        if (!Smooth)
-            _surfaceTool.SetSmoothGroup(uint.MaxValue);
-        if (UseCellData)
-            _surfaceTool.SetCustomFormat(0, SurfaceTool.CustomFormat.RgbFloat);
-    }
-
-    public void Apply()
-    {
-        _surfaceTool.GenerateNormals();
-        Mesh = _surfaceTool.Commit();
-        // 仅在游戏中生成碰撞体
-        if (!Engine.IsEditorHint() && UseCollider)
-            CreateTrimeshCollision();
-        _surfaceTool.Clear(); // 释放 SurfaceTool 中的内存
-        _vIdx = 0;
-    }
-
-    public void ShowMesh(Mesh mesh)
-    {
-        Mesh = mesh;
-        if (!UseCollider) return;
-        // 更新碰撞体网格
-        StaticBody3D staticBody;
-        CollisionShape3D collision;
-        if (GetChildCount() == 0)
-        {
-            staticBody = new StaticBody3D();
-            AddChild(staticBody);
-            collision = new CollisionShape3D();
-            staticBody.AddChild(collision);
-        }
-        else
-        {
-            staticBody = GetChild<StaticBody3D>(0);
-            collision = staticBody.GetChild<CollisionShape3D>(0);
-        }
-
-        collision.Shape = mesh.CreateTrimeshShape();
-    }
 
     /// <summary>
     /// 绘制三角形
@@ -87,21 +41,21 @@ public partial class HexMesh : MeshInstance3D, IHexMesh
         {
             if (UseCellData && tws != null)
             {
-                _surfaceTool.SetColor(tws[i]);
-                _surfaceTool.SetCustom(0, new Color(tis.X, tis.Y, tis.Z));
+                SurfaceTool.SetColor(tws[i]);
+                SurfaceTool.SetCustom(0, new Color(tis.X, tis.Y, tis.Z));
             }
 
             if (UseUvCoordinates && uvs != null)
-                _surfaceTool.SetUV(uvs[i]);
+                SurfaceTool.SetUV(uvs[i]);
             if (UseUv2Coordinates && uvs2 != null)
-                _surfaceTool.SetUV2(uvs2[i]);
-            _surfaceTool.AddVertex(vs[i]);
+                SurfaceTool.SetUV2(uvs2[i]);
+            SurfaceTool.AddVertex(vs[i]);
         }
 
-        _surfaceTool.AddIndex(_vIdx);
-        _surfaceTool.AddIndex(_vIdx + 1);
-        _surfaceTool.AddIndex(_vIdx + 2);
-        _vIdx += 3;
+        SurfaceTool.AddIndex(VIdx);
+        SurfaceTool.AddIndex(VIdx + 1);
+        SurfaceTool.AddIndex(VIdx + 2);
+        VIdx += 3;
     }
 
     public void AddQuad(Vector3[] vs, Color[]? tws = null,
@@ -111,23 +65,23 @@ public partial class HexMesh : MeshInstance3D, IHexMesh
         {
             if (UseCellData && tws != null)
             {
-                _surfaceTool.SetColor(tws[i]);
-                _surfaceTool.SetCustom(0, new Color(tis.X, tis.Y, tis.Z));
+                SurfaceTool.SetColor(tws[i]);
+                SurfaceTool.SetCustom(0, new Color(tis.X, tis.Y, tis.Z));
             }
 
             if (UseUvCoordinates && uvs != null)
-                _surfaceTool.SetUV(uvs[i]);
+                SurfaceTool.SetUV(uvs[i]);
             if (UseUvCoordinates && uvs2 != null)
-                _surfaceTool.SetUV2(uvs2[i]);
-            _surfaceTool.AddVertex(vs[i]);
+                SurfaceTool.SetUV2(uvs2[i]);
+            SurfaceTool.AddVertex(vs[i]);
         }
 
-        _surfaceTool.AddIndex(_vIdx);
-        _surfaceTool.AddIndex(_vIdx + 2);
-        _surfaceTool.AddIndex(_vIdx + 1);
-        _surfaceTool.AddIndex(_vIdx + 1);
-        _surfaceTool.AddIndex(_vIdx + 2);
-        _surfaceTool.AddIndex(_vIdx + 3);
-        _vIdx += 4;
+        SurfaceTool.AddIndex(VIdx);
+        SurfaceTool.AddIndex(VIdx + 2);
+        SurfaceTool.AddIndex(VIdx + 1);
+        SurfaceTool.AddIndex(VIdx + 1);
+        SurfaceTool.AddIndex(VIdx + 2);
+        SurfaceTool.AddIndex(VIdx + 3);
+        VIdx += 4;
     }
 }

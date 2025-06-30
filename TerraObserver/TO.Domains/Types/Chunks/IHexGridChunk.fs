@@ -7,6 +7,3 @@ namespace TO.Domains.Types.Chunks
 type IHexGridChunk =
     inherit IChunk
     abstract Id: int with get, set
-    abstract HideOutOfSight: unit -> unit
-    abstract ApplyNewData: unit -> unit
-    abstract ClearOldData: unit -> unit

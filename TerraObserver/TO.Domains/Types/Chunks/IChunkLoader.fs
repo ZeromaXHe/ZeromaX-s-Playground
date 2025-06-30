@@ -2,7 +2,7 @@ namespace TO.Domains.Types.Chunks
 
 open System.Collections.Generic
 open System.Diagnostics
-open Godot.Abstractions.Bases
+open TO.Domains.Types.Godots
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
@@ -11,6 +11,7 @@ open Godot.Abstractions.Bases
 type IChunkLoader =
     inherit INode3D
     // =====【普通属性】=====
+    abstract InsightSetIdx: int with get, set
     abstract InsightChunkIdsNow: int HashSet
     abstract InsightChunkIdsNext: int HashSet
     abstract ChunkQueryQueue: int Queue
@@ -22,7 +23,4 @@ type IChunkLoader =
     abstract UsingChunks: Dictionary<int, IHexGridChunk>
     abstract UnusedChunks: IHexGridChunk Queue
     abstract Stopwatch: Stopwatch
-
-    abstract ResetInsightSetIdx: unit -> unit
-    abstract UpdateInsightSetNextIdx: unit -> unit
     abstract GetUnusedChunk: unit -> IHexGridChunk

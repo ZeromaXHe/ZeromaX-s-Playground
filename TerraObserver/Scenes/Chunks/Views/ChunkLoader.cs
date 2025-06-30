@@ -30,9 +30,9 @@ public partial class ChunkLoader : Node3D, IChunkLoader
     private readonly HashSet<int>[] _insightChunkIds = [[], []];
 
     // 表示当前可视分块 Set 的 _insightChunkIds 索引
-    private int _insightSetIdx;
-    public HashSet<int> InsightChunkIdsNow => _insightChunkIds[_insightSetIdx];
-    public HashSet<int> InsightChunkIdsNext => _insightChunkIds[_insightSetIdx ^ 1];
+    public int InsightSetIdx { get; set; }
+    public HashSet<int> InsightChunkIdsNow => _insightChunkIds[InsightSetIdx];
+    public HashSet<int> InsightChunkIdsNext => _insightChunkIds[InsightSetIdx ^ 1];
     public Queue<int> ChunkQueryQueue { get; } = new();
     public HashSet<int> VisitedChunkIds { get; } = [];
 
@@ -57,9 +57,6 @@ public partial class ChunkLoader : Node3D, IChunkLoader
     public override void _Process(double delta) => Processed?.Invoke();
 
     #endregion
-
-    public void ResetInsightSetIdx() => _insightSetIdx = 0;
-    public void UpdateInsightSetNextIdx() => _insightSetIdx ^= 1;
 
     public IHexGridChunk GetUnusedChunk()
     {
