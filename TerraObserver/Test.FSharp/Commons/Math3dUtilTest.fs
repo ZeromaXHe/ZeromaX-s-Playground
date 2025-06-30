@@ -1,7 +1,7 @@
 namespace Test.FSharp.Commons
 
 open Godot
-open TO.Domains.Utils.Commons
+open TO.Domains.Functions.Maths
 open Xunit
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)

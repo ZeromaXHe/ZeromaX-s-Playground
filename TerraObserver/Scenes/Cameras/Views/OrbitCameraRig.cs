@@ -1,7 +1,6 @@
 using System;
 using Godot;
-using TO.Abstractions.Views.Cameras;
-using TO.Presenters.Views.Cameras;
+using TO.Domains.Types.Cameras;
 
 namespace TerraObserver.Scenes.Cameras.Views;
 
@@ -15,9 +14,15 @@ public partial class OrbitCameraRig : Node3D, IOrbitCameraRig
 
     public event Action<float>? Processed;
     public event Action? ZoomChanged;
-    public event IOrbitCameraRig.MovedEvent? Moved;
+
+    public delegate void MovedEvent(Vector3 pos, float delta);
+
+    public event MovedEvent? Moved;
     public void EmitMoved(Vector3 pos, float delta) => Moved?.Invoke(pos, delta);
-    public event IOrbitCameraRig.TransformedEvent? Transformed;
+
+    public delegate void TransformedEvent(Transform3D transform, float delta);
+
+    public event TransformedEvent? Transformed;
     public void EmitTransformed(Transform3D trans, float delta) => Transformed?.Invoke(trans, delta);
 
     #endregion
@@ -55,7 +60,7 @@ public partial class OrbitCameraRig : Node3D, IOrbitCameraRig
     public float AutoPilotSpeed { get; set; } = 1f;
 
     #endregion
-    
+
     #region 普通属性
 
     public float Zoom
@@ -87,7 +92,7 @@ public partial class OrbitCameraRig : Node3D, IOrbitCameraRig
     public Node3D Swivel { get; private set; } = null!;
     public Node3D Stick { get; private set; } = null!;
     public RemoteTransform3D CamRig { get; private set; } = null!; // 对应相机应该在的位置
-    
+
     #endregion
 
     #region 生命周期

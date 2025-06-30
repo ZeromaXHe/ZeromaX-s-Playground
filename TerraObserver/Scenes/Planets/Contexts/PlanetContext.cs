@@ -6,8 +6,8 @@ using TerraObserver.Scenes.Geos.Views;
 using TerraObserver.Scenes.Planets.Models;
 using TerraObserver.Scenes.Planets.Views;
 using TerraObserver.Scenes.Uis.Views;
-using TO.Abstractions.Views.Chunks;
-using TO.Controllers.Apps.Planets;
+using TO.Domains.Apps;
+using TO.Domains.Types.Chunks;
 
 namespace TerraObserver.Scenes.Planets.Contexts;
 
@@ -20,17 +20,17 @@ public partial class PlanetContext : Node
     #region Export 属性
 
     [Export]
-    public Planet? Planet
+    public PlanetConfig? PlanetConfig
     {
-        get => _planet;
+        get => _planetConfig;
         set
         {
-            _planet = value;
+            _planetConfig = value;
             UpdateConfigurationWarnings();
         }
     }
 
-    private Planet? _planet;
+    private PlanetConfig? _planetConfig;
 
     [Export]
     public CatlikeCodingNoise? CatlikeCodingNoise
@@ -49,7 +49,7 @@ public partial class PlanetContext : Node
     public override string[] _GetConfigurationWarnings()
     {
         List<string> warnings = [];
-        if (Planet == null)
+        if (PlanetConfig == null)
             warnings.Add("模型层：Planet 不可为空;");
         if (CatlikeCodingNoise == null)
             warnings.Add("模型层: CatlikeCodingNoise 不可为空;");
@@ -84,10 +84,10 @@ public partial class PlanetContext : Node
             _planetHud = GetNode<PlanetHud>("%PlanetHud");
         NodeReady = true;
         // App
-        _planetApp = new PlanetApp(Planet, CatlikeCodingNoise, _orbitCameraRig, _lonLatGrid, _celestialMotion,
+        _planetApp = new PlanetApp(PlanetConfig, CatlikeCodingNoise, _orbitCameraRig, _lonLatGrid, _celestialMotion,
             _chunkLoader, _planetHud);
-        Planet!.ParamsChanged += _planetApp.DrawHexSphereMesh;
-        Planet.ParamsChanged += _planetApp.OnPlanetParamsChanged;
+        PlanetConfig!.ParamsChanged += _planetApp.DrawHexSphereMesh;
+        PlanetConfig.ParamsChanged += _planetApp.OnPlanetConfigParamsChanged;
         _orbitCameraRig.Transformed += UpdateInsightChunks;
         _orbitCameraRig.Transformed += _planetApp.OnPlanetHudOrbitCameraRigTransformed;
         _orbitCameraRig.Processed += _planetApp.OnOrbitCameraRigProcessed;
@@ -134,8 +134,8 @@ public partial class PlanetContext : Node
             {
                 // 首次编译后重载场景时会为空…… 没理解原因
                 // 而且绑定和解绑逻辑不能下沉到 F# 层，否则就解绑失败，同样没理解原因
-                Planet!.ParamsChanged -= _planetApp.DrawHexSphereMesh;
-                Planet.ParamsChanged -= _planetApp.OnPlanetParamsChanged;
+                PlanetConfig!.ParamsChanged -= _planetApp.DrawHexSphereMesh;
+                PlanetConfig.ParamsChanged -= _planetApp.OnPlanetConfigParamsChanged;
                 _orbitCameraRig.Transformed -= _planetApp.OnPlanetHudOrbitCameraRigTransformed;
                 _orbitCameraRig.Processed -= _planetApp.OnOrbitCameraRigProcessed;
                 _orbitCameraRig.ZoomChanged -= _planetApp.OnOrbitCameraRigZoomChanged;
@@ -173,7 +173,7 @@ public partial class PlanetContext : Node
         _planetApp.UpdateInsightChunks();
     }
 
-    private void OnHexGridChunkGenerated(IHexGridChunk chunk) =>
+    private void OnHexGridChunkGenerated(HexGridChunk chunk) =>
         chunk.Processed += _planetApp.OnHexGridChunkProcessed; // TODO：怎么解绑事件？
 
     private void OnLonLatGridFixFullVisibilityChanged(bool value)

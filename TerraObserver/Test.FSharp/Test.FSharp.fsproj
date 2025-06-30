@@ -27,7 +27,7 @@
         <PackageReference Include="xunit.runner.visualstudio" Version="3.1.0"/>
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="..\TO.Controllers\TO.Controllers.fsproj" />
+      <ProjectReference Include="..\TO.Domains\TO.Domains.fsproj" />
     </ItemGroup>
 
 </Project>

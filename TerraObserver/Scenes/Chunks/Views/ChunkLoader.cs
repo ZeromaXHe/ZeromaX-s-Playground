@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Godot;
-using TO.Abstractions.Views.Chunks;
+using TO.Domains.Types.Chunks;
 
 namespace TerraObserver.Scenes.Chunks.Views;
 
@@ -15,7 +15,7 @@ public partial class ChunkLoader : Node3D, IChunkLoader
     #region 事件
 
     public event Action? Processed;
-    public event Action<IHexGridChunk>? HexGridChunkGenerated;
+    public event Action<HexGridChunk>? HexGridChunkGenerated;
 
     #endregion
 

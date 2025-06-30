@@ -1,7 +1,6 @@
 using System;
 using Godot;
-using TO.Abstractions.Views.Geos;
-using TO.Presenters.Views.Geos;
+using TO.Domains.Types.Geos;
 
 namespace TerraObserver.Scenes.Geos.Views;
 

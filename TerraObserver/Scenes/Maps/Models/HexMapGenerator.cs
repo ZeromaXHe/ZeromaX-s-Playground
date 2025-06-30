@@ -1,5 +1,5 @@
 using Godot;
-using TO.Abstractions.Views.Maps;
+using TO.Domains.Types.Maps;
 
 namespace TerraObserver.Scenes.Maps.Models;
 

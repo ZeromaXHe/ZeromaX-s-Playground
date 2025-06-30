@@ -1,6 +1,6 @@
 using Godot;
-using TO.Abstractions.Models.Planets;
-using TO.Domains.Structs.Tiles;
+using TO.Domains.Types.Configs;
+using TO.Domains.Types.Hashes;
 
 namespace TerraObserver.Scenes.Planets.Models;
 

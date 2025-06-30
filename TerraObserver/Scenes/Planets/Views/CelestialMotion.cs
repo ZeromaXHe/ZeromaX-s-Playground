@@ -1,8 +1,7 @@
 using System;
 using Godot;
-using TO.Abstractions.Views.Planets;
-using TO.Domains.Shaders;
-using TO.Presenters.Views.Planets;
+using TO.Domains.Functions.Shaders;
+using TO.Domains.Types.Planets;
 
 namespace TerraObserver.Scenes.Planets.Views;
 

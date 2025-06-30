@@ -1,15 +1,7 @@
 using System;
 using Godot;
-using TerraObserver.Scenes.Cameras.Views;
-using TerraObserver.Scenes.Geos.Views;
-using TerraObserver.Scenes.Planets.Models;
-using TerraObserver.Scenes.Planets.Views;
-using TO.Abstractions.Views.Uis;
-using TO.Domains.Enums.Meshes;
-using TO.Domains.Shaders;
-using TO.Domains.Structs.HexSphereGrids;
-using TO.Presenters.Models.Uis;
-using TO.Presenters.Views.Uis;
+using TO.Domains.Functions.Shaders;
+using TO.Domains.Types.PlanetHuds;
 
 namespace TerraObserver.Scenes.Uis.Views;
 

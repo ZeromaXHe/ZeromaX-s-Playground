@@ -1,7 +1,7 @@
 [gd_scene load_steps=26 format=3 uid="uid://cnu45krarcdsr"]
 
 [ext_resource type="Script" uid="uid://4ki6so6sadfr" path="res://Scenes/Planets/Contexts/PlanetContext.cs" id="1_d8mpy"]
-[ext_resource type="Script" uid="uid://b02ygsbo8van6" path="res://Scenes/Planets/Models/Planet.cs" id="2_kkspw"]
+[ext_resource type="Script" uid="uid://b02ygsbo8van6" path="res://Scenes/Planets/Models/PlanetConfig.cs" id="2_kkspw"]
 [ext_resource type="Script" uid="uid://voxnbptif4nk" path="res://Addons/SIsilicon.vfx.lens flare/lens-flare.gd" id="2_mvjou"]
 [ext_resource type="Script" uid="uid://ceglg8igg8d0g" path="res://Scenes/Planets/Models/CatlikeCodingNoise.cs" id="3_opj56"]
 [ext_resource type="PackedScene" uid="uid://bdondmaglaff5" path="res://Scenes/Cameras/Views/OrbitCameraRig.tscn" id="3_s1lu0"]
@@ -78,7 +78,7 @@ height = 54.6
 
 [node name="PlanetContext" type="Node"]
 script = ExtResource("1_d8mpy")
-Planet = SubResource("Resource_xd1ad")
+PlanetConfig = SubResource("Resource_xd1ad")
 CatlikeCodingNoise = SubResource("Resource_opj56")
 
 [node name="LensFlare" type="Node" parent="."]

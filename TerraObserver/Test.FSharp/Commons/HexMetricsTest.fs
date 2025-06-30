@@ -1,8 +1,8 @@
 namespace Test.FSharp.Commons
 
 open Godot
-open TO.Domains.Structs.Tiles
-open TO.Domains.Utils.HexSpheres
+open TO.Domains.Functions.HexMetrics
+open TO.Domains.Types.HexMetrics
 open Xunit
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)

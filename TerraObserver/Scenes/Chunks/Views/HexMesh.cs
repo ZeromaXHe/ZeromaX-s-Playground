@@ -1,5 +1,5 @@
 using Godot;
-using TO.Abstractions.Views.Chunks;
+using TO.Domains.Types.Chunks;
 
 namespace TerraObserver.Scenes.Chunks.Views;
 
