@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3 uid="uid://cnu45krarcdsr"]
+[gd_scene load_steps=28 format=3 uid="uid://cnu45krarcdsr"]
 
 [ext_resource type="Script" uid="uid://4ki6so6sadfr" path="res://Scenes/Planets/Contexts/PlanetContext.cs" id="1_d8mpy"]
 [ext_resource type="Script" uid="uid://b02ygsbo8van6" path="res://Scenes/Planets/Models/PlanetConfig.cs" id="2_kkspw"]
@@ -15,6 +15,7 @@
 [ext_resource type="PackedScene" uid="uid://by2hifni2i1ql" path="res://Scenes/Chunks/Views/ChunkLoader.tscn" id="11_ioxuh"]
 [ext_resource type="Texture2D" uid="uid://dbh7h21k155fe" path="res://Assets/Sebastian/lroc_color_poles_512x256.png" id="11_jet37"]
 [ext_resource type="PackedScene" uid="uid://b2v0nm0kt4y6m" path="res://Scenes/Uis/Views/PlanetHud.tscn" id="12_ioxuh"]
+[ext_resource type="Script" uid="uid://bt06psktmjb85" path="res://Scenes/Uis/Views/SelectTileViewer.cs" id="15_hmp20"]
 
 [sub_resource type="Resource" id="Resource_xd1ad"]
 script = ExtResource("2_kkspw")
@@ -75,6 +76,13 @@ metallic_specular = 0.8
 material = SubResource("StandardMaterial3D_a82mq")
 radius = 27.3
 height = 54.6
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hmp20"]
+render_priority = 11
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+disable_receive_shadows = true
 
 [node name="PlanetContext" type="Node"]
 script = ExtResource("1_d8mpy")
@@ -137,6 +145,12 @@ Moon = NodePath("../Moon")
 
 [node name="ChunkLoader" parent="." instance=ExtResource("11_ioxuh")]
 unique_name_in_owner = true
+
+[node name="SelectTileViewer" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+material_override = SubResource("StandardMaterial3D_hmp20")
+cast_shadow = 0
+script = ExtResource("15_hmp20")
 
 [node name="PlanetHud" parent="." instance=ExtResource("12_ioxuh")]
 unique_name_in_owner = true

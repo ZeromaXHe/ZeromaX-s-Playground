@@ -6,6 +6,7 @@ open Godot
 /// Author: Zhu XH
 /// Date: 2025-04-17 14:15:17
 [<Interface>]
+[<AllowNullLiteral>]
 type IMeshInstance3D =
     inherit IGeometryInstance3D
     abstract Mesh: Mesh with get, set // 17

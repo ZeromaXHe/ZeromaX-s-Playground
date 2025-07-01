@@ -4,5 +4,6 @@ namespace TO.Domains.Types.Godots
 /// Author: Zhu XH
 /// Date: 2025-04-17 14:15:17
 [<Interface>]
+[<AllowNullLiteral>]
 type IGeometryInstance3D =
     inherit IVisualInstance3D

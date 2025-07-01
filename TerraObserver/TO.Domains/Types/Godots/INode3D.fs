@@ -8,6 +8,7 @@ open Godot
 /// Author: Zhu XH
 /// Date: 2025-04-16 16:51:16
 [<Interface>]
+[<AllowNullLiteral>]
 type INode3D =
     inherit INode
     abstract Transform: Transform3D with get, set // 59

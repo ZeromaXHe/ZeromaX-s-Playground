@@ -64,6 +64,7 @@ public partial class PlanetContext : Node
     private LonLatGrid _lonLatGrid = null!;
     private CelestialMotion _celestialMotion = null!;
     private ChunkLoader _chunkLoader = null!;
+    private SelectTileViewer _selectTileViewer = null!;
     private PlanetHud _planetHud = null!;
     private PlanetApp _planetApp = null!;
 
@@ -81,11 +82,15 @@ public partial class PlanetContext : Node
         _celestialMotion = GetNode<CelestialMotion>("%CelestialMotion");
         _chunkLoader = GetNode<ChunkLoader>("%ChunkLoader");
         if (!inEditor)
+        {
+            _selectTileViewer = GetNode<SelectTileViewer>("%SelectTileViewer");
             _planetHud = GetNode<PlanetHud>("%PlanetHud");
+        }
+
         NodeReady = true;
         // App
         _planetApp = new PlanetApp(PlanetConfig, CatlikeCodingNoise, _orbitCameraRig, _lonLatGrid, _celestialMotion,
-            _chunkLoader, _planetHud);
+            _chunkLoader, _selectTileViewer, _planetHud);
         PlanetConfig!.ParamsChanged += _planetApp.DrawHexSphereMesh;
         PlanetConfig.ParamsChanged += _planetApp.OnPlanetConfigParamsChanged;
         _orbitCameraRig.Transformed += UpdateInsightChunks;

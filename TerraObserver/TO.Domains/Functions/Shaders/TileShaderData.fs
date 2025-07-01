@@ -127,9 +127,7 @@ module TileShaderDataCommand =
             changePixel this.TileTexture countId data
             stillUpdating
 
-    let private resetVisibility
-        (env: 'E when 'E :> IEntityStoreQuery and 'E :> IEntityStoreCommand)
-        =
+    let private resetVisibility (env: 'E when 'E :> IEntityStoreQuery and 'E :> IEntityStoreCommand) =
         env.ExecuteInCommandBuffer(fun cb ->
             env.EntityStore
                 .Query<TileVisibility, TileCountId, TileFlag>()
@@ -141,7 +139,7 @@ module TileShaderDataCommand =
 
     let transitionSpeed = 255f
 
-    let updateData (env: 'E when 'E :> IEntityStoreQuery and 'E :> ITileShaderDataQuery) : UpdateData =
+    let updateData (env: 'E when 'E :> IEntityStoreQuery and 'E :> ITileShaderDataQuery) : UpdateTileShaderData =
         fun (delta: float32) ->
             let this = env.TileShaderData
 
