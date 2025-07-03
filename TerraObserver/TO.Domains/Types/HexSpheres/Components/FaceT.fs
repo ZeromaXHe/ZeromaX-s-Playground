@@ -9,10 +9,12 @@ open TO.Domains.Types.HexSpheres.Components.Points
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-06-30 05:29:30
 type GetOrderedFaces = PointComponent -> Entity -> Entity list
+type GetFaceCenter = FaceId -> Vector3
 
 [<Interface>]
 type IFaceQuery =
     abstract GetOrderedFaces: GetOrderedFaces
+    abstract GetFaceCenter: GetFaceCenter
 
 type AddFace = Chunky -> Vector3 -> Vector3 -> Vector3 -> FaceId
 

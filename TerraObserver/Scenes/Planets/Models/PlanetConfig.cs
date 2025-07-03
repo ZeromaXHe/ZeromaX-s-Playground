@@ -3,6 +3,7 @@ using Godot;
 using TO.Domains.Functions.HexMetrics;
 using TO.Domains.Functions.Shaders;
 using TO.Domains.Types.Configs;
+using TO.Domains.Types.HexGridCoords;
 
 namespace TerraObserver.Scenes.Planets.Models;
 
@@ -42,6 +43,7 @@ public partial class PlanetConfig : Resource, IPlanetConfig
         {
             _divisions = value;
             _chunkDivisions = Mathf.Min(Mathf.Max(1, _divisions / 10), _chunkDivisions);
+            SphereAxial.Div = _divisions;
             OnParamsChanged();
         }
     }
@@ -56,6 +58,7 @@ public partial class PlanetConfig : Resource, IPlanetConfig
         {
             _chunkDivisions = value;
             _divisions = Mathf.Max(Mathf.Min(200, _chunkDivisions * 10), _divisions);
+            SphereAxial.Div = _divisions;
             OnParamsChanged();
         }
     }

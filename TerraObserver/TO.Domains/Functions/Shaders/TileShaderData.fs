@@ -2,6 +2,7 @@ namespace TO.Domains.Functions.Shaders
 
 open Godot
 open TO.Domains.Functions.HexSpheres.Components.Tiles
+open TO.Domains.Types.Configs
 open TO.Domains.Types.Friflos
 open TO.Domains.Types.HexSpheres
 open TO.Domains.Types.HexSpheres.Components.Tiles
@@ -61,11 +62,14 @@ module TileShaderDataCommand =
             changePixel this.TileCivTexture countId this.TileCivTextureData[countId]
             this.Enabled <- true
 
-    let refreshTerrain (env: #ITileShaderDataQuery) : RefreshTerrain =
-        fun (unitHeight: float32) (maxHeight: float32) (tileCountId: TileCountId) (tileValue: TileValue) ->
+    let refreshTerrain (env: 'E when 'E :> IPlanetConfigQuery and 'E :> ITileShaderDataQuery) : RefreshTerrain =
+        fun (tileCountId: TileCountId) (tileValue: TileValue) ->
             let this = env.TileShaderData
             let countId = tileCountId.CountId
             let mutable data = this.TileTextureData[countId]
+            let planetConfig = env.PlanetConfig
+            let unitHeight = planetConfig.UnitHeight
+            let maxHeight = planetConfig.MaxHeight
 
             data.B8 <-
                 if TileValue.isUnderwater tileValue then
@@ -176,10 +180,15 @@ module TileShaderDataCommand =
                 this.HexTileCivData.Update this.TileCivTexture
                 this.Enabled <- this.TransitioningTileIndices.Count > 0
 
-    let viewElevationChanged (env: #ITileShaderDataQuery) : ViewElevationChanged =
-        fun (unitHeight: float32) (maxHeight: float32) (tileCountId: TileCountId) (tileValue: TileValue) ->
+    let viewElevationChanged
+        (env: 'E when 'E :> IPlanetConfigQuery and 'E :> ITileShaderDataQuery)
+        : ViewElevationChanged =
+        fun (tileCountId: TileCountId) (tileValue: TileValue) ->
             let this = env.TileShaderData
             let countId = tileCountId.CountId
+            let planetConfig = env.PlanetConfig
+            let unitHeight = planetConfig.UnitHeight
+            let maxHeight = planetConfig.MaxHeight
 
             this.TileTextureData[countId].B8 <-
                 if TileValue.isUnderwater tileValue then

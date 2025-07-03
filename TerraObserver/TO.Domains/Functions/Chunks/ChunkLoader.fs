@@ -60,7 +60,7 @@ module ChunkLoaderCommand =
         (idChanged: bool)
         (hexGridChunk: IHexGridChunk)
         =
-        let lod = env.GetLod chunkId
+        let lod = env.GetChunkLod chunkId
 
         if lod = hexGridChunk.Lod && not idChanged then
             ()
@@ -383,4 +383,13 @@ module ChunkLoaderCommand =
             // 显示外缘分块
             initOutRimChunks env camera.GlobalPosition
             chunkLoader.SetProcess true
-// GD.Print($"ChunkLoader UpdateInsightChunks cost {Time.GetTicksMsec() - time} ms");
+    // GD.Print($"ChunkLoader UpdateInsightChunks cost {Time.GetTicksMsec() - time} ms");
+
+    let refreshChunk (env: 'E when 'E :> IChunkLoaderQuery and 'E :> ILodMeshCacheCommand): RefreshChunk =
+        fun (chunkId: ChunkId) ->
+            match env.TryGetUsingChunk chunkId with
+            | true, chunk ->
+                // 让所有旧的网格缓存过期
+                env.RemoveLodMeshes chunkId
+                chunk.SetProcess true
+            | false, _ -> ()

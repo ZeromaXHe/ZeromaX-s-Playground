@@ -88,6 +88,7 @@ type PlanetApp
     let celestialMotionToggleAllMotions (env: #ICelestialMotionCommand) toggle = env.ToggleAllMotions toggle
     let onChunkLoaderProcessed (env: #IChunkLoaderCommand) = env.OnChunkLoaderProcessed()
     let onHexGridChunkProcessed (env: #IChunkLoaderCommand) (chunk: IHexGridChunk) = env.OnHexGridChunkProcessed chunk
+    let onPlanetHudChosenTileIdChanged (env: #IPlanetHudCommand) = env.UpdateChosenTileInfo planetHud
 
     let onPlanetHudOrbitCameraRigTransformed (env: #IPlanetHudCommand) transform =
         env.OnOrbitCameraRigTransformed transform
@@ -99,9 +100,13 @@ type PlanetApp
 
     let onPlanetHudOrbitCameraRigMoved (env: #IPlanetHudCommand) pos delta = env.OnOrbitCameraRigMoved pos delta
 
-    let onProcessed (env: 'E when 'E :> ITileShaderDataCommand and 'E :> ISelectTileViewerCommand) delta =
+    let onProcessed
+        (env: 'E when 'E :> ITileShaderDataCommand and 'E :> ISelectTileViewerCommand and 'E :> IPlanetHudCommand)
+        delta
+        =
         env.UpdateTileShaderData delta
         env.UpdateInEditMode()
+        env.OnPlanetHudProcessed()
 
     let drawHexSphereMesh
         (env:
@@ -126,7 +131,7 @@ type PlanetApp
             .Query<TileCountId, TileValue, TileFlag, TileVisibility>()
             .ForEachEntity(fun tileCountId tileValue tileFlag tileVisibility tile ->
                 env.RefreshTileSearchData tileCountId
-                env.RefreshTileShaderDataTerrain planet.UnitHeight planet.MaxHeight tileCountId tileValue
+                env.RefreshTileShaderDataTerrain tileCountId tileValue
                 env.RefreshTileShaderDataVisibility tile.Id tileCountId tileFlag tileVisibility)
 
         GD.Print $"[===DrawHexSphereMesh===] total cost: {Time.GetTicksMsec() - time} ms"
@@ -155,7 +160,9 @@ type PlanetApp
     member this.OnChunkLoaderProcessed() = onChunkLoaderProcessed env
     member this.OnHexGridChunkProcessed(chunk: IHexGridChunk) = onHexGridChunkProcessed env chunk
 
-    member this.OnPlanetHudOrbitCameraRigTransformed(transform, delta: float32) =
+    member this.OnPlanetHudChosenTileIdChanged _ = onPlanetHudChosenTileIdChanged env
+
+    member this.OnPlanetHudOrbitCameraRigTransformed(transform, _) =
         onPlanetHudOrbitCameraRigTransformed env transform
 
     member this.OnPlanetHudRadiusLineEditTextSubmitted text =

@@ -76,7 +76,6 @@
         <Compile Include="Types\Chunks\ChunkLoaderT.fs"/>
         <Compile Include="Types\Chunks\ChunkTriangulationT.fs"/>
         <Compile Include="Types\PlanetHuds\OptionalToggleT.fs"/>
-        <Compile Include="Types\PlanetHuds\HexTileDataOverriderT.fs"/>
         <Compile Include="Types\PlanetHuds\SelectTileViewerT.fs"/>
         <Compile Include="Types\PlanetHuds\PlanetHudT.fs"/>
         <Compile Include="Functions\Friflos\EntityStore.fs"/>
@@ -128,7 +127,6 @@
         <Compile Include="Functions\Chunks\HexGridChunk.fs"/>
         <Compile Include="Functions\Chunks\ChunkLoader.fs"/>
         <Compile Include="Functions\Chunks\ChunkTriangulation.fs"/>
-        <Compile Include="Functions\PlanetHuds\HexTileDataOverrider.fs"/>
         <Compile Include="Functions\PlanetHuds\SelectTileViewer.fs"/>
         <Compile Include="Functions\PlanetHuds\PlanetHud.fs"/>
         <Compile Include="Envs\PlanetEnv.fs"/>

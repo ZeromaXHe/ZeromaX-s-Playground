@@ -9,7 +9,7 @@ open TO.Domains.Types.HexSpheres
 [<Struct>]
 type TileHexFaceIds =
     interface IComponent
-    val Length: FaceId
+    val Length: int
     val FaceId0: FaceId
     val FaceId1: FaceId
     val FaceId2: FaceId

@@ -8,7 +8,7 @@ open TO.Domains.Types.HexGridCoords
 /// Date: 2025-06-29 17:07:29
 module SphereAxial =
     let toString (this: SphereAxial) =
-        $"{this.Coords} {this.Type} {this.TypeIdx}"
+        $"{this.Coords |> AxialCoords.toString} {this.Type} {this.TypeIdx}"
 
     let specialNeighbor (this: SphereAxial) =
         this.Type = TypeEnum.EdgesSpecial || this.Type = TypeEnum.FacesSpecial

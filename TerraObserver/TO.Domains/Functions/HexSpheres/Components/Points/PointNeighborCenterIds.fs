@@ -36,8 +36,8 @@ module PointNeighborCenterIds =
             s
 
     // 邻居
-    let getNeighborIdx (this: PointNeighborCenterIds) (neighborCenterId: PointId) =
+    let getNeighborIdx (neighborCenterId: PointId) (this: PointNeighborCenterIds) =
         getSeq this |> Seq.findIndex (fun id -> id = neighborCenterId)
 
-    let isNeighbor (this: PointNeighborCenterIds) (neighborCenterId: PointId) =
+    let isNeighbor (neighborCenterId: PointId) (this: PointNeighborCenterIds) =
         getSeq this |> Seq.contains neighborCenterId

@@ -75,7 +75,7 @@ module TileUnitCorners =
         (this: TileUnitCorners)
         =
         getFirstCornerWithRadiusAndSize unitCentroid
-        <| HexIndexUtil.nextIdx this.Length idx
+        <| HexIndexUtil.nextIdx idx this.Length
         <| radius
         <| size
         <| this
@@ -128,7 +128,7 @@ module TileUnitCorners =
         (this: TileUnitCorners)
         =
         let corner1 = getFirstCornerWithRadiusAndSize unitCentroid idx radius size this
-        let nextIdx = HexIndexUtil.nextIdx this.Length idx
+        let nextIdx = HexIndexUtil.nextIdx idx this.Length
         let corner2 = getFirstCornerWithRadiusAndSize unitCentroid nextIdx radius size this
         corner1.Lerp(corner2, 0.5f)
 
@@ -167,7 +167,7 @@ module TileUnitCorners =
         if idx = -1 then
             []
         else
-            let nextIdx = HexIndexUtil.nextIdx this.Length idx
+            let nextIdx = HexIndexUtil.nextIdx idx this.Length
 
             [ getFirstCornerWithRadius unitCentroid idx radius this
               getFirstCornerWithRadius unitCentroid nextIdx radius this ]

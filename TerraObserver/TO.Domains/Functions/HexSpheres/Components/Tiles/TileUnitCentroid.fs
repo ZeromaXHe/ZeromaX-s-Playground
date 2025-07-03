@@ -18,8 +18,8 @@ module TileUnitCentroid =
         =
         Math3dUtil.ProjectToSphere(this.UnitCentroid.Lerp(faceCenter, size), radius)
 
-    let getCornerByFaceCenterWithSize (faceCenter: Vector3) (size: float32) (this: TileUnitCentroid) =
-        getCornerByFaceCenterWithRadiusAndSize faceCenter 1f size this
+    let getCornerByFaceCenterWithRadius (faceCenter: Vector3) (radius: float32) (this: TileUnitCentroid) =
+        getCornerByFaceCenterWithRadiusAndSize faceCenter radius 1f this
 
     let getCornerByFaceCenter (faceCenter: Vector3) (this: TileUnitCentroid) =
         getCornerByFaceCenterWithRadiusAndSize faceCenter 1f 1f this

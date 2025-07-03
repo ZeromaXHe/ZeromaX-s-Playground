@@ -49,6 +49,7 @@ type OnChunkLoaderProcessed = unit -> unit
 type InitChunkNodes = unit -> unit
 type OnHexGridChunkProcessed = IHexGridChunk -> unit
 type UpdateInsightChunks = unit -> unit
+type RefreshChunk = ChunkId -> unit
 
 [<Interface>]
 type IChunkLoaderCommand =
@@ -60,3 +61,4 @@ type IChunkLoaderCommand =
     abstract InitChunkNodes: InitChunkNodes
     abstract OnHexGridChunkProcessed: OnHexGridChunkProcessed
     abstract UpdateInsightChunks: UpdateInsightChunks
+    abstract RefreshChunk: RefreshChunk

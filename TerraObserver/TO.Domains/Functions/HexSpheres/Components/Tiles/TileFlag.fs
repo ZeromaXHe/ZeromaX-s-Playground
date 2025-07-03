@@ -67,18 +67,17 @@ module TileFlag =
 
     let walled (this: TileFlag) = hasAny TileFlagEnum.Walled this
     let hasRoads (this: TileFlag) = hasAny TileFlagEnum.Roads this
-    let hasRoadThroughEdge (direction: int) (this: TileFlag) = hasRoad direction this
 
     let getRoadInterpolator (length: int) (idx: int) (this: TileFlag) =
-        if hasRoadThroughEdge idx this then
+        if hasRoad idx this then
             Vector2(0.5f, 0.5f)
         else
             Vector2(
-                (if hasRoadThroughEdge <| HexIndexUtil.previousIdx length idx <| this then
+                (if hasRoad <| HexIndexUtil.previousIdx idx length <| this then
                      0.5f
                  else
                      0.25f),
-                (if hasRoadThroughEdge <| HexIndexUtil.nextIdx length idx <| this then
+                (if hasRoad <| HexIndexUtil.nextIdx idx length <| this then
                      0.5f
                  else
                      0.25f)
@@ -90,11 +89,6 @@ module TileFlag =
 
     let hasRiverBeginOrEnd (this: TileFlag) =
         hasIncomingRiver this <> hasOutgoingRiver this
-
-    let hasIncomingRiverThoughEdge (direction: int) (this: TileFlag) = hasRiverIn direction this
-
-    let hasRiverThroughEdge (direction: int) (this: TileFlag) =
-        hasRiverIn direction this || hasRiverOut direction this
 
     let riverInDirection (this: TileFlag) = toDirection 6 this
     let riverOutDirection (this: TileFlag) = toDirection 12 this

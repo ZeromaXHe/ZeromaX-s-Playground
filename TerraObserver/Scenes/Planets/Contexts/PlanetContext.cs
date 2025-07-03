@@ -108,6 +108,7 @@ public partial class PlanetContext : Node
         if (!inEditor)
         {
             _orbitCameraRig.Moved += _planetApp.OnPlanetHudOrbitCameraRigMoved;
+            _planetHud.ChosenTileIdChanged += _planetApp.OnPlanetHudChosenTileIdChanged;
             _planetHud.LonLatFixCheckButtonToggled += _planetApp.LonLatGridToggleFixFullVisibility;
             _planetHud.CelestialMotionCheckButtonToggled += _planetApp.CelestialMotionToggleAllMotions;
             _planetHud.RadiusLineEditTextSubmitted += _planetApp.OnPlanetHudRadiusLineEditTextSubmitted;

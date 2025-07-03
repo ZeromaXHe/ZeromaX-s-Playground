@@ -74,16 +74,37 @@ type PlanetEnv
 
     interface IFaceQuery with
         member this.GetOrderedFaces = FaceQuery.getOrderedFaces this
+        member this.GetFaceCenter = FaceQuery.getFaceCenter this
 
     interface IFaceCommand with
         member this.AddFace = FaceCommand.add this
 
+    interface ITileQuery with
+        member this.GetTile = TileQuery.getTile this
+        member this.GetSphereAxial = TileQuery.getSphereAxial this
+        member this.IsNeighborTile = TileQuery.isNeighborTile this
+        member this.GetNeighborTileByIdx = TileQuery.getNeighborTileByIdx this
+        member this.GetNeighborTiles = TileQuery.getNeighborTiles this
+        member this.GetTilesInDistance = TileQuery.getTilesInDistance this
+
     interface ITileCommand with
         member this.AddTile = TileCommand.add this
+        member this.RemoveRoads = TileCommand.removeRoads this
+        member this.AddRoad = TileCommand.addRoad this
+        member this.RemoveRivers = TileCommand.removeRivers this
+        member this.SetOutgoingRiver = TileCommand.setOutgoingRiver this
+        member this.SetElevation = TileCommand.setElevation this
+        member this.SetTerrainTypeIndex = TileCommand.setTerrainTypeIndex this
+        member this.SetWaterLevel = TileCommand.setWaterLevel this
+        member this.SetUrbanLevel = TileCommand.setUrbanLevel this
+        member this.SetFarmLevel = TileCommand.setFarmLevel this
+        member this.SetPlantLevel = TileCommand.setPlantLevel this
+        member this.SetWalled = TileCommand.setWalled this
+        member this.SetSpecialIndex = TileCommand.setSpecialIndex this
 
     interface IChunkQuery with
         member this.IsHandlingLodGaps = ChunkQuery.isHandlingLodGaps this
-        member this.GetLod = ChunkQuery.getLod this
+        member this.GetChunkLod = ChunkQuery.getLod this
 
     interface IChunkCommand with
         member this.AddChunk = ChunkCommand.add this
@@ -197,6 +218,7 @@ type PlanetEnv
         member this.InitChunkNodes = ChunkLoaderCommand.initChunkNodes this
         member this.OnHexGridChunkProcessed = ChunkLoaderCommand.onHexGridChunkProcessed this
         member this.UpdateInsightChunks = ChunkLoaderCommand.updateInsightChunks this
+        member this.RefreshChunk = ChunkLoaderCommand.refreshChunk this
 
     interface ISelectTileViewerQuery with
         member this.SelectTileViewerOpt =
@@ -204,6 +226,8 @@ type PlanetEnv
                 None
             else
                 Some selectTileViewer
+
+        member this.GetTileIdUnderCursor = SelectTileViewerQuery.getTileIdUnderCursor this
 
     interface ISelectTileViewerCommand with
         member this.UpdateInEditMode = SelectTileViewerCommand.updateInEditMode this
@@ -222,3 +246,5 @@ type PlanetEnv
 
         member this.UpdateRadiusLineEdit = PlanetHudCommand.updateRadiusLineEdit this
         member this.UpdateDivisionLineEdit = PlanetHudCommand.updateDivisionLineEdit this
+        member this.UpdateChosenTileInfo = PlanetHudCommand.updateChosenTileInfo this
+        member this.OnPlanetHudProcessed = PlanetHudCommand.onPlanetHudProcessed this

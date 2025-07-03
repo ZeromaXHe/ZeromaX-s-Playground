@@ -76,6 +76,9 @@ module FaceQuery =
 
                 orderedList |> List.rev
 
+    let getFaceCenter (env: #IEntityStoreQuery) : GetFaceCenter =
+        fun (faceId: FaceId) -> env.GetEntityById(faceId).GetComponent<FaceComponent>().Center
+
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-06-19 16:21:19

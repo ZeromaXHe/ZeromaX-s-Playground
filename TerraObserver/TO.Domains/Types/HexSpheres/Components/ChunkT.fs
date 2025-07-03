@@ -13,7 +13,7 @@ type GetChunkLod = ChunkId -> ChunkLodEnum
 [<Interface>]
 type IChunkQuery =
     abstract IsHandlingLodGaps: IsHandlingChunkLodGaps
-    abstract GetLod: GetChunkLod
+    abstract GetChunkLod: GetChunkLod
 
 type AddChunk = PointId -> Vector3 -> NeighborCenterIds -> ChunkId
 type UpdateChunkInsightAndLod = Vector3 -> bool -> CommandBuffer option -> ChunkId -> unit

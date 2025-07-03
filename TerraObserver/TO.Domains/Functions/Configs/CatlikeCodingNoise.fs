@@ -3,11 +3,11 @@ namespace TO.Domains.Functions.Configs
 open Godot
 open TO.Domains.Functions.Hashes
 open TO.Domains.Functions.HexMetrics
+open TO.Domains.Functions.HexSpheres.Components
 open TO.Domains.Functions.HexSpheres.Components.Tiles
 open TO.Domains.Functions.Maths
 open TO.Domains.Functions.Textures
 open TO.Domains.Types.Configs
-open TO.Domains.Types.HexSpheres.Components.Tiles
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
@@ -95,9 +95,11 @@ module CatlikeCodingNoiseQuery =
         let getHeightInner (elevation: int) (centroid: Vector3) =
             (float32 elevation + getPerturbHeight centroid) * planetConfig.UnitHeight
 
-        fun (tileValue: TileValue) (tileUnitCentroid: TileUnitCentroid) ->
-            let centroid = tileUnitCentroid |> TileUnitCentroid.scaled HexMetrics.StandardRadius
-            let elevation = tileValue |> TileValue.elevation
+        fun tile ->
+            let centroid =
+                tile |> Tile.unitCentroid |> TileUnitCentroid.scaled HexMetrics.StandardRadius
+
+            let elevation = tile |> Tile.value |> TileValue.elevation
             getHeightInner elevation centroid
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)

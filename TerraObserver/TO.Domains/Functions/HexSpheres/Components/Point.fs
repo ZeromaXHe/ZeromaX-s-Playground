@@ -88,7 +88,7 @@ module PointQuery =
                 store.GetEntityById(id).GetComponent<PointNeighborCenterIds>()
 
             let neighborCenterId = store.GetEntityById(neighborId).GetComponent<PointCenterId>()
-            PointNeighborCenterIds.getNeighborIdx neighborCenterIds neighborCenterId.CenterId
+            PointNeighborCenterIds.getNeighborIdx neighborCenterId.CenterId neighborCenterIds
 
     let getNeighborIdsById (env: #IEntityStoreQuery) : GetPointNeighborIdsById =
         fun (id: int) ->
@@ -103,6 +103,7 @@ module PointQuery =
                 let entities = store.ComponentIndex<PointCenterId, PointId>()[centerId]
                 entities |> Seq.map _.Id)
 
+    // 用于初始化 NeighborCenterPointIds
     let getNeighborCenterPointIds
         (env: 'E when 'E :> IEntityStoreQuery and 'E :> IPointQuery)
         : GetNeighborCenterPointIds =

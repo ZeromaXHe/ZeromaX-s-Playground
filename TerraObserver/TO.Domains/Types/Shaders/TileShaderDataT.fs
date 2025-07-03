@@ -31,10 +31,10 @@ type ITileShaderDataQuery =
 
 type InitShaderData = int -> unit
 type RefreshCiv = TileCountId -> Color -> unit
-type RefreshTerrain = float32 -> float32 -> TileCountId -> TileValue -> unit
+type RefreshTerrain = TileCountId -> TileValue -> unit
 type RefreshVisibility = TileId -> TileCountId -> TileFlag -> TileVisibility -> unit
 type UpdateTileShaderData = float32 -> unit
-type ViewElevationChanged = float32 -> float32 -> TileCountId -> TileValue -> unit
+type ViewElevationChanged = TileCountId -> TileValue -> unit
 
 [<Interface>]
 type ITileShaderDataCommand =

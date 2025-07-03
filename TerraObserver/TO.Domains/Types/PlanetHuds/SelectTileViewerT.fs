@@ -13,9 +13,12 @@ type ISelectTileViewer =
     abstract HoverTileId: int Nullable with get, set
     abstract SelectedTileId: int Nullable with get, set
 
+type GetTileIdUnderCursor = unit -> int Nullable
+
 [<Interface>]
 type ISelectTileViewerQuery =
     abstract SelectTileViewerOpt: ISelectTileViewer option // 因为不是 Tool，所以编辑器内可能为空
+    abstract GetTileIdUnderCursor: GetTileIdUnderCursor
 
 type UpdateInEditMode = unit -> unit
 

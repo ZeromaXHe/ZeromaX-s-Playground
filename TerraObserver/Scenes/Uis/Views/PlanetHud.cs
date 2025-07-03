@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Godot;
 using TO.Domains.Functions.Shaders;
 using TO.Domains.Types.PlanetHuds;
@@ -39,7 +40,27 @@ public partial class PlanetHud : Control, IPlanetHud
     public int? DragTileId { get; set; }
     public int? PreviousTileId { get; set; }
     public int LabelMode { get; set; }
-    public HexTileDataOverrider TileOverrider { get; set; } = new();
+    public bool EditMode { get; set; }
+    public bool ApplyTerrain { get; set; }
+    public int ActiveTerrain { get; set; }
+    public bool ApplyElevation { get; set; }
+    public int ActiveElevation { get; set; }
+    public bool ApplyWaterLevel { get; set; }
+    public int ActiveWaterLevel { get; set; }
+    public int BrushSize { get; set; }
+    public OptionalToggle RiverMode { get; set; }
+    public OptionalToggle RoadMode { get; set; }
+    public bool ApplyUrbanLevel { get; set; }
+    public int ActiveUrbanLevel { get; set; }
+    public bool ApplyFarmLevel { get; set; }
+    public int ActiveFarmLevel { get; set; }
+    public bool ApplyPlantLevel { get; set; }
+    public int ActivePlantLevel { get; set; }
+    public OptionalToggle WalledMode { get; set; }
+    public bool ApplySpecialIndex { get; set; }
+    public int ActiveSpecialIndex { get; set; }
+
+    public HashSet<int> OverrideTileIds { get; } = [];
 
     #endregion
 
@@ -49,7 +70,7 @@ public partial class PlanetHud : Control, IPlanetHud
     private CheckButton CelestialMotionCheckButton { get; set; } = null!;
 
     // 小地图
-    private SubViewportContainer MiniMapContainer { get; set; } = null!;
+    public SubViewportContainer MiniMapContainer { get; private set; } = null!;
     public Label CamLonLatLabel { get; private set; } = null!;
     private CheckButton LonLatFixCheckButton { get; set; } = null!;
 
@@ -62,24 +83,24 @@ public partial class PlanetHud : Control, IPlanetHud
     // 星球信息
     private TabBar PlanetTabBar { get; set; } = null!;
     private GridContainer PlanetGrid { get; set; } = null!;
-    public LineEdit RadiusLineEdit { get;  private set; } = null!;
-    public LineEdit DivisionLineEdit { get;  private set; } = null!;
-    public LineEdit ChunkDivisionLineEdit { get;  private set; } = null!;
+    public LineEdit RadiusLineEdit { get; private set; } = null!;
+    public LineEdit DivisionLineEdit { get; private set; } = null!;
+    public LineEdit ChunkDivisionLineEdit { get; private set; } = null!;
 
     // 地块信息
     private TabBar TileTabBar { get; set; } = null!;
     private VBoxContainer TileVBox { get; set; } = null!;
     private Label ChunkCountLabel { get; set; } = null!;
     private Label TileCountLabel { get; set; } = null!;
-    private OptionButton ShowLableOptionButton { get; set; } = null!;
+    private OptionButton ShowLabelOptionButton { get; set; } = null!;
     private GridContainer TileGrid { get; set; } = null!;
-    private LineEdit IdLineEdit { get; set; } = null!;
-    private LineEdit ChunkLineEdit { get; set; } = null!;
-    private LineEdit CoordsLineEdit { get; set; } = null!;
-    private LineEdit HeightLineEdit { get; set; } = null!;
-    private LineEdit ElevationLineEdit { get; set; } = null!;
-    private LineEdit LonLineEdit { get; set; } = null!;
-    private LineEdit LatLineEdit { get; set; } = null!;
+    public LineEdit IdLineEdit { get; private set; } = null!;
+    public LineEdit ChunkLineEdit { get; private set; } = null!;
+    public LineEdit CoordsLineEdit { get; private set; } = null!;
+    public LineEdit HeightLineEdit { get; private set; } = null!;
+    public LineEdit ElevationLineEdit { get; private set; } = null!;
+    public LineEdit LonLineEdit { get; private set; } = null!;
+    public LineEdit LatLineEdit { get; private set; } = null!;
 
     // 编辑功能
     private CheckButton EditCheckButton { get; set; } = null!;
@@ -133,7 +154,7 @@ public partial class PlanetHud : Control, IPlanetHud
         TileVBox = GetNode<VBoxContainer>("%TileVBox");
         ChunkCountLabel = GetNode<Label>("%ChunkCountLabel");
         TileCountLabel = GetNode<Label>("%TileCountLabel");
-        ShowLableOptionButton = GetNode<OptionButton>("%ShowLabelOptionButton");
+        ShowLabelOptionButton = GetNode<OptionButton>("%ShowLabelOptionButton");
         TileGrid = GetNode<GridContainer>("%TileGrid");
         IdLineEdit = GetNode<LineEdit>("%IdLineEdit");
         ChunkLineEdit = GetNode<LineEdit>("%ChunkLineEdit");
@@ -168,7 +189,7 @@ public partial class PlanetHud : Control, IPlanetHud
         SpecialFeatureOptionButton = GetNode<OptionButton>("%SpecialFeatureOptionButton");
 
         SetEditMode(EditCheckButton.ButtonPressed);
-        SetLabelMode(ShowLableOptionButton.Selected);
+        SetLabelMode(ShowLabelOptionButton.Selected);
         SetTerrain(0);
 
         WireframeCheckButton.Toggled += toggle =>
@@ -204,7 +225,7 @@ public partial class PlanetHud : Control, IPlanetHud
             }
         };
         EditCheckButton.Toggled += SetEditMode;
-        ShowLableOptionButton.ItemSelected += SetLabelMode;
+        ShowLabelOptionButton.ItemSelected += SetLabelMode;
         TerrainOptionButton.ItemSelected += SetTerrain;
         ElevationVSlider.ValueChanged += SetElevation;
         ElevationCheckButton.Toggled += SetApplyElevation;
@@ -228,8 +249,8 @@ public partial class PlanetHud : Control, IPlanetHud
 
     private void SetEditMode(bool toggle)
     {
-        var editMode = TileOverrider.EditMode;
-        TileOverrider.EditMode = toggle;
+        var editMode = EditMode;
+        EditMode = toggle;
         // if (toggle != editMode)
         //     EditModeChanged?.Invoke(toggle);
         RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.HexMapEditMode, toggle);
@@ -246,44 +267,44 @@ public partial class PlanetHud : Control, IPlanetHud
 
     private void SetTerrain(long index)
     {
-        TileOverrider.ApplyTerrain = index > 0;
-        if (TileOverrider.ApplyTerrain)
-            TileOverrider.ActiveTerrain = (int)index - 1;
+        ApplyTerrain = index > 0;
+        if (ApplyTerrain)
+            ActiveTerrain = (int)index - 1;
     }
 
-    private void SetApplyTerrain(bool toggle) => TileOverrider.ApplyTerrain = toggle;
+    private void SetApplyTerrain(bool toggle) => ApplyTerrain = toggle;
 
     private void SetElevation(double elevation)
     {
-        TileOverrider.ActiveElevation = (int)elevation;
-        ElevationValueLabel.Text = TileOverrider.ActiveElevation.ToString();
+        ActiveElevation = (int)elevation;
+        ElevationValueLabel.Text = ActiveElevation.ToString();
     }
 
-    private void SetApplyElevation(bool toggle) => TileOverrider.ApplyElevation = toggle;
+    private void SetApplyElevation(bool toggle) => ApplyElevation = toggle;
 
     private void SetBrushSize(double brushSize)
     {
-        TileOverrider.BrushSize = (int)brushSize;
-        BrushLabel.Text = $"笔刷大小：{TileOverrider.BrushSize}";
+        BrushSize = (int)brushSize;
+        BrushLabel.Text = $"笔刷大小：{BrushSize}";
     }
 
-    private void SetRiverMode(long mode) => TileOverrider.RiverMode = (OptionalToggle)mode;
-    private void SetRoadMode(long mode) => TileOverrider.RoadMode = (OptionalToggle)mode;
-    private void SetApplyWaterLevel(bool toggle) => TileOverrider.ApplyWaterLevel = toggle;
+    private void SetRiverMode(long mode) => RiverMode = (OptionalToggle)mode;
+    private void SetRoadMode(long mode) => RoadMode = (OptionalToggle)mode;
+    private void SetApplyWaterLevel(bool toggle) => ApplyWaterLevel = toggle;
 
     private void SetWaterLevel(double level)
     {
-        TileOverrider.ActiveWaterLevel = (int)level;
-        WaterValueLabel.Text = TileOverrider.ActiveWaterLevel.ToString();
+        ActiveWaterLevel = (int)level;
+        WaterValueLabel.Text = ActiveWaterLevel.ToString();
     }
 
-    private void SetApplyUrbanLevel(bool toggle) => TileOverrider.ApplyUrbanLevel = toggle;
-    private void SetUrbanLevel(double level) => TileOverrider.ActiveUrbanLevel = (int)level;
-    private void SetApplyFarmLevel(bool toggle) => TileOverrider.ApplyFarmLevel = toggle;
-    private void SetFarmLevel(double level) => TileOverrider.ActiveFarmLevel = (int)level;
-    private void SetApplyPlantLevel(bool toggle) => TileOverrider.ApplyPlantLevel = toggle;
-    private void SetPlantLevel(double level) => TileOverrider.ActivePlantLevel = (int)level;
-    private void SetWalledMode(long mode) => TileOverrider.WalledMode = (OptionalToggle)mode;
-    private void SetApplySpecialIndex(bool toggle) => TileOverrider.ApplySpecialIndex = toggle;
-    private void SetSpecialIndex(long index) => TileOverrider.ActiveSpecialIndex = (int)index;
+    private void SetApplyUrbanLevel(bool toggle) => ApplyUrbanLevel = toggle;
+    private void SetUrbanLevel(double level) => ActiveUrbanLevel = (int)level;
+    private void SetApplyFarmLevel(bool toggle) => ApplyFarmLevel = toggle;
+    private void SetFarmLevel(double level) => ActiveFarmLevel = (int)level;
+    private void SetApplyPlantLevel(bool toggle) => ApplyPlantLevel = toggle;
+    private void SetPlantLevel(double level) => ActivePlantLevel = (int)level;
+    private void SetWalledMode(long mode) => WalledMode = (OptionalToggle)mode;
+    private void SetApplySpecialIndex(bool toggle) => ApplySpecialIndex = toggle;
+    private void SetSpecialIndex(long index) => ActiveSpecialIndex = (int)index;
 }

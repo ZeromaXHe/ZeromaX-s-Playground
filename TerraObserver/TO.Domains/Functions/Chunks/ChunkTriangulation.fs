@@ -1,8 +1,10 @@
 namespace TO.Domains.Functions.Chunks
 
+open Friflo.Engine.ECS
 open Godot
 open TO.Domains.Functions.HexMeshes
 open TO.Domains.Functions.HexMetrics
+open TO.Domains.Functions.HexSpheres.Components
 open TO.Domains.Functions.HexSpheres.Components.Tiles
 open TO.Domains.Functions.Maths
 open TO.Domains.Types.Chunks
@@ -12,7 +14,6 @@ open TO.Domains.Types.HexMetrics
 open TO.Domains.Types.HexSpheres
 open TO.Domains.Types.HexSpheres.Components
 open TO.Domains.Types.HexSpheres.Components.Chunks
-open TO.Domains.Types.HexSpheres.Components.Faces
 open TO.Domains.Types.HexSpheres.Components.Tiles
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
@@ -21,83 +22,68 @@ open TO.Domains.Types.HexSpheres.Components.Tiles
 module ChunkTriangulationCommand =
     /// 仅绘制六边形（无扰动，点平均周围地块高度）
     let private triangulateJustHex
-        (env:
-            'E
-                when 'E :> IPlanetConfigQuery
-                and 'E :> ICatlikeCodingNoiseQuery
-                and 'E :> IEntityStoreQuery
-                and 'E :> IPointQuery)
+        (env: 'E when 'E :> IPlanetConfigQuery and 'E :> ICatlikeCodingNoiseQuery and 'E :> ITileQuery)
         (chunk: IChunk)
         (tileId: TileId)
         =
         let planetConfig = env.PlanetConfig
-        let tile = env.GetEntityById tileId
-        let tileCountId = tile.GetComponent<TileCountId>()
-        let ids = Vector3.One * float32 tileCountId.CountId
-        let tileCorners = tile.GetComponent<TileUnitCorners>()
-        let tileFaceIds = tile.GetComponent<TileHexFaceIds>()
-        let tileValue = tile.GetComponent<TileValue>()
-        let tileUnitCentroid = tile.GetComponent<TileUnitCentroid>()
-        let height = env.GetHeight tileValue tileUnitCentroid
         let unitHeight = planetConfig.UnitHeight
-        let waterHeight = TileValue.waterSurfaceY unitHeight tileValue
+        let radius = planetConfig.Radius
+        let tile = env.GetTile tileId
+        let ids = Tile.countId tile |> _.CountId |> float32 |> (*) Vector3.One
+        let height = env.GetHeight tile
+        let waterHeight = tile |> Tile.value |> TileValue.waterSurfaceY unitHeight
+        let tileHexFaceIds = Tile.hexFaceIds tile
 
         let mutable preNeighbor =
-            env.GetNeighborByIdAndIdx tileId
-            <| HexIndexUtil.previousIdx tileFaceIds.Length 0
-            |> Option.get
+            HexIndexUtil.previousIdx 0 tileHexFaceIds.Length
+            |> env.GetNeighborTileByIdx tileId
 
-        let mutable neighbor = env.GetNeighborByIdAndIdx tileId 0 |> Option.get
+        let mutable neighbor = env.GetNeighborTileByIdx tileId 0
 
         let mutable nextNeighbor =
-            env.GetNeighborByIdAndIdx tileId <| HexIndexUtil.nextIdx tileFaceIds.Length 0
-            |> Option.get
+            HexIndexUtil.nextIdx 0 tileHexFaceIds.Length |> env.GetNeighborTileByIdx tileId
 
         let mutable v0 = Vector3.Zero
         let mutable vw0 = Vector3.Zero
-        let radius = planetConfig.Radius
 
-        for i in 0 .. tileFaceIds.Length - 1 do
-            let neighborValue = neighbor.GetComponent<TileValue>()
-            let neighborUnitCentroid = neighbor.GetComponent<TileUnitCentroid>()
-            let neighborHeight = env.GetHeight neighborValue neighborUnitCentroid
-            let neighborWaterHeight = TileValue.waterSurfaceY unitHeight neighborValue
-            let preValue = preNeighbor.GetComponent<TileValue>()
-            let preUnitCentroid = preNeighbor.GetComponent<TileUnitCentroid>()
-            let preHeight = env.GetHeight preValue preUnitCentroid
-            let preWaterHeight = TileValue.waterSurfaceY unitHeight preValue
-            let nextValue = nextNeighbor.GetComponent<TileValue>()
-            let nextUnitCentroid = nextNeighbor.GetComponent<TileUnitCentroid>()
-            let nextHeight = env.GetHeight nextValue nextUnitCentroid
-            let nextWaterHeight = TileValue.waterSurfaceY unitHeight nextValue
+        for i in 0 .. tileHexFaceIds.Length - 1 do
+            let neighborHeight = env.GetHeight neighbor
+
+            let neighborWaterHeight =
+                neighbor |> Tile.value |> TileValue.waterSurfaceY unitHeight
+
+            let preHeight = env.GetHeight preNeighbor
+            let preWaterHeight = preNeighbor |> Tile.value |> TileValue.waterSurfaceY unitHeight
+            let nextHeight = env.GetHeight nextNeighbor
+
+            let nextWaterHeight =
+                nextNeighbor |> Tile.value |> TileValue.waterSurfaceY unitHeight
+
             let avgHeight1 = (preHeight + neighborHeight + height) / 3f
             let avgHeight2 = (neighborHeight + nextHeight + height) / 3f
             let avgWaterHeight1 = (preWaterHeight + neighborWaterHeight + waterHeight) / 3f
             let avgWaterHeight2 = (neighborWaterHeight + nextWaterHeight + waterHeight) / 3f
 
             let v1 =
-                tileCorners
-                |> TileUnitCorners.getFirstCornerWithRadius tileUnitCentroid.UnitCentroid i (radius + avgHeight1)
+                Tile.cornerWithRadius TileUnitCorners.getFirstCornerWithRadius i (radius + avgHeight1) tile
 
             if i = 0 then
                 v0 <- v1
 
             let v2 =
-                tileCorners
-                |> TileUnitCorners.getSecondCornerWithRadius tileUnitCentroid.UnitCentroid i (radius + avgHeight2)
+                Tile.cornerWithRadius TileUnitCorners.getSecondCornerWithRadius i (radius + avgHeight2) tile
 
             let vw1 =
-                tileCorners
-                |> TileUnitCorners.getFirstCornerWithRadius tileUnitCentroid.UnitCentroid i (radius + avgWaterHeight1)
+                Tile.cornerWithRadius TileUnitCorners.getFirstCornerWithRadius i (radius + avgWaterHeight1) tile
 
             if i = 0 then
                 vw0 <- vw1
 
             let vw2 =
-                tileCorners
-                |> TileUnitCorners.getSecondCornerWithRadius tileUnitCentroid.UnitCentroid i (radius + avgWaterHeight2)
+                Tile.cornerWithRadius TileUnitCorners.getSecondCornerWithRadius i (radius + avgWaterHeight2) tile
 
-            if i > 0 && i < tileFaceIds.Length - 1 then
+            if i > 0 && i < tileHexFaceIds.Length - 1 then
                 // 绘制地面
                 chunk
                     .GetTerrain()
@@ -107,17 +93,14 @@ module ChunkTriangulationCommand =
                         tis = ids
                     )
                 // 绘制水面
-                if TileValue.isUnderwater tileValue then
+                if tile |> Tile.value |> TileValue.isUnderwater then
                     chunk
                         .GetWater()
                         .AddTriangle([| vw0; vw1; vw2 |], MeshUtil.triArr HexMeshConstant.weights1, tis = ids)
 
             preNeighbor <- neighbor
             neighbor <- nextNeighbor
-
-            nextNeighbor <-
-                env.GetNeighborByIdAndIdx tileId <| HexIndexUtil.next2Idx tileFaceIds.Length i
-                |> Option.get
+            nextNeighbor <- HexIndexUtil.next2Idx i tileHexFaceIds.Length |> env.GetNeighborTileByIdx tileId
 
     /// 绘制平面六边形（有高度立面、处理接缝、但无特征、无河流）
     let private triangulatePlaneHex
@@ -125,51 +108,51 @@ module ChunkTriangulationCommand =
             'E
                 when 'E :> IPlanetConfigQuery
                 and 'E :> ICatlikeCodingNoiseQuery
-                and 'E :> IEntityStoreQuery
-                and 'E :> IPointQuery)
+                and 'E :> IFaceQuery
+                and 'E :> ITileQuery
+                and 'E :> IChunkQuery)
         (chunk: IChunk)
         (tileId: TileId)
         =
         let planetConfig = env.PlanetConfig
-        let tile = env.GetEntityById tileId
-        let tileCountId = tile.GetComponent<TileCountId>()
-        let ids = Vector3.One * float32 tileCountId.CountId
-        let tileCorners = tile.GetComponent<TileUnitCorners>()
-        let tileFaceIds = tile.GetComponent<TileHexFaceIds>()
-        let tileValue = tile.GetComponent<TileValue>()
-        let tileUnitCentroid = tile.GetComponent<TileUnitCentroid>()
-        let height = env.GetHeight tileValue tileUnitCentroid
         let unitHeight = planetConfig.UnitHeight
-        let waterHeight = TileValue.waterSurfaceY unitHeight tileValue
         let radius = planetConfig.Radius
+        let tile = env.GetTile tileId
+        let ids = Tile.countId tile |> _.CountId |> float32 |> (*) Vector3.One
+        let height = env.GetHeight tile
+        let waterHeight = TileValue.waterSurfaceY unitHeight <| Tile.value tile
 
         let v0 =
-            tileCorners
-            |> TileUnitCorners.getFirstCornerWithRadius tileUnitCentroid.UnitCentroid 0 (radius + height)
+            Tile.cornerWithRadius TileUnitCorners.getFirstCornerWithRadius 0 (radius + height) tile
 
         let mutable v1 = v0
 
         let vw0 =
-            tileCorners
-            |> TileUnitCorners.getFirstCornerWithRadius tileUnitCentroid.UnitCentroid 0 (radius + waterHeight)
+            Tile.cornerWithRadius TileUnitCorners.getFirstCornerWithRadius 0 (radius + waterHeight) tile
 
         let mutable vw1 = vw0
+        let tileHexFaceIds = Tile.hexFaceIds tile
 
-        for i in 0 .. tileFaceIds.Length - 1 do
+        for i in 0 .. tileHexFaceIds.Length - 1 do
             let v2 =
-                tileCorners
-                |> TileUnitCorners.getSecondCornerWithRadius tileUnitCentroid.UnitCentroid i (radius + height)
+                Tile.cornerWithRadius TileUnitCorners.getSecondCornerWithRadius i (radius + height) tile
 
             let vw2 =
-                tileCorners
-                |> TileUnitCorners.getSecondCornerWithRadius tileUnitCentroid.UnitCentroid i (radius + waterHeight)
+                Tile.cornerWithRadius TileUnitCorners.getSecondCornerWithRadius i (radius + waterHeight) tile
 
-            let neighbor = env.GetNeighborByIdAndIdx tileId i |> Option.get
-            let nIds = Vector3(float32 tileId, float32 neighbor.Id, float32 tileId)
-            let neighborValue = neighbor.GetComponent<TileValue>()
-            let neighborUnitCentroid = neighbor.GetComponent<TileUnitCentroid>()
-            let neighborHeight = env.GetHeight neighborValue neighborUnitCentroid
-            let neighborWaterHeight = TileValue.waterSurfaceY unitHeight neighborValue
+            let neighbor = env.GetNeighborTileByIdx tileId i
+
+            let nIds =
+                Vector3(
+                    Tile.countId tile |> _.CountId |> float32,
+                    Tile.countId neighbor |> _.CountId |> float32,
+                    Tile.countId tile |> _.CountId |> float32
+                )
+
+            let neighborHeight = env.GetHeight neighbor
+
+            let neighborWaterHeight =
+                neighbor |> Tile.value |> TileValue.waterSurfaceY unitHeight
             // 绘制陆地立面（由高的地块绘制）
             if neighborHeight < height then
                 let vn1 = Math3dUtil.ProjectToSphere(v1, radius + neighborHeight)
@@ -183,7 +166,10 @@ module ChunkTriangulationCommand =
                         tis = nIds
                     )
             // 绘制水面立面（由高的水面绘制）
-            if TileValue.isUnderwater tileValue && neighborWaterHeight < waterHeight then
+            if
+                tile |> Tile.value |> TileValue.isUnderwater
+                && neighborWaterHeight < waterHeight
+            then
                 let vnw1 = Math3dUtil.ProjectToSphere(vw1, radius + neighborWaterHeight)
                 let vnw2 = Math3dUtil.ProjectToSphere(vw2, radius + neighborWaterHeight)
 
@@ -195,37 +181,30 @@ module ChunkTriangulationCommand =
                         tis = nIds
                     )
             // 处理接缝（目前很粗暴的对所有相邻地块的分块的 LOD 是 SimpleHex 以上时向外绘制到 Solid 边界）
-            let neighborChunkId = neighbor.GetComponent<TileChunkId>()
-            let tileChunkId = tile.GetComponent<TileChunkId>()
-
             if
-                neighborChunkId <> tileChunkId
-                && env.GetEntityById(neighborChunkId.ChunkId).GetComponent<ChunkLod>().Lod
+                neighbor |> Tile.chunkId |> _.ChunkId <> (tile |> Tile.chunkId |> _.ChunkId)
+                && neighbor |> Tile.chunkId |> _.ChunkId |> env.GetChunkLod
                    >= ChunkLodEnum.SimpleHex
             then
-                let n1Face =
-                    env
-                        .GetEntityById(TileHexFaceIds.item i tileFaceIds)
-                        .GetComponent<FaceComponent>()
+                let n1FaceCenter = env.GetFaceCenter <| TileHexFaceIds.item i tileHexFaceIds
 
                 let vn1 =
-                    neighborUnitCentroid
-                    |> TileUnitCentroid.getCornerByFaceCenterWithRadiusAndSize
-                        n1Face.Center
+                    Tile.getCornerByFaceCenterWithRadiusAndSize
+                        n1FaceCenter
                         (radius + neighborHeight)
                         HexMetrics.SolidFactor
+                        neighbor
 
-                let n2Face =
-                    env
-                        .GetEntityById(TileHexFaceIds.item <| HexIndexUtil.next2Idx tileFaceIds.Length i <| tileFaceIds)
-                        .GetComponent<FaceComponent>()
+                let n2FaceCenter =
+                    env.GetFaceCenter
+                    <| TileHexFaceIds.item (HexIndexUtil.next2Idx i tileHexFaceIds.Length) tileHexFaceIds
 
                 let vn2 =
-                    neighborUnitCentroid
-                    |> TileUnitCentroid.getCornerByFaceCenterWithRadiusAndSize
-                        n2Face.Center
+                    Tile.getCornerByFaceCenterWithRadiusAndSize
+                        n2FaceCenter
                         (radius + neighborHeight)
                         HexMetrics.SolidFactor
+                        neighbor
 
                 chunk
                     .GetTerrain()
@@ -235,20 +214,20 @@ module ChunkTriangulationCommand =
                         tis = nIds
                     )
 
-                if TileValue.isUnderwater tileValue then
+                if tile |> Tile.value |> TileValue.isUnderwater then
                     let vnw1 =
-                        neighborUnitCentroid
-                        |> TileUnitCentroid.getCornerByFaceCenterWithRadiusAndSize
-                            n1Face.Center
+                        Tile.getCornerByFaceCenterWithRadiusAndSize
+                            n1FaceCenter
                             (radius + neighborWaterHeight)
                             HexMetrics.waterFactor
+                            neighbor
 
                     let vnw2 =
-                        neighborUnitCentroid
-                        |> TileUnitCentroid.getCornerByFaceCenterWithRadiusAndSize
-                            n2Face.Center
+                        Tile.getCornerByFaceCenterWithRadiusAndSize
+                            n2FaceCenter
                             (radius + neighborWaterHeight)
                             HexMetrics.waterFactor
+                            neighbor
 
                     chunk
                         .GetWater()
@@ -258,7 +237,7 @@ module ChunkTriangulationCommand =
                             tis = nIds
                         )
 
-            if i > 0 && i < tileFaceIds.Length - 1 then
+            if i > 0 && i < tileHexFaceIds.Length - 1 then
                 // 绘制地面
                 chunk
                     .GetTerrain()
@@ -268,7 +247,7 @@ module ChunkTriangulationCommand =
                         tis = ids
                     )
                 // 绘制水面
-                if TileValue.isUnderwater tileValue then
+                if tile |> Tile.value |> TileValue.isUnderwater then
                     chunk
                         .GetWater()
                         .AddTriangle(
@@ -343,8 +322,8 @@ module ChunkTriangulationCommand =
         (chunk: IChunk)
         (center: Vector3)
         (edge: EdgeVertices)
-        (tileCountId: TileCountId)
         (simple: bool)
+        (tileCountId: TileCountId)
         =
         let ids = Vector3.One * float32 tileCountId.CountId
         let terrain = chunk.GetTerrain()
@@ -397,9 +376,7 @@ module ChunkTriangulationCommand =
     let private triangulateWithRiverBeginOrEnd
         (env: #IPlanetConfigQuery)
         (chunk: IChunk)
-        (tileCountId: TileCountId)
-        (tileValue: TileValue)
-        (tileFlag: TileFlag)
+        (tile: Entity)
         (centroid: Vector3)
         (e: EdgeVertices)
         =
@@ -411,22 +388,23 @@ module ChunkTriangulationCommand =
             chunk
             m
             HexMeshConstant.weights1
-            tileCountId
+            (Tile.countId tile)
             e
             HexMeshConstant.weights1
-            tileCountId
+            (Tile.countId tile)
             false
             false
 
-        triangulateEdgeFan env chunk centroid m tileCountId false
+        tile |> Tile.countId |> triangulateEdgeFan env chunk centroid m false
 
-        if not <| TileValue.isUnderwater tileValue then
-            let reversed = TileFlag.hasIncomingRiver tileFlag
-            let ids = Vector3.One * float32 tileCountId.CountId
+        if tile |> Tile.value |> TileValue.isUnderwater |> not then
+            let reversed = tile |> Tile.flag |> TileFlag.hasIncomingRiver
+            let ids = Tile.countId tile |> _.CountId |> float32 |> (*) Vector3.One
             let planetConfig = env.PlanetConfig
 
             let riverHeight =
-                planetConfig.Radius + TileValue.riverSurfaceY planetConfig.UnitHeight tileValue
+                planetConfig.Radius
+                + (tile |> Tile.value |> TileValue.riverSurfaceY planetConfig.UnitHeight)
 
             triangulateRiverQuad env chunk m.V2 m.V4 e.V2 e.V4 riverHeight riverHeight 0.6f reversed ids
             let centroid = Math3dUtil.ProjectToSphere(centroid, riverHeight)
@@ -448,79 +426,76 @@ module ChunkTriangulationCommand =
     let private triangulateWithRiver
         (env: #IPlanetConfigQuery)
         (chunk: IChunk)
-        (tileCountId: TileCountId)
-        (tileValue: TileValue)
-        (tileFlag: TileFlag)
-        (tileUnitCorners: TileUnitCorners)
+        (tile: Entity)
         (idx: int)
         (height: float32)
-        (unitCentroid: Vector3)
         (centroid: Vector3)
         (e: EdgeVertices)
         =
         let planetConfig = env.PlanetConfig
         let radius = planetConfig.Radius
+        let tileUnitCorners = Tile.unitCorners tile
 
         let centerL, centerR =
             // 注意五边形没有对边的情况
             if
                 tileUnitCorners.Length = 6
-                && TileFlag.hasRiverThroughEdge
-                   <| HexIndexUtil.oppositeIdx tileUnitCorners.Length idx
-                   <| tileFlag
+                && TileFlag.hasRiver
+                   <| HexIndexUtil.oppositeIdx idx tileUnitCorners.Length
+                   <| Tile.flag tile
             then
                 // 直线河流
-                (tileUnitCorners
-                 |> TileUnitCorners.getFirstSolidCornerWithRadiusAndSize
-                     unitCentroid
-                     (HexIndexUtil.previousIdx tileUnitCorners.Length idx)
-                     (radius + height)
-                     0.25f),
-                (tileUnitCorners
-                 |> TileUnitCorners.getSecondSolidCornerWithRadiusAndSize
-                     unitCentroid
-                     (HexIndexUtil.nextIdx tileUnitCorners.Length idx)
-                     (radius + height)
-                     0.25f)
+                (Tile.cornerWithRadiusAndSize
+                    TileUnitCorners.getFirstSolidCornerWithRadiusAndSize
+                    (HexIndexUtil.previousIdx idx tileUnitCorners.Length)
+                    (radius + height)
+                    0.25f
+                    tile),
+                (Tile.cornerWithRadiusAndSize
+                    TileUnitCorners.getSecondSolidCornerWithRadiusAndSize
+                    (HexIndexUtil.nextIdx idx tileUnitCorners.Length)
+                    (radius + height)
+                    0.25f
+                    tile)
             elif
-                TileFlag.hasRiverThroughEdge
-                <| HexIndexUtil.nextIdx tileUnitCorners.Length idx
-                <| tileFlag
+                TileFlag.hasRiver
+                <| HexIndexUtil.nextIdx idx tileUnitCorners.Length
+                <| Tile.flag tile
             then
                 // 锐角弯
                 centroid, centroid.Lerp(e.V5, 2f / 3f)
             elif
-                TileFlag.hasRiverThroughEdge
-                <| HexIndexUtil.previousIdx tileUnitCorners.Length idx
-                <| tileFlag
+                TileFlag.hasRiver
+                <| HexIndexUtil.previousIdx idx tileUnitCorners.Length
+                <| Tile.flag tile
             then
                 // 锐角弯
                 centroid.Lerp(e.V1, 2f / 3f), centroid
             elif
-                TileFlag.hasRiverThroughEdge
-                <| HexIndexUtil.next2Idx tileUnitCorners.Length idx
-                <| tileFlag
+                TileFlag.hasRiver
+                <| HexIndexUtil.next2Idx idx tileUnitCorners.Length
+                <| Tile.flag tile
             then
                 // 钝角弯
                 centroid,
-                (tileUnitCorners
-                 |> TileUnitCorners.getSolidEdgeMiddleWithRadiusAndSize
-                     unitCentroid
-                     (HexIndexUtil.nextIdx tileUnitCorners.Length idx)
-                     (radius + height)
-                     (0.5f * HexMetrics.InnerToOuter))
+                (Tile.cornerWithRadiusAndSize
+                    TileUnitCorners.getSolidEdgeMiddleWithRadiusAndSize
+                    (HexIndexUtil.nextIdx idx tileUnitCorners.Length)
+                    (radius + height)
+                    (0.5f * HexMetrics.InnerToOuter)
+                    tile)
             elif
-                TileFlag.hasRiverThroughEdge
-                <| HexIndexUtil.previous2Idx tileUnitCorners.Length idx
-                <| tileFlag
+                TileFlag.hasRiver
+                <| HexIndexUtil.previous2Idx idx tileUnitCorners.Length
+                <| Tile.flag tile
             then
                 // 钝角弯
-                (tileUnitCorners
-                 |> TileUnitCorners.getSolidEdgeMiddleWithRadiusAndSize
-                     unitCentroid
-                     (HexIndexUtil.previousIdx tileUnitCorners.Length idx)
-                     (radius + height)
-                     (0.5f * HexMetrics.InnerToOuter)),
+                (Tile.cornerWithRadiusAndSize
+                    TileUnitCorners.getSolidEdgeMiddleWithRadiusAndSize
+                    (HexIndexUtil.previousIdx idx tileUnitCorners.Length)
+                    (radius + height)
+                    (0.5f * HexMetrics.InnerToOuter)
+                    tile),
                 centroid
             else
                 centroid, centroid
@@ -538,14 +513,14 @@ module ChunkTriangulationCommand =
             chunk
             m
             HexMeshConstant.weights1
-            tileCountId
+            (Tile.countId tile)
             e
             HexMeshConstant.weights1
-            tileCountId
+            (Tile.countId tile)
             false
             false
 
-        let ids = Vector3.One * float32 tileCountId.CountId
+        let ids = Tile.countId tile |> _.CountId |> float32 |> (*) Vector3.One
         let terrain = chunk.GetTerrain()
 
         terrain.AddTriangle(
@@ -572,9 +547,12 @@ module ChunkTriangulationCommand =
             tis = ids
         )
 
-        if not <| TileValue.isUnderwater tileValue then
-            let reversed = TileFlag.hasIncomingRiverThoughEdge idx tileFlag
-            let riverHeight = TileValue.riverSurfaceY <| planetConfig.UnitHeight <| tileValue
+        if tile |> Tile.value |> TileValue.isUnderwater |> not then
+            let reversed = tile |> Tile.flag |> TileFlag.hasRiverIn idx
+
+            let riverHeight =
+                tile |> Tile.value |> TileValue.riverSurfaceY planetConfig.UnitHeight
+
             let riverTotalHeight = radius + riverHeight
             triangulateRiverQuad env chunk centerL centerR m.V2 m.V4 riverTotalHeight riverTotalHeight 0.4f reversed ids
             triangulateRiverQuad env chunk m.V2 m.V4 e.V2 e.V4 riverTotalHeight riverTotalHeight 0.6f reversed ids
@@ -646,59 +624,54 @@ module ChunkTriangulationCommand =
     let private triangulateRoadAdjacentToRiver
         (env: #IPlanetConfigQuery)
         (chunk: IChunk)
-        (tileCountId: TileCountId)
-        (tileFlag: TileFlag)
-        (tileUnitCorners: TileUnitCorners)
+        (tile: Entity)
         (idx: int)
         (height: float32)
-        (unitCentroid: Vector3)
         (centroid: Vector3)
         (e: EdgeVertices)
         =
-        let cornerCount = tileUnitCorners.Length
-        let hasRoadThroughEdge = TileFlag.hasRoadThroughEdge idx tileFlag
+        let cornerCount = Tile.unitCorners tile |> _.Length
+        let hasRoadThroughEdge = tile |> Tile.flag |> TileFlag.hasRoad idx
 
         let previousHasRiver =
-            TileFlag.hasRiverThroughEdge
-            <| HexIndexUtil.previousIdx cornerCount idx
-            <| tileFlag
+            TileFlag.hasRiver <| HexIndexUtil.previousIdx idx cornerCount <| Tile.flag tile
 
         let nextHasRiver =
-            TileFlag.hasRiverThroughEdge <| HexIndexUtil.nextIdx cornerCount idx <| tileFlag
+            TileFlag.hasRiver <| HexIndexUtil.nextIdx idx cornerCount <| Tile.flag tile
 
-        let incomingRiverIdx = TileFlag.riverInDirection tileFlag
-        let outgoingRiverIdx = TileFlag.riverOutDirection tileFlag
+        let incomingRiverIdx = tile |> Tile.flag |> TileFlag.riverInDirection
+        let outgoingRiverIdx = tile |> Tile.flag |> TileFlag.riverOutDirection
         let radius = env.PlanetConfig.Radius
         let mutable roadCenter = centroid
         let mutable centroid = centroid
         let mutable returnNow = false
 
-        if TileFlag.hasRiverBeginOrEnd tileFlag then
+        if tile |> Tile.flag |> TileFlag.hasRiverBeginOrEnd then
             let riverBeginOrEndIdx =
-                if TileFlag.hasIncomingRiver tileFlag then
+                if tile |> Tile.flag |> TileFlag.hasIncomingRiver then
                     incomingRiverIdx
                 else
                     outgoingRiverIdx
 
-            if tileUnitCorners.Length = 5 then
+            if cornerCount = 5 then
                 roadCenter <-
-                    tileUnitCorners
-                    |> TileUnitCorners.getFirstSolidCornerWithRadiusAndSize
-                        unitCentroid
-                        (HexIndexUtil.oppositeIdx cornerCount riverBeginOrEndIdx)
+                    Tile.cornerWithRadiusAndSize
+                        TileUnitCorners.getFirstSolidCornerWithRadiusAndSize
+                        (HexIndexUtil.oppositeIdx riverBeginOrEndIdx cornerCount)
                         (radius + height)
                         (HexMetrics.OuterToInner / 3f)
+                        tile
             else
                 roadCenter <-
-                    tileUnitCorners
-                    |> TileUnitCorners.getFirstSolidCornerWithRadiusAndSize
-                        unitCentroid
-                        (HexIndexUtil.oppositeIdx cornerCount riverBeginOrEndIdx)
+                    Tile.cornerWithRadiusAndSize
+                        TileUnitCorners.getFirstSolidCornerWithRadiusAndSize
+                        (HexIndexUtil.oppositeIdx riverBeginOrEndIdx cornerCount)
                         (radius + height)
                         (1f / 3f)
+                        tile
         elif
-            tileUnitCorners.Length = 6
-            && incomingRiverIdx = HexIndexUtil.oppositeIdx cornerCount outgoingRiverIdx
+            cornerCount = 6
+            && incomingRiverIdx = HexIndexUtil.oppositeIdx outgoingRiverIdx cornerCount
         then
             // 河流走势是对边（直线）的情况（需要注意五边形没有对边的概念）
             let mutable corner = Vector3.Zero
@@ -706,49 +679,51 @@ module ChunkTriangulationCommand =
             if previousHasRiver then
                 if
                     not hasRoadThroughEdge
-                    && not
-                       <| TileFlag.hasRoadThroughEdge (HexIndexUtil.nextIdx cornerCount idx) tileFlag
+                    && tile
+                       |> Tile.flag
+                       |> TileFlag.hasRoad (HexIndexUtil.nextIdx idx cornerCount)
+                       |> not
                 then
                     returnNow <- true
                 else
                     corner <-
-                        tileUnitCorners
-                        |> TileUnitCorners.getSecondSolidCornerWithRadius unitCentroid idx (radius + height)
+                        Tile.cornerWithRadius TileUnitCorners.getSecondSolidCornerWithRadius idx (radius + height) tile
             else if
                 not hasRoadThroughEdge
-                && not
-                   <| TileFlag.hasRoadThroughEdge (HexIndexUtil.previousIdx cornerCount idx) tileFlag
+                && tile
+                   |> Tile.flag
+                   |> TileFlag.hasRoad (HexIndexUtil.previousIdx idx cornerCount)
+                   |> not
             then
                 returnNow <- true
             else
                 corner <-
-                    tileUnitCorners
-                    |> TileUnitCorners.getSecondSolidCornerWithRadius unitCentroid idx (radius + height)
+                    Tile.cornerWithRadius TileUnitCorners.getSecondSolidCornerWithRadius idx (radius + height) tile
 
             if not returnNow then
                 roadCenter <- roadCenter + (corner - centroid) * 0.5f
                 centroid <- centroid + (corner - centroid) * 0.25f
-        elif incomingRiverIdx = HexIndexUtil.previousIdx cornerCount outgoingRiverIdx then
+        elif incomingRiverIdx = HexIndexUtil.previousIdx outgoingRiverIdx cornerCount then
             // 河流走势是逆时针锐角的情况
             roadCenter <-
                 roadCenter
-                - TileUnitCorners.getSecondCornerWithRadiusAndSize
-                    unitCentroid
+                - Tile.cornerWithRadiusAndSize
+                    TileUnitCorners.getSecondCornerWithRadiusAndSize
                     incomingRiverIdx
                     (radius + height)
                     0.2f
-                    tileUnitCorners
+                    tile
                 + centroid
-        elif incomingRiverIdx = HexIndexUtil.nextIdx cornerCount outgoingRiverIdx then
+        elif incomingRiverIdx = HexIndexUtil.nextIdx outgoingRiverIdx cornerCount then
             // 河流走势是顺时针锐角的情况
             roadCenter <-
                 roadCenter
-                - TileUnitCorners.getFirstCornerWithRadiusAndSize
-                    unitCentroid
+                - Tile.cornerWithRadiusAndSize
+                    TileUnitCorners.getFirstCornerWithRadiusAndSize
                     incomingRiverIdx
                     (radius + height)
                     0.2f
-                    tileUnitCorners
+                    tile
                 + centroid
         elif previousHasRiver && nextHasRiver then
             // 河流走势是钝角的情况，且当前方向被夹在河流出入角中间
@@ -756,140 +731,130 @@ module ChunkTriangulationCommand =
                 returnNow <- true
             else
                 let offset =
-                    tileUnitCorners
-                    |> TileUnitCorners.getSolidEdgeMiddleWithRadiusAndSize
-                        unitCentroid
+                    Tile.cornerWithRadiusAndSize
+                        TileUnitCorners.getSolidEdgeMiddleWithRadiusAndSize
                         idx
                         (radius + height)
                         HexMetrics.InnerToOuter
+                        tile
 
                 roadCenter <- roadCenter + (offset - centroid) * 0.7f
                 centroid <- centroid + (offset - centroid) * 0.5f
-        elif tileUnitCorners.Length = 5 then
+        elif cornerCount = 5 then
             // 河流走势是钝角的情况，且当前方向在河流出入角外（即更宽阔的方向：五边形有两个方向可能）
             let firstIdx =
                 if previousHasRiver then
                     idx
                 else
-                    HexIndexUtil.previousIdx cornerCount idx // 两个可能方向中的顺时针第一个
+                    HexIndexUtil.previousIdx idx cornerCount // 两个可能方向中的顺时针第一个
 
             if
-                not <| TileFlag.hasRoadThroughEdge firstIdx tileFlag
-                && not
-                   <| TileFlag.hasRoadThroughEdge (HexIndexUtil.nextIdx cornerCount firstIdx) tileFlag
+                tile |> Tile.flag |> TileFlag.hasRoad firstIdx |> not
+                && tile
+                   |> Tile.flag
+                   |> TileFlag.hasRoad (HexIndexUtil.nextIdx firstIdx cornerCount)
+                   |> not
             then
                 returnNow <- true
             else
                 let offset =
-                    tileUnitCorners
-                    |> TileUnitCorners.getSecondSolidCornerWithRadius unitCentroid firstIdx (radius + height)
+                    Tile.cornerWithRadius TileUnitCorners.getSecondSolidCornerWithRadius firstIdx (radius + height) tile
 
                 roadCenter <- roadCenter + (offset - centroid) * 0.25f * HexMetrics.OuterToInner
         else
             // 河流走势是钝角的情况，且当前方向在河流出入角外（即更宽阔的方向：六边形有三个方向可能）
             let middleIdx =
                 if previousHasRiver then
-                    HexIndexUtil.nextIdx cornerCount idx
+                    HexIndexUtil.nextIdx idx cornerCount
                 elif nextHasRiver then
-                    HexIndexUtil.previousIdx cornerCount idx
+                    HexIndexUtil.previousIdx idx cornerCount
                 else
                     idx
 
             if
-                not <| TileFlag.hasRoadThroughEdge middleIdx tileFlag
-                && not
-                   <| TileFlag.hasRoadThroughEdge (HexIndexUtil.previousIdx cornerCount middleIdx) tileFlag
-                && not
-                   <| TileFlag.hasRoadThroughEdge (HexIndexUtil.nextIdx cornerCount middleIdx) tileFlag
+                tile |> Tile.flag |> TileFlag.hasRoad middleIdx |> not
+                && tile
+                   |> Tile.flag
+                   |> TileFlag.hasRoad (HexIndexUtil.previousIdx middleIdx cornerCount)
+                   |> not
+                && tile
+                   |> Tile.flag
+                   |> TileFlag.hasRoad (HexIndexUtil.nextIdx middleIdx cornerCount)
+                   |> not
             then
                 returnNow <- true
             else
                 let offset =
-                    tileUnitCorners
-                    |> TileUnitCorners.getSolidEdgeMiddleWithRadius unitCentroid middleIdx (radius + height)
+                    Tile.cornerWithRadius TileUnitCorners.getSolidEdgeMiddleWithRadius middleIdx (radius + height) tile
 
                 roadCenter <- roadCenter + (offset - centroid) * 0.25f
 
         if not returnNow then
-            let interpolator = TileFlag.getRoadInterpolator cornerCount idx tileFlag
+            let interpolator = tile |> Tile.flag |> TileFlag.getRoadInterpolator cornerCount idx
             let mL = roadCenter.Lerp(e.V1, interpolator.X)
             let mR = roadCenter.Lerp(e.V5, interpolator.Y)
-            triangulateRoad env chunk roadCenter mL mR e hasRoadThroughEdge tileCountId
+
+            tile
+            |> Tile.countId
+            |> triangulateRoad env chunk roadCenter mL mR e hasRoadThroughEdge
 
             if previousHasRiver then
-                triangulateRoadEdge env chunk roadCenter centroid mL tileCountId
+                tile |> Tile.countId |> triangulateRoadEdge env chunk roadCenter centroid mL
 
             if nextHasRiver then
-                triangulateRoadEdge env chunk roadCenter mR centroid tileCountId
+                tile |> Tile.countId |> triangulateRoadEdge env chunk roadCenter mR centroid
 
     let private triangulateAdjacentToRiver
         (env: #IPlanetConfigQuery)
         (chunk: IChunk)
-        (tileCountId: TileCountId)
-        (tileFlag: TileFlag)
-        (tileUnitCorners: TileUnitCorners)
+        (tile: Entity)
         (idx: int)
         (height: float32)
-        (unitCentroid: Vector3)
         (centroid: Vector3)
         (e: EdgeVertices)
         (simple: bool)
         =
-        if TileFlag.hasRoads tileFlag then
-            triangulateRoadAdjacentToRiver
-                env
-                chunk
-                tileCountId
-                tileFlag
-                tileUnitCorners
-                idx
-                height
-                unitCentroid
-                centroid
-                e
+        if tile |> Tile.flag |> TileFlag.hasRoads then
+            triangulateRoadAdjacentToRiver env chunk tile idx height centroid e
 
         let radius = env.PlanetConfig.Radius
+        let cornerCount = Tile.unitCorners tile |> _.Length
+        let tileFlag = Tile.flag tile
 
         let centroid =
-            if
-                TileFlag.hasRiverThroughEdge
-                <| HexIndexUtil.nextIdx tileUnitCorners.Length idx
-                <| tileFlag
-            then
-                if
-                    TileFlag.hasRiverThroughEdge
-                    <| HexIndexUtil.previousIdx tileUnitCorners.Length idx
-                    <| tileFlag
-                then
-                    tileUnitCorners
-                    |> TileUnitCorners.getSolidEdgeMiddleWithRadiusAndSize
-                        unitCentroid
+            if TileFlag.hasRiver <| HexIndexUtil.nextIdx idx cornerCount <| tileFlag then
+                if TileFlag.hasRiver <| HexIndexUtil.previousIdx idx cornerCount <| tileFlag then
+                    Tile.cornerWithRadiusAndSize
+                        TileUnitCorners.getSolidEdgeMiddleWithRadiusAndSize
                         idx
                         (radius + height)
                         (0.5f * HexMetrics.InnerToOuter)
+                        tile
                 elif
-                    tileUnitCorners.Length = 6
-                    && TileFlag.hasRiverThroughEdge
-                       <| HexIndexUtil.previous2Idx tileUnitCorners.Length idx
-                       <| tileFlag
+                    cornerCount = 6
+                    && TileFlag.hasRiver <| HexIndexUtil.previous2Idx idx cornerCount <| tileFlag
                 then
                     // 注意五边形没有直线河流，一边临河另一边隔一个方向临河的情况是对应钝角河的外河岸，依然在 centroid
-                    tileUnitCorners
-                    |> TileUnitCorners.getFirstSolidCornerWithRadiusAndSize unitCentroid idx (radius + height) 0.25f
+                    Tile.cornerWithRadiusAndSize
+                        TileUnitCorners.getFirstSolidCornerWithRadiusAndSize
+                        idx
+                        (radius + height)
+                        0.25f
+                        tile
                 else
                     centroid
             elif
-                tileUnitCorners.Length = 6
-                && TileFlag.hasRiverThroughEdge
-                   <| HexIndexUtil.previousIdx tileUnitCorners.Length idx
-                   <| tileFlag
-                && TileFlag.hasRiverThroughEdge
-                   <| HexIndexUtil.next2Idx tileUnitCorners.Length idx
-                   <| tileFlag
+                cornerCount = 6
+                && TileFlag.hasRiver <| HexIndexUtil.previousIdx idx cornerCount <| tileFlag
+                && TileFlag.hasRiver <| HexIndexUtil.next2Idx idx cornerCount <| tileFlag
             then
                 // 注意五边形没有直线河流，一边临河另一边隔一个方向临河的情况是对应钝角河的外河岸，依然在 centroid
-                tileUnitCorners
-                |> TileUnitCorners.getSecondSolidCornerWithRadiusAndSize unitCentroid idx (radius + height) 0.25f
+                Tile.cornerWithRadiusAndSize
+                    TileUnitCorners.getSecondSolidCornerWithRadiusAndSize
+                    idx
+                    (radius + height)
+                    0.25f
+                    tile
             else
                 centroid
 
@@ -900,34 +865,39 @@ module ChunkTriangulationCommand =
             chunk
             m
             HexMeshConstant.weights1
-            tileCountId
+            (Tile.countId tile)
             e
             HexMeshConstant.weights1
-            tileCountId
+            (Tile.countId tile)
             false
             simple
 
-        triangulateEdgeFan env chunk centroid m tileCountId simple
+        tile |> Tile.countId |> triangulateEdgeFan env chunk centroid m simple
 
     let private triangulateWithoutRiver
         env
         (chunk: IChunk)
-        (tileCountId: TileCountId)
-        (tileFlag: TileFlag)
-        (tileUnitCorners: TileUnitCorners)
+        (tile: Entity)
         (idx: int)
         (centroid: Vector3)
         (e: EdgeVertices)
         (simple: bool)
         =
-        triangulateEdgeFan env chunk centroid e tileCountId simple
+        tile |> Tile.countId |> triangulateEdgeFan env chunk centroid e simple
 
-        if TileFlag.hasRoads tileFlag then
-            let interpolator = TileFlag.getRoadInterpolator tileUnitCorners.Length idx tileFlag
+        if tile |> Tile.flag |> TileFlag.hasRoads then
+            let interpolator =
+                tile
+                |> Tile.flag
+                |> TileFlag.getRoadInterpolator (Tile.unitCorners tile).Length idx
+
             let mL = centroid.Lerp(e.V1, interpolator.X)
             let mR = centroid.Lerp(e.V5, interpolator.Y)
-            let hasRoadThroughEdge = TileFlag.hasRoadThroughEdge idx tileFlag
-            triangulateRoad env chunk centroid mL mR e hasRoadThroughEdge tileCountId
+            let hasRoadThroughEdge = tile |> Tile.flag |> TileFlag.hasRoad idx
+
+            tile
+            |> Tile.countId
+            |> triangulateRoad env chunk centroid mL mR e hasRoadThroughEdge
 
     let private triangulateWaterfallInWater
         (env: #ICatlikeCodingNoiseQuery)
@@ -1301,86 +1271,80 @@ module ChunkTriangulationCommand =
             'E
                 when 'E :> IPlanetConfigQuery
                 and 'E :> ICatlikeCodingNoiseQuery
-                and 'E :> IEntityStoreQuery
-                and 'E :> IPointQuery)
+                and 'E :> IFaceQuery
+                and 'E :> ITileQuery
+                and 'E :> IChunkQuery)
         (chunk: IChunk)
-        (tileId: TileId)
+        (tile: Entity)
         (idx: int)
         (e: EdgeVertices)
         (simple: bool)
         =
         let planetConfig = env.PlanetConfig
-        let tile = env.GetEntityById tileId
-        let tileValue = tile.GetComponent<TileValue>()
-        let tileFlag = tile.GetComponent<TileFlag>()
-        let tileUnitCentroid = tile.GetComponent<TileUnitCentroid>()
-        let tileHeight = env.GetHeight tileValue tileUnitCentroid
-        let neighbor = env.GetNeighborByIdAndIdx tileId idx |> Option.get
-        let neighborValue = neighbor.GetComponent<TileValue>()
-        let neighborUnitCentroid = neighbor.GetComponent<TileUnitCentroid>()
-        let neighborHeight = env.GetHeight neighborValue neighborUnitCentroid
+        let tileHeight = env.GetHeight tile
+        let neighbor = env.GetNeighborTileByIdx tile.Id idx
+        let neighborHeight = env.GetHeight neighbor
         let standardScale = planetConfig.StandardScale
         // 连接将由更低的地块或相同高度时 Id 更大的地块生成，或者是编辑地块与非编辑地块间的连接
         if
             tileHeight > neighborHeight
             || (Mathf.Abs(tileHeight - neighborHeight) < 0.0001f * standardScale
-                && tileId < neighbor.Id)
+                && tile.Id < neighbor.Id)
         then
             () // 忽略
         else
-            let tileFaceIds = tile.GetComponent<TileHexFaceIds>()
-
-            let n1Face =
-                env
-                    .GetEntityById(TileHexFaceIds.item idx tileFaceIds)
-                    .GetComponent<FaceComponent>()
-
             let radius = planetConfig.Radius
             let unitHeight = planetConfig.UnitHeight
 
+            let n1FaceCenter =
+                tile |> Tile.hexFaceIds |> TileHexFaceIds.item idx |> env.GetFaceCenter
+
             let vn1 =
-                neighborUnitCentroid
-                |> TileUnitCentroid.getCornerByFaceCenterWithRadiusAndSize
-                    n1Face.Center
+                Tile.getCornerByFaceCenterWithRadiusAndSize
+                    n1FaceCenter
                     (radius + neighborHeight)
                     HexMetrics.SolidFactor
+                    neighbor
 
-            let n2Face =
-                env
-                    .GetEntityById(
-                        TileHexFaceIds.item
-                        <| HexIndexUtil.nextIdx tileFaceIds.Length idx
-                        <| tileFaceIds
-                    )
-                    .GetComponent<FaceComponent>()
+            let n2FaceCenter =
+                tile
+                |> Tile.hexFaceIds
+                |> TileHexFaceIds.item (Tile.hexFaceIds tile |> _.Length |> HexIndexUtil.nextIdx idx)
+                |> env.GetFaceCenter
 
             let vn2 =
-                neighborUnitCentroid
-                |> TileUnitCentroid.getCornerByFaceCenterWithRadiusAndSize
-                    n2Face.Center
+                Tile.getCornerByFaceCenterWithRadiusAndSize
+                    n2FaceCenter
                     (radius + neighborHeight)
                     HexMetrics.SolidFactor
+                    neighbor
 
             let mutable en = EdgeVertices(vn1, vn2)
-            let hasRiver = TileFlag.hasRiverThroughEdge idx tileFlag
-            let hasRoad = TileFlag.hasRoadThroughEdge idx tileFlag
-            let tileCountId = tile.GetComponent<TileCountId>()
-            let neighborCountId = neighbor.GetComponent<TileCountId>()
+            let hasRiver = tile |> Tile.flag |> TileFlag.hasRiver idx
+            let hasRoad = tile |> Tile.flag |> TileFlag.hasRoad idx
 
             if hasRiver then
-                en.V3 <- Math3dUtil.ProjectToSphere(en.V3, radius + TileValue.streamBedY unitHeight neighborValue)
+                en.V3 <-
+                    Math3dUtil.ProjectToSphere(en.V3, radius + TileValue.streamBedY unitHeight (Tile.value neighbor))
 
                 let ids =
-                    Vector3(float32 tileCountId.CountId, float32 neighborCountId.CountId, float32 tileCountId.CountId)
+                    Vector3(
+                        Tile.countId tile |> _.CountId |> float32,
+                        Tile.countId neighbor |> _.CountId |> float32,
+                        Tile.countId tile |> _.CountId |> float32
+                    )
 
-                let tileRiverHeight = radius + TileValue.riverSurfaceY unitHeight tileValue
-                let neighborRiverHeight = radius + TileValue.riverSurfaceY unitHeight neighborValue
+                let tileRiverHeight =
+                    tile |> Tile.value |> TileValue.riverSurfaceY unitHeight |> (+) radius
 
-                if not <| TileValue.isUnderwater tileValue then
-                    if not <| TileValue.isUnderwater neighborValue then
+                let neighborRiverHeight =
+                    neighbor |> Tile.value |> TileValue.riverSurfaceY unitHeight |> (+) radius
+
+                if tile |> Tile.value |> TileValue.isUnderwater |> not then
+                    if neighbor |> Tile.value |> TileValue.isUnderwater |> not then
                         let reversed =
-                            TileFlag.hasIncomingRiver tileFlag
-                            && TileFlag.hasIncomingRiverThoughEdge idx tileFlag
+                            (tile |> Tile.flag |> TileFlag.hasIncomingRiver)
+                            && (tile |> Tile.flag |> TileFlag.hasRiverIn idx)
 
                         triangulateRiverQuad
                             env
@@ -1394,8 +1358,11 @@ module ChunkTriangulationCommand =
                             0.8f
                             reversed
                             ids
-                    elif TileValue.elevation tileValue > TileValue.elevation neighborValue then
-                        let neighborWaterHeight = radius + TileValue.waterSurfaceY unitHeight neighborValue
+                    elif
+                        tile |> Tile.value |> TileValue.elevation > (neighbor |> Tile.value |> TileValue.elevation)
+                    then
+                        let neighborWaterHeight =
+                            neighbor |> Tile.value |> TileValue.waterSurfaceY unitHeight |> (+) radius
 
                         triangulateWaterfallInWater
                             env
@@ -1409,10 +1376,11 @@ module ChunkTriangulationCommand =
                             neighborWaterHeight
                             ids
                 elif
-                    not <| TileValue.isUnderwater neighborValue
-                    && TileValue.elevation neighborValue > TileValue.elevation tileValue
+                    neighbor |> Tile.value |> TileValue.isUnderwater |> not
+                    && neighbor |> Tile.value |> TileValue.elevation > (tile |> Tile.value |> TileValue.elevation)
                 then
-                    let tileWaterHeight = radius + TileValue.waterSurfaceY unitHeight tileValue
+                    let tileWaterHeight =
+                        tile |> Tile.value |> TileValue.waterSurfaceY unitHeight |> (+) radius
 
                     triangulateWaterfallInWater
                         env
@@ -1426,68 +1394,71 @@ module ChunkTriangulationCommand =
                         tileWaterHeight
                         ids
 
-            let tileChunkId = tile.GetComponent<TileChunkId>()
-
-            let chunkLod = env.GetEntityById(tileChunkId.ChunkId).GetComponent<ChunkLod>().Lod
+            let chunkLod = Tile.chunkId tile |> _.ChunkId |> env.GetChunkLod
 
             if
                 chunkLod > ChunkLodEnum.SimpleHex
-                && TileValue.getEdgeType neighborValue tileValue = HexEdgeType.Slope
+                && TileValue.getEdgeType <| Tile.value neighbor <| Tile.value tile = HexEdgeType.Slope
             then
-                triangulateEdgeTerraces env chunk e tileCountId en neighborCountId hasRoad (not hasRiver && simple)
+                triangulateEdgeTerraces
+                    env
+                    chunk
+                    e
+                    (Tile.countId tile)
+                    en
+                    (Tile.countId neighbor)
+                    hasRoad
+                    (not hasRiver && simple)
             else
                 triangulateEdgeStrip
                     env
                     chunk
                     e
                     HexMeshConstant.weights1
-                    tileCountId
+                    (Tile.countId tile)
                     en
                     HexMeshConstant.weights2
-                    neighborCountId
+                    (Tile.countId neighbor)
                     hasRoad
                     (not hasRiver && simple)
 
-            let preIdx = HexIndexUtil.previousIdx tileFaceIds.Length idx
-            let preNeighbor = env.GetNeighborByIdAndIdx tileId preIdx |> Option.get
-            let preNeighborValue = preNeighbor.GetComponent<TileValue>()
-            let preNeighborUnitCentroid = preNeighbor.GetComponent<TileUnitCentroid>()
-            let preNeighborCountId = preNeighbor.GetComponent<TileCountId>()
-            let preNeighborHeight = env.GetHeight preNeighborValue preNeighborUnitCentroid
+            let preIdx = Tile.hexFaceIds tile |> _.Length |> HexIndexUtil.previousIdx idx
+            let preNeighbor = env.GetNeighborTileByIdx tile.Id preIdx
+            let preNeighborHeight = env.GetHeight preNeighbor
             // 连接角落的三角形由周围 3 个地块中最低或者一样高时 Id 最大的生成，或者是编辑地块与非编辑地块间的连接三角形
             if
                 tileHeight < preNeighborHeight
                 || (Mathf.Abs(tileHeight - preNeighborHeight) < 0.0001f * standardScale
-                    && tileId > preNeighbor.Id)
+                    && tile.Id > preNeighbor.Id)
             then
                 let vpn =
-                    preNeighborUnitCentroid
-                    |> TileUnitCentroid.getCornerByFaceCenterWithRadiusAndSize
-                        n1Face.Center
+                    Tile.getCornerByFaceCenterWithRadiusAndSize
+                        n1FaceCenter
                         (radius + preNeighborHeight)
                         HexMetrics.SolidFactor
+                        preNeighbor
 
                 triangulateCorner
                     env
                     chunk
                     chunkLod
                     e.V1
-                    tileCountId
-                    tileValue
+                    (Tile.countId tile)
+                    (Tile.value tile)
                     vpn
-                    preNeighborCountId
-                    preNeighborValue
+                    (Tile.countId preNeighbor)
+                    (Tile.value preNeighbor)
                     vn1
-                    neighborCountId
-                    neighborValue
+                    (Tile.countId neighbor)
+                    (Tile.value neighbor)
 
     let private triangulateEstuary
         (env: #ICatlikeCodingNoiseQuery)
         (chunk: IChunk)
         (e1: EdgeVertices)
         (e2: EdgeVertices)
-        (incomingRiver: bool)
         (ids: Vector3)
+        (incomingRiver: bool)
         =
         let waterShore = chunk.GetWaterShore()
         let estuary = chunk.GetEstuary()
@@ -1565,41 +1536,34 @@ module ChunkTriangulationCommand =
             'E
                 when 'E :> IPlanetConfigQuery
                 and 'E :> ICatlikeCodingNoiseQuery
-                and 'E :> IEntityStoreQuery
-                and 'E :> IPointQuery)
+                and 'E :> IPointQuery
+                and 'E :> IFaceQuery
+                and 'E :> ITileQuery)
         (chunk: IChunk)
-        (tileId: TileId)
-        (neighborId: TileId)
+        (tile: Entity)
+        (neighbor: Entity)
         (centroid: Vector3)
         (idx: int)
         (waterHeight: float32)
         (simple: bool)
         =
         let planetConfig = env.PlanetConfig
-        let tile = env.GetEntityById tileId
-        let tileUnitCorners = tile.GetComponent<TileUnitCorners>()
-        let tileUnitCentroid = tile.GetComponent<TileUnitCentroid>()
         let radius = planetConfig.Radius
         let unitHeight = planetConfig.UnitHeight
 
         let e1 =
             EdgeVertices(
-                tileUnitCorners
-                |> TileUnitCorners.getFirstWaterCornerWithRadius
-                    tileUnitCentroid.UnitCentroid
-                    idx
-                    (radius + waterHeight),
-                tileUnitCorners
-                |> TileUnitCorners.getSecondWaterCornerWithRadius
-                    tileUnitCentroid.UnitCentroid
-                    idx
-                    (radius + waterHeight)
+                Tile.cornerWithRadius TileUnitCorners.getFirstWaterCornerWithRadius idx (radius + waterHeight) tile,
+                Tile.cornerWithRadius TileUnitCorners.getSecondWaterCornerWithRadius idx (radius + waterHeight) tile
             )
 
-        let tileCountId = float32 <| tile.GetComponent<TileCountId>().CountId
-        let neighbor = env.GetEntityById neighborId
-        let neighborCountId = float32 <| neighbor.GetComponent<TileCountId>().CountId
-        let mutable ids = Vector3(tileCountId, neighborCountId, tileCountId)
+        let mutable ids =
+            Vector3(
+                Tile.countId tile |> _.CountId |> float32,
+                Tile.countId neighbor |> _.CountId |> float32,
+                Tile.countId tile |> _.CountId |> float32
+            )
+
         let water = chunk.GetWater()
 
         let addWaterTriangle verticesArr =
@@ -1613,43 +1577,35 @@ module ChunkTriangulationCommand =
             addWaterTriangle [| centroid; e1.V3; e1.V4 |]
             addWaterTriangle [| centroid; e1.V4; e1.V5 |]
         // 使用邻居的水表面高度的话，就是希望考虑岸边地块的实际水位。(不然强行拉平岸边的话，角落两个水面不一样高时太多复杂逻辑，bug 太多)
-        let neighborValue = neighbor.GetComponent<TileValue>()
-        let neighborUnitCentroid = neighbor.GetComponent<TileUnitCentroid>()
-        let neighborWaterHeight = TileValue.waterSurfaceY unitHeight neighborValue
-        let tileFaceIds = tile.GetComponent<TileHexFaceIds>()
+        let neighborWaterHeight =
+            neighbor |> Tile.value |> TileValue.waterSurfaceY unitHeight
 
-        let n1Face =
-            env
-                .GetEntityById(TileHexFaceIds.item idx tileFaceIds)
-                .GetComponent<FaceComponent>()
+        let n1FaceCenter =
+            tile |> Tile.hexFaceIds |> TileHexFaceIds.item idx |> env.GetFaceCenter
 
         let cn1 =
-            neighborUnitCentroid
-            |> TileUnitCentroid.getCornerByFaceCenterWithRadiusAndSize
-                n1Face.Center
+            Tile.getCornerByFaceCenterWithRadiusAndSize
+                n1FaceCenter
                 (radius + neighborWaterHeight)
                 HexMetrics.SolidFactor
+                neighbor
 
-        let n2Face =
-            env
-                .GetEntityById(
-                    TileHexFaceIds.item
-                    <| HexIndexUtil.nextIdx tileFaceIds.Length idx
-                    <| tileFaceIds
-                )
-                .GetComponent<FaceComponent>()
+        let n2FaceCenter =
+            tile
+            |> Tile.hexFaceIds
+            |> TileHexFaceIds.item (Tile.hexFaceIds tile |> _.Length |> HexIndexUtil.nextIdx idx)
+            |> env.GetFaceCenter
 
         let cn2 =
-            neighborUnitCentroid
-            |> TileUnitCentroid.getCornerByFaceCenterWithRadiusAndSize
-                n2Face.Center
+            Tile.getCornerByFaceCenterWithRadiusAndSize
+                n2FaceCenter
                 (radius + neighborWaterHeight)
                 HexMetrics.SolidFactor
+                neighbor
 
         let e2 = EdgeVertices(cn1, cn2)
-        let neighborIdx = env.GetNeighborIdx tileId neighborId
+        let neighborIdx = env.GetNeighborIdx tile.Id neighbor.Id
         let waterShore = chunk.GetWaterShore()
-        let tileFlag = tile.GetComponent<TileFlag>()
 
         let addWaterShoreQuad verticesArr =
             waterShore.AddQuad(
@@ -1661,8 +1617,11 @@ module ChunkTriangulationCommand =
 
         if simple then
             addWaterShoreQuad [| e1.V1; e1.V5; e2.V1; e2.V5 |]
-        elif TileFlag.hasRiverThroughEdge neighborIdx tileFlag then
-            triangulateEstuary env chunk e1 e2 (TileFlag.hasIncomingRiverThoughEdge neighborIdx tileFlag) ids
+        elif tile |> Tile.flag |> TileFlag.hasRiver neighborIdx then
+            tile
+            |> Tile.flag
+            |> TileFlag.hasRiverIn neighborIdx
+            |> triangulateEstuary env chunk e1 e2 ids
         else
             addWaterShoreQuad [| e1.V1; e1.V2; e2.V1; e2.V2 |]
             addWaterShoreQuad [| e1.V2; e1.V3; e2.V2; e2.V3 |]
@@ -1670,25 +1629,25 @@ module ChunkTriangulationCommand =
             addWaterShoreQuad [| e1.V4; e1.V5; e2.V4; e2.V5 |]
 
         let nextNeighbor =
-            env.GetNeighborByIdAndIdx tileId <| HexIndexUtil.nextIdx tileFaceIds.Length idx
-            |> Option.get
+            Tile.hexFaceIds tile
+            |> _.Length
+            |> HexIndexUtil.nextIdx idx
+            |> env.GetNeighborTileByIdx tile.Id
 
-        let nextNeighborValue = nextNeighbor.GetComponent<TileValue>()
-        let nextNeighborWaterHeight = TileValue.waterSurfaceY unitHeight nextNeighborValue
-        let nextNeighborUnitCentroid = nextNeighbor.GetComponent<TileUnitCentroid>()
+        let nextNeighborWaterHeight =
+            nextNeighbor |> Tile.value |> TileValue.waterSurfaceY unitHeight
 
         let cnn =
-            nextNeighborUnitCentroid
-            |> TileUnitCentroid.getCornerByFaceCenterWithRadiusAndSize
-                n2Face.Center
+            Tile.getCornerByFaceCenterWithRadiusAndSize
+                n2FaceCenter
                 (radius + nextNeighborWaterHeight)
-                (if TileValue.isUnderwater nextNeighborValue then
+                (if nextNeighbor |> Tile.value |> TileValue.isUnderwater then
                      HexMetrics.waterFactor
                  else
                      HexMetrics.SolidFactor)
+                nextNeighbor
 
-        let nextNeighborCountId = nextNeighbor.GetComponent<TileCountId>()
-        ids.Z <- float32 nextNeighborCountId.CountId
+        ids.Z <- float32 (Tile.countId nextNeighbor).CountId
 
         chunk
             .GetWaterShore()
@@ -1699,7 +1658,13 @@ module ChunkTriangulationCommand =
                    HexMeshConstant.weights3 |],
                 [| Vector2(0f, 0f)
                    Vector2(0f, 1f)
-                   Vector2(0f, if TileValue.isUnderwater nextNeighborValue then 0f else 1f) |],
+                   Vector2(
+                       0f,
+                       if nextNeighbor |> Tile.value |> TileValue.isUnderwater then
+                           0f
+                       else
+                           1f
+                   ) |],
                 tis = ids
             )
 
@@ -1708,32 +1673,26 @@ module ChunkTriangulationCommand =
             'E
                 when 'E :> IPlanetConfigQuery
                 and 'E :> ICatlikeCodingNoiseQuery
-                and 'E :> IEntityStoreQuery
-                and 'E :> IPointQuery)
+                and 'E :> IFaceQuery
+                and 'E :> ITileQuery)
         (chunk: IChunk)
-        (tileId: TileId)
-        (neighborId: TileId)
+        (tile: Entity)
+        (neighbor: Entity)
         (centroid: Vector3)
         (idx: int)
         (waterHeight: float32)
         =
         let planetConfig = env.PlanetConfig
-        let tile = env.GetEntityById tileId
-        let tileCountId = tile.GetComponent<TileCountId>()
-        let tileUnitCorners = tile.GetComponent<TileUnitCorners>()
-        let tileUnitCentroid = tile.GetComponent<TileUnitCentroid>()
         let radius = planetConfig.Radius
         let unitHeight = planetConfig.UnitHeight
 
         let c1 =
-            tileUnitCorners
-            |> TileUnitCorners.getFirstWaterCornerWithRadius tileUnitCentroid.UnitCentroid idx (radius + waterHeight)
+            Tile.cornerWithRadius TileUnitCorners.getFirstWaterCornerWithRadius idx (radius + waterHeight) tile
 
         let c2 =
-            tileUnitCorners
-            |> TileUnitCorners.getSecondWaterCornerWithRadius tileUnitCentroid.UnitCentroid idx (radius + waterHeight)
+            Tile.cornerWithRadius TileUnitCorners.getSecondWaterCornerWithRadius idx (radius + waterHeight) tile
 
-        let mutable ids = Vector3.One * float32 tileCountId.CountId
+        let mutable ids = Vector3.One * float32 (Tile.countId tile).CountId
         let water = chunk.GetWater()
 
         water.AddTriangle(
@@ -1742,43 +1701,34 @@ module ChunkTriangulationCommand =
             tis = ids
         )
         // 由更大 Id 的地块绘制水域连接，或者是由编辑地块绘制和不编辑的邻接地块间的连接
-        if tileId > neighborId then
-            let neighbor = env.GetEntityById neighborId
-            let neighborUnitCentroid = neighbor.GetComponent<TileUnitCentroid>()
-            let neighborValue = neighbor.GetComponent<TileValue>()
-            let neighborWaterHeight = TileValue.waterSurfaceY unitHeight neighborValue
-            let tileFaceIds = tile.GetComponent<TileHexFaceIds>()
+        if tile.Id > neighbor.Id then
+            let neighborWaterHeight =
+                neighbor |> Tile.value |> TileValue.waterSurfaceY unitHeight
 
-            let n1Face =
-                env
-                    .GetEntityById(TileHexFaceIds.item idx tileFaceIds)
-                    .GetComponent<FaceComponent>()
+            let n1FaceCenter =
+                tile |> Tile.hexFaceIds |> TileHexFaceIds.item idx |> env.GetFaceCenter
 
             let cn1 =
-                neighborUnitCentroid
-                |> TileUnitCentroid.getCornerByFaceCenterWithRadiusAndSize
-                    n1Face.Center
+                Tile.getCornerByFaceCenterWithRadiusAndSize
+                    n1FaceCenter
                     (radius + neighborWaterHeight)
                     HexMetrics.waterFactor
+                    neighbor
 
-            let n2Face =
-                env
-                    .GetEntityById(
-                        TileHexFaceIds.item
-                        <| HexIndexUtil.nextIdx tileFaceIds.Length idx
-                        <| tileFaceIds
-                    )
-                    .GetComponent<FaceComponent>()
+            let n2FaceCenter =
+                tile
+                |> Tile.hexFaceIds
+                |> TileHexFaceIds.item (Tile.hexFaceIds tile |> _.Length |> HexIndexUtil.nextIdx idx)
+                |> env.GetFaceCenter
 
             let cn2 =
-                neighborUnitCentroid
-                |> TileUnitCentroid.getCornerByFaceCenterWithRadiusAndSize
-                    n2Face.Center
+                Tile.getCornerByFaceCenterWithRadiusAndSize
+                    n2FaceCenter
                     (radius + neighborWaterHeight)
                     HexMetrics.waterFactor
+                    neighbor
 
-            let neighborCountId = neighbor.GetComponent<TileCountId>()
-            ids.Y <- float32 neighborCountId.CountId
+            ids.Y <- float32 (Tile.countId neighbor).CountId
 
             water.AddQuad(
                 [| c1; c2; cn1; cn2 |] |> Array.map env.Perturb,
@@ -1787,23 +1737,24 @@ module ChunkTriangulationCommand =
             )
             // 由最大 Id 的地块绘制水域角落三角形，或者是由编辑地块绘制和不编辑的两个邻接地块间的连接
             let nextNeighbor =
-                env.GetNeighborByIdAndIdx tileId <| HexIndexUtil.nextIdx tileFaceIds.Length idx
-                |> Option.get
+                Tile.hexFaceIds tile
+                |> _.Length
+                |> HexIndexUtil.nextIdx idx
+                |> env.GetNeighborTileByIdx tile.Id
 
-            let nextNeighborValue = nextNeighbor.GetComponent<TileValue>()
-
-            if tileId > nextNeighbor.Id && TileValue.isUnderwater nextNeighborValue then
-                let nextNeighborUnitCentroid = nextNeighbor.GetComponent<TileUnitCentroid>()
+            if
+                tile.Id > nextNeighbor.Id
+                && nextNeighbor |> Tile.value |> TileValue.isUnderwater
+            then
 
                 let cnn =
-                    nextNeighborUnitCentroid
-                    |> TileUnitCentroid.getCornerByFaceCenterWithRadiusAndSize
-                        n2Face.Center
-                        (radius + TileValue.waterSurfaceY unitHeight nextNeighborValue)
+                    Tile.getCornerByFaceCenterWithRadiusAndSize
+                        n2FaceCenter
+                        (radius + (nextNeighbor |> Tile.value |> TileValue.waterSurfaceY unitHeight))
                         HexMetrics.waterFactor
+                        nextNeighbor
 
-                let nextNeighborCountId = nextNeighbor.GetComponent<TileCountId>()
-                ids.Z <- float32 nextNeighborCountId.CountId
+                ids.Z <- float32 (Tile.countId nextNeighbor).CountId
 
                 water.AddTriangle(
                     [| c2; cn2; cnn |] |> Array.map env.Perturb,
@@ -1814,28 +1765,27 @@ module ChunkTriangulationCommand =
                 )
 
     let private triangulateWater
-        (env: 'E when 'E :> IPlanetConfigQuery and 'E :> IEntityStoreQuery and 'E :> IPointQuery)
+        (env: 'E when 'E :> IPlanetConfigQuery and 'E :> ITileQuery)
         (chunk: IChunk)
-        (tileId: TileId)
+        (tile: Entity)
         (idx: int)
         (centroid: Vector3)
         (simple: bool)
         =
         let planetConfig = env.PlanetConfig
-        let tile = env.GetEntityById tileId
-        let tileValue = tile.GetComponent<TileValue>()
-        let waterHeight = TileValue.waterSurfaceY planetConfig.UnitHeight tileValue
+
+        let waterHeight =
+            tile |> Tile.value |> TileValue.waterSurfaceY planetConfig.UnitHeight
 
         let centroid =
             Math3dUtil.ProjectToSphere(centroid, planetConfig.Radius + waterHeight)
 
-        let neighbor = env.GetNeighborByIdAndIdx tileId idx |> Option.get
-        let neighborValue = neighbor.GetComponent<TileValue>()
+        let neighbor = env.GetNeighborTileByIdx tile.Id idx
 
-        if not <| TileValue.isUnderwater neighborValue then
-            triangulateWaterShore env chunk tileId neighbor.Id centroid idx waterHeight simple
+        if neighbor |> Tile.value |> TileValue.isUnderwater |> not then
+            triangulateWaterShore env chunk tile neighbor centroid idx waterHeight simple
         else
-            triangulateOpenWater env chunk tileId neighbor.Id centroid idx waterHeight
+            triangulateOpenWater env chunk tile neighbor centroid idx waterHeight
 
     /// Godot 缠绕顺序是正面顺时针，所以从 i1 对应角落到 i2 对应角落相对于 tile 重心需要是顺时针
     let private triangulateHex
@@ -1843,92 +1793,57 @@ module ChunkTriangulationCommand =
             'E
                 when 'E :> IPlanetConfigQuery
                 and 'E :> ICatlikeCodingNoiseQuery
-                and 'E :> IEntityStoreQuery
-                and 'E :> IPointQuery)
+                and 'E :> ITileQuery
+                and 'E :> IChunkQuery)
         (chunk: IChunk)
         (tileId: TileId)
         (idx: int)
         =
         let planetConfig = env.PlanetConfig
-        let tile = env.GetEntityById tileId
-        let tileCountId = tile.GetComponent<TileCountId>()
-        let tileUnitCorners = tile.GetComponent<TileUnitCorners>()
-        let tileValue = tile.GetComponent<TileValue>()
-        let tileUnitCentroid = tile.GetComponent<TileUnitCentroid>()
-        let height = env.GetHeight tileValue tileUnitCentroid
-        let radius = planetConfig.Radius
         let unitHeight = planetConfig.UnitHeight
+        let radius = planetConfig.Radius
+        let tile = env.GetTile tileId
+        let height = env.GetHeight tile
 
         let v1 =
-            tileUnitCorners
-            |> TileUnitCorners.getFirstSolidCornerWithRadius tileUnitCentroid.UnitCentroid idx (radius + height)
+            Tile.cornerWithRadius TileUnitCorners.getFirstSolidCornerWithRadius idx (radius + height) tile
 
         let v2 =
-            tileUnitCorners
-            |> TileUnitCorners.getSecondSolidCornerWithRadius tileUnitCentroid.UnitCentroid idx (radius + height)
+            Tile.cornerWithRadius TileUnitCorners.getSecondSolidCornerWithRadius idx (radius + height) tile
 
         let mutable e = EdgeVertices(v1, v2)
-        let centroid = TileUnitCentroid.scaled <| radius + height <| tileUnitCentroid
-        let tileChunkId = tile.GetComponent<TileChunkId>()
-
-        let chunkLod = env.GetEntityById(tileChunkId.ChunkId).GetComponent<ChunkLod>().Lod
+        let centroid = TileUnitCentroid.scaled <| radius + height <| Tile.unitCentroid tile
+        let chunkLod = env.GetChunkLod (Tile.chunkId tile).ChunkId
 
         let simple =
             if chunkLod = ChunkLodEnum.Full then
                 false
             else
-                let neighbor = env.GetNeighborByIdAndIdx tileId idx |> Option.get
-                let neighborChunkId = neighbor.GetComponent<TileChunkId>()
-                let tileChunkId = tile.GetComponent<TileChunkId>()
+                let neighbor = env.GetNeighborTileByIdx tileId idx
 
-                if neighborChunkId = tileChunkId then
+                if (Tile.chunkId neighbor).ChunkId = (Tile.chunkId tile).ChunkId then
                     true
                 else
-                    let neighborChunk = env.GetEntityById neighborChunkId.ChunkId
-                    let neighborChunkLod = neighborChunk.GetComponent<ChunkLod>().Lod
-                    neighborChunkLod < ChunkLodEnum.Full
+                    env.GetChunkLod (Tile.chunkId neighbor).ChunkId < ChunkLodEnum.Full
 
-        let tileFlag = tile.GetComponent<TileFlag>()
+        if tile |> Tile.flag |> TileFlag.hasRivers then
+            if tile |> Tile.flag |> TileFlag.hasRiver idx then
+                e.V3 <-
+                    Math3dUtil.ProjectToSphere(e.V3, radius + (tile |> Tile.value |> TileValue.streamBedY unitHeight))
 
-        if TileFlag.hasRivers tileFlag then
-            if TileFlag.hasRiverThroughEdge idx tileFlag then
-                e.V3 <- Math3dUtil.ProjectToSphere(e.V3, radius + TileValue.streamBedY unitHeight tileValue)
-
-                if TileFlag.hasRiverBeginOrEnd tileFlag then
-                    triangulateWithRiverBeginOrEnd env chunk tileCountId tileValue tileFlag centroid e
+                if tile |> Tile.flag |> TileFlag.hasRiverBeginOrEnd then
+                    triangulateWithRiverBeginOrEnd env chunk tile centroid e
                 else
-                    triangulateWithRiver
-                        env
-                        chunk
-                        tileCountId
-                        tileValue
-                        tileFlag
-                        tileUnitCorners
-                        idx
-                        height
-                        tileUnitCentroid.UnitCentroid
-                        centroid
-                        e
+                    triangulateWithRiver env chunk tile idx height centroid e
             else
-                triangulateAdjacentToRiver
-                    env
-                    chunk
-                    tileCountId
-                    tileFlag
-                    tileUnitCorners
-                    idx
-                    height
-                    tileUnitCentroid.UnitCentroid
-                    centroid
-                    e
-                    simple
+                triangulateAdjacentToRiver env chunk tile idx height centroid e simple
         else
-            triangulateWithoutRiver env chunk tileCountId tileFlag tileUnitCorners idx centroid e simple
+            triangulateWithoutRiver env chunk tile idx centroid e simple
 
-        triangulateConnection env chunk tileId idx e simple
+        triangulateConnection env chunk tile idx e simple
 
-        if TileValue.isUnderwater tileValue then
-            triangulateWater env chunk tileId idx centroid simple
+        if tile |> Tile.value |> TileValue.isUnderwater then
+            triangulateWater env chunk tile idx centroid simple
 
     let triangulate (env: #IEntityStoreQuery) : Triangulate =
         fun (chunk: IChunk) (tileId: TileId) ->

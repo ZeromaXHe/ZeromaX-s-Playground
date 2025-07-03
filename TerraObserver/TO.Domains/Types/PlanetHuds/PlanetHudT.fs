@@ -1,6 +1,7 @@
 namespace TO.Domains.Types.PlanetHuds
 
 open System
+open System.Collections.Generic
 open Godot
 open TO.Domains.Types.Godots
 
@@ -12,16 +13,48 @@ open TO.Domains.Types.Godots
 type IPlanetHud =
     inherit IControl
     // =====【on-ready】=====
+    abstract MiniMapContainer: SubViewportContainer
     abstract CamLonLatLabel: Label
     abstract CompassPanel: PanelContainer
     abstract RectMap: TextureRect
     abstract RadiusLineEdit: LineEdit
     abstract DivisionLineEdit: LineEdit
     abstract ChunkDivisionLineEdit: LineEdit
+    abstract IdLineEdit: LineEdit
+    abstract ChunkLineEdit: LineEdit
+    abstract CoordsLineEdit: LineEdit
+    abstract HeightLineEdit: LineEdit
+    abstract ElevationLineEdit: LineEdit
+    abstract LonLineEdit: LineEdit
+    abstract LatLineEdit: LineEdit
     abstract ElevationVSlider: VSlider
     abstract WaterVSlider: VSlider
     // =====【普通属性】=====
-    abstract ChosenTileId: int Nullable
+    abstract ChosenTileId: int Nullable with get, set
+    abstract IsDrag: bool with get, set
+    abstract DragTileId: int Nullable with get, set
+    abstract PreviousTileId: int Nullable with get, set
+
+    abstract EditMode: bool
+    abstract ApplyTerrain: bool
+    abstract ActiveTerrain: int
+    abstract ApplyElevation: bool
+    abstract ActiveElevation: int
+    abstract ApplyWaterLevel: bool
+    abstract ActiveWaterLevel: int
+    abstract BrushSize: int
+    abstract RiverMode: OptionalToggle
+    abstract RoadMode: OptionalToggle
+    abstract ApplyUrbanLevel: bool
+    abstract ActiveUrbanLevel: int
+    abstract ApplyFarmLevel: bool
+    abstract ActiveFarmLevel: int
+    abstract ApplyPlantLevel: bool
+    abstract ActivePlantLevel: int
+    abstract WalledMode: OptionalToggle
+    abstract ApplySpecialIndex: bool
+    abstract ActiveSpecialIndex: int
+    abstract OverrideTileIds: int HashSet
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
@@ -35,6 +68,8 @@ type OnOrbitCameraRigTransformed = Transform3D -> unit
 type InitElevationAndWaterVSlider = unit -> unit
 type UpdateRadiusLineEdit = string -> unit
 type UpdateDivisionLineEdit = bool -> string -> unit
+type UpdateChosenTileInfo = IPlanetHud -> unit
+type OnPlanetHudProcessed = unit -> unit
 
 [<Interface>]
 type IPlanetHudCommand =
@@ -43,3 +78,5 @@ type IPlanetHudCommand =
     abstract InitElevationAndWaterVSlider: InitElevationAndWaterVSlider
     abstract UpdateRadiusLineEdit: UpdateRadiusLineEdit
     abstract UpdateDivisionLineEdit: UpdateDivisionLineEdit
+    abstract UpdateChosenTileInfo: UpdateChosenTileInfo
+    abstract OnPlanetHudProcessed: OnPlanetHudProcessed

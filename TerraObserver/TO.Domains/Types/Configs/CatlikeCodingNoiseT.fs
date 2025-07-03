@@ -1,9 +1,9 @@
 namespace TO.Domains.Types.Configs
 
+open Friflo.Engine.ECS
 open Godot
 open TO.Domains.Types.Godots
 open TO.Domains.Types.Hashes
-open TO.Domains.Types.HexSpheres.Components.Tiles
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
@@ -22,7 +22,7 @@ type ICatlikeCodingNoise =
 type SampleHashGrid = Vector3 -> HexHash
 type SampleNoise = Vector3 -> Vector4
 type Perturb = Vector3 -> Vector3
-type GetHeight = TileValue -> TileUnitCentroid -> float32
+type GetHeight = Entity -> float32
 
 [<Interface>]
 type ICatlikeCodingNoiseQuery =
