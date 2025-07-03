@@ -71,6 +71,7 @@ public partial class PlanetHud : Control, IPlanetHud
 
     // 小地图
     public SubViewportContainer MiniMapContainer { get; private set; } = null!;
+    public Maps.Views.MiniMapManager MiniMapManager { get; private set; } = null!;
     public Label CamLonLatLabel { get; private set; } = null!;
     private CheckButton LonLatFixCheckButton { get; set; } = null!;
 
@@ -137,6 +138,7 @@ public partial class PlanetHud : Control, IPlanetHud
         CelestialMotionCheckButton = GetNode<CheckButton>("%CelestialMotionCheckButton");
         // 小地图
         MiniMapContainer = GetNode<SubViewportContainer>("%MiniMapContainer");
+        MiniMapManager = GetNode<Maps.Views.MiniMapManager>("%MiniMapManager");
         CamLonLatLabel = GetNode<Label>("%CamLonLatLabel");
         LonLatFixCheckButton = GetNode<CheckButton>("%LonLatFixCheckButton");
         // 指南针

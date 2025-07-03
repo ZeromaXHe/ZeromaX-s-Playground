@@ -65,6 +65,7 @@ public partial class PlanetContext : Node
     private CelestialMotion _celestialMotion = null!;
     private ChunkLoader _chunkLoader = null!;
     private SelectTileViewer _selectTileViewer = null!;
+    private Maps.Views.MiniMapManager _miniMapManager = null!;
     private PlanetHud _planetHud = null!;
     private PlanetApp _planetApp = null!;
 
@@ -85,16 +86,16 @@ public partial class PlanetContext : Node
         {
             _selectTileViewer = GetNode<SelectTileViewer>("%SelectTileViewer");
             _planetHud = GetNode<PlanetHud>("%PlanetHud");
+            _miniMapManager = _planetHud.MiniMapManager;
         }
 
         NodeReady = true;
         // App
         _planetApp = new PlanetApp(PlanetConfig, CatlikeCodingNoise, _orbitCameraRig, _lonLatGrid, _celestialMotion,
-            _chunkLoader, _selectTileViewer, _planetHud);
+            _chunkLoader, _selectTileViewer, _miniMapManager, _planetHud);
         PlanetConfig!.ParamsChanged += _planetApp.DrawHexSphereMesh;
         PlanetConfig.ParamsChanged += _planetApp.OnPlanetConfigParamsChanged;
         _orbitCameraRig.Transformed += UpdateInsightChunks;
-        _orbitCameraRig.Transformed += _planetApp.OnPlanetHudOrbitCameraRigTransformed;
         _orbitCameraRig.Processed += _planetApp.OnOrbitCameraRigProcessed;
         _orbitCameraRig.ZoomChanged += _planetApp.OnOrbitCameraRigZoomChanged;
         _orbitCameraRig.Moved += _planetApp.OnLonLatGridCameraMoved;
@@ -108,6 +109,8 @@ public partial class PlanetContext : Node
         if (!inEditor)
         {
             _orbitCameraRig.Moved += _planetApp.OnPlanetHudOrbitCameraRigMoved;
+            _orbitCameraRig.Transformed += _planetApp.OnPlanetHudOrbitCameraRigTransformed;
+            _miniMapManager.Clicked += _planetApp.OnMiniMapClicked;
             _planetHud.ChosenTileIdChanged += _planetApp.OnPlanetHudChosenTileIdChanged;
             _planetHud.LonLatFixCheckButtonToggled += _planetApp.LonLatGridToggleFixFullVisibility;
             _planetHud.CelestialMotionCheckButtonToggled += _planetApp.CelestialMotionToggleAllMotions;
@@ -121,6 +124,7 @@ public partial class PlanetContext : Node
         _planetApp.Init();
         if (!inEditor)
         {
+            
             _planetApp.OnPlanetHudOrbitCameraRigTransformed(
                 _orbitCameraRig.GetViewport().GetCamera3D().GetGlobalTransform(), 0f);
         }
@@ -142,7 +146,6 @@ public partial class PlanetContext : Node
                 // 而且绑定和解绑逻辑不能下沉到 F# 层，否则就解绑失败，同样没理解原因
                 PlanetConfig!.ParamsChanged -= _planetApp.DrawHexSphereMesh;
                 PlanetConfig.ParamsChanged -= _planetApp.OnPlanetConfigParamsChanged;
-                _orbitCameraRig.Transformed -= _planetApp.OnPlanetHudOrbitCameraRigTransformed;
                 _orbitCameraRig.Processed -= _planetApp.OnOrbitCameraRigProcessed;
                 _orbitCameraRig.ZoomChanged -= _planetApp.OnOrbitCameraRigZoomChanged;
                 _orbitCameraRig.Moved -= _planetApp.OnLonLatGridCameraMoved;
@@ -153,6 +156,7 @@ public partial class PlanetContext : Node
                 if (_planetHud != null!)
                 {
                     _orbitCameraRig.Moved -= _planetApp.OnPlanetHudOrbitCameraRigMoved;
+                    _orbitCameraRig.Transformed -= _planetApp.OnPlanetHudOrbitCameraRigTransformed;
                     _planetHud.LonLatFixCheckButtonToggled -= _planetApp.LonLatGridToggleFixFullVisibility;
                     _planetHud.CelestialMotionCheckButtonToggled -= _planetApp.CelestialMotionToggleAllMotions;
                     _planetHud.RadiusLineEditTextSubmitted -= _planetApp.OnPlanetHudRadiusLineEditTextSubmitted;

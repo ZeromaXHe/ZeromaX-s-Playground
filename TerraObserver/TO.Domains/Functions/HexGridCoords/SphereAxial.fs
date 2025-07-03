@@ -11,35 +11,36 @@ module SphereAxial =
         $"{this.Coords |> AxialCoords.toString} {this.Type} {this.TypeIdx}"
 
     let specialNeighbor (this: SphereAxial) =
-        this.Type = TypeEnum.EdgesSpecial || this.Type = TypeEnum.FacesSpecial
+        this.Type = SphereAxialTypeEnum.EdgesSpecial
+        || this.Type = SphereAxialTypeEnum.FacesSpecial
 
     // 正二十面体索引，0 ~ 19
     let index (this: SphereAxial) =
         match this.Type with
-        | TypeEnum.PoleVertices -> if this.TypeIdx = 0 then 0 else 3
-        | TypeEnum.MidVertices -> this.TypeIdx / 2 * 4 + 1 + this.TypeIdx % 2
-        | TypeEnum.Edges
-        | TypeEnum.EdgesSpecial -> this.TypeIdx / 6 * 4 + (this.TypeIdx % 6 + 1) / 2
-        | TypeEnum.Faces
-        | TypeEnum.FacesSpecial -> this.TypeIdx / 4 * 4 + this.TypeIdx % 4
+        | SphereAxialTypeEnum.PoleVertices -> if this.TypeIdx = 0 then 0 else 3
+        | SphereAxialTypeEnum.MidVertices -> this.TypeIdx / 2 * 4 + 1 + this.TypeIdx % 2
+        | SphereAxialTypeEnum.Edges
+        | SphereAxialTypeEnum.EdgesSpecial -> this.TypeIdx / 6 * 4 + (this.TypeIdx % 6 + 1) / 2
+        | SphereAxialTypeEnum.Faces
+        | SphereAxialTypeEnum.FacesSpecial -> this.TypeIdx / 4 * 4 + this.TypeIdx % 4
         | _ -> -1
     // 获取列索引，从右到左 0 ~ 4
     let column (this: SphereAxial) =
-        if this.Type = TypeEnum.PoleVertices && this.TypeIdx = 1 then
+        if this.Type = SphereAxialTypeEnum.PoleVertices && this.TypeIdx = 1 then
             0
-        elif this.Type <> TypeEnum.Invalid then
+        elif this.Type <> SphereAxialTypeEnum.Invalid then
             -this.Coords.Q / SphereAxial.Div
         else
             -1
     // 获取行索引，从上到下 0 ~ 3
     let row (this: SphereAxial) =
         match this.Type with
-        | TypeEnum.PoleVertices -> if this.TypeIdx = 0 then 0 else 3
-        | TypeEnum.MidVertices -> 1 + this.TypeIdx % 2
-        | TypeEnum.Edges
-        | TypeEnum.EdgesSpecial -> (this.TypeIdx % 6 + 1) / 2
-        | TypeEnum.Faces
-        | TypeEnum.FacesSpecial -> this.TypeIdx % 4
+        | SphereAxialTypeEnum.PoleVertices -> if this.TypeIdx = 0 then 0 else 3
+        | SphereAxialTypeEnum.MidVertices -> 1 + this.TypeIdx % 2
+        | SphereAxialTypeEnum.Edges
+        | SphereAxialTypeEnum.EdgesSpecial -> (this.TypeIdx % 6 + 1) / 2
+        | SphereAxialTypeEnum.Faces
+        | SphereAxialTypeEnum.FacesSpecial -> this.TypeIdx % 4
         | _ -> -1
     // 在北边的 5 个面上
     let isNorth5 (this: SphereAxial) = row this = 0
@@ -51,7 +52,9 @@ module SphereAxial =
     let isEquator10 (this: SphereAxial) = not <| isPole10 this
     let isEquatorWest (this: SphereAxial) = row this = 1
     let isEquatorEast (this: SphereAxial) = row this = 2
-    let isValid (this: SphereAxial) = this.Type <> TypeEnum.Invalid
+
+    let isValid (this: SphereAxial) =
+        this.Type <> SphereAxialTypeEnum.Invalid
     // 距离左边最近的边的 Q 差值
     // （当 Column 4 向左跨越回 Column 0 时，保持返回与普通情况一致性，即：将 Column 0 视作 6 的位置计算）
     let private leftEdgeDiffQ (this: SphereAxial) =
@@ -117,8 +120,8 @@ module SphereAxial =
     // 转经纬度
     let rec toLonLat (this: SphereAxial) =
         match this.Type with
-        | TypeEnum.PoleVertices -> LonLatCoords(0f, 90f * (if this.TypeIdx = 0 then 1f else -1f))
-        | TypeEnum.MidVertices ->
+        | SphereAxialTypeEnum.PoleVertices -> LonLatCoords(0f, 90f * (if this.TypeIdx = 0 then 1f else -1f))
+        | SphereAxialTypeEnum.MidVertices ->
             let longitude = float32 (this.TypeIdx / 2) * 72f - float32 (this.TypeIdx % 2) * 36f
 
             let latitude =
@@ -128,10 +131,10 @@ module SphereAxial =
                     -29.141262794f
 
             LonLatCoords(longitude, latitude)
-        | TypeEnum.Edges
-        | TypeEnum.EdgesSpecial
-        | TypeEnum.Faces
-        | TypeEnum.FacesSpecial ->
+        | SphereAxialTypeEnum.Edges
+        | SphereAxialTypeEnum.EdgesSpecial
+        | SphereAxialTypeEnum.Faces
+        | SphereAxialTypeEnum.FacesSpecial ->
             let tri = triangleVertices this |> Seq.toArray
             let triCoords = tri |> Array.map toLonLat
 
@@ -171,12 +174,12 @@ module SphereAxial =
                 right.Coords |> AxialCoords.distanceTo
                 <| (left.Coords |> AxialCoords.add <| AxialCoords(SphereAxial.Width, 0))
             )
-        elif this.Type = TypeEnum.PoleVertices then
+        elif this.Type = SphereAxialTypeEnum.PoleVertices then
             if this.TypeIdx = 1 then
                 2 * SphereAxial.Div - sa.Coords.R
             else
                 sa.Coords.R + SphereAxial.Div
-        elif sa.Type = TypeEnum.PoleVertices then
+        elif sa.Type = SphereAxialTypeEnum.PoleVertices then
             if sa.TypeIdx = 1 then
                 2 * SphereAxial.Div - this.Coords.R
             else

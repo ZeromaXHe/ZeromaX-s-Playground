@@ -10,6 +10,7 @@ open TO.Domains.Types.Geos
 open TO.Domains.Types.HexMeshes
 open TO.Domains.Types.HexSpheres
 open TO.Domains.Types.HexSpheres.Components.Tiles
+open TO.Domains.Types.Maps
 open TO.Domains.Types.PathFindings
 open TO.Domains.Types.PlanetHuds
 open TO.Domains.Types.Planets
@@ -19,7 +20,17 @@ open TO.Domains.Types.Shaders
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-05-30 19:41:30
 type PlanetApp
-    (planet, catlikeCodingNoise, cameraRig, lonLatGrid, celestialMotion, chunkLoader, selectTileViewer, planetHud) =
+    (
+        planet,
+        catlikeCodingNoise,
+        cameraRig,
+        lonLatGrid,
+        celestialMotion,
+        chunkLoader,
+        selectTileViewer,
+        miniMapManager,
+        planetHud
+    ) =
     let store = EntityStore()
 
     let chunkyVpTrees: ChunkyVpTrees =
@@ -46,6 +57,7 @@ type PlanetApp
             celestialMotion,
             chunkLoader,
             selectTileViewer,
+            miniMapManager,
             planetHud
         )
 
@@ -55,6 +67,7 @@ type PlanetApp
                 when 'E :> IOrbitCameraRigQuery
                 and 'E :> IOrbitCameraRigCommand
                 and 'E :> ILonLatGridCommand
+                and 'E :> IMiniMapManagerCommand
                 and 'E :> IPlanetHudCommand)
         =
         env.Reset()
@@ -63,6 +76,8 @@ type PlanetApp
         if not <| Engine.IsEditorHint() then
             env.InitElevationAndWaterVSlider()
             env.OnOrbitCameraRigMoved <| env.GetFocusBasePos() <| 0f
+            env.InitRectMiniMap()
+            env.InitMiniMap <| env.GetFocusBasePos()
 
     let onPlanetConfigParamsChanged
         (env: 'E when 'E :> IOrbitCameraRigCommand and 'E :> ILonLatGridCommand and 'E :> ICelestialMotionCommand)
@@ -88,6 +103,7 @@ type PlanetApp
     let celestialMotionToggleAllMotions (env: #ICelestialMotionCommand) toggle = env.ToggleAllMotions toggle
     let onChunkLoaderProcessed (env: #IChunkLoaderCommand) = env.OnChunkLoaderProcessed()
     let onHexGridChunkProcessed (env: #IChunkLoaderCommand) (chunk: IHexGridChunk) = env.OnHexGridChunkProcessed chunk
+    let onMiniMapClicked (env: #IOrbitCameraRigCommand) (v: Vector3) = env.SetAutoPilot v
     let onPlanetHudChosenTileIdChanged (env: #IPlanetHudCommand) = env.UpdateChosenTileInfo planetHud
 
     let onPlanetHudOrbitCameraRigTransformed (env: #IPlanetHudCommand) transform =
@@ -98,7 +114,13 @@ type PlanetApp
     let onPlanetHudDivisionLineEditTextSubmitted (env: #IPlanetHudCommand) chunky text =
         env.UpdateDivisionLineEdit chunky text
 
-    let onPlanetHudOrbitCameraRigMoved (env: #IPlanetHudCommand) pos delta = env.OnOrbitCameraRigMoved pos delta
+    let onPlanetHudOrbitCameraRigMoved
+        (env: 'E when 'E :> IPlanetHudCommand and 'E :> IMiniMapManagerCommand)
+        pos
+        delta
+        =
+        env.OnOrbitCameraRigMoved pos delta
+        env.SyncCameraIconPos pos
 
     let onProcessed
         (env: 'E when 'E :> ITileShaderDataCommand and 'E :> ISelectTileViewerCommand and 'E :> IPlanetHudCommand)
@@ -159,7 +181,7 @@ type PlanetApp
 
     member this.OnChunkLoaderProcessed() = onChunkLoaderProcessed env
     member this.OnHexGridChunkProcessed(chunk: IHexGridChunk) = onHexGridChunkProcessed env chunk
-
+    member this.OnMiniMapClicked(v: Vector3) = onMiniMapClicked env v
     member this.OnPlanetHudChosenTileIdChanged _ = onPlanetHudChosenTileIdChanged env
 
     member this.OnPlanetHudOrbitCameraRigTransformed(transform, _) =

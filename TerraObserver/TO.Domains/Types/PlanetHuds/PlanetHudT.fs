@@ -66,6 +66,7 @@ type IPlanetHudQuery =
 type OnOrbitCameraRigMoved = Vector3 -> float32 -> unit
 type OnOrbitCameraRigTransformed = Transform3D -> unit
 type InitElevationAndWaterVSlider = unit -> unit
+type InitRectMiniMap = unit -> unit
 type UpdateRadiusLineEdit = string -> unit
 type UpdateDivisionLineEdit = bool -> string -> unit
 type UpdateChosenTileInfo = IPlanetHud -> unit
@@ -76,6 +77,7 @@ type IPlanetHudCommand =
     abstract OnOrbitCameraRigMoved: OnOrbitCameraRigMoved
     abstract OnOrbitCameraRigTransformed: OnOrbitCameraRigTransformed
     abstract InitElevationAndWaterVSlider: InitElevationAndWaterVSlider
+    abstract InitRectMiniMap: InitRectMiniMap
     abstract UpdateRadiusLineEdit: UpdateRadiusLineEdit
     abstract UpdateDivisionLineEdit: UpdateDivisionLineEdit
     abstract UpdateChosenTileInfo: UpdateChosenTileInfo

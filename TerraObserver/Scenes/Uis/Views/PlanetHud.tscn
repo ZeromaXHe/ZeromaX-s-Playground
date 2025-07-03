@@ -1,8 +1,9 @@
-[gd_scene load_steps=11 format=3 uid="uid://b2v0nm0kt4y6m"]
+[gd_scene load_steps=12 format=3 uid="uid://b2v0nm0kt4y6m"]
 
 [ext_resource type="Texture2D" uid="uid://tsvwdv70km4i" path="res://icon.svg" id="1_0cpvq"]
 [ext_resource type="Script" uid="uid://vl1304uyharx" path="res://Scenes/Uis/Views/PlanetHud.cs" id="1_his83"]
 [ext_resource type="Shader" uid="uid://h6qljtxgdgpi" path="res://Shaders/Geos/SphereToRectMiniMap.gdshader" id="1_n7e48"]
+[ext_resource type="PackedScene" uid="uid://7w0s4wvgyyo0" path="res://Scenes/Maps/Views/MiniMapManager.tscn" id="2_leqgn"]
 
 [sub_resource type="Gradient" id="Gradient_vu6iq"]
 offsets = PackedFloat32Array(0, 0.98, 1)
@@ -475,6 +476,9 @@ stretch = true
 handle_input_locally = false
 size = Vector2i(350, 160)
 render_target_update_mode = 4
+
+[node name="MiniMapManager" parent="MiniMapVBox/RightPanel/Center/MiniMapContainer/SubViewport" instance=ExtResource("2_leqgn")]
+unique_name_in_owner = true
 
 [node name="CamLonLatLabel" type="Label" parent="MiniMapVBox"]
 unique_name_in_owner = true

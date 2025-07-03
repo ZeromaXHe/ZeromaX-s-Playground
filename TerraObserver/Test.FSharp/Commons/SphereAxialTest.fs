@@ -17,9 +17,9 @@ module SphereAxialTest =
         let southPole1 = SphereAxial(-1, 2)
         // 断言 Assert
         Assert.Equal(3, northPole1 |> SphereAxial.distanceTo southPole1)
-        Assert.Equal(TypeEnum.PoleVertices, northPole1.Type)
+        Assert.Equal(SphereAxialTypeEnum.PoleVertices, northPole1.Type)
         Assert.Equal(0, northPole1.TypeIdx)
-        Assert.Equal(TypeEnum.PoleVertices, southPole1.Type)
+        Assert.Equal(SphereAxialTypeEnum.PoleVertices, southPole1.Type)
         Assert.Equal(1, southPole1.TypeIdx)
 
         // Heuristic: Tile 890 ((-42, 4), Faces, 18) to Tile 848 ((-40, 0), MidVertices, 8) distance 4
@@ -28,24 +28,24 @@ module SphereAxialTest =
         let mutable sa2 = SphereAxial(-40, 0)
         Assert.Equal(4, sa1 |> SphereAxial.distanceTo sa2)
         Assert.Equal(4, sa2 |> SphereAxial.distanceTo sa1)
-        Assert.Equal(TypeEnum.Faces, sa1.Type)
+        Assert.Equal(SphereAxialTypeEnum.Faces, sa1.Type)
         Assert.Equal(18, sa1.TypeIdx)
-        Assert.Equal(TypeEnum.MidVertices, sa2.Type)
+        Assert.Equal(SphereAxialTypeEnum.MidVertices, sa2.Type)
         Assert.Equal(8, sa2.TypeIdx)
 
         sa1 <- SphereAxial(-41, 7)
         sa2 <- SphereAxial(-42, 6)
         Assert.Equal(2, sa1 |> SphereAxial.distanceTo sa2)
         Assert.Equal(2, sa2 |> SphereAxial.distanceTo sa1)
-        Assert.Equal(TypeEnum.Faces, sa1.Type)
+        Assert.Equal(SphereAxialTypeEnum.Faces, sa1.Type)
         Assert.Equal(18, sa1.TypeIdx)
-        Assert.Equal(TypeEnum.Faces, sa2.Type)
+        Assert.Equal(SphereAxialTypeEnum.Faces, sa2.Type)
         Assert.Equal(18, sa2.TypeIdx)
 
         sa2 <- SphereAxial(-41, 5)
         Assert.Equal(2, sa1 |> SphereAxial.distanceTo sa2)
         Assert.Equal(2, sa2 |> SphereAxial.distanceTo sa1)
-        Assert.Equal(TypeEnum.Faces, sa2.Type)
+        Assert.Equal(SphereAxialTypeEnum.Faces, sa2.Type)
         Assert.Equal(18, sa2.TypeIdx)
 
         SphereAxial.Div <- 40
@@ -53,9 +53,9 @@ module SphereAxialTest =
         sa2 <- SphereAxial(-120, -27)
         Assert.Equal(1, sa1 |> SphereAxial.distanceTo sa2)
         Assert.Equal(1, sa2 |> SphereAxial.distanceTo sa1)
-        Assert.Equal(TypeEnum.FacesSpecial, sa1.Type)
+        Assert.Equal(SphereAxialTypeEnum.FacesSpecial, sa1.Type)
         Assert.Equal(8, sa1.TypeIdx)
-        Assert.Equal(TypeEnum.EdgesSpecial, sa2.Type)
+        Assert.Equal(SphereAxialTypeEnum.EdgesSpecial, sa2.Type)
         Assert.Equal(18, sa2.TypeIdx)
 
     [<Fact>]
@@ -80,7 +80,7 @@ module SphereAxialTest =
         for i = 0 to midVertices.Length - 1 do
             Assert.Equal(i / 2 * 4 + 1 + i % 2, midVertices[i] |> SphereAxial.index)
             Assert.Equal(i, midVertices[i].TypeIdx)
-            Assert.Equal(TypeEnum.MidVertices, midVertices[i].Type)
+            Assert.Equal(SphereAxialTypeEnum.MidVertices, midVertices[i].Type)
             Assert.Equal((if i % 2 = 0 then div else 2 * div), midVertices[i] |> SphereAxial.distanceTo northPole)
             Assert.Equal((if i % 2 = 0 then div else 2 * div), northPole |> SphereAxial.distanceTo midVertices[i])
             Assert.Equal((if i % 2 = 1 then div else 2 * div), midVertices[i] |> SphereAxial.distanceTo southPole)
@@ -134,9 +134,9 @@ module SphereAxialTest =
 
             Assert.Equal(
                 (if i % 4 = 1 || i % 4 = 2 then
-                     TypeEnum.Faces
+                     SphereAxialTypeEnum.Faces
                  else
-                     TypeEnum.FacesSpecial),
+                     SphereAxialTypeEnum.FacesSpecial),
                 faceCenters[i].Type
             )
 

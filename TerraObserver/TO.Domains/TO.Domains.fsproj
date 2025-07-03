@@ -10,6 +10,7 @@
         <Compile Include="Types\Godots\IRefCounted.fs"/>
         <Compile Include="Types\Godots\IResource.fs"/>
         <Compile Include="Types\Godots\INode.fs"/>
+        <Compile Include="Types\Godots\INode2D.fs"/>
         <Compile Include="Types\Godots\INode3D.fs"/>
         <Compile Include="Types\Godots\IVisualInstance3D.fs"/>
         <Compile Include="Types\Godots\IGeometryInstance3D.fs"/>
@@ -64,7 +65,6 @@
         <Compile Include="Types\PathFindings\TileSearchDataT.fs"/>
         <Compile Include="Types\PathFindings\TilePriorityQueueT.fs"/>
         <Compile Include="Types\PathFindings\TileSearcherT.fs"/>
-        <Compile Include="Types\Maps\MapGeneratorT.fs"/>
         <Compile Include="Types\Configs\PlanetConfigT.fs"/>
         <Compile Include="Types\Configs\CatlikeCodingNoiseT.fs"/>
         <Compile Include="Types\Cameras\OrbitCameraRigT.fs"/>
@@ -75,6 +75,8 @@
         <Compile Include="Types\Chunks\IHexGridChunk.fs"/>
         <Compile Include="Types\Chunks\ChunkLoaderT.fs"/>
         <Compile Include="Types\Chunks\ChunkTriangulationT.fs"/>
+        <Compile Include="Types\Maps\MapGeneratorT.fs"/>
+        <Compile Include="Types\Maps\MiniMapManagerT.fs"/>
         <Compile Include="Types\PlanetHuds\OptionalToggleT.fs"/>
         <Compile Include="Types\PlanetHuds\SelectTileViewerT.fs"/>
         <Compile Include="Types\PlanetHuds\PlanetHudT.fs"/>
@@ -127,6 +129,8 @@
         <Compile Include="Functions\Chunks\HexGridChunk.fs"/>
         <Compile Include="Functions\Chunks\ChunkLoader.fs"/>
         <Compile Include="Functions\Chunks\ChunkTriangulation.fs"/>
+        <Compile Include="Functions\Maps\RectMiniMap.fs" />
+        <Compile Include="Functions\Maps\MiniMapManager.fs" />
         <Compile Include="Functions\PlanetHuds\SelectTileViewer.fs"/>
         <Compile Include="Functions\PlanetHuds\PlanetHud.fs"/>
         <Compile Include="Envs\PlanetEnv.fs"/>

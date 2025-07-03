@@ -3,6 +3,7 @@ namespace TO.Domains.Functions.HexSpheres.Components
 open System.Collections.Generic
 open Friflo.Engine.ECS
 open Godot
+open TO.Domains.Functions.Friflos
 open TO.Domains.Functions.HexGridCoords
 open TO.Domains.Functions.HexSpheres.Components.Faces
 open TO.Domains.Functions.HexSpheres.Components.Points
@@ -15,6 +16,7 @@ open TO.Domains.Types.HexSpheres.Components
 open TO.Domains.Types.HexSpheres.Components.Faces
 open TO.Domains.Types.HexSpheres.Components.Points
 open TO.Domains.Types.HexSpheres.Components.Tiles
+open TO.Domains.Types.Maps
 open TO.Domains.Types.Shaders
 
 module Tile =
@@ -54,6 +56,9 @@ module Tile =
 module TileQuery =
     let getTile (env: #IEntityStoreQuery) : GetTile =
         fun (tileId: TileId) -> env.GetEntityById tileId
+
+    let getAllTiles (env: #IEntityStoreQuery) : GetAllTiles =
+        fun () -> env.Query<TileValue>() |> ArchetypeQueryQuery.toEntitySeq
 
     let getSphereAxial (env: 'E :> IEntityStoreQuery) : GetSphereAxial =
         fun (tile: Entity) ->
@@ -134,13 +139,17 @@ module TileCommand =
                     TileValue 0
                     |> TileValue.withElevation (GD.RandRange(3, 7))
                     |> TileValue.withWaterLevel 5
-                    |> TileValue.withTerrainTypeIndex (GD.RandRange(0, 5)), // TODO: 临时测试用
+                    |> TileValue.withTerrainTypeIndex (GD.RandRange(0, 4)), // TODO: 临时测试用
                     TileVisibility 0
                 )
                 .Id
 
-    let private refreshTerrainShader (env: #ITileShaderDataCommand) (tile: Entity) =
+    let private refreshTerrainShader
+        (env: 'E when 'E :> ITileShaderDataCommand and 'E :> IMiniMapManagerCommand)
+        (tile: Entity)
+        =
         tile |> Tile.value |> env.RefreshTileShaderDataTerrain(Tile.countId tile)
+        env.RefreshMiniMapTile tile
 
     let private viewElevationChanged (env: #ITileShaderDataCommand) (tile: Entity) =
         tile |> Tile.value |> env.ViewElevationChanged(Tile.countId tile)

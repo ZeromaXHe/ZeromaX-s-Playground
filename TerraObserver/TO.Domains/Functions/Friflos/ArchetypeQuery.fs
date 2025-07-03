@@ -18,6 +18,18 @@ module ArchetypeQueryQuery =
                     chunk.Span[i]
         }
 
+    /// 单泛型参数查询转为 Entity Seq
+    let toEntitySeq<'T when 'T: (new: unit -> 'T) and 'T: struct and 'T :> System.ValueType>
+        (query: 'T ArchetypeQuery)
+        =
+        seq {
+            for chunks in query.Chunks do
+                let _, chunk = chunks.Deconstruct()
+
+                for i in 0 .. chunk.Length - 1 do
+                    chunk.EntityAt i
+        }
+
     /// 双泛型参数查询转为 Seq
     let toComponentSeq2<'T, 'T2
         when 'T: (new: unit -> 'T)

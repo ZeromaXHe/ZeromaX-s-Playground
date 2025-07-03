@@ -6,15 +6,14 @@ open Godot
 open TO.Domains.Functions.HexGridCoords
 open TO.Domains.Functions.HexMetrics
 open TO.Domains.Functions.HexSpheres.Components
-open TO.Domains.Functions.HexSpheres.Components.Points
 open TO.Domains.Functions.HexSpheres.Components.Tiles
+open TO.Domains.Functions.Maps
 open TO.Domains.Functions.Maths
 open TO.Domains.Types.Cameras
 open TO.Domains.Types.Configs
-open TO.Domains.Types.Friflos
 open TO.Domains.Types.HexSpheres.Components
-open TO.Domains.Types.HexSpheres.Components.Points
 open TO.Domains.Types.HexSpheres.Components.Tiles
+open TO.Domains.Types.Maps
 open TO.Domains.Types.PlanetHuds
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
@@ -68,6 +67,14 @@ module PlanetHudCommand =
                 planetHud.ElevationVSlider.TickCount <- planet.ElevationStep + 1
                 planetHud.WaterVSlider.MaxValue <- planet.ElevationStep
                 planetHud.WaterVSlider.TickCount <- planet.ElevationStep + 1)
+
+    let initRectMiniMap (env: #IPlanetHudQuery) : InitRectMiniMap =
+        fun () ->
+            match env.PlanetHudOpt with
+            | None -> ()
+            | Some planetHud ->
+                let rectMap = RectMiniMapQuery.generateRectMap env
+                planetHud.RectMap.Texture <- rectMap
 
     let updateRadiusLineEdit (env: 'E when 'E :> IPlanetConfigQuery and 'E :> IPlanetHudQuery) : UpdateRadiusLineEdit =
         fun text ->
@@ -210,11 +217,13 @@ module PlanetHudCommand =
             // if not this.EditMode then
             //     _unitManagerService.FindPath(null);
             // else
-            //  // 清理选择地块框
+            // 清理选择地块框
             //     _selectTileViewerRepo.Singleton!.CleanEditingTile()
             this.PreviousTileId <- Nullable()
 
-    let onPlanetHudProcessed (env: #IPlanetHudQuery) : OnPlanetHudProcessed =
+    let onPlanetHudProcessed
+        (env: 'E when 'E :> IPlanetHudQuery and 'E :> IMiniMapManagerCommand)
+        : OnPlanetHudProcessed =
         fun () ->
             match env.PlanetHudOpt with
             | Some planetHud ->
@@ -230,7 +239,7 @@ module PlanetHudCommand =
                     planetHud.GetViewport().GuiGetHoveredControl() = planetHud.MiniMapContainer
                     && Input.IsMouseButtonPressed MouseButton.Left
                 then
-                    ()
+                    env.ClickOnMiniMap()
 
                 if not directReturn then
                     planetHud.PreviousTileId <- Nullable()

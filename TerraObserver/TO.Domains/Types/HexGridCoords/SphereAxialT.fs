@@ -1,6 +1,6 @@
 namespace TO.Domains.Types.HexGridCoords
 
-type TypeEnum =
+type SphereAxialTypeEnum =
     // 正二十面体南北极顶点。
     // 索引：0 北极点，1 南极点
     | PoleVertices = 0
@@ -32,7 +32,7 @@ type TypeEnum =
 [<Struct>]
 type SphereAxial =
     val Coords: AxialCoords
-    val Type: TypeEnum
+    val Type: SphereAxialTypeEnum
     val TypeIdx: int
 
     static let validateAxial (q: int, r: int) =
@@ -64,73 +64,73 @@ type SphereAxial =
 
         if not <| validateAxial (q, r) then
             { Coords = coords
-              Type = TypeEnum.Invalid
+              Type = SphereAxialTypeEnum.Invalid
               TypeIdx = -1 }
         elif r = -SphereAxial.Div || r = 2 * SphereAxial.Div then
             { Coords = coords
-              Type = TypeEnum.PoleVertices
+              Type = SphereAxialTypeEnum.PoleVertices
               TypeIdx = if r = -SphereAxial.Div then 0 else 1 }
         elif r < 0 then
             if -q % SphereAxial.Div = 0 then
                 { Coords = coords
-                  Type = TypeEnum.EdgesSpecial
+                  Type = SphereAxialTypeEnum.EdgesSpecial
                   TypeIdx = -q / SphereAxial.Div * 6 }
             else
                 { Coords = coords
                   Type =
                     if -q % SphereAxial.Div = SphereAxial.Div + r - 1 then
-                        TypeEnum.FacesSpecial
+                        SphereAxialTypeEnum.FacesSpecial
                     else
-                        TypeEnum.Faces
+                        SphereAxialTypeEnum.Faces
                   TypeIdx = -q / SphereAxial.Div * 4 }
         elif r = 0 then
             if -q % SphereAxial.Div = 0 then
                 { Coords = coords
-                  Type = TypeEnum.MidVertices
+                  Type = SphereAxialTypeEnum.MidVertices
                   TypeIdx = -q / SphereAxial.Div * 2 }
             else
                 { Coords = coords
                   Type =
                     if -q % SphereAxial.Div = SphereAxial.Div - 1 then
-                        TypeEnum.EdgesSpecial
+                        SphereAxialTypeEnum.EdgesSpecial
                     else
-                        TypeEnum.Edges
+                        SphereAxialTypeEnum.Edges
                   TypeIdx = -q / SphereAxial.Div * 6 + 1 }
         elif r < SphereAxial.Div then
             if -q % SphereAxial.Div = 0 then
                 { Coords = coords
-                  Type = TypeEnum.Edges
+                  Type = SphereAxialTypeEnum.Edges
                   TypeIdx = -q / SphereAxial.Div * 6 + 3 }
             elif -q % SphereAxial.Div = r then
                 { Coords = coords
-                  Type = TypeEnum.Edges
+                  Type = SphereAxialTypeEnum.Edges
                   TypeIdx = -q / SphereAxial.Div * 6 + 2 }
             else
                 { Coords = coords
-                  Type = TypeEnum.Faces
+                  Type = SphereAxialTypeEnum.Faces
                   TypeIdx = -q / SphereAxial.Div * 4 + if -q % SphereAxial.Div > r then 1 else 2 }
         elif r = SphereAxial.Div then
             if -q % SphereAxial.Div = 0 then
                 { Coords = coords
-                  Type = TypeEnum.MidVertices
+                  Type = SphereAxialTypeEnum.MidVertices
                   TypeIdx = -q / SphereAxial.Div * 2 + 1 }
             else
                 { Coords = coords
                   Type =
                     if -q % SphereAxial.Div = SphereAxial.Div - 1 then
-                        TypeEnum.EdgesSpecial
+                        SphereAxialTypeEnum.EdgesSpecial
                     else
-                        TypeEnum.Edges
+                        SphereAxialTypeEnum.Edges
                   TypeIdx = -q / SphereAxial.Div * 6 + 4 }
         elif -q % SphereAxial.Div = r - SphereAxial.Div then
             { Coords = coords
-              Type = TypeEnum.EdgesSpecial
+              Type = SphereAxialTypeEnum.EdgesSpecial
               TypeIdx = -q / SphereAxial.Div * 6 + 5 }
         else
             { Coords = coords
               Type =
                 if -q % SphereAxial.Div = SphereAxial.Div - 1 then
-                    TypeEnum.FacesSpecial
+                    SphereAxialTypeEnum.FacesSpecial
                 else
-                    TypeEnum.Faces
+                    SphereAxialTypeEnum.Faces
               TypeIdx = -q / SphereAxial.Div * 4 + 3 }

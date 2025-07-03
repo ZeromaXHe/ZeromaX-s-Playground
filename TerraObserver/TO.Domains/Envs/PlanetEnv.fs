@@ -9,6 +9,7 @@ open TO.Domains.Functions.Geos
 open TO.Domains.Functions.HexMeshes
 open TO.Domains.Functions.HexSpheres
 open TO.Domains.Functions.HexSpheres.Components
+open TO.Domains.Functions.Maps
 open TO.Domains.Functions.PathFindings
 open TO.Domains.Functions.PlanetHuds
 open TO.Domains.Functions.Planets
@@ -21,6 +22,7 @@ open TO.Domains.Types.Geos
 open TO.Domains.Types.HexMeshes
 open TO.Domains.Types.HexSpheres
 open TO.Domains.Types.HexSpheres.Components
+open TO.Domains.Types.Maps
 open TO.Domains.Types.PathFindings
 open TO.Domains.Types.PlanetHuds
 open TO.Domains.Types.Planets
@@ -45,6 +47,7 @@ type PlanetEnv
         celestialMotion,
         chunkLoader,
         selectTileViewer,
+        miniMapManager,
         planetHud
     ) =
     interface IEntityStoreQuery with
@@ -81,6 +84,7 @@ type PlanetEnv
 
     interface ITileQuery with
         member this.GetTile = TileQuery.getTile this
+        member this.GetAllTiles = TileQuery.getAllTiles this
         member this.GetSphereAxial = TileQuery.getSphereAxial this
         member this.IsNeighborTile = TileQuery.isNeighborTile this
         member this.GetNeighborTileByIdx = TileQuery.getNeighborTileByIdx this
@@ -232,6 +236,16 @@ type PlanetEnv
     interface ISelectTileViewerCommand with
         member this.UpdateInEditMode = SelectTileViewerCommand.updateInEditMode this
 
+    interface IMiniMapManagerQuery with
+        member this.MiniMapManagerOpt =
+            if miniMapManager = null then None else Some miniMapManager
+
+    interface IMiniMapManagerCommand with
+        member this.InitMiniMap = MiniMapManagerCommand.initMiniMap this
+        member this.SyncCameraIconPos = MiniMapManagerCommand.syncCameraIconPos this
+        member this.ClickOnMiniMap = MiniMapManagerCommand.clickOnMiniMap this
+        member this.RefreshMiniMapTile = MiniMapManagerCommand.refreshMiniMapTile this
+
     interface IPlanetHudQuery with
         member this.PlanetHudOpt = if planetHud = null then None else Some planetHud
 
@@ -244,6 +258,7 @@ type PlanetEnv
         member this.InitElevationAndWaterVSlider =
             PlanetHudCommand.initElevationAndWaterVSlider this
 
+        member this.InitRectMiniMap = PlanetHudCommand.initRectMiniMap this
         member this.UpdateRadiusLineEdit = PlanetHudCommand.updateRadiusLineEdit this
         member this.UpdateDivisionLineEdit = PlanetHudCommand.updateDivisionLineEdit this
         member this.UpdateChosenTileInfo = PlanetHudCommand.updateChosenTileInfo this
