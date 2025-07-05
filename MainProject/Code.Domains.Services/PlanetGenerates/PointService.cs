@@ -25,7 +25,7 @@ public class PointService(IFaceRepo faceRepo, IPointRepo pointRepo) : IPointServ
     private void InitPointFaceIds(bool chunky)
     {
         foreach (var face in faceRepo.GetAllByChunky(chunky))
-        foreach (var p in face.TriVertices.Select(v => pointRepo.GetByPosition(chunky, v)!)) 
+        foreach (var p in face.TriVertices.Select(v => pointRepo.GetByPosition(chunky, v)!))
             p.FaceIds.Add(face.Id);
     }
 
@@ -84,19 +84,14 @@ public class PointService(IFaceRepo faceRepo, IPointRepo pointRepo) : IPointServ
             var nowLine = i == divisions
                 ? tropicOfCancer
                 : Math3dUtil.Subdivide(northEast[i], northWest[i], i);
-            if (i == divisions)
-                pointRepo.Add(chunky, nowLine[0], new SphereAxial(-divisions * col, 0));
-            else
-                pointRepo.Add(chunky, nowLine[0], new SphereAxial(-divisions * col, i - divisions));
+            pointRepo.Add(chunky, nowLine[0], new SphereAxial(-divisions * col, i == divisions ? 0 : i - divisions));
             for (var j = 0; j < i; j++)
             {
                 if (j > 0)
                 {
                     faceRepo.Add(chunky, [nowLine[j], preLine[j], preLine[j - 1]]);
-                    if (i == divisions)
-                        pointRepo.Add(chunky, nowLine[j], new SphereAxial(-divisions * col - j, 0));
-                    else
-                        pointRepo.Add(chunky, nowLine[j], new SphereAxial(-divisions * col - j, i - divisions));
+                    pointRepo.Add(chunky, nowLine[j],
+                        new SphereAxial(-divisions * col - j, i == divisions ? 0 : i - divisions));
                 }
 
                 faceRepo.Add(chunky, [preLine[j], nowLine[j], nowLine[j + 1]]);

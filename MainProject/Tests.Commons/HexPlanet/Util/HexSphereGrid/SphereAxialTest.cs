@@ -15,48 +15,66 @@ public class SphereAxialTest
         SphereAxial.Div = 1;
         var northPole1 = new SphereAxial(0, -1);
         var southPole1 = new SphereAxial(-1, 2);
+        var lonLat1 = northPole1.ToLongitudeAndLatitude();
+        var lonLat2 = southPole1.ToLongitudeAndLatitude();
         // 断言 Assert
         Assert.Equal(3, northPole1.DistanceTo(southPole1));
         Assert.Equal(SphereAxial.TypeEnum.PoleVertices, northPole1.Type);
         Assert.Equal(0, northPole1.TypeIdx);
         Assert.Equal(SphereAxial.TypeEnum.PoleVertices, southPole1.Type);
         Assert.Equal(1, southPole1.TypeIdx);
+        Assert.Equal("   0°00'00\", N90°00'00\"", lonLat1.ToString());
+        Assert.Equal("   0°00'00\", S90°00'00\"", lonLat2.ToString());
 
         // Heuristic: Tile 890 ((-42, 4), Faces, 18) to Tile 848 ((-40, 0), MidVertices, 8) distance 4
         SphereAxial.Div = 10;
         var sa1 = new SphereAxial(-42, 4);
         var sa2 = new SphereAxial(-40, 0);
+        lonLat1 = sa1.ToLongitudeAndLatitude();
+        lonLat2 = sa2.ToLongitudeAndLatitude();
         Assert.Equal(4, sa1.DistanceTo(sa2));
         Assert.Equal(4, sa2.DistanceTo(sa1));
         Assert.Equal(SphereAxial.TypeEnum.Faces, sa1.Type);
         Assert.Equal(18, sa1.TypeIdx);
         Assert.Equal(SphereAxial.TypeEnum.MidVertices, sa2.Type);
         Assert.Equal(8, sa2.TypeIdx);
+        Assert.Equal("E 72°00'00\", N 6°06'50\"", lonLat1.ToString());
+        Assert.Equal("E 72°00'00\", N29°08'29\"", lonLat2.ToString());
 
         sa1 = new SphereAxial(-41, 7);
         sa2 = new SphereAxial(-42, 6);
+        lonLat1 = sa1.ToLongitudeAndLatitude();
+        lonLat2 = sa2.ToLongitudeAndLatitude();
         Assert.Equal(2, sa1.DistanceTo(sa2));
         Assert.Equal(2, sa2.DistanceTo(sa1));
         Assert.Equal(SphereAxial.TypeEnum.Faces, sa1.Type);
         Assert.Equal(18, sa1.TypeIdx);
         Assert.Equal(SphereAxial.TypeEnum.Faces, sa2.Type);
         Assert.Equal(18, sa2.TypeIdx);
+        Assert.Equal("E 89°38'10\", S12°22'00\"", lonLat1.ToString());
+        Assert.Equal("E 79°06'03\", S 6°17'48\"", lonLat2.ToString());
 
         sa2 = new SphereAxial(-41, 5);
+        lonLat2 = sa2.ToLongitudeAndLatitude();
         Assert.Equal(2, sa1.DistanceTo(sa2));
         Assert.Equal(2, sa2.DistanceTo(sa1));
         Assert.Equal(SphereAxial.TypeEnum.Faces, sa2.Type);
         Assert.Equal(18, sa2.TypeIdx);
+        Assert.Equal("E 82°48'00\",   0°00'00\"", lonLat2.ToString());
 
         SphereAxial.Div = 40;
         sa1 = new SphereAxial(-92, -27);
         sa2 = new SphereAxial(-120, -27);
+        lonLat1 = sa1.ToLongitudeAndLatitude();
+        lonLat2 = sa2.ToLongitudeAndLatitude();
         Assert.Equal(1, sa1.DistanceTo(sa2));
         Assert.Equal(1, sa2.DistanceTo(sa1));
         Assert.Equal(SphereAxial.TypeEnum.FacesSpecial, sa1.Type);
         Assert.Equal(8, sa1.TypeIdx);
         Assert.Equal(SphereAxial.TypeEnum.EdgesSpecial, sa2.Type);
         Assert.Equal(18, sa2.TypeIdx);
+        Assert.Equal("E148°31'00\", N71°09'46\"", lonLat1.ToString());
+        Assert.Equal("E144°00'00\", N70°13'15\"", lonLat2.ToString());
     }
 
 

@@ -261,7 +261,7 @@ public class TileSearchService(
             var current = tileRepo.GetById(id)!;
             var originalElevation = current.Data.Elevation;
             var newElevation = originalElevation - sink;
-            if (newElevation < hexPlanetManagerRepo.ElevationStep)
+            if (newElevation < 0)
                 continue;
             current.Data = current.Data with { Values = current.Data.Values.WithElevation(newElevation) };
             if (originalElevation >= hexPlanetManagerRepo.DefaultWaterLevel
