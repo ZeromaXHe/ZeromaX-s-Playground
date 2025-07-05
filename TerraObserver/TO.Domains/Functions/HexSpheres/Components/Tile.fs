@@ -4,13 +4,11 @@ open System.Collections.Generic
 open Friflo.Engine.ECS
 open Godot
 open TO.Domains.Functions.Friflos
-open TO.Domains.Functions.HexGridCoords
 open TO.Domains.Functions.HexSpheres.Components.Faces
 open TO.Domains.Functions.HexSpheres.Components.Points
 open TO.Domains.Functions.HexSpheres.Components.Tiles
 open TO.Domains.Types.Chunks
 open TO.Domains.Types.Friflos
-open TO.Domains.Types.HexGridCoords
 open TO.Domains.Types.HexSpheres
 open TO.Domains.Types.HexSpheres.Components
 open TO.Domains.Types.HexSpheres.Components.Faces
@@ -56,6 +54,9 @@ module Tile =
 module TileQuery =
     let getTile (env: #IEntityStoreQuery) : GetTile =
         fun (tileId: TileId) -> env.GetEntityById tileId
+
+    let getTileByCountId (env: #IEntityStoreQuery): GetTileByCountId =
+        fun (tileCountId: int) -> (env.EntityStore.ComponentIndex<TileCountId, int>()[tileCountId]).Item 0 // 假定了结果一定非空
 
     let getAllTiles (env: #IEntityStoreQuery) : GetAllTiles =
         fun () -> env.Query<TileValue>() |> ArchetypeQueryQuery.toEntitySeq
@@ -136,10 +137,7 @@ module TileCommand =
                     TileUnitCorners unitCorners,
                     TileHexFaceIds hexFaceIds,
                     TileFlag TileFlagEnum.Explorable,
-                    TileValue 0
-                    |> TileValue.withElevation (GD.RandRange(3, 7))
-                    |> TileValue.withWaterLevel 5
-                    |> TileValue.withTerrainTypeIndex (GD.RandRange(0, 4)), // TODO: 临时测试用
+                    TileValue 0,
                     TileVisibility 0
                 )
                 .Id

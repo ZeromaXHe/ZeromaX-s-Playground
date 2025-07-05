@@ -8,7 +8,7 @@ open TO.Domains.Types.HexGridCoords
 /// Date: 2025-06-29 17:07:29
 module SphereAxial =
     let toString (this: SphereAxial) =
-        $"{this.Coords |> AxialCoords.toString} {this.Type} {this.TypeIdx}"
+        $"{this.Coords |> AxialCoords.toString}, {this.Type}, {this.TypeIdx}"
 
     let specialNeighbor (this: SphereAxial) =
         this.Type = SphereAxialTypeEnum.EdgesSpecial
@@ -60,17 +60,17 @@ module SphereAxial =
     let private leftEdgeDiffQ (this: SphereAxial) =
         match row this with
         | 0 -> this.Coords.Q + this.Coords.R + SphereAxial.Div + column this * SphereAxial.Div
-        | 1 -> this.Coords.Q + SphereAxial.Div + column this * SphereAxial.Div
-        | 2 -> this.Coords.Q + this.Coords.R + column this * SphereAxial.Div
+        | 1
         | 3 -> this.Coords.Q + SphereAxial.Div + column this * SphereAxial.Div
+        | 2 -> this.Coords.Q + this.Coords.R + column this * SphereAxial.Div
         | _ -> failwith "Invalid row" // TODO: 去掉异常
 
     /// 距离右边最近的边的 Q 差值（向右不存在特殊情况）
     let private rightEdgeDiffQ (this: SphereAxial) =
         match row this with
-        | 0 -> -column this * SphereAxial.Div - this.Coords.Q
-        | 1 -> -column this * SphereAxial.Div - this.Coords.Q - this.Coords.R
+        | 0
         | 2 -> -column this * SphereAxial.Div - this.Coords.Q
+        | 1 -> -column this * SphereAxial.Div - this.Coords.Q - this.Coords.R
         | 3 -> -column this * SphereAxial.Div - this.Coords.Q - this.Coords.R + SphereAxial.Div
         | _ -> failwith "Invalid row" // TODO: 去掉异常
 
@@ -89,32 +89,31 @@ module SphereAxial =
     /// <returns>按照非平行于 XZ 平面的边的单独点第一个，然后两个平行边上的点按顺时针顺序排列，返回三个点的数组</returns>
     let private triangleVertices (this: SphereAxial) =
         let nextColumn = (column this + 1) % 5
-        let sa = this // F# 闭包不能传 this 这种 byref
 
         match row this with
         | 0 ->
             seq {
                 SphereAxial(0, -SphereAxial.Div)
-                SphereAxial(-column sa * SphereAxial.Div, 0)
+                SphereAxial(-column this * SphereAxial.Div, 0)
                 SphereAxial(-nextColumn * SphereAxial.Div, 0)
             }
         | 1 ->
             seq {
                 SphereAxial(-nextColumn * SphereAxial.Div, SphereAxial.Div)
                 SphereAxial(-nextColumn * SphereAxial.Div, 0)
-                SphereAxial(-column sa * SphereAxial.Div, 0)
+                SphereAxial(-column this * SphereAxial.Div, 0)
             }
         | 2 ->
             seq {
-                SphereAxial(-column sa * SphereAxial.Div, 0)
-                SphereAxial(-column sa * SphereAxial.Div, SphereAxial.Div)
+                SphereAxial(-column this * SphereAxial.Div, 0)
+                SphereAxial(-column this * SphereAxial.Div, SphereAxial.Div)
                 SphereAxial(-nextColumn * SphereAxial.Div, SphereAxial.Div)
             }
         | 3 ->
             seq {
                 SphereAxial(-SphereAxial.Div, 2 * SphereAxial.Div)
                 SphereAxial(-nextColumn * SphereAxial.Div, SphereAxial.Div)
-                SphereAxial(-column sa * SphereAxial.Div, SphereAxial.Div)
+                SphereAxial(-column this * SphereAxial.Div, SphereAxial.Div)
             }
         | _ -> null
     // 转经纬度
@@ -142,24 +141,234 @@ module SphereAxial =
                 triCoords[0]
                 |> LonLatCoords.slerp
                     triCoords[1]
-                    (float32 <| Mathf.Abs((this.Coords.R - tri[0].Coords.R) / SphereAxial.Div))
+                    (float32 (Mathf.Abs(this.Coords.R - tri[0].Coords.R)) / float32 SphereAxial.Div)
 
             let horizontalCoords2 =
                 triCoords[0]
                 |> LonLatCoords.slerp
                     triCoords[2]
-                    (float32 <| Mathf.Abs((this.Coords.R - tri[0].Coords.R) / SphereAxial.Div))
+                    (float32 (Mathf.Abs(this.Coords.R - tri[0].Coords.R)) / float32 SphereAxial.Div)
 
             horizontalCoords1
             |> LonLatCoords.slerp
                 horizontalCoords2
-                (float32
-                 <| (if row this % 2 = 1 then
-                         leftEdgeDiffQ this
-                     else
-                         rightEdgeDiffQ this)
-                    / leftRightEdgeDiffQ this)
+                (float32 (
+                    if row this % 2 = 1 then
+                        leftEdgeDiffQ this
+                    else
+                        rightEdgeDiffQ this
+                 )
+                 / float32 (leftRightEdgeDiffQ this))
         | _ -> failwith $"暂不支持的类型：{this.Type}" // TODO: 去掉异常
+
+    let rec distanceOnePole (sa: SphereAxial) (this: SphereAxial) =
+        if isNorth5 this then
+            // 北极五面
+            match Mathf.PosMod(index sa - index this, 20) with
+            | 6
+            | 7 ->
+                // sa 在逆斜列（/）上的情况，直接按平面求距离
+                if index this < index sa then
+                    sa.Coords |> AxialCoords.distanceTo this.Coords
+                else
+                    sa.Coords
+                    |> AxialCoords.distanceTo (this.Coords |> AxialCoords.add (AxialCoords(SphereAxial.Width, 0)))
+            | 4
+            | 5
+            | 10
+            | 11 ->
+                // sa 在左边逆斜列（/）的情况
+                let rotLeft =
+                    this.Coords
+                    |> AxialCoords.rotateCounterClockwiseAround (AxialCoords(-(column this + 1) * SphereAxial.Div, 0))
+
+                if index this < index sa then
+                    sa.Coords |> AxialCoords.distanceTo rotLeft
+                else
+                    sa.Coords
+                    |> AxialCoords.distanceTo (rotLeft |> AxialCoords.add (AxialCoords(SphereAxial.Width, 0)))
+            | 8
+            | 9 ->
+                // sa 在左边隔一列的逆斜列（/）的情况
+                let rotLeft2 =
+                    this.Coords
+                    |> AxialCoords.rotateCounterClockwiseAround (AxialCoords(-(column this + 1) * SphereAxial.Div, 0))
+                    |> AxialCoords.rotateCounterClockwiseAround (AxialCoords(-(column this + 2) * SphereAxial.Div, 0))
+
+                if index this < index sa then
+                    sa.Coords |> AxialCoords.distanceTo rotLeft2
+                else
+                    sa.Coords
+                    |> AxialCoords.distanceTo (rotLeft2 |> AxialCoords.add (AxialCoords(SphereAxial.Width, 0)))
+            | 14
+            | 15 ->
+                // 14，15 是边界情况，可能看作左边隔一列的逆斜列（/）近，也可能看作右边隔一列的斜列（\）近
+                let rot2Left =
+                    this.Coords
+                    |> AxialCoords.rotateCounterClockwiseAround (AxialCoords(-(column this + 1) * SphereAxial.Div, 0))
+                    |> AxialCoords.rotateCounterClockwiseAround (AxialCoords(-(column this + 2) * SphereAxial.Div, 0))
+
+                let rot2Right =
+                    this.Coords
+                    |> AxialCoords.rotateClockwiseAround (AxialCoords(-column this * SphereAxial.Div, 0))
+                    |> AxialCoords.rotateClockwiseAround (AxialCoords(-(column this - 1) * SphereAxial.Div, 0))
+
+                Mathf.Min(
+                    (if index this < index sa then
+                         sa.Coords |> AxialCoords.distanceTo rot2Left
+                     else
+                         sa.Coords
+                         |> AxialCoords.distanceTo (rot2Left |> AxialCoords.add (AxialCoords(SphereAxial.Width, 0)))),
+                    if index this < index sa then
+                        rot2Right
+                        |> AxialCoords.distanceTo (sa.Coords |> AxialCoords.add (AxialCoords(SphereAxial.Width, 0)))
+                    else
+                        rot2Right |> AxialCoords.distanceTo sa.Coords
+                )
+            | 12
+            | 13 ->
+                // sa 在右边隔一列的斜列（\）的情况
+                let rotRight2 =
+                    this.Coords
+                    |> AxialCoords.rotateClockwiseAround (AxialCoords(-column this * SphereAxial.Div, 0))
+                    |> AxialCoords.rotateClockwiseAround (AxialCoords(-(column this - 1) * SphereAxial.Div, 0))
+
+                if index this < index sa then
+                    rotRight2
+                    |> AxialCoords.distanceTo (sa.Coords |> AxialCoords.add (AxialCoords(SphereAxial.Width, 0)))
+                else
+                    rotRight2 |> AxialCoords.distanceTo sa.Coords
+            | 16
+            | 17
+            | 18
+            | 19 ->
+                // sa 在右边斜列（\）上的情况
+                let rotRight =
+                    this.Coords
+                    |> AxialCoords.rotateClockwiseAround (AxialCoords(-column this * SphereAxial.Div, 0))
+
+                if index this < index sa then
+                    rotRight
+                    |> AxialCoords.distanceTo (sa.Coords |> AxialCoords.add (AxialCoords(SphereAxial.Width, 0)))
+                else
+                    rotRight |> AxialCoords.distanceTo sa.Coords
+            | _ -> failwith "distanceOnePole North5 不可能的情况" // TODO: 去掉异常
+        elif isSouth5 this then
+            // 南极五面
+            match Mathf.PosMod(index sa - index this, 20) with
+            | 1
+            | 2
+            | 3
+            | 4 ->
+                // sa 在左边斜列（\）上的情况
+                let rotLeft =
+                    this.Coords
+                    |> AxialCoords.rotateClockwiseAround (
+                        AxialCoords(-(column this + 1) * SphereAxial.Div, SphereAxial.Div)
+                    )
+
+                if index this < index sa then
+                    sa.Coords |> AxialCoords.distanceTo rotLeft
+                else
+                    sa.Coords
+                    |> AxialCoords.distanceTo (rotLeft |> AxialCoords.add (AxialCoords(SphereAxial.Width, 0)))
+            | 7
+            | 8 ->
+                // sa 在左边隔一列的斜列（\）上的情况
+                let rotLeft2 =
+                    this.Coords
+                    |> AxialCoords.rotateClockwiseAround (
+                        AxialCoords(-(column this + 1) * SphereAxial.Div, SphereAxial.Div)
+                    )
+                    |> AxialCoords.rotateClockwiseAround (
+                        AxialCoords(-(column this + 2) * SphereAxial.Div, SphereAxial.Div)
+                    )
+
+                if index this < index sa then
+                    sa.Coords |> AxialCoords.distanceTo rotLeft2
+                else
+                    sa.Coords
+                    |> AxialCoords.distanceTo (rotLeft2 |> AxialCoords.add (AxialCoords(SphereAxial.Width, 0)))
+            | 5
+            | 6 ->
+                // 5，6 是边界情况，可能看作左边隔一列的逆斜列（/）近，也可能看作右边隔一列的斜列（\）近
+                let rot2Left =
+                    this.Coords
+                    |> AxialCoords.rotateClockwiseAround (
+                        AxialCoords(-(column this + 1) * SphereAxial.Div, SphereAxial.Div)
+                    )
+                    |> AxialCoords.rotateClockwiseAround (
+                        AxialCoords(-(column this + 2) * SphereAxial.Div, SphereAxial.Div)
+                    )
+
+                let rot2Right =
+                    this.Coords
+                    |> AxialCoords.rotateCounterClockwiseAround (
+                        AxialCoords(-column this * SphereAxial.Div, SphereAxial.Div)
+                    )
+                    |> AxialCoords.rotateCounterClockwiseAround (
+                        AxialCoords(-(column this - 1) * SphereAxial.Div, SphereAxial.Div)
+                    )
+
+                let leftDist =
+                    if index this < index sa then
+                        sa.Coords |> AxialCoords.distanceTo rot2Left
+                    else
+                        sa.Coords
+                        |> AxialCoords.distanceTo (rot2Left |> AxialCoords.add (AxialCoords(SphereAxial.Width, 0)))
+
+                let rightDist =
+                    if index this < index sa then
+                        rot2Right
+                        |> AxialCoords.distanceTo (sa.Coords |> AxialCoords.add (AxialCoords(SphereAxial.Width, 0)))
+                    else
+                        rot2Right |> AxialCoords.distanceTo sa.Coords
+
+                Mathf.Min(leftDist, rightDist)
+            | 11
+            | 12 ->
+                // sa 在右边隔一列的逆斜列（/）上的情况
+                let rotRight2 =
+                    this.Coords
+                    |> AxialCoords.rotateCounterClockwiseAround (
+                        AxialCoords(-column this * SphereAxial.Div, SphereAxial.Div)
+                    )
+                    |> AxialCoords.rotateCounterClockwiseAround (
+                        AxialCoords(-(column this - 1) * SphereAxial.Div, SphereAxial.Div)
+                    )
+
+                if index this < index sa then
+                    rotRight2
+                    |> AxialCoords.distanceTo (sa.Coords |> AxialCoords.add (AxialCoords(SphereAxial.Width, 0)))
+                else
+                    rotRight2 |> AxialCoords.distanceTo sa.Coords
+            | 9
+            | 10
+            | 15
+            | 16 ->
+                // sa 在右边逆斜列（/）上的情况
+                let rotRight =
+                    this.Coords
+                    |> AxialCoords.rotateCounterClockwiseAround (
+                        AxialCoords(-column this * SphereAxial.Div, SphereAxial.Div)
+                    )
+
+                if index this < index sa then
+                    rotRight
+                    |> AxialCoords.distanceTo (sa.Coords |> AxialCoords.add (AxialCoords(SphereAxial.Width, 0)))
+                else
+                    rotRight |> AxialCoords.distanceTo sa.Coords
+            | 13
+            | 14 ->
+                // sa 在逆斜列（/）上的情况，直接按平面求距离
+                if index this < index sa then
+                    this.Coords
+                    |> AxialCoords.distanceTo (sa.Coords |> AxialCoords.add (AxialCoords(SphereAxial.Width, 0)))
+                else
+                    this.Coords |> AxialCoords.distanceTo sa.Coords
+            | _ -> failwith "distanceOnePole South5 不可能的情况" // TODO: 去掉异常
+        else
+            distanceOnePole this sa
 
     let distanceTo (sa: SphereAxial) (this: SphereAxial) =
         // TODO：现在只能先分情况全写一遍了…… 有点蠢，后续优化
@@ -171,8 +380,8 @@ module SphereAxial =
 
             Mathf.Min(
                 left.Coords |> AxialCoords.distanceTo right.Coords,
-                right.Coords |> AxialCoords.distanceTo
-                <| (left.Coords |> AxialCoords.add <| AxialCoords(SphereAxial.Width, 0))
+                right.Coords
+                |> AxialCoords.distanceTo (left.Coords |> AxialCoords.add (AxialCoords(SphereAxial.Width, 0)))
             )
         elif this.Type = SphereAxialTypeEnum.PoleVertices then
             if this.TypeIdx = 1 then
@@ -185,201 +394,4 @@ module SphereAxial =
             else
                 this.Coords.R + SphereAxial.Div
         else
-            let rec distanceOnePole (sa1: SphereAxial) (sa2: SphereAxial) =
-                if isNorth5 sa1 then
-                    // 北极五面
-                    match Mathf.PosMod(index sa2 - index sa1, 20) with
-                    | 6
-                    | 7 ->
-                        // sa 在逆斜列（/）上的情况，直接按平面求距离
-                        if index sa1 < index sa2 then
-                            sa2.Coords |> AxialCoords.distanceTo sa1.Coords
-                        else
-                            sa2.Coords |> AxialCoords.distanceTo
-                            <| (sa1.Coords |> AxialCoords.add <| AxialCoords(SphereAxial.Width, 0))
-                    | 4
-                    | 5
-                    | 10
-                    | 11 ->
-                        // sa 在左边逆斜列（/）的情况
-                        let rotLeft =
-                            sa1.Coords |> AxialCoords.rotateCounterClockwiseAround
-                            <| AxialCoords(-(column sa1 + 1) * SphereAxial.Div, 0)
-
-                        if index sa1 < index sa2 then
-                            sa2.Coords |> AxialCoords.distanceTo rotLeft
-                        else
-                            sa2.Coords |> AxialCoords.distanceTo
-                            <| (rotLeft |> AxialCoords.add <| AxialCoords(SphereAxial.Width, 0))
-                    | 8
-                    | 9 ->
-                        // sa 在左边隔一列的逆斜列（/）的情况
-                        let rotLeft2 =
-                            sa1.Coords |> AxialCoords.rotateCounterClockwiseAround
-                            <| AxialCoords(-(column sa1 + 1) * SphereAxial.Div, 0)
-                            |> AxialCoords.rotateCounterClockwiseAround
-                            <| AxialCoords(-(column sa1 + 2) * SphereAxial.Div, 0)
-
-                        if index sa1 < index sa2 then
-                            sa2.Coords |> AxialCoords.distanceTo rotLeft2
-                        else
-                            sa2.Coords |> AxialCoords.distanceTo
-                            <| (rotLeft2 |> AxialCoords.add <| AxialCoords(SphereAxial.Width, 0))
-                    | 14
-                    | 15 ->
-                        // 14，15 是边界情况，可能看作左边隔一列的逆斜列（/）近，也可能看作右边隔一列的斜列（\）近
-                        let rot2Left =
-                            sa1.Coords |> AxialCoords.rotateCounterClockwiseAround
-                            <| AxialCoords(-(column sa1 + 1) * SphereAxial.Div, 0)
-                            |> AxialCoords.rotateCounterClockwiseAround
-                            <| AxialCoords(-(column sa1 + 2) * SphereAxial.Div, 0)
-
-                        let rot2Right =
-                            sa1.Coords |> AxialCoords.rotateClockwiseAround
-                            <| AxialCoords(-column sa1 * SphereAxial.Div, 0)
-                            |> AxialCoords.rotateClockwiseAround
-                            <| AxialCoords(-(column sa1 - 1) * SphereAxial.Div, 0)
-
-                        Mathf.Min(
-                            (if index sa1 < index sa2 then
-                                 sa2.Coords |> AxialCoords.distanceTo rot2Left
-                             else
-                                 sa2.Coords |> AxialCoords.distanceTo
-                                 <| (rot2Left |> AxialCoords.add <| AxialCoords(SphereAxial.Width, 0))),
-                            if index sa1 < index sa2 then
-                                rot2Right |> AxialCoords.distanceTo
-                                <| (sa2.Coords |> AxialCoords.add <| AxialCoords(SphereAxial.Width, 0))
-                            else
-                                rot2Right |> AxialCoords.distanceTo sa2.Coords
-                        )
-                    | 12
-                    | 13 ->
-                        // sa 在右边隔一列的斜列（\）的情况
-                        let rotRight2 =
-                            sa1.Coords |> AxialCoords.rotateClockwiseAround
-                            <| AxialCoords(-column sa1 * SphereAxial.Div, 0)
-                            |> AxialCoords.rotateClockwiseAround
-                            <| AxialCoords(-(column sa1 - 1) * SphereAxial.Div, 0)
-
-                        if index sa1 < index sa2 then
-                            rotRight2 |> AxialCoords.distanceTo
-                            <| (sa2.Coords |> AxialCoords.add <| AxialCoords(SphereAxial.Width, 0))
-                        else
-                            rotRight2 |> AxialCoords.distanceTo sa2.Coords
-                    | 16
-                    | 17
-                    | 18
-                    | 19 ->
-                        // sa 在右边斜列（\）上的情况
-                        let rotRight =
-                            sa1.Coords |> AxialCoords.rotateClockwiseAround
-                            <| AxialCoords(-column sa1 * SphereAxial.Div, 0)
-
-                        if index sa1 < index sa2 then
-                            rotRight |> AxialCoords.distanceTo
-                            <| (sa2.Coords |> AxialCoords.add <| AxialCoords(SphereAxial.Width, 0))
-                        else
-                            rotRight |> AxialCoords.distanceTo sa2.Coords
-                    | _ -> failwith "distanceOnePole North5 不可能的情况" // TODO: 去掉异常
-                elif isSouth5 sa1 then
-                    // 南极五面
-                    match Mathf.PosMod(index sa2 - index sa1, 20) with
-                    | 1
-                    | 2
-                    | 3
-                    | 4 ->
-                        // sa 在左边斜列（\）上的情况
-                        let rotLeft =
-                            sa1.Coords |> AxialCoords.rotateClockwiseAround
-                            <| AxialCoords(-(column sa1 + 1) * SphereAxial.Div, SphereAxial.Div)
-
-                        if index sa1 < index sa2 then
-                            sa2.Coords |> AxialCoords.distanceTo rotLeft
-                        else
-                            sa2.Coords |> AxialCoords.distanceTo
-                            <| (rotLeft |> AxialCoords.add <| AxialCoords(SphereAxial.Width, 0))
-                    | 7
-                    | 8 ->
-                        // sa 在左边隔一列的斜列（\）上的情况
-                        let rotLeft2 =
-                            sa1.Coords |> AxialCoords.rotateClockwiseAround
-                            <| AxialCoords(-(column sa1 + 1) * SphereAxial.Div, SphereAxial.Div)
-                            |> AxialCoords.rotateClockwiseAround
-                            <| AxialCoords(-(column sa1 + 2) * SphereAxial.Div, SphereAxial.Div)
-
-                        if index sa1 < index sa2 then
-                            sa.Coords |> AxialCoords.distanceTo rotLeft2
-                        else
-                            sa2.Coords |> AxialCoords.distanceTo
-                            <| (rotLeft2 |> AxialCoords.add <| AxialCoords(SphereAxial.Width, 0))
-                    | 5
-                    | 6 ->
-                        // 5，6 是边界情况，可能看作左边隔一列的逆斜列（/）近，也可能看作右边隔一列的斜列（\）近
-                        let rot2Left =
-                            sa1.Coords |> AxialCoords.rotateClockwiseAround
-                            <| AxialCoords(-(column sa1 + 1) * SphereAxial.Div, SphereAxial.Div)
-                            |> AxialCoords.rotateClockwiseAround
-                            <| AxialCoords(-(column sa1 + 2) * SphereAxial.Div, SphereAxial.Div)
-
-                        let rot2Right =
-                            sa1.Coords |> AxialCoords.rotateCounterClockwiseAround
-                            <| AxialCoords(-column sa1 * SphereAxial.Div, SphereAxial.Div)
-                            |> AxialCoords.rotateCounterClockwiseAround
-                            <| AxialCoords(-(column sa1 - 1) * SphereAxial.Div, SphereAxial.Div)
-
-                        let leftDist =
-                            if index sa1 < index sa2 then
-                                sa2.Coords |> AxialCoords.distanceTo rot2Left
-                            else
-                                sa2.Coords |> AxialCoords.distanceTo
-                                <| (rot2Left |> AxialCoords.add <| AxialCoords(SphereAxial.Width, 0))
-
-                        let rightDist =
-                            if index sa1 < index sa2 then
-                                rot2Right |> AxialCoords.distanceTo
-                                <| (sa2.Coords |> AxialCoords.add <| AxialCoords(SphereAxial.Width, 0))
-                            else
-                                rot2Right |> AxialCoords.distanceTo sa2.Coords
-
-                        Mathf.Min(leftDist, rightDist)
-                    | 11
-                    | 12 ->
-                        // sa 在右边隔一列的逆斜列（/）上的情况
-                        let rotRight2 =
-                            sa1.Coords |> AxialCoords.rotateCounterClockwiseAround
-                            <| AxialCoords(-column sa1 * SphereAxial.Div, SphereAxial.Div)
-                            |> AxialCoords.rotateCounterClockwiseAround
-                            <| AxialCoords(-(column sa1 - 1) * SphereAxial.Div, SphereAxial.Div)
-
-                        if index sa1 < index sa2 then
-                            rotRight2 |> AxialCoords.distanceTo
-                            <| (sa2.Coords |> AxialCoords.add <| AxialCoords(SphereAxial.Width, 0))
-                        else
-                            rotRight2 |> AxialCoords.distanceTo sa2.Coords
-                    | 9
-                    | 10
-                    | 15
-                    | 16 ->
-                        // sa 在右边逆斜列（/）上的情况
-                        let rotRight =
-                            sa1.Coords |> AxialCoords.rotateCounterClockwiseAround
-                            <| AxialCoords(-column sa1 * SphereAxial.Div, SphereAxial.Div)
-
-                        if index sa1 < index sa2 then
-                            rotRight |> AxialCoords.distanceTo
-                            <| (sa2.Coords |> AxialCoords.add <| AxialCoords(SphereAxial.Width, 0))
-                        else
-                            rotRight |> AxialCoords.distanceTo sa2.Coords
-                    | 13
-                    | 14 ->
-                        // sa 在逆斜列（/）上的情况，直接按平面求距离
-                        if index sa1 < index sa2 then
-                            sa1.Coords |> AxialCoords.distanceTo
-                            <| (sa2.Coords |> AxialCoords.add <| AxialCoords(SphereAxial.Width, 0))
-                        else
-                            sa1.Coords |> AxialCoords.distanceTo sa2.Coords
-                    | _ -> failwith "distanceOnePole South5 不可能的情况" // TODO: 去掉异常
-                else
-                    distanceOnePole sa2 sa1
-
-            distanceOnePole this sa
+            distanceOnePole sa this

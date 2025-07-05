@@ -7,6 +7,7 @@ open Xunit
 type MyComponent =
     interface IComponent
     val Idx: int
+    new(idx) = { Idx = idx }
 
 [<Struct>]
 type IdRelation =
@@ -63,3 +64,31 @@ let ``Relations for-loop test`` () =
 
     // Assert.Equal(18, difference) // 18 differences in for-idx-loop 3.4.1
     Assert.Equal(0, difference) // 0 differences in for-idx-loop 3.4.2
+
+
+[<Fact>]
+let ``AddComponent test`` () =
+    // Arrange
+    let store = EntityStore()
+    let entity1 = store.CreateEntity(MyComponent 1)
+    let entity2 = store.CreateEntity(MyComponent 1)
+    let arr = [| entity1; entity2 |]
+    let newComponent = MyComponent 2
+    // Act
+    let result =
+        arr
+        |> Array.map (fun entity ->
+            let idx1 = entity.GetComponent<MyComponent>().Idx
+            let updated = entity.AddComponent<MyComponent>(&newComponent)
+            let idx2 = entity.GetComponent<MyComponent>().Idx
+            let e1idx = entity1.GetComponent<MyComponent>().Idx
+            let e2idx = entity2.GetComponent<MyComponent>().Idx
+            idx1, updated, idx2, e1idx, e2idx)
+    // Assert
+    for i in 0..1 do
+        let idx1, updated, idx2, e1idx, e2idx = result[i]
+        Assert.Equal(1, idx1)
+        Assert.False(updated)
+        Assert.Equal(2, idx2)
+        Assert.Equal(2, e1idx)
+        Assert.Equal((if i = 0 then 1 else 2), e2idx) // 验证循环内 Entity 的修改会即刻生效

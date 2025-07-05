@@ -7,7 +7,8 @@ open Friflo.Engine.ECS
 /// Date: 2025-06-17 07:04:17
 [<Struct>]
 type TileCountId =
-    interface IComponent
+    interface int IIndexedComponent with
+        member this.GetIndexedValue() = this.CountId
 
     val CountId: int
     new(countId: int) = { CountId = countId }

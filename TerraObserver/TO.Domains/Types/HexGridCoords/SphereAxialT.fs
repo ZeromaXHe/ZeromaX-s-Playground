@@ -134,3 +134,6 @@ type SphereAxial =
                 else
                     SphereAxialTypeEnum.Faces
               TypeIdx = -q / SphereAxial.Div * 4 + 3 }
+
+    override this.ToString() =
+        $"{this.Coords}, {this.Type}, {this.TypeIdx}"

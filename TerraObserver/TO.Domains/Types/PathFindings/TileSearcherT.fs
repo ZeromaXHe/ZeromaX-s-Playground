@@ -1,5 +1,6 @@
 namespace TO.Domains.Types.PathFindings
 
+open Friflo.Engine.ECS
 open TO.Domains.Types.HexSpheres.Components.Tiles
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
@@ -13,9 +14,12 @@ type TileSearcher() =
     member val CurrentPathToId = -1 with get, set
     member val HasPath = false with get, set
 
+type GetMoveCost = Entity -> Entity -> int
+
 [<Interface>]
 type ITileSearcherQuery =
     abstract TileSearcher: TileSearcher
+    abstract GetMoveCost: GetMoveCost
 
 type InitSearchData = unit -> unit
 type RefreshTileSearchData = TileCountId -> unit

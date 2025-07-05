@@ -8,3 +8,4 @@ type AxialCoords =
     val Q: int
     val R: int
     new(q, r) = { Q = q; R = r }
+    override this.ToString() = $"({this.Q},{this.R})"

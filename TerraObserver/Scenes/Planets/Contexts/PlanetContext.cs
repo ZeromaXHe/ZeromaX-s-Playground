@@ -3,6 +3,7 @@ using Godot;
 using TerraObserver.Scenes.Cameras.Views;
 using TerraObserver.Scenes.Chunks.Views;
 using TerraObserver.Scenes.Geos.Views;
+using TerraObserver.Scenes.Maps.Models;
 using TerraObserver.Scenes.Planets.Models;
 using TerraObserver.Scenes.Planets.Views;
 using TerraObserver.Scenes.Uis.Views;
@@ -45,6 +46,22 @@ public partial class PlanetContext : Node
 
     private CatlikeCodingNoise? _catlikeCodingNoise;
 
+    [Export]
+    public HexMapGenerator? HexMapGenerator
+    {
+        get => _hexMapGenerator;
+        set
+        {
+            if (_hexMapGenerator != null)
+                _hexMapGenerator.Changed -= UpdateConfigurationWarnings;
+            _hexMapGenerator = value;
+            UpdateConfigurationWarnings();
+            if (_hexMapGenerator != null)
+                _hexMapGenerator.Changed += UpdateConfigurationWarnings;
+        }
+    }
+
+    private HexMapGenerator? _hexMapGenerator;
 
     public override string[] _GetConfigurationWarnings()
     {
@@ -53,6 +70,10 @@ public partial class PlanetContext : Node
             warnings.Add("模型层：Planet 不可为空;");
         if (CatlikeCodingNoise == null)
             warnings.Add("模型层: CatlikeCodingNoise 不可为空;");
+        if (HexMapGenerator == null)
+            warnings.Add("模型层: HexMapGenerator 不可为空;");
+        else if (HexMapGenerator.LandGenerator == null)
+            warnings.Add("模型层: HexMapGenerator.LandGenerator 不可为空;");
         return warnings.ToArray();
     }
 
@@ -92,7 +113,7 @@ public partial class PlanetContext : Node
         NodeReady = true;
         // App
         _planetApp = new PlanetApp(PlanetConfig, CatlikeCodingNoise, _orbitCameraRig, _lonLatGrid, _celestialMotion,
-            _chunkLoader, _selectTileViewer, _miniMapManager, _planetHud);
+            _chunkLoader, _selectTileViewer, _miniMapManager, _hexMapGenerator, _planetHud);
         PlanetConfig!.ParamsChanged += _planetApp.DrawHexSphereMesh;
         PlanetConfig.ParamsChanged += _planetApp.OnPlanetConfigParamsChanged;
         _orbitCameraRig.Transformed += UpdateInsightChunks;
@@ -124,7 +145,6 @@ public partial class PlanetContext : Node
         _planetApp.Init();
         if (!inEditor)
         {
-            
             _planetApp.OnPlanetHudOrbitCameraRigTransformed(
                 _orbitCameraRig.GetViewport().GetCamera3D().GetGlobalTransform(), 0f);
         }
@@ -140,6 +160,8 @@ public partial class PlanetContext : Node
             _orbitCameraRig.Transformed -= UpdateInsightChunks;
             _lonLatGrid.FixFullVisibilityChanged -= OnLonLatGridFixFullVisibilityChanged;
             _chunkLoader.HexGridChunkGenerated -= OnHexGridChunkGenerated;
+            if (HexMapGenerator != null)
+                HexMapGenerator.Changed -= UpdateConfigurationWarnings;
             if (_planetApp != null!)
             {
                 // 首次编译后重载场景时会为空…… 没理解原因

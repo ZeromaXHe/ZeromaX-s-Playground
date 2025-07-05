@@ -17,3 +17,17 @@ module LonLatCoordsTest =
         Assert.Equal("   0°00'00\",   0°00'00\"", LonLatCoords() |> LonLatCoords.toString)
         // 舍入进位测试
         Assert.Equal("E 25°31'00\", S33°44'00\"", LonLatCoords(-25.51666667f, -33.7333333f) |> LonLatCoords.toString)
+
+    [<Fact>]
+    let ``Slerp 测试`` () =
+        // 安排 Arrange
+        let fromLonLat = LonLatCoords(0f, 0f)
+        let toLonLat = LonLatCoords(180f, 90f)
+        // 行动 Act
+        let result1 = fromLonLat |> LonLatCoords.slerp toLonLat 0.5f
+
+        let result2 =
+            LonLatCoords(-178f, 60f) |> LonLatCoords.slerp (LonLatCoords(179f, -30f)) 0.5f
+        // 断言 Assert
+        Assert.Equal("   0°00'00\", N45°00'00\"", result1 |> LonLatCoords.toString)
+        Assert.Equal("E179°54'07\", N15°00'16\"", result2 |> LonLatCoords.toString)

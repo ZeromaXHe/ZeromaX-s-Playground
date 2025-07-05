@@ -9,7 +9,7 @@ open TO.Domains.Types.HexGridCoords
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-06-29 17:02:29
 module AxialCoords =
-    let toString (a: AxialCoords) = $"{a.Q},{a.R}"
+    let toString (a: AxialCoords) = $"({a.Q},{a.R})"
     let from (v: Vector2I) = AxialCoords(v.X, v.Y)
     let toVector2I (a: AxialCoords) = Vector2I(a.Q, a.R)
     let error = AxialCoords(Int32.MinValue, Int32.MinValue)
@@ -37,7 +37,9 @@ module AxialCoords =
     let rotateClockwise (a: AxialCoords) = AxialCoords(-a.R, a.Q + a.R)
 
     let rotateClockwiseAround pivot (a: AxialCoords) =
-        a |> minus pivot |> rotateClockwise |> add pivot
+        let vec = a |> minus pivot
+        let res = vec |> rotateClockwise |> add pivot
+        res
     // 逆时针旋转 60 度（别用 Left 命名，容易误导圆弧下半部分的思考）
     let rotateCounterClockwise (a: AxialCoords) = AxialCoords(a.Q + a.R, -a.Q)
 

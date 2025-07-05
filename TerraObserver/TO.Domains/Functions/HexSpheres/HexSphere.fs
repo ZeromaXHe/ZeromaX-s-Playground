@@ -62,23 +62,16 @@ module HexSphereInitCommand =
                     else
                         Math3dUtil.subdivide northEast[i] northWest[i] i
 
-                if i = divisions then
-                    env.AddPoint chunky nowLine[0] <| SphereAxial(-divisions * col, 0) |> ignore
-                else
-                    env.AddPoint chunky nowLine[i] <| SphereAxial(-divisions * col, i - divisions)
-                    |> ignore
+                env.AddPoint chunky nowLine[0]
+                <| SphereAxial(-divisions * col, if i = divisions then 0 else i - divisions)
+                |> ignore
 
                 for j in 0 .. i - 1 do
                     if j > 0 then
                         env.AddFace chunky nowLine[j] preLine[j] preLine[j - 1] |> ignore
 
-                        env.AddPoint
-                            chunky
-                            nowLine[j]
-                            (if i = divisions then
-                                 SphereAxial(-divisions * col - j, 0)
-                             else
-                                 SphereAxial(-divisions * col - j, i - divisions))
+                        env.AddPoint chunky nowLine[j]
+                        <| SphereAxial(-divisions * col - j, (if i = divisions then 0 else i - divisions))
                         |> ignore
 
                     env.AddFace chunky preLine[j] nowLine[j] nowLine[j + 1] |> ignore

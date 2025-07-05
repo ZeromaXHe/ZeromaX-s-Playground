@@ -48,6 +48,7 @@ type PlanetEnv
         chunkLoader,
         selectTileViewer,
         miniMapManager,
+        hexMapGenerator,
         planetHud
     ) =
     interface IEntityStoreQuery with
@@ -84,6 +85,7 @@ type PlanetEnv
 
     interface ITileQuery with
         member this.GetTile = TileQuery.getTile this
+        member this.GetTileByCountId = TileQuery.getTileByCountId this
         member this.GetAllTiles = TileQuery.getAllTiles this
         member this.GetSphereAxial = TileQuery.getSphereAxial this
         member this.IsNeighborTile = TileQuery.isNeighborTile this
@@ -141,6 +143,7 @@ type PlanetEnv
 
     interface ITileSearcherQuery with
         member this.TileSearcher = tileSearcher
+        member this.GetMoveCost = TileSearcherQuery.getMoveCost this
 
     interface ITileSearcherCommand with
         member this.InitSearchData = TileSearcherCommand.initSearchData this
@@ -245,6 +248,12 @@ type PlanetEnv
         member this.SyncCameraIconPos = MiniMapManagerCommand.syncCameraIconPos this
         member this.ClickOnMiniMap = MiniMapManagerCommand.clickOnMiniMap this
         member this.RefreshMiniMapTile = MiniMapManagerCommand.refreshMiniMapTile this
+
+    interface IHexMapGeneratorQuery with
+        member this.HexMapGenerator = hexMapGenerator
+
+    interface IHexMapGeneratorCommand with
+        member this.GenerateMap = HexMapGeneratorCommand.generateMap this
 
     interface IPlanetHudQuery with
         member this.PlanetHudOpt = if planetHud = null then None else Some planetHud

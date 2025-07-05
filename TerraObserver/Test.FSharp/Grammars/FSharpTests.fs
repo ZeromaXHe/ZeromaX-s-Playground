@@ -11,11 +11,15 @@ let ``管道符测试`` () =
     let right2 = 1 + (-2 |> multi2)
     let left1 = multi2 <| 1 + -2
     let left2 = (multi2 <| 1) + -2
+    let leftRight = 1 |> (-) <| 2 // = 1 - 2
+    let onlyRight = 1 |> (-) 2 // = 2 - 1
     // Assert
     Assert.Equal(-2, right1)
     Assert.Equal(-3, right2)
     Assert.Equal(-2, left1)
     Assert.Equal(0, left2)
+    Assert.Equal(-1, leftRight) // 对于符合交换律的，x |> f <| y = x |> f y 才成立
+    Assert.Equal(1, onlyRight)
 
 [<Fact>]
 let ``not 管道符测试`` () =

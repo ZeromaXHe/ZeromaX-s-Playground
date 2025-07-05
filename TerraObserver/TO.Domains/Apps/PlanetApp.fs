@@ -29,6 +29,7 @@ type PlanetApp
         chunkLoader,
         selectTileViewer,
         miniMapManager,
+        hexMapGenerator,
         planetHud
     ) =
     let store = EntityStore()
@@ -58,6 +59,7 @@ type PlanetApp
             chunkLoader,
             selectTileViewer,
             miniMapManager,
+            hexMapGenerator,
             planetHud
         )
 
@@ -137,7 +139,8 @@ type PlanetApp
                 and 'E :> IChunkLoaderCommand
                 and 'E :> ILodMeshCacheCommand
                 and 'E :> ITileSearcherCommand
-                and 'E :> ITileShaderDataCommand)
+                and 'E :> ITileShaderDataCommand
+                and 'E :> IHexMapGeneratorCommand)
         =
         let time = Time.GetTicksMsec()
         GD.Print $"[===DrawHexSphereMesh===] radius {planet.Radius}, divisions {planet.Divisions}, start at: {time}"
@@ -147,6 +150,7 @@ type PlanetApp
         env.RemoveAllLodMeshes()
         // 初始化新数据
         env.InitHexSphere()
+        env.GenerateMap()
         env.InitChunkNodes()
 
         store

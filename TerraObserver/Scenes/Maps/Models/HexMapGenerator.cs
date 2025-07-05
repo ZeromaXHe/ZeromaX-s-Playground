@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Godot;
 using TO.Domains.Types.Maps;
 
@@ -8,10 +9,29 @@ namespace TerraObserver.Scenes.Maps.Models;
 /// Date: 2025-06-07 10:14:24
 [Tool]
 [GlobalClass]
-public partial class HexMapGenerator: Resource, IHexMapGenerator
+public partial class HexMapGenerator : Resource, IHexMapGenerator
 {
-    [ExportGroup("基础设置")]
+    #region Export 属性
+
+    [ExportGroup("地图生成设置")]
+    [Export]
+    public LandGenerator? LandGenerator
+    {
+        get => _landGenerator;
+        set
+        {
+            _landGenerator = value;
+            EmitChanged();
+        }
+    }
+
+    private LandGenerator? _landGenerator;
+
+    public ILandGenerator GetLandGenerator => LandGenerator!;
+    [Export(PropertyHint.Range, "1, 5")] public int DefaultWaterLevel { get; set; } = 5;
+
     [Export(PropertyHint.Range, "0, 10")] public int MapBoardX { get; set; } = 5;
+
     [Export(PropertyHint.Range, "0, 10")] public int MapBoardZ { get; set; } = 5;
     [Export(PropertyHint.Range, "0, 10")] public int RegionBorder { get; set; } = 5;
     [Export(PropertyHint.Range, "1, 4")] public int RegionCount { get; set; } = 1;
@@ -55,23 +75,16 @@ public partial class HexMapGenerator: Resource, IHexMapGenerator
 
     [Export(PropertyHint.Range, "0, 2147483647")]
     public int Seed { get; set; }
-    
-    [ExportGroup("Catlike Coding 侵蚀算法设置")]
-    [Export(PropertyHint.Range, "5, 95")] public int LandPercentage { get; set; } = 50;
 
-    [Export(PropertyHint.Range, "20, 200")]
-    public int ChunkSizeMin { get; set; } = 30;
+    #endregion
 
-    [Export(PropertyHint.Range, "20, 200")]
-    public int ChunkSizeMax { get; set; } = 100;
+    #region 普通属性
 
-    [Export(PropertyHint.Range, "0.0, 1.0")]
-    public float HighRiseProbability { get; set; } = 0.25f;
+    public RandomNumberGenerator Rng { get; } = new();
+    public int LandTileCount { get; set; }
+    public List<ClimateData> Climate { get; set; } = [];
+    public List<ClimateData> NextClimate { get; set; } = [];
+    public int TemperatureJitterChannel { get; set; }
 
-    [Export(PropertyHint.Range, "0.0, 0.4")]
-    public float SinkProbability { get; set; } = 0.2f;
-
-    [Export(PropertyHint.Range, "0, 0.5")] public float JitterProbability { get; set; } = 0.25f;
-
-    [Export(PropertyHint.Range, "0, 100")] public int ErosionPercentage { get; set; } = 50;
+    #endregion
 }

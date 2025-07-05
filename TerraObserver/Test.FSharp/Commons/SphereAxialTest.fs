@@ -15,48 +15,66 @@ module SphereAxialTest =
         SphereAxial.Div <- 1
         let northPole1 = SphereAxial(0, -1)
         let southPole1 = SphereAxial(-1, 2)
+        let mutable lonLat1 = northPole1 |> SphereAxial.toLonLat
+        let mutable lonLat2 = southPole1 |> SphereAxial.toLonLat
         // 断言 Assert
         Assert.Equal(3, northPole1 |> SphereAxial.distanceTo southPole1)
         Assert.Equal(SphereAxialTypeEnum.PoleVertices, northPole1.Type)
         Assert.Equal(0, northPole1.TypeIdx)
         Assert.Equal(SphereAxialTypeEnum.PoleVertices, southPole1.Type)
         Assert.Equal(1, southPole1.TypeIdx)
+        Assert.Equal("   0°00'00\", N90°00'00\"", lonLat1 |> LonLatCoords.toString)
+        Assert.Equal("   0°00'00\", S90°00'00\"", lonLat2 |> LonLatCoords.toString)
 
         // Heuristic: Tile 890 ((-42, 4), Faces, 18) to Tile 848 ((-40, 0), MidVertices, 8) distance 4
         SphereAxial.Div <- 10
         let mutable sa1 = SphereAxial(-42, 4)
         let mutable sa2 = SphereAxial(-40, 0)
+        lonLat1 <- sa1 |> SphereAxial.toLonLat
+        lonLat2 <- sa2 |> SphereAxial.toLonLat
         Assert.Equal(4, sa1 |> SphereAxial.distanceTo sa2)
         Assert.Equal(4, sa2 |> SphereAxial.distanceTo sa1)
         Assert.Equal(SphereAxialTypeEnum.Faces, sa1.Type)
         Assert.Equal(18, sa1.TypeIdx)
         Assert.Equal(SphereAxialTypeEnum.MidVertices, sa2.Type)
         Assert.Equal(8, sa2.TypeIdx)
+        Assert.Equal("E 72°00'00\", N 6°06'50\"", lonLat1 |> LonLatCoords.toString)
+        Assert.Equal("E 72°00'00\", N29°08'29\"", lonLat2 |> LonLatCoords.toString)
 
         sa1 <- SphereAxial(-41, 7)
         sa2 <- SphereAxial(-42, 6)
+        lonLat1 <- sa1 |> SphereAxial.toLonLat
+        lonLat2 <- sa2 |> SphereAxial.toLonLat
         Assert.Equal(2, sa1 |> SphereAxial.distanceTo sa2)
         Assert.Equal(2, sa2 |> SphereAxial.distanceTo sa1)
         Assert.Equal(SphereAxialTypeEnum.Faces, sa1.Type)
         Assert.Equal(18, sa1.TypeIdx)
         Assert.Equal(SphereAxialTypeEnum.Faces, sa2.Type)
         Assert.Equal(18, sa2.TypeIdx)
+        Assert.Equal("E 89°38'10\", S12°22'00\"", lonLat1 |> LonLatCoords.toString);
+        Assert.Equal("E 79°06'03\", S 6°17'48\"", lonLat2 |> LonLatCoords.toString);
 
         sa2 <- SphereAxial(-41, 5)
+        lonLat2 <- sa2 |> SphereAxial.toLonLat
         Assert.Equal(2, sa1 |> SphereAxial.distanceTo sa2)
         Assert.Equal(2, sa2 |> SphereAxial.distanceTo sa1)
         Assert.Equal(SphereAxialTypeEnum.Faces, sa2.Type)
         Assert.Equal(18, sa2.TypeIdx)
-
+        Assert.Equal("E 82°48'00\",   0°00'00\"", lonLat2 |> LonLatCoords.toString)
+        
         SphereAxial.Div <- 40
         sa1 <- SphereAxial(-92, -27)
         sa2 <- SphereAxial(-120, -27)
+        lonLat1 <- sa1 |> SphereAxial.toLonLat
+        lonLat2 <- sa2 |> SphereAxial.toLonLat
         Assert.Equal(1, sa1 |> SphereAxial.distanceTo sa2)
         Assert.Equal(1, sa2 |> SphereAxial.distanceTo sa1)
         Assert.Equal(SphereAxialTypeEnum.FacesSpecial, sa1.Type)
         Assert.Equal(8, sa1.TypeIdx)
         Assert.Equal(SphereAxialTypeEnum.EdgesSpecial, sa2.Type)
         Assert.Equal(18, sa2.TypeIdx)
+        Assert.Equal("E148°31'00\", N71°09'46\"", lonLat1 |> LonLatCoords.toString)
+        Assert.Equal("E144°00'00\", N70°13'15\"", lonLat2 |> LonLatCoords.toString)
 
     [<Fact>]
     let ``细分 3 下的全面距离测试`` () =
