@@ -455,10 +455,20 @@ module HexMapGeneratorCommand =
                 GD.Print $"--- CreatedRegions in {stopwatch.ElapsedMilliseconds} ms"
                 stopwatch.Restart()
                 generator.LandTileCount <- ErosionLandGeneratorCommand.createLand env tileCount erosionLandGen
-                GD.Print $"--- CreatedLand {generator.LandTileCount}/{tileCount} tiles in {stopwatch.ElapsedMilliseconds} ms"
+
+                GD.Print
+                    $"--- CreatedLand {generator.LandTileCount}/{tileCount} tiles in {stopwatch.ElapsedMilliseconds} ms"
+
                 stopwatch.Restart()
                 ErosionLandGeneratorCommand.erodingLand env erosionLandGen
                 GD.Print $"--- ErodeLand in {stopwatch.ElapsedMilliseconds} ms"
+                stopwatch.Restart()
+            | :? IFractalNoiseLandGenerator as fractalNoiseLandGen ->
+                generator.LandTileCount <- FractalNoiseLandGeneratorCommand.createLand env fractalNoiseLandGen
+
+                GD.Print
+                    $"--- CreatedLand {generator.LandTileCount}/{tileCount} tiles in {stopwatch.ElapsedMilliseconds} ms"
+
                 stopwatch.Restart()
             | _ -> ()
 

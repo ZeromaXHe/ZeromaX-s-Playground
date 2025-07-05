@@ -52,12 +52,12 @@ public partial class PlanetContext : Node
         get => _hexMapGenerator;
         set
         {
-            if (_hexMapGenerator != null)
-                _hexMapGenerator.Changed -= UpdateConfigurationWarnings;
+            // if (_hexMapGenerator != null)
+            //     _hexMapGenerator.Changed -= UpdateConfigurationWarnings;
             _hexMapGenerator = value;
             UpdateConfigurationWarnings();
-            if (_hexMapGenerator != null)
-                _hexMapGenerator.Changed += UpdateConfigurationWarnings;
+            // if (_hexMapGenerator != null)
+            //     _hexMapGenerator.Changed += UpdateConfigurationWarnings;
         }
     }
 
@@ -72,8 +72,8 @@ public partial class PlanetContext : Node
             warnings.Add("模型层: CatlikeCodingNoise 不可为空;");
         if (HexMapGenerator == null)
             warnings.Add("模型层: HexMapGenerator 不可为空;");
-        else if (HexMapGenerator.LandGenerator == null)
-            warnings.Add("模型层: HexMapGenerator.LandGenerator 不可为空;");
+        // else if (HexMapGenerator.LandGenerator == null)
+        //     warnings.Add("模型层: HexMapGenerator.LandGenerator 不可为空;");
         return warnings.ToArray();
     }
 

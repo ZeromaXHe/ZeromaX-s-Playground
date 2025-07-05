@@ -3,9 +3,6 @@ namespace TO.Domains.Types.Maps
 open Godot
 open TO.Domains.Types.Godots
 
-type MapRegion() =
-    member val IcosahedronIds: int array = null with get, set
-
 [<Struct>]
 type ClimateData =
     val mutable Clouds: float32
@@ -20,21 +17,6 @@ type Biome =
 [<Interface>]
 type ILandGenerator =
     inherit IResource
-
-[<Interface>]
-type IErosionLandGenerator =
-    inherit ILandGenerator
-    // Catlike Coding 侵蚀算法设置
-    // =====【Export】=====
-    abstract LandPercentage: int
-    abstract ChunkSizeMin: int
-    abstract ChunkSizeMax: int
-    abstract HighRiseProbability: float32
-    abstract SinkProbability: float32
-    abstract JitterProbability: float32
-    abstract ErosionPercentage: int
-    // =====【普通属性】=====
-    abstract Regions: MapRegion ResizeArray
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)

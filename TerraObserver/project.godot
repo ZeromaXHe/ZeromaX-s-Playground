@@ -28,6 +28,7 @@ enabled=PackedStringArray("res://addons/SIsilicon.vfx.lens flare/plugin.cfg", "r
 folder_colors={
 "res://Addons/": "gray",
 "res://Assets/": "yellow",
+"res://Resources/": "pink",
 "res://Scenes/": "green",
 "res://Shaders/": "purple"
 }

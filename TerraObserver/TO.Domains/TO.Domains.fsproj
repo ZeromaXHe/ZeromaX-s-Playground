@@ -77,6 +77,8 @@
         <Compile Include="Types\Chunks\ChunkTriangulationT.fs"/>
         <Compile Include="Types\Maps\MiniMapManagerT.fs"/>
         <Compile Include="Types\Maps\HexMapGeneratorT.fs" />
+        <Compile Include="Types\Maps\ErosionLandGeneratorT.fs" />
+        <Compile Include="Types\Maps\FractalNoiseLandGeneratorT.fs" />
         <Compile Include="Types\PlanetHuds\OptionalToggleT.fs"/>
         <Compile Include="Types\PlanetHuds\SelectTileViewerT.fs"/>
         <Compile Include="Types\PlanetHuds\PlanetHudT.fs"/>
@@ -132,6 +134,7 @@
         <Compile Include="Functions\Maps\RectMiniMap.fs" />
         <Compile Include="Functions\Maps\MiniMapManager.fs" />
         <Compile Include="Functions\Maps\ErosionLandGenerator.fs" />
+        <Compile Include="Functions\Maps\FractalNoiseLandGenerator.fs" />
         <Compile Include="Functions\Maps\HexMapGenerator.fs" />
         <Compile Include="Functions\PlanetHuds\SelectTileViewer.fs"/>
         <Compile Include="Functions\PlanetHuds\PlanetHud.fs"/>
