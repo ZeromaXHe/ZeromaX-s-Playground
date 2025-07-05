@@ -28,6 +28,19 @@ public partial class HexMapGenerator : Resource, IHexMapGenerator
     private LandGenerator? _landGenerator;
 
     public ILandGenerator GetLandGenerator => LandGenerator!;
+
+    public void UpdateLandGenerator(long item)
+    {
+        LandGenerator = item switch
+        {
+            0 => null,
+            1 => GD.Load<ErosionLandGenerator>("res://Resources/Maps/ErosionLandGenerator.tres"),
+            2 => GD.Load<FractalNoiseLandGenerator>("res://Resources/Maps/FractalNoiseLandGenerator.tres"),
+            3 => GD.Load<RealEarthLandGenerator>("res://Resources/Maps/RealEarthLandGenerator.tres"),
+            _ => LandGenerator
+        };
+    }
+
     [Export(PropertyHint.Range, "1, 5")] public int DefaultWaterLevel { get; set; } = 5;
 
     [Export(PropertyHint.Range, "0, 10")] public int MapBoardX { get; set; } = 5;

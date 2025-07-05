@@ -26,23 +26,23 @@ module TileUnitCorners =
         | _ -> failwith "TileUnitCorners invalid index"
 
     let getSeq (this: TileUnitCorners) =
-        let c0 = this.Corner0
-        let c1 = this.Corner1
-        let c2 = this.Corner2
-        let c3 = this.Corner3
-        let c4 = this.Corner4
-        let c5 = this.Corner5
-
-        let s =
+        if this.Length > 5 then
             seq {
-                c0
-                c1
-                c2
-                c3
-                c4
+                this.Corner0
+                this.Corner1
+                this.Corner2
+                this.Corner3
+                this.Corner4
+                this.Corner5
             }
-
-        if this.Length > 5 then Seq.append s <| seq { c5 } else s
+        else
+            seq {
+                this.Corner0
+                this.Corner1
+                this.Corner2
+                this.Corner3
+                this.Corner4
+            }
 
     // 获取地块的形状角落顶点（顺时针顺序）
     let getCornersWithSize (unitCentroid: Vector3) (radius: float32) (size: float32) (this: TileUnitCorners) =

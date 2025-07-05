@@ -87,12 +87,13 @@ public partial class PlanetHud : Control, IPlanetHud
     public LineEdit RadiusLineEdit { get; private set; } = null!;
     public LineEdit DivisionLineEdit { get; private set; } = null!;
     public LineEdit ChunkDivisionLineEdit { get; private set; } = null!;
+    public OptionButton LandGenOptionButton { get; private set; } = null!;
 
     // 地块信息
     private TabBar TileTabBar { get; set; } = null!;
     private VBoxContainer TileVBox { get; set; } = null!;
-    private Label ChunkCountLabel { get; set; } = null!;
-    private Label TileCountLabel { get; set; } = null!;
+    public Label ChunkCountLabel { get; private set; } = null!;
+    public Label TileCountLabel { get; private set; } = null!;
     private OptionButton ShowLabelOptionButton { get; set; } = null!;
     private GridContainer TileGrid { get; set; } = null!;
     public LineEdit IdLineEdit { get; private set; } = null!;
@@ -151,6 +152,7 @@ public partial class PlanetHud : Control, IPlanetHud
         RadiusLineEdit = GetNode<LineEdit>("%RadiusLineEdit");
         DivisionLineEdit = GetNode<LineEdit>("%DivisionLineEdit");
         ChunkDivisionLineEdit = GetNode<LineEdit>("%ChunkDivisionLineEdit");
+        LandGenOptionButton = GetNode<OptionButton>("%LandGenOptionButton");
         // 地块信息
         TileTabBar = GetNode<TabBar>("%TileTabBar");
         TileVBox = GetNode<VBoxContainer>("%TileVBox");

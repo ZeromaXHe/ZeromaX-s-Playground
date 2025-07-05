@@ -5,14 +5,13 @@ open TO.Domains.Functions.HexGridCoords
 open TO.Domains.Functions.HexSpheres.Components
 open TO.Domains.Functions.HexSpheres.Components.Tiles
 open TO.Domains.Types.Friflos
-open TO.Domains.Types.HexGridCoords
 open TO.Domains.Types.HexMetrics
 open TO.Domains.Types.HexSpheres.Components
 open TO.Domains.Types.HexSpheres.Components.Tiles
 open TO.Domains.Types.PathFindings
 
 module TileSearcherQuery =
-    let getMoveCost (env: #IPointQuery) : GetMoveCost =
+    let getMoveCost : GetMoveCost =
         fun (fromTile: Entity) (toTile: Entity) ->
             let edgeType =
                 fromTile |> Tile.value |> TileValue.getEdgeType (toTile |> Tile.value)
@@ -22,7 +21,7 @@ module TileSearcherQuery =
             elif
                 fromTile
                 |> Tile.flag
-                |> TileFlag.hasRoad (env.GetNeighborIdx fromTile.Id toTile.Id)
+                |> TileFlag.hasRoad (Tile.getNeighborTileIdx fromTile toTile)
             then
                 1
             elif
@@ -88,7 +87,7 @@ module TileSearcherCommand =
             if current.Id = toTile.Id then
                 pathFound <- true
             else
-                for neighbor in env.GetNeighborTiles current.Id do
+                for neighbor in env.GetNeighborTiles current do
                     let neighborCountId = neighbor |> Tile.countId |> _.CountId
                     let neighborData = this.SearchData[neighborCountId]
 
@@ -151,7 +150,7 @@ module TileSearcherCommand =
                 this.SearchData[currentCountId].SearchPhase <- this.SearchData[currentCountId].SearchPhase + 1
                 visibleTiles.Add current
 
-                for neighbor in env.GetNeighborTiles current.Id do
+                for neighbor in env.GetNeighborTiles current do
                     let neighborCountId = neighbor |> Tile.countId |> _.CountId
                     let neighborData = this.SearchData[neighborCountId]
 

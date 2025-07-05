@@ -15,8 +15,8 @@ type GetTileByCountId = int -> Entity
 type GetAllTiles = unit -> Entity seq
 type GetSphereAxial = Entity -> SphereAxial
 type IsNeighborTile = TileId -> TileId -> bool
-type GetNeighborTileByIdx = TileId -> int -> Entity
-type GetNeighborTiles = TileId -> Entity seq
+type GetNeighborTileByIdx = Entity -> int -> Entity
+type GetNeighborTiles = Entity -> Entity seq
 type GetTilesInDistance = TileId -> int -> Entity seq
 
 [<Interface>]

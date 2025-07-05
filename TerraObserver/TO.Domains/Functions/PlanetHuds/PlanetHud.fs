@@ -11,7 +11,9 @@ open TO.Domains.Functions.Maps
 open TO.Domains.Functions.Maths
 open TO.Domains.Types.Cameras
 open TO.Domains.Types.Configs
+open TO.Domains.Types.Friflos
 open TO.Domains.Types.HexSpheres.Components
+open TO.Domains.Types.HexSpheres.Components.Chunks
 open TO.Domains.Types.HexSpheres.Components.Tiles
 open TO.Domains.Types.Maps
 open TO.Domains.Types.PlanetHuds
@@ -191,6 +193,21 @@ module PlanetHudCommand =
                 this.LonLineEdit.TooltipText <- "" // 试了一下，null 和 "" 效果一样
                 this.LatLineEdit.Text <- "-"
                 this.LatLineEdit.TooltipText <- null
+
+    let updateNewPlanetInfo
+        (env: 'E when 'E :> IPlanetHudQuery and 'E :> IPlanetConfigQuery and 'E :> IEntityStoreQuery)
+        : UpdateNewPlanetInfo =
+        fun () ->
+            match env.PlanetHudOpt with
+            | None -> ()
+            | Some this ->
+                let planetConfig = env.PlanetConfig
+                this.RadiusLineEdit.Text <- $"{planetConfig.Radius:F2}"
+                this.DivisionLineEdit.Text <- $"{planetConfig.Divisions}"
+                this.ChunkDivisionLineEdit.Text <- $"{planetConfig.ChunkDivisions}"
+                this.ChunkCountLabel.Text <- $"分块总数：{env.Query<ChunkPos>().Count}"
+                this.TileCountLabel.Text <- $"地块总数：{env.Query<TileValue>().Count}"
+                this.ChosenTileId <- Nullable()
 
     let private handleInput (env: #ISelectTileViewerQuery) (this: IPlanetHud) =
         // 在 SubViewportContainer 上按下鼠标左键时，获取鼠标位置地块并更新

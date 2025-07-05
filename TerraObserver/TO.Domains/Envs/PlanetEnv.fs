@@ -143,7 +143,7 @@ type PlanetEnv
 
     interface ITileSearcherQuery with
         member this.TileSearcher = tileSearcher
-        member this.GetMoveCost = TileSearcherQuery.getMoveCost this
+        member this.GetMoveCost = TileSearcherQuery.getMoveCost
 
     interface ITileSearcherCommand with
         member this.InitSearchData = TileSearcherCommand.initSearchData this
@@ -254,6 +254,7 @@ type PlanetEnv
 
     interface IHexMapGeneratorCommand with
         member this.GenerateMap = HexMapGeneratorCommand.generateMap this
+        member this.ChangeLandGenerator = HexMapGeneratorCommand.changeLandGenerator this
 
     interface IPlanetHudQuery with
         member this.PlanetHudOpt = if planetHud = null then None else Some planetHud
@@ -271,4 +272,5 @@ type PlanetEnv
         member this.UpdateRadiusLineEdit = PlanetHudCommand.updateRadiusLineEdit this
         member this.UpdateDivisionLineEdit = PlanetHudCommand.updateDivisionLineEdit this
         member this.UpdateChosenTileInfo = PlanetHudCommand.updateChosenTileInfo this
+        member this.UpdateNewPlanetInfo = PlanetHudCommand.updateNewPlanetInfo this
         member this.OnPlanetHudProcessed = PlanetHudCommand.onPlanetHudProcessed this

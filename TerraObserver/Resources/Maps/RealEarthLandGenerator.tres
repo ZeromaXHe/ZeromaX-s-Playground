@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="RealEarthLandGenerator" load_steps=3 format=3 uid="uid://1khcboe5qgss"]
+
+[ext_resource type="Texture2D" uid="uid://bkswydsewxogs" path="res://Assets/Sebastian/maskR-elevG-bathB_4096x2048.jpg" id="1_dtt8p"]
+[ext_resource type="Script" uid="uid://cc5hfl0ws0i2g" path="res://Scenes/Maps/Models/RealEarthLandGenerator.cs" id="2_uekmc"]
+
+[resource]
+script = ExtResource("2_uekmc")
+WorldMap = ExtResource("1_dtt8p")
+metadata/_custom_type_script = "uid://cc5hfl0ws0i2g"

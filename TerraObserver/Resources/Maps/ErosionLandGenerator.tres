@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ErosionLandGenerator" load_steps=2 format=3 uid="uid://cxsot8yhxh21g"]
+
+[ext_resource type="Script" uid="uid://kslg2jmwfu5c" path="res://Scenes/Maps/Models/ErosionLandGenerator.cs" id="1_uxgdn"]
+
+[resource]
+script = ExtResource("1_uxgdn")
+LandPercentage = 50
+ChunkSizeMin = 30
+ChunkSizeMax = 100
+HighRiseProbability = 0.25
+SinkProbability = 0.2
+JitterProbability = 0.25
+ErosionPercentage = 50
+metadata/_custom_type_script = "uid://kslg2jmwfu5c"

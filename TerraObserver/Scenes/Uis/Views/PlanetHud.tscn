@@ -328,6 +328,24 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "2"
 
+[node name="LandGenLabel" type="Label" parent="LeftPanel/ScrollContainer/VBox/PlanetGrid"]
+layout_mode = 2
+text = "陆地生成器："
+
+[node name="LandGenOptionButton" type="OptionButton" parent="LeftPanel/ScrollContainer/VBox/PlanetGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 3
+item_count = 4
+popup/item_0/text = "无"
+popup/item_0/id = 0
+popup/item_1/text = "侵蚀算法"
+popup/item_1/id = 1
+popup/item_2/text = "分形噪声"
+popup/item_2/id = 2
+popup/item_3/text = "真实地球"
+popup/item_3/id = 3
+
 [node name="HSeparator3" type="HSeparator" parent="LeftPanel/ScrollContainer/VBox"]
 layout_mode = 2
 

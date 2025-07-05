@@ -82,7 +82,7 @@ module ErosionLandGeneratorCommand =
 
                 size <- size + 1
 
-                for neighbor in env.GetNeighborTiles current.Id do
+                for neighbor in env.GetNeighborTiles current do
                     let neighborCountId = neighbor |> Tile.countId |> _.CountId
 
                     if tileSearcher.SearchData[neighborCountId].SearchPhase < tileSearcher.SearchFrontierPhase then
@@ -171,7 +171,7 @@ module ErosionLandGeneratorCommand =
                 if not breakWhile then
                     size <- size + 1
 
-                    for neighbor in env.GetNeighborTiles current.Id do
+                    for neighbor in env.GetNeighborTiles current do
                         let neighborCountId = neighbor |> Tile.countId |> _.CountId
 
                         if tileSearcher.SearchData[neighborCountId].SearchPhase < tileSearcher.SearchFrontierPhase then
@@ -231,14 +231,14 @@ module ErosionLandGeneratorCommand =
     let private isErodible (env: #ITileQuery) (tile: Entity) =
         let erodibleElevation = (tile |> Tile.value |> TileValue.elevation) - 2
 
-        env.GetNeighborTiles tile.Id
+        env.GetNeighborTiles tile
         |> Seq.exists (fun neighbor -> neighbor |> Tile.value |> TileValue.elevation <= erodibleElevation)
 
     let private getErosionTarget (env: 'E when 'E :> ITileQuery and 'E :> IHexMapGeneratorQuery) (tile: Entity) =
         let erodibleElevation = (tile |> Tile.value |> TileValue.elevation) - 2
 
         let candidates =
-            env.GetNeighborTiles tile.Id
+            env.GetNeighborTiles tile
             |> Seq.filter (fun neighbor -> neighbor |> Tile.value |> TileValue.elevation <= erodibleElevation)
             |> Seq.toArray
 
@@ -275,7 +275,7 @@ module ErosionLandGeneratorCommand =
                 erodibleTiles[index] <- erodibleTiles[lastIndex]
                 erodibleTiles.RemoveAt lastIndex
 
-            for neighbor in env.GetNeighborTiles tile.Id do
+            for neighbor in env.GetNeighborTiles tile do
                 if
                     neighbor |> Tile.value |> TileValue.elevation = (tile |> Tile.value |> TileValue.elevation) + 2
                     && not <| erodibleTiles.Contains neighbor
@@ -285,7 +285,7 @@ module ErosionLandGeneratorCommand =
             if isErodible env targetTile && not <| erodibleTiles.Contains targetTile then
                 erodibleTiles.Add targetTile
 
-            for neighbor in env.GetNeighborTiles targetTile.Id do
+            for neighbor in env.GetNeighborTiles targetTile do
                 // 有一个台阶上去就不是悬崖孤台了
                 if
                     neighbor |> Tile.value |> TileValue.elevation = (targetTile |> Tile.value |> TileValue.elevation) + 1

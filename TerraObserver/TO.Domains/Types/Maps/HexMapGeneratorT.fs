@@ -26,6 +26,7 @@ type IHexMapGenerator =
     inherit IResource
     // =====【Export】=====
     abstract GetLandGenerator: ILandGenerator
+    abstract UpdateLandGenerator: int64 -> unit
     abstract DefaultWaterLevel: int
     abstract MapBoardX: int
     abstract MapBoardZ: int
@@ -58,7 +59,9 @@ type IHexMapGeneratorQuery =
     abstract HexMapGenerator: IHexMapGenerator
 
 type GenerateMap = unit -> unit
+type ChangeLandGenerator = int64 -> unit
 
 [<Interface>]
 type IHexMapGeneratorCommand =
     abstract GenerateMap: GenerateMap
+    abstract ChangeLandGenerator: ChangeLandGenerator

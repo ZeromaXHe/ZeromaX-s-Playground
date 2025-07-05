@@ -116,6 +116,9 @@ type PlanetApp
     let onPlanetHudDivisionLineEditTextSubmitted (env: #IPlanetHudCommand) chunky text =
         env.UpdateDivisionLineEdit chunky text
 
+    let onPlanetHudLandGenOptionButtonItemSelected (env: #IHexMapGeneratorCommand) toggle =
+        env.ChangeLandGenerator toggle
+    
     let onPlanetHudOrbitCameraRigMoved
         (env: 'E when 'E :> IPlanetHudCommand and 'E :> IMiniMapManagerCommand)
         pos
@@ -140,7 +143,10 @@ type PlanetApp
                 and 'E :> ILodMeshCacheCommand
                 and 'E :> ITileSearcherCommand
                 and 'E :> ITileShaderDataCommand
-                and 'E :> IHexMapGeneratorCommand)
+                and 'E :> IHexMapGeneratorCommand
+                and 'E :> IOrbitCameraRigQuery
+                and 'E :> IMiniMapManagerCommand
+                and 'E :> IPlanetHudCommand)
         =
         let time = Time.GetTicksMsec()
         GD.Print $"[===DrawHexSphereMesh===] radius {planet.Radius}, divisions {planet.Divisions}, start at: {time}"
@@ -159,6 +165,10 @@ type PlanetApp
                 env.RefreshTileSearchData tileCountId
                 env.RefreshTileShaderDataTerrain tileCountId tileValue
                 env.RefreshTileShaderDataVisibility tile.Id tileCountId tileFlag tileVisibility)
+        // 触发相关 UI 更新
+        env.UpdateNewPlanetInfo()
+        env.InitMiniMap <| env.GetFocusBasePos()
+        env.InitRectMiniMap()
 
         GD.Print $"[===DrawHexSphereMesh===] total cost: {Time.GetTicksMsec() - time} ms"
 
@@ -200,6 +210,8 @@ type PlanetApp
     member this.OnPlanetHudChunkDivisionLineEditTextSubmitted text =
         onPlanetHudDivisionLineEditTextSubmitted env true text
 
+    member this.OnPlanetHudLandGenOptionButtonItemSelected toggle =
+        onPlanetHudLandGenOptionButtonItemSelected env toggle
     member this.OnPlanetHudOrbitCameraRigMoved pos delta =
         onPlanetHudOrbitCameraRigMoved env pos delta
 

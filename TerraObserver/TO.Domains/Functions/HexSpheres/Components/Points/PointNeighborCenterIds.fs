@@ -21,7 +21,7 @@ module PointNeighborCenterIds =
         | _ -> failwith "TileNeighborCenterIds invalid index"
 
     let getSeq (this: PointNeighborCenterIds) =
-        let s =
+        if this.Length = 5 then
             seq {
                 this.NeighborCenterId0
                 this.NeighborCenterId1
@@ -29,11 +29,15 @@ module PointNeighborCenterIds =
                 this.NeighborCenterId3
                 this.NeighborCenterId4
             }
-
-        if this.Length > 5 then
-            Seq.append s <| seq { this.NeighborCenterId5 }
-        else
-            s
+        else 
+            seq {
+                this.NeighborCenterId0
+                this.NeighborCenterId1
+                this.NeighborCenterId2
+                this.NeighborCenterId3
+                this.NeighborCenterId4
+                this.NeighborCenterId5
+            }
 
     // 邻居
     let getNeighborIdx (neighborCenterId: PointId) (this: PointNeighborCenterIds) =

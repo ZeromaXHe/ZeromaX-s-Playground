@@ -20,6 +20,9 @@ type IPlanetHud =
     abstract RadiusLineEdit: LineEdit
     abstract DivisionLineEdit: LineEdit
     abstract ChunkDivisionLineEdit: LineEdit
+    abstract LandGenOptionButton: OptionButton
+    abstract ChunkCountLabel: Label
+    abstract TileCountLabel: Label
     abstract IdLineEdit: LineEdit
     abstract ChunkLineEdit: LineEdit
     abstract CoordsLineEdit: LineEdit
@@ -70,6 +73,7 @@ type InitRectMiniMap = unit -> unit
 type UpdateRadiusLineEdit = string -> unit
 type UpdateDivisionLineEdit = bool -> string -> unit
 type UpdateChosenTileInfo = IPlanetHud -> unit
+type UpdateNewPlanetInfo = unit -> unit
 type OnPlanetHudProcessed = unit -> unit
 
 [<Interface>]
@@ -81,4 +85,5 @@ type IPlanetHudCommand =
     abstract UpdateRadiusLineEdit: UpdateRadiusLineEdit
     abstract UpdateDivisionLineEdit: UpdateDivisionLineEdit
     abstract UpdateChosenTileInfo: UpdateChosenTileInfo
+    abstract UpdateNewPlanetInfo: UpdateNewPlanetInfo
     abstract OnPlanetHudProcessed: OnPlanetHudProcessed

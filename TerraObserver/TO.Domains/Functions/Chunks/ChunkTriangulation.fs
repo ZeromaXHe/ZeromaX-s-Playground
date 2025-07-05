@@ -37,12 +37,12 @@ module ChunkTriangulationCommand =
 
         let mutable preNeighbor =
             HexIndexUtil.previousIdx 0 tileHexFaceIds.Length
-            |> env.GetNeighborTileByIdx tileId
+            |> env.GetNeighborTileByIdx tile
 
-        let mutable neighbor = env.GetNeighborTileByIdx tileId 0
+        let mutable neighbor = env.GetNeighborTileByIdx tile 0
 
         let mutable nextNeighbor =
-            HexIndexUtil.nextIdx 0 tileHexFaceIds.Length |> env.GetNeighborTileByIdx tileId
+            HexIndexUtil.nextIdx 0 tileHexFaceIds.Length |> env.GetNeighborTileByIdx tile
 
         let mutable v0 = Vector3.Zero
         let mutable vw0 = Vector3.Zero
@@ -100,7 +100,7 @@ module ChunkTriangulationCommand =
 
             preNeighbor <- neighbor
             neighbor <- nextNeighbor
-            nextNeighbor <- HexIndexUtil.next2Idx i tileHexFaceIds.Length |> env.GetNeighborTileByIdx tileId
+            nextNeighbor <- HexIndexUtil.next2Idx i tileHexFaceIds.Length |> env.GetNeighborTileByIdx tile
 
     /// 绘制平面六边形（有高度立面、处理接缝、但无特征、无河流）
     let private triangulatePlaneHex
@@ -140,7 +140,7 @@ module ChunkTriangulationCommand =
             let vw2 =
                 Tile.cornerWithRadius TileUnitCorners.getSecondCornerWithRadius i (radius + waterHeight) tile
 
-            let neighbor = env.GetNeighborTileByIdx tileId i
+            let neighbor = env.GetNeighborTileByIdx tile i
 
             let nIds =
                 Vector3(
@@ -1282,7 +1282,7 @@ module ChunkTriangulationCommand =
         =
         let planetConfig = env.PlanetConfig
         let tileHeight = env.GetHeight tile
-        let neighbor = env.GetNeighborTileByIdx tile.Id idx
+        let neighbor = env.GetNeighborTileByIdx tile idx
         let neighborHeight = env.GetHeight neighbor
         let standardScale = planetConfig.StandardScale
         // 连接将由更低的地块或相同高度时 Id 更大的地块生成，或者是编辑地块与非编辑地块间的连接
@@ -1423,7 +1423,7 @@ module ChunkTriangulationCommand =
                     (not hasRiver && simple)
 
             let preIdx = Tile.hexFaceIds tile |> _.Length |> HexIndexUtil.previousIdx idx
-            let preNeighbor = env.GetNeighborTileByIdx tile.Id preIdx
+            let preNeighbor = env.GetNeighborTileByIdx tile preIdx
             let preNeighborHeight = env.GetHeight preNeighbor
             // 连接角落的三角形由周围 3 个地块中最低或者一样高时 Id 最大的生成，或者是编辑地块与非编辑地块间的连接三角形
             if
@@ -1536,7 +1536,6 @@ module ChunkTriangulationCommand =
             'E
                 when 'E :> IPlanetConfigQuery
                 and 'E :> ICatlikeCodingNoiseQuery
-                and 'E :> IPointQuery
                 and 'E :> IFaceQuery
                 and 'E :> ITileQuery)
         (chunk: IChunk)
@@ -1604,7 +1603,7 @@ module ChunkTriangulationCommand =
                 neighbor
 
         let e2 = EdgeVertices(cn1, cn2)
-        let neighborIdx = env.GetNeighborIdx tile.Id neighbor.Id
+        let neighborIdx = Tile.getNeighborTileIdx tile neighbor
         let waterShore = chunk.GetWaterShore()
 
         let addWaterShoreQuad verticesArr =
@@ -1632,7 +1631,7 @@ module ChunkTriangulationCommand =
             Tile.hexFaceIds tile
             |> _.Length
             |> HexIndexUtil.nextIdx idx
-            |> env.GetNeighborTileByIdx tile.Id
+            |> env.GetNeighborTileByIdx tile
 
         let nextNeighborWaterHeight =
             nextNeighbor |> Tile.value |> TileValue.waterSurfaceY unitHeight
@@ -1740,7 +1739,7 @@ module ChunkTriangulationCommand =
                 Tile.hexFaceIds tile
                 |> _.Length
                 |> HexIndexUtil.nextIdx idx
-                |> env.GetNeighborTileByIdx tile.Id
+                |> env.GetNeighborTileByIdx tile
 
             if
                 tile.Id > nextNeighbor.Id
@@ -1780,7 +1779,7 @@ module ChunkTriangulationCommand =
         let centroid =
             Math3dUtil.ProjectToSphere(centroid, planetConfig.Radius + waterHeight)
 
-        let neighbor = env.GetNeighborTileByIdx tile.Id idx
+        let neighbor = env.GetNeighborTileByIdx tile idx
 
         if neighbor |> Tile.value |> TileValue.isUnderwater |> not then
             triangulateWaterShore env chunk tile neighbor centroid idx waterHeight simple
@@ -1819,7 +1818,7 @@ module ChunkTriangulationCommand =
             if chunkLod = ChunkLodEnum.Full then
                 false
             else
-                let neighbor = env.GetNeighborTileByIdx tileId idx
+                let neighbor = env.GetNeighborTileByIdx tile idx
 
                 if (Tile.chunkId neighbor).ChunkId = (Tile.chunkId tile).ChunkId then
                     true

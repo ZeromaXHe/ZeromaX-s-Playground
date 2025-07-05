@@ -45,7 +45,7 @@ module HexMapGeneratorCommand =
 
     let private evolveClimate
         (env:
-            'E when 'E :> IHexMapGeneratorQuery and 'E :> IPlanetConfigQuery and 'E :> ITileQuery and 'E :> IPointQuery)
+            'E when 'E :> IHexMapGeneratorQuery and 'E :> IPlanetConfigQuery and 'E :> ITileQuery)
         (tile: Entity)
         =
         let this = env.HexMapGenerator
@@ -84,11 +84,11 @@ module HexMapGeneratorCommand =
         let runoff = tileClimate.Moisture * this.RunoffFactor * (1f / float32 edgeCount)
         let seepage = tileClimate.Moisture * this.SeepageFactor * (1f / float32 edgeCount)
 
-        for neighbor in env.GetNeighborTiles tile.Id do
+        for neighbor in env.GetNeighborTiles tile do
             let neighborCountId = neighbor |> Tile.countId |> _.CountId
             let mutable neighborClimate = this.NextClimate[neighborCountId]
 
-            if env.GetNeighborIdx tile.Id neighbor.Id = mainDispersalDirection then
+            if Tile.getNeighborTileIdx tile neighbor = mainDispersalDirection then
                 neighborClimate.Clouds <- neighborClimate.Clouds + cloudDispersal * this.WindStrength
             else
                 neighborClimate.Clouds <- neighborClimate.Clouds + cloudDispersal
@@ -136,7 +136,7 @@ module HexMapGeneratorCommand =
             this.NextClimate <- temp
 
     let private createRiver
-        (env: 'E when 'E :> ITileQuery and 'E :> IPointQuery and 'E :> ITileCommand and 'E :> IHexMapGeneratorQuery)
+        (env: 'E when 'E :> ITileQuery and 'E :> ITileCommand and 'E :> IHexMapGeneratorQuery)
         (origin: Entity)
         =
         let this = env.HexMapGenerator
@@ -152,7 +152,7 @@ module HexMapGeneratorCommand =
               && tile |> Tile.value |> TileValue.isUnderwater |> not do
             let mutable minNeighborElevation = Int32.MaxValue
             flowDirections.Clear()
-            let neighbors = env.GetNeighborTiles tile.Id |> Seq.toList
+            let neighbors = env.GetNeighborTiles tile |> Seq.toList
 
             for neighbor in neighbors do
                 if not directReturn then
@@ -174,7 +174,7 @@ module HexMapGeneratorCommand =
                                 directReturn <- true
 
                             if not directReturn then
-                                let d = env.GetNeighborIdx tile.Id neighbor.Id
+                                let d = Tile.getNeighborTileIdx tile neighbor
 
                                 if delta < 0 then
                                     flowDirections.Add d
@@ -209,7 +209,7 @@ module HexMapGeneratorCommand =
 
                 if not directReturn && not breakWhile then
                     direction <- flowDirections[this.Rng.RandiRange(0, flowDirections.Count - 1)]
-                    let riverToTile = env.GetNeighborTileByIdx tile.Id direction
+                    let riverToTile = env.GetNeighborTileByIdx tile direction
                     env.SetOutgoingRiver tile riverToTile
                     length <- length + 1
 
@@ -280,7 +280,7 @@ module HexMapGeneratorCommand =
 
             if origin |> Tile.flag |> TileFlag.hasRivers |> not then
                 let isValidOrigin =
-                    env.GetNeighborTiles origin.Id
+                    env.GetNeighborTiles origin
                     |> Seq.forall (fun n ->
                         (n |> Tile.flag |> TileFlag.hasRivers |> not)
                         && (n |> Tile.value |> TileValue.isUnderwater |> not))
@@ -391,7 +391,7 @@ module HexMapGeneratorCommand =
                                 let mutable cliffs = 0
                                 let mutable slopes = 0
 
-                                for neighbor in env.GetNeighborTiles tile.Id do
+                                for neighbor in env.GetNeighborTiles tile do
                                     let delta = (neighbor |> Tile.value |> TileValue.elevation) - tileElevation
 
                                     if delta = 0 then
@@ -462,15 +462,19 @@ module HexMapGeneratorCommand =
                 stopwatch.Restart()
                 ErosionLandGeneratorCommand.erodingLand env erosionLandGen
                 GD.Print $"--- ErodeLand in {stopwatch.ElapsedMilliseconds} ms"
-                stopwatch.Restart()
             | :? IFractalNoiseLandGenerator as fractalNoiseLandGen ->
                 generator.LandTileCount <- FractalNoiseLandGeneratorCommand.createLand env fractalNoiseLandGen
 
                 GD.Print
                     $"--- CreatedLand {generator.LandTileCount}/{tileCount} tiles in {stopwatch.ElapsedMilliseconds} ms"
+            | :? IRealEarthLandGenerator as realEarthLandGen ->
+                generator.LandTileCount <- RealEarthLandGeneratorCommand.createLand env realEarthLandGen
 
-                stopwatch.Restart()
+                GD.Print
+                    $"--- CreatedLand {generator.LandTileCount}/{tileCount} tiles in {stopwatch.ElapsedMilliseconds} ms"
             | _ -> ()
+
+            stopwatch.Restart()
 
             createClimate env tileCount
             GD.Print $"--- CreateClimate in {stopwatch.ElapsedMilliseconds} ms"
@@ -485,3 +489,6 @@ module HexMapGeneratorCommand =
             GD.Print $"--- SetTerrainType in {stopwatch.ElapsedMilliseconds} ms"
             stopwatch.Stop()
             GD.Print $"Generated map in {Time.GetTicksMsec() - time} ms"
+
+    let changeLandGenerator (env: #IHexMapGeneratorQuery) : ChangeLandGenerator =
+        env.HexMapGenerator.UpdateLandGenerator

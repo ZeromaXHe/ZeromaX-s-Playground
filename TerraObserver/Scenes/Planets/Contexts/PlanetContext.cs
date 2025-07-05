@@ -138,6 +138,7 @@ public partial class PlanetContext : Node
             _planetHud.RadiusLineEditTextSubmitted += _planetApp.OnPlanetHudRadiusLineEditTextSubmitted;
             _planetHud.DivisionLineEditTextSubmitted += _planetApp.OnPlanetHudDivisionLineEditTextSubmitted;
             _planetHud.ChunkDivisionLineEditTextSubmitted += _planetApp.OnPlanetHudChunkDivisionLineEditTextSubmitted;
+            _planetHud.LandGenOptionButton.ItemSelected += _planetApp.OnPlanetHudLandGenOptionButtonItemSelected;
         }
 
         _planetApp.DrawHexSphereMesh();
@@ -185,6 +186,8 @@ public partial class PlanetContext : Node
                     _planetHud.DivisionLineEditTextSubmitted -= _planetApp.OnPlanetHudDivisionLineEditTextSubmitted;
                     _planetHud.ChunkDivisionLineEditTextSubmitted -=
                         _planetApp.OnPlanetHudChunkDivisionLineEditTextSubmitted;
+                    _planetHud.LandGenOptionButton.ItemSelected -=
+                        _planetApp.OnPlanetHudLandGenOptionButtonItemSelected;
                 }
             }
         }

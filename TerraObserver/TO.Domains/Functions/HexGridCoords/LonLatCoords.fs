@@ -10,7 +10,7 @@ module LonLatCoords =
     let fromVector2 (v: Vector2) = LonLatCoords(v.X, v.Y)
 
     let toVector2 (this: LonLatCoords) =
-        LonLatCoords(this.Longitude, Mathf.Clamp(this.Latitude, -90f, 90f))
+        Vector2(this.Longitude, Mathf.Clamp(this.Latitude, -90f, 90f))
     // UV 转换
     let fromUv (u: float32) (v: float32) =
         LonLatCoords(180f - u * 360f, 90f - v * 180f)

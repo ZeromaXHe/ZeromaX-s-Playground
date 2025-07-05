@@ -51,11 +51,16 @@ module Tile =
         |> unitCentroid
         |> TileUnitCentroid.getCornerByFaceCenterWithRadiusAndSize faceCenter radius size
 
+    let getNeighborTileIdx (tile: Entity) (neighbor: Entity) =
+        tile
+        |> pointNeighborCenterIds
+        |> PointNeighborCenterIds.getNeighborIdx (neighbor |> pointCenterId |> _.CenterId)
+
 module TileQuery =
     let getTile (env: #IEntityStoreQuery) : GetTile =
         fun (tileId: TileId) -> env.GetEntityById tileId
 
-    let getTileByCountId (env: #IEntityStoreQuery): GetTileByCountId =
+    let getTileByCountId (env: #IEntityStoreQuery) : GetTileByCountId =
         fun (tileCountId: int) -> (env.EntityStore.ComponentIndex<TileCountId, int>()[tileCountId]).Item 0 // 假定了结果一定非空
 
     let getAllTiles (env: #IEntityStoreQuery) : GetAllTiles =
@@ -77,13 +82,23 @@ module TileQuery =
             let neighborCenter = preTile |> Tile.pointCenterId
             tileNeighborCenters |> PointNeighborCenterIds.isNeighbor neighborCenter.CenterId
 
-    let getNeighborTileByIdx (env: 'E when 'E :> IPointQuery and 'E :> ITileQuery) : GetNeighborTileByIdx =
-        fun (tileId: TileId) (idx: int) ->
-            let neighbor = env.GetNeighborByIdAndIdx tileId idx |> Option.get
-            env.GetTile neighbor.Id
+    let getNeighborTileByIdx (env: 'E when 'E :> IPointQuery) : GetNeighborTileByIdx =
+        fun (tile: Entity) (idx: int) ->
+            tile
+            |> Tile.pointNeighborCenterIds
+            |> PointNeighborCenterIds.item idx
+            |> env.TryHeadEntityByCenterId
+            |> Option.get
 
-    let getNeighborTiles (env: 'E when 'E :> IPointQuery and 'E :> ITileQuery) : GetNeighborTiles =
-        fun (tileId: TileId) -> env.GetNeighborIdsById tileId |> Seq.map env.GetTile
+    let getNeighborTiles (env: #IEntityStoreQuery) : GetNeighborTiles =
+        fun (tile: Entity) ->
+            let store = env.EntityStore
+            let neighborCenterIds = tile |> Tile.pointNeighborCenterIds
+
+            { 0 .. neighborCenterIds.Length - 1 }
+            |> Seq.collect (fun i ->
+                let centerId = neighborCenterIds |> PointNeighborCenterIds.item i
+                store.ComponentIndex<PointCenterId, PointId>()[centerId])
 
     let getTilesInDistance (env: #ITileQuery) : GetTilesInDistance =
         fun (tileId: TileId) (dist: int) ->
@@ -100,7 +115,7 @@ module TileQuery =
                 for i in 0 .. dist - 1 do
                     afterRing.AddRange(
                         preRing
-                        |> Seq.collect (fun t -> env.GetNeighborTiles t.Id)
+                        |> Seq.collect (fun t -> env.GetNeighborTiles t)
                         |> Seq.filter resultSet.Add
                     )
 
@@ -159,17 +174,17 @@ module TileCommand =
         fun (tile: Entity) ->
             refreshSelfOnly env tile
 
-            env.GetNeighborTiles tile.Id
+            env.GetNeighborTiles tile
             |> Seq.distinctBy (fun n -> (Tile.chunkId n).ChunkId)
             |> Seq.filter (fun n -> (Tile.chunkId n).ChunkId <> (Tile.chunkId n).ChunkId)
             |> Seq.iter (refreshSelfOnly env)
 
     let private getElevationDifference (env: #ITileQuery) (tile: Entity) (idx: int) =
         (tile |> Tile.value |> TileValue.elevation)
-        - (env.GetNeighborTileByIdx tile.Id idx |> Tile.value |> TileValue.elevation)
+        - (env.GetNeighborTileByIdx tile idx |> Tile.value |> TileValue.elevation)
         |> abs
 
-    let private setRoad (env: 'E when 'E :> ITileQuery and 'E :> IPointQuery) (tile: Entity) (idx: int) (state: bool) =
+    let private setRoad (env: #ITileQuery) (tile: Entity) (idx: int) (state: bool) =
         if state <> (tile |> Tile.flag |> TileFlag.hasRoad idx) then
             let flags =
                 if state then
@@ -181,8 +196,8 @@ module TileCommand =
             tile.AddComponent<TileFlag> &newTileFlag |> ignore
             refreshSelfOnly env tile
 
-        let neighbor = env.GetNeighborTileByIdx tile.Id idx
-        let neighborIdx = env.GetNeighborIdx neighbor.Id tile.Id
+        let neighbor = env.GetNeighborTileByIdx tile idx
+        let neighborIdx = Tile.getNeighborTileIdx neighbor tile
 
         if neighbor |> Tile.flag |> TileFlag.hasRoad neighborIdx <> state then
             let flags =
@@ -201,9 +216,9 @@ module TileCommand =
                 if tile |> Tile.flag |> TileFlag.hasRoad i then
                     setRoad env tile i false
 
-    let addRoad (env: #IPointQuery) : AddRoad =
+    let addRoad env : AddRoad =
         fun (tile: Entity) (neighbor: Entity) ->
-            let idx = env.GetNeighborIdx tile.Id neighbor.Id
+            let idx = Tile.getNeighborTileIdx tile neighbor
             let tileFlag = tile |> Tile.flag
             let tileValue = tile |> Tile.value
             let neighborValue = neighbor |> Tile.value
@@ -237,7 +252,7 @@ module TileCommand =
                 tile
                 |> Tile.flag
                 |> TileFlag.riverOutDirection
-                |> env.GetNeighborTileByIdx tile.Id
+                |> env.GetNeighborTileByIdx tile
 
             let newTileFlag =
                 tile |> Tile.flag |> TileFlag.withoutMask TileFlagEnum.RiverOut |> TileFlag
@@ -256,7 +271,7 @@ module TileCommand =
                 tile
                 |> Tile.flag
                 |> TileFlag.riverInDirection
-                |> env.GetNeighborTileByIdx tile.Id
+                |> env.GetNeighborTileByIdx tile
 
             let newTileFlag =
                 tile |> Tile.flag |> TileFlag.withoutMask TileFlagEnum.RiverIn |> TileFlag
@@ -274,14 +289,14 @@ module TileCommand =
             removeOutgoingRiver env tile
             removeIncomingRiver env tile
 
-    let setOutgoingRiver (env: 'E when 'E :> ITileQuery and 'E :> IPointQuery) : SetOutgoingRiver =
+    let setOutgoingRiver (env: #ITileQuery) : SetOutgoingRiver =
         fun (tile: Entity) (riverToTile: Entity) ->
             if
                 (tile |> Tile.flag |> TileFlag.hasOutgoingRiver)
                 && (tile
                     |> Tile.flag
                     |> TileFlag.riverOutDirection
-                    |> env.GetNeighborTileByIdx tile.Id
+                    |> env.GetNeighborTileByIdx tile
                     |> _.Id = riverToTile.Id)
             then
                 ()
@@ -297,7 +312,7 @@ module TileCommand =
                     && (tile
                         |> Tile.flag
                         |> TileFlag.riverInDirection
-                        |> env.GetNeighborTileByIdx tile.Id
+                        |> env.GetNeighborTileByIdx tile
                         |> _.Id = riverToTile.Id)
                 then
                     removeIncomingRiver env tile
@@ -305,7 +320,7 @@ module TileCommand =
                 let newTileFlag =
                     tile
                     |> Tile.flag
-                    |> TileFlag.withRiverOut (env.GetNeighborIdx tile.Id riverToTile.Id)
+                    |> TileFlag.withRiverOut (Tile.getNeighborTileIdx tile riverToTile)
                     |> TileFlag
 
                 let newTileValue = tile |> Tile.value |> TileValue.withSpecialIndex 0
@@ -316,13 +331,13 @@ module TileCommand =
                 let newRiverToFlag =
                     riverToTile
                     |> Tile.flag
-                    |> TileFlag.withRiverIn (env.GetNeighborIdx riverToTile.Id tile.Id)
+                    |> TileFlag.withRiverIn (Tile.getNeighborTileIdx riverToTile tile)
                     |> TileFlag
 
                 let newRiverToValue = riverToTile |> Tile.value |> TileValue.withSpecialIndex 0
                 riverToTile.AddComponent<TileFlag> &newRiverToFlag |> ignore
                 riverToTile.AddComponent<TileValue> &newRiverToValue |> ignore
-                setRoad env tile (env.GetNeighborIdx tile.Id riverToTile.Id) false
+                setRoad env tile (Tile.getNeighborTileIdx tile riverToTile) false
                 refreshSelfOnly env tile
                 refreshSelfOnly env riverToTile
 
@@ -332,7 +347,7 @@ module TileCommand =
             && tile
                |> Tile.flag
                |> TileFlag.riverOutDirection
-               |> env.GetNeighborTileByIdx tile.Id
+               |> env.GetNeighborTileByIdx tile
                |> isValidRiverDestination tile
                |> not
         then
@@ -343,7 +358,7 @@ module TileCommand =
             && tile
                |> Tile.flag
                |> TileFlag.riverInDirection
-               |> env.GetNeighborTileByIdx tile.Id
+               |> env.GetNeighborTileByIdx tile
                |> isValidRiverDestination tile
                |> not
         then

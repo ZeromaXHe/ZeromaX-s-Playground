@@ -7,7 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://bdondmaglaff5" path="res://Scenes/Cameras/Views/OrbitCameraRig.tscn" id="3_s1lu0"]
 [ext_resource type="Texture2D" uid="uid://com2va6tuhrvy" path="res://Assets/CatlikeCoding/noise.png" id="3_xd1ad"]
 [ext_resource type="PackedScene" uid="uid://ed6bxdqb7oek" path="res://Scenes/Geos/Views/LonLatGrid.tscn" id="4_v27gh"]
-[ext_resource type="Resource" uid="uid://cbt1oad88po7b" path="res://Resources/Maps/FractalNoiseLandGenerator.tres" id="5_eu3m8"]
+[ext_resource type="Resource" uid="uid://1khcboe5qgss" path="res://Resources/Maps/RealEarthLandGenerator.tres" id="5_eu3m8"]
 [ext_resource type="Script" uid="uid://bv15mqo6x4hmb" path="res://Scenes/Maps/Models/HexMapGenerator.cs" id="6_1hg6e"]
 [ext_resource type="PackedScene" uid="uid://c36velgas3n3k" path="res://Addons/zylann.atmosphere/planet_atmosphere.tscn" id="6_mvjou"]
 [ext_resource type="Shader" uid="uid://bixaf68e35s0f" path="res://Addons/zylann.atmosphere/shaders/planet_atmosphere_clouds.gdshader" id="7_ex45l"]
@@ -53,7 +53,7 @@ LowTemperature = 0.0
 HighTemperature = 1.0
 TemperatureJitter = 0.1
 UseFixedSeed = false
-Seed = 1888993605
+Seed = 1768193709
 metadata/_custom_type_script = "uid://bv15mqo6x4hmb"
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_jet37"]
