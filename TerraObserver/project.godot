@@ -103,5 +103,5 @@ max_height={
 }
 radius={
 "type": "float",
-"value": 0.0
+"value": 100.0
 }

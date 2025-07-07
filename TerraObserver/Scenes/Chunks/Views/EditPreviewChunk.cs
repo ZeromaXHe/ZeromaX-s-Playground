@@ -1,26 +1,16 @@
-using System;
 using System.Collections.Generic;
 using Godot;
 using TO.Domains.Types.Chunks;
-using TO.Domains.Types.HexMeshes;
 using TO.Domains.Types.HexSpheres;
 
 namespace TerraObserver.Scenes.Chunks.Views;
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
-/// Date: 2025-06-06 16:31:36
-[Tool]
-public partial class HexGridChunk : Node3D, IHexGridChunk
+/// Date: 2025-07-07 14:16:49
+public partial class EditPreviewChunk : Node3D, IEditPreviewChunk
 {
-    #region 事件
-
-    public event Action<HexGridChunk>? Processed;
-
-    #endregion
-
-    #region Export 属性
-
+    [Export] public ShaderMaterial[]? TerrainMaterials { get; set; }
     [Export] public HexMesh? Terrain { get; set; }
     public IHexMesh? GetTerrain() => Terrain;
     [Export] public HexMesh? Rivers { get; set; }
@@ -33,20 +23,6 @@ public partial class HexGridChunk : Node3D, IHexGridChunk
     public IHexMesh? GetWaterShore() => WaterShore;
     [Export] public HexMesh? Estuary { get; set; }
     public IHexMesh? GetEstuary() => Estuary;
-
-    #endregion
-
-    #region 普通属性
-
-    public int Id { get; set; }
-    public ChunkLodEnum Lod { get; set; } = ChunkLodEnum.JustHex;
-    public HashSet<int>? EditingTileIds => null;
-
-    #endregion
-
-    #region 生命周期
-
-    public override void _Process(double delta) => Processed?.Invoke(this);
-
-    #endregion
+    public ChunkLodEnum Lod { get; set; } = ChunkLodEnum.Full; // 默认值是给预览用的
+    public HashSet<int> EditingTileIds { get; } = [];
 }

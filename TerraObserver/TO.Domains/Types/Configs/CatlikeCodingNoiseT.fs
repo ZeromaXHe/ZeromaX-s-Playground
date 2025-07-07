@@ -22,6 +22,7 @@ type ICatlikeCodingNoise =
 type SampleHashGrid = Vector3 -> HexHash
 type SampleNoise = Vector3 -> Vector4
 type Perturb = Vector3 -> Vector3
+type GetPerturbHeight = Entity -> float32
 type GetHeight = Entity -> float32
 
 [<Interface>]
@@ -30,4 +31,5 @@ type ICatlikeCodingNoiseQuery =
     abstract SampleHashGrid: SampleHashGrid
     abstract SampleNoise: SampleNoise
     abstract Perturb: Perturb
+    abstract GetPerturbHeight: GetPerturbHeight
     abstract GetHeight: GetHeight

@@ -1,6 +1,6 @@
 namespace TO.Domains.Types.Chunks
 
-open Godot
+open System.Collections.Generic
 open TO.Domains.Types.Godots
 open TO.Domains.Types.HexSpheres
 
@@ -8,6 +8,7 @@ open TO.Domains.Types.HexSpheres
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-06-29 20:58:29
 [<Interface>]
+[<AllowNullLiteral>]
 type IChunk =
     inherit INode3D
     abstract GetTerrain: unit -> IHexMesh
@@ -17,3 +18,4 @@ type IChunk =
     abstract GetWaterShore: unit -> IHexMesh
     abstract GetEstuary: unit -> IHexMesh
     abstract Lod: ChunkLodEnum with get, set
+    abstract EditingTileIds: int HashSet

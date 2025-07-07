@@ -161,7 +161,8 @@ module PlanetHudCommand =
                 env.AddRoad previousTile dragTile
 
     let private editTiles (env: #ITileQuery) (chosenTileId: int) (this: IPlanetHud) =
-        for t in env.GetTilesInDistance chosenTileId this.BrushSize do
+        let chosenTile = env.GetTile chosenTileId
+        for t in env.GetTilesInDistance chosenTile this.BrushSize do
             editTile env t this
 
     let updateChosenTileInfo
@@ -261,118 +262,3 @@ module PlanetHudCommand =
                 if not directReturn then
                     planetHud.PreviousTileId <- Nullable()
             | None -> ()
-
-    let isOverridingTileConnection (tile: int) (neighbor: int) (this: IPlanetHud) =
-        this.EditMode
-        && this.OverrideTileIds.Count > 0
-        && this.OverrideTileIds.Contains tile
-        && not <| this.OverrideTileIds.Contains neighbor
-
-    let isOverrideTile (tile: int) (this: IPlanetHud) =
-        this.EditMode && this.OverrideTileIds.Contains tile
-
-    let isOverrideNoRiver (tile: int) (this: IPlanetHud) =
-        isOverrideTile tile this && this.RiverMode = OptionalToggle.No
-
-    let isOverrideNoRoad (tile: int) (this: IPlanetHud) =
-        isOverrideTile tile this && this.RoadMode = OptionalToggle.No
-
-    let elevation (tile: int) (tileValue: TileValue) (this: IPlanetHud) =
-        if isOverrideTile tile this && this.ApplyElevation then
-            this.ActiveElevation
-        else
-            TileValue.elevation tileValue
-
-    let getEdgeType (tile1: int) (tileValue1: TileValue) (tile2: int) (tileValue2: TileValue) (this: IPlanetHud) =
-        HexMetrics.getEdgeType
-        <| elevation tile1 tileValue1 this
-        <| elevation tile2 tileValue2 this
-
-    let waterLevel (tile: int) (tileValue: TileValue) (this: IPlanetHud) =
-        if isOverrideTile tile this && this.ApplyWaterLevel then
-            this.ActiveWaterLevel
-        else
-            TileValue.waterLevel tileValue
-
-    let isUnderwater (tile: int) (tileValue: TileValue) (this: IPlanetHud) =
-        if isOverrideTile tile this then
-            waterLevel tile tileValue this > elevation tile tileValue this
-        else
-            TileValue.isUnderwater tileValue
-
-    let streamBedY (tile: int) (tileValue: TileValue) (unitHeight: float32) (this: IPlanetHud) =
-        if isOverrideTile tile this then
-            (float32 (elevation tile tileValue this) + HexMetrics.streamBedElevationOffset)
-            * unitHeight
-        else
-            TileValue.streamBedY unitHeight tileValue
-
-    let riverSurfaceY (tile: int) (tileValue: TileValue) (unitHeight: float32) (this: IPlanetHud) =
-        if isOverrideTile tile this then
-            (float32 (elevation tile tileValue this) + HexMetrics.waterElevationOffset)
-            * unitHeight
-        else
-            TileValue.streamBedY unitHeight tileValue
-
-    let waterSurfaceY (tile: int) (tileValue: TileValue) (unitHeight: float32) (this: IPlanetHud) =
-        if isOverrideTile tile this then
-            (float32 (waterLevel tile tileValue this) + HexMetrics.waterElevationOffset)
-            * unitHeight
-        else
-            TileValue.waterSurfaceY unitHeight tileValue
-
-    let hasRivers (tile: int) (tileFlag: TileFlag) (this: IPlanetHud) =
-        not <| isOverrideNoRiver tile this && TileFlag.hasRivers tileFlag
-
-    let hasIncomingRiver (tile: int) (tileFlag: TileFlag) (this: IPlanetHud) =
-        not <| isOverrideNoRiver tile this && TileFlag.hasIncomingRiver tileFlag
-
-    let hasOutgoingRiver (tile: int) (tileFlag: TileFlag) (this: IPlanetHud) =
-        not <| isOverrideNoRiver tile this && TileFlag.hasOutgoingRiver tileFlag
-
-    let hasRiverBeginOrEnd (tile: int) (tileFlag: TileFlag) (this: IPlanetHud) =
-        not <| isOverrideNoRiver tile this && TileFlag.hasRiverBeginOrEnd tileFlag
-
-    let hasRiverThroughEdge (tile: int) (tileFlag: TileFlag) (dir: int) (this: IPlanetHud) =
-        not <| isOverrideNoRiver tile this && TileFlag.hasRiver dir tileFlag
-
-    let hasIncomingRiverThroughEdge (tile: int) (tileFlag: TileFlag) (dir: int) (this: IPlanetHud) =
-        not <| isOverrideNoRiver tile this && TileFlag.hasRiverIn dir tileFlag
-
-    let hasRoads (tile: int) (tileFlag: TileFlag) (this: IPlanetHud) =
-        not <| isOverrideNoRoad tile this && TileFlag.hasRoads tileFlag
-
-    let hasRoadThroughEdge (tile: int) (tileFlag: TileFlag) (dir: int) (this: IPlanetHud) =
-        not <| isOverrideNoRoad tile this && TileFlag.hasRoad dir tileFlag
-
-    let walled (tile: int) (tileFlag: TileFlag) (this: IPlanetHud) =
-        if isOverrideTile tile this && this.WalledMode <> OptionalToggle.Ignore then
-            this.WalledMode = OptionalToggle.Yes
-        else
-            TileFlag.walled tileFlag
-
-    let urbanLevel (tile: int) (tileValue: TileValue) (this: IPlanetHud) =
-        if isOverrideTile tile this && this.ApplyUrbanLevel then
-            this.ActiveUrbanLevel
-        else
-            TileValue.urbanLevel tileValue
-
-    let farmLevel (tile: int) (tileValue: TileValue) (this: IPlanetHud) =
-        if isOverrideTile tile this && this.ApplyFarmLevel then
-            this.ActiveFarmLevel
-        else
-            TileValue.farmLevel tileValue
-
-    let plantLevel (tile: int) (tileValue: TileValue) (this: IPlanetHud) =
-        if isOverrideTile tile this && this.ApplyPlantLevel then
-            this.ActivePlantLevel
-        else
-            TileValue.plantLevel tileValue
-
-    let specialIndex (tile: int) (tileValue: TileValue) (this: IPlanetHud) =
-        if isOverrideTile tile this && this.ApplySpecialIndex then
-            this.ActiveSpecialIndex
-        else
-            TileValue.specialIndex tileValue
-
-    let isSpecial (tile: int) (tileValue: TileValue) (this: IPlanetHud) = specialIndex tile tileValue this <> 0

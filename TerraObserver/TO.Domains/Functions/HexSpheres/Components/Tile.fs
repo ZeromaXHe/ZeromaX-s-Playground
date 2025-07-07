@@ -101,11 +101,10 @@ module TileQuery =
                 store.ComponentIndex<PointCenterId, PointId>()[centerId])
 
     let getTilesInDistance (env: #ITileQuery) : GetTilesInDistance =
-        fun (tileId: TileId) (dist: int) ->
+        fun (tile: Entity) (dist: int) ->
             if dist = 0 then
-                seq { env.GetTile tileId }
+                seq { tile }
             else
-                let tile = env.GetTile tileId
                 let resultSet = HashSet<Entity>()
                 resultSet.Add tile |> ignore
                 let mutable preRing = ResizeArray<Entity>()

@@ -29,6 +29,7 @@ public partial class PlanetConfig : Resource, IPlanetConfig
         set
         {
             _radius = value;
+            RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.Radius, _radius);
             OnParamsChanged();
         }
     }
@@ -44,6 +45,7 @@ public partial class PlanetConfig : Resource, IPlanetConfig
             _divisions = value;
             _chunkDivisions = Mathf.Min(Mathf.Max(1, _divisions / 10), _chunkDivisions);
             SphereAxial.Div = _divisions;
+            RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.Divisions, _divisions);
             OnParamsChanged();
         }
     }
@@ -59,6 +61,7 @@ public partial class PlanetConfig : Resource, IPlanetConfig
             _chunkDivisions = value;
             _divisions = Mathf.Max(Mathf.Min(200, _chunkDivisions * 10), _divisions);
             SphereAxial.Div = _divisions;
+            RenderingServer.GlobalShaderParameterSet(GlobalShaderParam.Divisions, _divisions);
             OnParamsChanged();
         }
     }

@@ -17,7 +17,7 @@ type GetSphereAxial = Entity -> SphereAxial
 type IsNeighborTile = TileId -> TileId -> bool
 type GetNeighborTileByIdx = Entity -> int -> Entity
 type GetNeighborTiles = Entity -> Entity seq
-type GetTilesInDistance = TileId -> int -> Entity seq
+type GetTilesInDistance = Entity -> int -> Entity seq
 
 [<Interface>]
 type ITileQuery =

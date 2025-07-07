@@ -4,11 +4,11 @@ using TerraObserver.Scenes.Cameras.Views;
 using TerraObserver.Scenes.Chunks.Views;
 using TerraObserver.Scenes.Geos.Views;
 using TerraObserver.Scenes.Maps.Models;
+using TerraObserver.Scenes.Maps.Views;
 using TerraObserver.Scenes.Planets.Models;
 using TerraObserver.Scenes.Planets.Views;
 using TerraObserver.Scenes.Uis.Views;
 using TO.Domains.Apps;
-using TO.Domains.Types.Chunks;
 
 namespace TerraObserver.Scenes.Planets.Contexts;
 
@@ -86,7 +86,8 @@ public partial class PlanetContext : Node
     private CelestialMotion _celestialMotion = null!;
     private ChunkLoader _chunkLoader = null!;
     private SelectTileViewer _selectTileViewer = null!;
-    private Maps.Views.MiniMapManager _miniMapManager = null!;
+    private EditPreviewChunk _editPreviewChunk = null!;
+    private MiniMapManager _miniMapManager = null!;
     private PlanetHud _planetHud = null!;
     private PlanetApp _planetApp = null!;
 
@@ -106,6 +107,7 @@ public partial class PlanetContext : Node
         if (!inEditor)
         {
             _selectTileViewer = GetNode<SelectTileViewer>("%SelectTileViewer");
+            _editPreviewChunk = GetNode<EditPreviewChunk>("%EditPreviewChunk");
             _planetHud = GetNode<PlanetHud>("%PlanetHud");
             _miniMapManager = _planetHud.MiniMapManager;
         }
@@ -113,7 +115,7 @@ public partial class PlanetContext : Node
         NodeReady = true;
         // App
         _planetApp = new PlanetApp(PlanetConfig, CatlikeCodingNoise, _orbitCameraRig, _lonLatGrid, _celestialMotion,
-            _chunkLoader, _selectTileViewer, _miniMapManager, _hexMapGenerator, _planetHud);
+            _chunkLoader, _selectTileViewer, _editPreviewChunk, _miniMapManager, _hexMapGenerator, _planetHud);
         PlanetConfig!.ParamsChanged += _planetApp.DrawHexSphereMesh;
         PlanetConfig.ParamsChanged += _planetApp.OnPlanetConfigParamsChanged;
         _orbitCameraRig.Transformed += UpdateInsightChunks;

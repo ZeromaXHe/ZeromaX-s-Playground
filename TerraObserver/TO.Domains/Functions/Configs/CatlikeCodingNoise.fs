@@ -1,5 +1,6 @@
 namespace TO.Domains.Functions.Configs
 
+open Friflo.Engine.ECS
 open Godot
 open TO.Domains.Functions.Hashes
 open TO.Domains.Functions.HexMetrics
@@ -86,21 +87,21 @@ module CatlikeCodingNoiseQuery =
 
     let elevationPerturbStrength = 0.5f
 
+    let getPerturbHeight (env: #ICatlikeCodingNoiseQuery) : GetPerturbHeight =
+        fun (tile: Entity) ->
+            ((tile
+              |> Tile.unitCentroid
+              |> TileUnitCentroid.scaled HexMetrics.StandardRadius
+              |> env.SampleNoise)
+                .Y
+             * 2f
+             - 1f)
+            * elevationPerturbStrength
+
     let getHeight (env: 'E when 'E :> IPlanetConfigQuery and 'E :> ICatlikeCodingNoiseQuery) : GetHeight =
-        let planetConfig = env.PlanetConfig
-
-        let getPerturbHeight (centroid: Vector3) =
-            ((env.SampleNoise centroid).Y * 2f - 1f) * elevationPerturbStrength
-
-        let getHeightInner (elevation: int) (centroid: Vector3) =
-            (float32 elevation + getPerturbHeight centroid) * planetConfig.UnitHeight
-
         fun tile ->
-            let centroid =
-                tile |> Tile.unitCentroid |> TileUnitCentroid.scaled HexMetrics.StandardRadius
-
             let elevation = tile |> Tile.value |> TileValue.elevation
-            getHeightInner elevation centroid
+            (float32 elevation + env.GetPerturbHeight tile) * env.PlanetConfig.UnitHeight
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)

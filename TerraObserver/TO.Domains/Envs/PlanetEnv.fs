@@ -47,6 +47,7 @@ type PlanetEnv
         celestialMotion,
         chunkLoader,
         selectTileViewer,
+        editPreviewChunk,
         miniMapManager,
         hexMapGenerator,
         planetHud
@@ -173,6 +174,7 @@ type PlanetEnv
         member this.SampleNoise = CatlikeCodingNoiseQuery.sampleNoise this
         member this.Perturb = CatlikeCodingNoiseQuery.perturb this
         member this.GetHeight = CatlikeCodingNoiseQuery.getHeight this
+        member this.GetPerturbHeight = CatlikeCodingNoiseQuery.getPerturbHeight this
 
     interface IOrbitCameraRigQuery with
         member this.OrbitCameraRig = cameraRig
@@ -213,9 +215,6 @@ type PlanetEnv
         member this.GetAllUsingChunks = ChunkLoaderQuery.getAllUsingChunks this
         member this.GetViewportCamera = ChunkLoaderQuery.getViewportCamera this
 
-    interface IChunkTriangulationCommand with
-        member this.Triangulate = ChunkTriangulationCommand.triangulate this
-
     interface IChunkLoaderCommand with
         member this.ResetInsightSetIdx = ChunkLoaderCommand.resetInsightSetIdx this
         member this.UpdateInsightSetNextIdx = ChunkLoaderCommand.updateInsightSetNextIdx this
@@ -226,6 +225,47 @@ type PlanetEnv
         member this.OnHexGridChunkProcessed = ChunkLoaderCommand.onHexGridChunkProcessed this
         member this.UpdateInsightChunks = ChunkLoaderCommand.updateInsightChunks this
         member this.RefreshChunk = ChunkLoaderCommand.refreshChunk this
+
+    interface ITileOverriderQuery with
+        member this.GetOverrideEdgeType = TileOverriderQuery.getOverrideEdgeType this
+        member this.GetOverrideElevation = TileOverriderQuery.getOverrideElevation this
+        member this.GetOverrideFarmLevel = TileOverriderQuery.getOverrideFarmLevel this
+        member this.GetOverrideHeight = TileOverriderQuery.getOverrideHeight this
+        member this.GetOverridePlantLevel = TileOverriderQuery.getOverridePlantLevel this
+        member this.GetOverrideRiverSurfaceY = TileOverriderQuery.getOverrideRiverSurfaceY this
+        member this.GetOverrideSpecialIndex = TileOverriderQuery.getOverrideSpecialIndex this
+        member this.GetOverrideStreamBedY = TileOverriderQuery.getOverrideStreamBedY this
+        member this.GetOverrideUrbanLevel = TileOverriderQuery.getOverrideUrbanLevel this
+        member this.GetOverrideWalled = TileOverriderQuery.getOverrideWalled this
+        member this.GetOverrideWaterLevel = TileOverriderQuery.getOverrideWaterLevel this
+        member this.GetOverrideWaterSurfaceY = TileOverriderQuery.getOverrideWaterSurfaceY this
+        member this.HasOverrideIncomingRiver = TileOverriderQuery.hasOverrideIncomingRiver this
+
+        member this.HasOverrideIncomingRiverThroughEdge =
+            TileOverriderQuery.hasOverrideIncomingRiverThroughEdge this
+
+        member this.HasOverrideOutgoingRiver = TileOverriderQuery.hasOverrideOutgoingRiver this
+
+        member this.HasOverrideRiverBeginOrEnd =
+            TileOverriderQuery.hasOverrideRiverBeginOrEnd this
+
+        member this.HasOverrideRiverThroughEdge =
+            TileOverriderQuery.hasOverrideRiverThroughEdge this
+
+        member this.HasOverrideRivers = TileOverriderQuery.hasOverrideRivers this
+
+        member this.HasOverrideRoadThroughEdge =
+            TileOverriderQuery.hasOverrideRoadThroughEdge this
+
+        member this.HasOverrideRoads = TileOverriderQuery.hasOverrideRoads this
+        member this.IsOverrideSpecial = TileOverriderQuery.isOverrideSpecial this
+        member this.IsOverrideUnderwater = TileOverriderQuery.isOverrideUnderwater this
+
+        member this.IsOverridingTileConnection =
+            TileOverriderQuery.isOverridingTileConnection this
+
+    interface IChunkTriangulationCommand with
+        member this.Triangulate = ChunkTriangulationCommand.triangulate this
 
     interface ISelectTileViewerQuery with
         member this.SelectTileViewerOpt =
@@ -238,6 +278,16 @@ type PlanetEnv
 
     interface ISelectTileViewerCommand with
         member this.UpdateInEditMode = SelectTileViewerCommand.updateInEditMode this
+
+    interface IEditPreviewChunkQuery with
+        member this.EditPreviewChunkOpt =
+            if editPreviewChunk = null then
+                None
+            else
+                Some editPreviewChunk
+
+    interface IEditPreviewChunkCommand with
+        member this.RefreshEditPreview = EditPreviewChunkCommand.refreshEditPreview this
 
     interface IMiniMapManagerQuery with
         member this.MiniMapManagerOpt =

@@ -265,7 +265,7 @@ module ChunkLoaderCommand =
                 env
                     .Query<TileChunkId>()
                     .HasValue<TileChunkId, ChunkId>(instance.Id)
-                    .ForEachEntity(fun tileChunkId tileEntity -> env.Triangulate instance tileEntity.Id)
+                    .ForEachEntity(fun tileChunkId tileEntity -> env.Triangulate instance tileEntity)
 
                 instance |> HexGridChunkCommand.applyNewData
 

@@ -22,17 +22,19 @@ open TO.Domains.Types.HexSpheres.Components.Tiles
 module ChunkTriangulationCommand =
     /// 仅绘制六边形（无扰动，点平均周围地块高度）
     let private triangulateJustHex
-        (env: 'E when 'E :> IPlanetConfigQuery and 'E :> ICatlikeCodingNoiseQuery and 'E :> ITileQuery)
+        (env:
+            'E
+                when 'E :> IPlanetConfigQuery
+                and 'E :> ICatlikeCodingNoiseQuery
+                and 'E :> ITileQuery
+                and 'E :> ITileOverriderQuery)
         (chunk: IChunk)
-        (tileId: TileId)
+        (tile: Entity)
         =
-        let planetConfig = env.PlanetConfig
-        let unitHeight = planetConfig.UnitHeight
-        let radius = planetConfig.Radius
-        let tile = env.GetTile tileId
+        let radius = env.PlanetConfig.Radius
         let ids = Tile.countId tile |> _.CountId |> float32 |> (*) Vector3.One
-        let height = env.GetHeight tile
-        let waterHeight = tile |> Tile.value |> TileValue.waterSurfaceY unitHeight
+        let height = env.GetOverrideHeight chunk tile
+        let waterHeight = env.GetOverrideWaterSurfaceY chunk tile
         let tileHexFaceIds = Tile.hexFaceIds tile
 
         let mutable preNeighbor =
@@ -48,18 +50,12 @@ module ChunkTriangulationCommand =
         let mutable vw0 = Vector3.Zero
 
         for i in 0 .. tileHexFaceIds.Length - 1 do
-            let neighborHeight = env.GetHeight neighbor
-
-            let neighborWaterHeight =
-                neighbor |> Tile.value |> TileValue.waterSurfaceY unitHeight
-
-            let preHeight = env.GetHeight preNeighbor
-            let preWaterHeight = preNeighbor |> Tile.value |> TileValue.waterSurfaceY unitHeight
-            let nextHeight = env.GetHeight nextNeighbor
-
-            let nextWaterHeight =
-                nextNeighbor |> Tile.value |> TileValue.waterSurfaceY unitHeight
-
+            let neighborHeight = env.GetOverrideHeight chunk neighbor
+            let neighborWaterHeight = env.GetOverrideWaterSurfaceY chunk neighbor
+            let preHeight = env.GetOverrideHeight chunk preNeighbor
+            let preWaterHeight = env.GetOverrideWaterSurfaceY chunk preNeighbor
+            let nextHeight = env.GetOverrideHeight chunk nextNeighbor
+            let nextWaterHeight = env.GetOverrideWaterSurfaceY chunk nextNeighbor
             let avgHeight1 = (preHeight + neighborHeight + height) / 3f
             let avgHeight2 = (neighborHeight + nextHeight + height) / 3f
             let avgWaterHeight1 = (preWaterHeight + neighborWaterHeight + waterHeight) / 3f
@@ -93,7 +89,7 @@ module ChunkTriangulationCommand =
                         tis = ids
                     )
                 // 绘制水面
-                if tile |> Tile.value |> TileValue.isUnderwater then
+                if env.IsOverrideUnderwater chunk tile then
                     chunk
                         .GetWater()
                         .AddTriangle([| vw0; vw1; vw2 |], MeshUtil.triArr HexMeshConstant.weights1, tis = ids)
@@ -110,17 +106,15 @@ module ChunkTriangulationCommand =
                 and 'E :> ICatlikeCodingNoiseQuery
                 and 'E :> IFaceQuery
                 and 'E :> ITileQuery
-                and 'E :> IChunkQuery)
+                and 'E :> IChunkQuery
+                and 'E :> ITileOverriderQuery)
         (chunk: IChunk)
-        (tileId: TileId)
+        (tile: Entity)
         =
-        let planetConfig = env.PlanetConfig
-        let unitHeight = planetConfig.UnitHeight
-        let radius = planetConfig.Radius
-        let tile = env.GetTile tileId
+        let radius = env.PlanetConfig.Radius
         let ids = Tile.countId tile |> _.CountId |> float32 |> (*) Vector3.One
-        let height = env.GetHeight tile
-        let waterHeight = TileValue.waterSurfaceY unitHeight <| Tile.value tile
+        let height = env.GetOverrideHeight chunk tile
+        let waterHeight = env.GetOverrideWaterSurfaceY chunk tile
 
         let v0 =
             Tile.cornerWithRadius TileUnitCorners.getFirstCornerWithRadius 0 (radius + height) tile
@@ -149,10 +143,8 @@ module ChunkTriangulationCommand =
                     Tile.countId tile |> _.CountId |> float32
                 )
 
-            let neighborHeight = env.GetHeight neighbor
-
-            let neighborWaterHeight =
-                neighbor |> Tile.value |> TileValue.waterSurfaceY unitHeight
+            let neighborHeight = env.GetOverrideHeight chunk neighbor
+            let neighborWaterHeight = env.GetOverrideWaterSurfaceY chunk neighbor
             // 绘制陆地立面（由高的地块绘制）
             if neighborHeight < height then
                 let vn1 = Math3dUtil.ProjectToSphere(v1, radius + neighborHeight)
@@ -166,10 +158,7 @@ module ChunkTriangulationCommand =
                         tis = nIds
                     )
             // 绘制水面立面（由高的水面绘制）
-            if
-                tile |> Tile.value |> TileValue.isUnderwater
-                && neighborWaterHeight < waterHeight
-            then
+            if env.IsOverrideUnderwater chunk tile && neighborWaterHeight < waterHeight then
                 let vnw1 = Math3dUtil.ProjectToSphere(vw1, radius + neighborWaterHeight)
                 let vnw2 = Math3dUtil.ProjectToSphere(vw2, radius + neighborWaterHeight)
 
@@ -214,7 +203,7 @@ module ChunkTriangulationCommand =
                         tis = nIds
                     )
 
-                if tile |> Tile.value |> TileValue.isUnderwater then
+                if env.IsOverrideUnderwater chunk tile then
                     let vnw1 =
                         Tile.getCornerByFaceCenterWithRadiusAndSize
                             n1FaceCenter
@@ -247,7 +236,7 @@ module ChunkTriangulationCommand =
                         tis = ids
                     )
                 // 绘制水面
-                if tile |> Tile.value |> TileValue.isUnderwater then
+                if env.IsOverrideUnderwater chunk tile then
                     chunk
                         .GetWater()
                         .AddTriangle(
@@ -374,7 +363,7 @@ module ChunkTriangulationCommand =
             )
 
     let private triangulateWithRiverBeginOrEnd
-        (env: #IPlanetConfigQuery)
+        (env: 'E when 'E :> IPlanetConfigQuery and 'E :> ITileOverriderQuery)
         (chunk: IChunk)
         (tile: Entity)
         (centroid: Vector3)
@@ -397,15 +386,11 @@ module ChunkTriangulationCommand =
 
         tile |> Tile.countId |> triangulateEdgeFan env chunk centroid m false
 
-        if tile |> Tile.value |> TileValue.isUnderwater |> not then
-            let reversed = tile |> Tile.flag |> TileFlag.hasIncomingRiver
+        if env.IsOverrideUnderwater chunk tile |> not then
+            let reversed = env.HasOverrideIncomingRiver chunk tile
             let ids = Tile.countId tile |> _.CountId |> float32 |> (*) Vector3.One
             let planetConfig = env.PlanetConfig
-
-            let riverHeight =
-                planetConfig.Radius
-                + (tile |> Tile.value |> TileValue.riverSurfaceY planetConfig.UnitHeight)
-
+            let riverHeight = planetConfig.Radius + env.GetOverrideRiverSurfaceY chunk tile
             triangulateRiverQuad env chunk m.V2 m.V4 e.V2 e.V4 riverHeight riverHeight 0.6f reversed ids
             let centroid = Math3dUtil.ProjectToSphere(centroid, riverHeight)
             m.V2 <- Math3dUtil.ProjectToSphere(m.V2, riverHeight)
@@ -424,7 +409,7 @@ module ChunkTriangulationCommand =
                 )
 
     let private triangulateWithRiver
-        (env: #IPlanetConfigQuery)
+        (env: 'E when 'E :> IPlanetConfigQuery and 'E :> ITileOverriderQuery)
         (chunk: IChunk)
         (tile: Entity)
         (idx: int)
@@ -440,9 +425,8 @@ module ChunkTriangulationCommand =
             // 注意五边形没有对边的情况
             if
                 tileUnitCorners.Length = 6
-                && TileFlag.hasRiver
+                && env.HasOverrideRiverThroughEdge chunk tile
                    <| HexIndexUtil.oppositeIdx idx tileUnitCorners.Length
-                   <| Tile.flag tile
             then
                 // 直线河流
                 (Tile.cornerWithRadiusAndSize
@@ -458,23 +442,20 @@ module ChunkTriangulationCommand =
                     0.25f
                     tile)
             elif
-                TileFlag.hasRiver
+                env.HasOverrideRiverThroughEdge chunk tile
                 <| HexIndexUtil.nextIdx idx tileUnitCorners.Length
-                <| Tile.flag tile
             then
                 // 锐角弯
                 centroid, centroid.Lerp(e.V5, 2f / 3f)
             elif
-                TileFlag.hasRiver
+                env.HasOverrideRiverThroughEdge chunk tile
                 <| HexIndexUtil.previousIdx idx tileUnitCorners.Length
-                <| Tile.flag tile
             then
                 // 锐角弯
                 centroid.Lerp(e.V1, 2f / 3f), centroid
             elif
-                TileFlag.hasRiver
+                env.HasOverrideRiverThroughEdge chunk tile
                 <| HexIndexUtil.next2Idx idx tileUnitCorners.Length
-                <| Tile.flag tile
             then
                 // 钝角弯
                 centroid,
@@ -485,9 +466,8 @@ module ChunkTriangulationCommand =
                     (0.5f * HexMetrics.InnerToOuter)
                     tile)
             elif
-                TileFlag.hasRiver
+                env.HasOverrideRiverThroughEdge chunk tile
                 <| HexIndexUtil.previous2Idx idx tileUnitCorners.Length
-                <| Tile.flag tile
             then
                 // 钝角弯
                 (Tile.cornerWithRadiusAndSize
@@ -547,12 +527,9 @@ module ChunkTriangulationCommand =
             tis = ids
         )
 
-        if tile |> Tile.value |> TileValue.isUnderwater |> not then
-            let reversed = tile |> Tile.flag |> TileFlag.hasRiverIn idx
-
-            let riverHeight =
-                tile |> Tile.value |> TileValue.riverSurfaceY planetConfig.UnitHeight
-
+        if env.IsOverrideUnderwater chunk tile |> not then
+            let reversed = env.HasOverrideIncomingRiverThroughEdge chunk tile idx
+            let riverHeight = env.GetOverrideRiverSurfaceY chunk tile
             let riverTotalHeight = radius + riverHeight
             triangulateRiverQuad env chunk centerL centerR m.V2 m.V4 riverTotalHeight riverTotalHeight 0.4f reversed ids
             triangulateRiverQuad env chunk m.V2 m.V4 e.V2 e.V4 riverTotalHeight riverTotalHeight 0.6f reversed ids
@@ -621,8 +598,29 @@ module ChunkTriangulationCommand =
         else
             triangulateRoadEdge env chunk centroid mL mR tileCountId
 
+    let private getRoadInterpolator
+        (env: #ITileOverriderQuery)
+        (chunk: IChunk)
+        (tile: Entity)
+        (length: int)
+        (idx: int)
+        =
+        if env.HasOverrideRoadThroughEdge chunk tile idx then
+            Vector2(0.5f, 0.5f)
+        else
+            Vector2(
+                (if env.HasOverrideRoadThroughEdge chunk tile <| HexIndexUtil.previousIdx idx length then
+                     0.5f
+                 else
+                     0.25f),
+                (if env.HasOverrideRoadThroughEdge chunk tile <| HexIndexUtil.nextIdx idx length then
+                     0.5f
+                 else
+                     0.25f)
+            )
+
     let private triangulateRoadAdjacentToRiver
-        (env: #IPlanetConfigQuery)
+        (env: 'E when 'E :> IPlanetConfigQuery and 'E :> ITileOverriderQuery)
         (chunk: IChunk)
         (tile: Entity)
         (idx: int)
@@ -631,13 +629,15 @@ module ChunkTriangulationCommand =
         (e: EdgeVertices)
         =
         let cornerCount = Tile.unitCorners tile |> _.Length
-        let hasRoadThroughEdge = tile |> Tile.flag |> TileFlag.hasRoad idx
+        let hasRoadThroughEdge = env.HasOverrideRoadThroughEdge chunk tile idx
 
         let previousHasRiver =
-            TileFlag.hasRiver <| HexIndexUtil.previousIdx idx cornerCount <| Tile.flag tile
+            env.HasOverrideRiverThroughEdge chunk tile
+            <| HexIndexUtil.previousIdx idx cornerCount
 
         let nextHasRiver =
-            TileFlag.hasRiver <| HexIndexUtil.nextIdx idx cornerCount <| Tile.flag tile
+            env.HasOverrideRiverThroughEdge chunk tile
+            <| HexIndexUtil.nextIdx idx cornerCount
 
         let incomingRiverIdx = tile |> Tile.flag |> TileFlag.riverInDirection
         let outgoingRiverIdx = tile |> Tile.flag |> TileFlag.riverOutDirection
@@ -646,9 +646,9 @@ module ChunkTriangulationCommand =
         let mutable centroid = centroid
         let mutable returnNow = false
 
-        if tile |> Tile.flag |> TileFlag.hasRiverBeginOrEnd then
+        if env.HasOverrideRiverBeginOrEnd chunk tile then
             let riverBeginOrEndIdx =
-                if tile |> Tile.flag |> TileFlag.hasIncomingRiver then
+                if env.HasOverrideIncomingRiver chunk tile then
                     incomingRiverIdx
                 else
                     outgoingRiverIdx
@@ -679,9 +679,8 @@ module ChunkTriangulationCommand =
             if previousHasRiver then
                 if
                     not hasRoadThroughEdge
-                    && tile
-                       |> Tile.flag
-                       |> TileFlag.hasRoad (HexIndexUtil.nextIdx idx cornerCount)
+                    && HexIndexUtil.nextIdx idx cornerCount
+                       |> env.HasOverrideRoadThroughEdge chunk tile
                        |> not
                 then
                     returnNow <- true
@@ -690,9 +689,8 @@ module ChunkTriangulationCommand =
                         Tile.cornerWithRadius TileUnitCorners.getSecondSolidCornerWithRadius idx (radius + height) tile
             else if
                 not hasRoadThroughEdge
-                && tile
-                   |> Tile.flag
-                   |> TileFlag.hasRoad (HexIndexUtil.previousIdx idx cornerCount)
+                && HexIndexUtil.previousIdx idx cornerCount
+                   |> env.HasOverrideRoadThroughEdge chunk tile
                    |> not
             then
                 returnNow <- true
@@ -749,10 +747,9 @@ module ChunkTriangulationCommand =
                     HexIndexUtil.previousIdx idx cornerCount // 两个可能方向中的顺时针第一个
 
             if
-                tile |> Tile.flag |> TileFlag.hasRoad firstIdx |> not
-                && tile
-                   |> Tile.flag
-                   |> TileFlag.hasRoad (HexIndexUtil.nextIdx firstIdx cornerCount)
+                env.HasOverrideRoadThroughEdge chunk tile firstIdx |> not
+                && HexIndexUtil.nextIdx firstIdx cornerCount
+                   |> env.HasOverrideRoadThroughEdge chunk tile
                    |> not
             then
                 returnNow <- true
@@ -772,14 +769,12 @@ module ChunkTriangulationCommand =
                     idx
 
             if
-                tile |> Tile.flag |> TileFlag.hasRoad middleIdx |> not
-                && tile
-                   |> Tile.flag
-                   |> TileFlag.hasRoad (HexIndexUtil.previousIdx middleIdx cornerCount)
+                env.HasOverrideRoadThroughEdge chunk tile middleIdx |> not
+                && HexIndexUtil.previousIdx middleIdx cornerCount
+                   |> env.HasOverrideRoadThroughEdge chunk tile
                    |> not
-                && tile
-                   |> Tile.flag
-                   |> TileFlag.hasRoad (HexIndexUtil.nextIdx middleIdx cornerCount)
+                && HexIndexUtil.nextIdx middleIdx cornerCount
+                   |> env.HasOverrideRoadThroughEdge chunk tile
                    |> not
             then
                 returnNow <- true
@@ -790,7 +785,7 @@ module ChunkTriangulationCommand =
                 roadCenter <- roadCenter + (offset - centroid) * 0.25f
 
         if not returnNow then
-            let interpolator = tile |> Tile.flag |> TileFlag.getRoadInterpolator cornerCount idx
+            let interpolator = getRoadInterpolator env chunk tile cornerCount idx
             let mL = roadCenter.Lerp(e.V1, interpolator.X)
             let mR = roadCenter.Lerp(e.V5, interpolator.Y)
 
@@ -805,7 +800,7 @@ module ChunkTriangulationCommand =
                 tile |> Tile.countId |> triangulateRoadEdge env chunk roadCenter mR centroid
 
     let private triangulateAdjacentToRiver
-        (env: #IPlanetConfigQuery)
+        (env: 'E when 'E :> IPlanetConfigQuery and 'E :> ITileOverriderQuery)
         (chunk: IChunk)
         (tile: Entity)
         (idx: int)
@@ -814,7 +809,7 @@ module ChunkTriangulationCommand =
         (e: EdgeVertices)
         (simple: bool)
         =
-        if tile |> Tile.flag |> TileFlag.hasRoads then
+        if env.HasOverrideRoads chunk tile then
             triangulateRoadAdjacentToRiver env chunk tile idx height centroid e
 
         let radius = env.PlanetConfig.Radius
@@ -822,8 +817,14 @@ module ChunkTriangulationCommand =
         let tileFlag = Tile.flag tile
 
         let centroid =
-            if TileFlag.hasRiver <| HexIndexUtil.nextIdx idx cornerCount <| tileFlag then
-                if TileFlag.hasRiver <| HexIndexUtil.previousIdx idx cornerCount <| tileFlag then
+            if
+                env.HasOverrideRiverThroughEdge chunk tile
+                <| HexIndexUtil.nextIdx idx cornerCount
+            then
+                if
+                    env.HasOverrideRiverThroughEdge chunk tile
+                    <| HexIndexUtil.previousIdx idx cornerCount
+                then
                     Tile.cornerWithRadiusAndSize
                         TileUnitCorners.getSolidEdgeMiddleWithRadiusAndSize
                         idx
@@ -832,7 +833,8 @@ module ChunkTriangulationCommand =
                         tile
                 elif
                     cornerCount = 6
-                    && TileFlag.hasRiver <| HexIndexUtil.previous2Idx idx cornerCount <| tileFlag
+                    && env.HasOverrideRiverThroughEdge chunk tile
+                       <| HexIndexUtil.previous2Idx idx cornerCount
                 then
                     // 注意五边形没有直线河流，一边临河另一边隔一个方向临河的情况是对应钝角河的外河岸，依然在 centroid
                     Tile.cornerWithRadiusAndSize
@@ -845,8 +847,10 @@ module ChunkTriangulationCommand =
                     centroid
             elif
                 cornerCount = 6
-                && TileFlag.hasRiver <| HexIndexUtil.previousIdx idx cornerCount <| tileFlag
-                && TileFlag.hasRiver <| HexIndexUtil.next2Idx idx cornerCount <| tileFlag
+                && env.HasOverrideRiverThroughEdge chunk tile
+                   <| HexIndexUtil.previousIdx idx cornerCount
+                && env.HasOverrideRiverThroughEdge chunk tile
+                   <| HexIndexUtil.next2Idx idx cornerCount
             then
                 // 注意五边形没有直线河流，一边临河另一边隔一个方向临河的情况是对应钝角河的外河岸，依然在 centroid
                 Tile.cornerWithRadiusAndSize
@@ -875,7 +879,7 @@ module ChunkTriangulationCommand =
         tile |> Tile.countId |> triangulateEdgeFan env chunk centroid m simple
 
     let private triangulateWithoutRiver
-        env
+        (env: #ITileOverriderQuery)
         (chunk: IChunk)
         (tile: Entity)
         (idx: int)
@@ -885,15 +889,13 @@ module ChunkTriangulationCommand =
         =
         tile |> Tile.countId |> triangulateEdgeFan env chunk centroid e simple
 
-        if tile |> Tile.flag |> TileFlag.hasRoads then
+        if env.HasOverrideRoads chunk tile then
             let interpolator =
-                tile
-                |> Tile.flag
-                |> TileFlag.getRoadInterpolator (Tile.unitCorners tile).Length idx
+                getRoadInterpolator env chunk tile (Tile.unitCorners tile).Length idx
 
             let mL = centroid.Lerp(e.V1, interpolator.X)
             let mR = centroid.Lerp(e.V5, interpolator.Y)
-            let hasRoadThroughEdge = tile |> Tile.flag |> TileFlag.hasRoad idx
+            let hasRoadThroughEdge = env.HasOverrideRoadThroughEdge chunk tile idx
 
             tile
             |> Tile.countId
@@ -1004,27 +1006,32 @@ module ChunkTriangulationCommand =
 
     /// 三角形靠近 tile 的左边是阶地，右边是悬崖，另一边任意的情况
     let private triangulateCornerTerracesCliff
-        (env: #ICatlikeCodingNoiseQuery)
+        (env: 'E when 'E :> ICatlikeCodingNoiseQuery and 'E :> ITileOverriderQuery)
         (chunk: IChunk)
         (beginV: Vector3)
-        (beginTileCountId: TileCountId)
-        (beginValue: TileValue)
+        (beginTile: Entity)
         (leftV: Vector3)
-        (leftTileCountId: TileCountId)
-        (leftValue: TileValue)
+        (leftTile: Entity)
         (rightV: Vector3)
-        (rightTileCountId: TileCountId)
-        (rightValue: TileValue)
+        (rightTile: Entity)
         =
         let b =
             1f
-            / Mathf.Abs(float32 <| TileValue.elevation rightValue - TileValue.elevation beginValue)
+            / Mathf.Abs(
+                float32
+                <| env.GetOverrideElevation chunk rightTile
+                   - env.GetOverrideElevation chunk beginTile
+            )
 
         let boundary = env.Perturb(beginV).Lerp(env.Perturb(rightV), b)
         let boundaryWeights = HexMeshConstant.weights1.Lerp(HexMeshConstant.weights3, b)
 
         let ids =
-            Vector3(float32 beginTileCountId.CountId, float32 leftTileCountId.CountId, float32 rightTileCountId.CountId)
+            Vector3(
+                beginTile |> Tile.countId |> _.CountId |> float32,
+                leftTile |> Tile.countId |> _.CountId |> float32,
+                rightTile |> Tile.countId |> _.CountId |> float32
+            )
 
         triangulateBoundaryTriangle
             env
@@ -1037,11 +1044,7 @@ module ChunkTriangulationCommand =
             boundaryWeights
             ids
 
-        if
-            HexMetrics.getEdgeType
-            <| TileValue.elevation leftValue
-            <| TileValue.elevation rightValue = HexEdgeType.Slope
-        then
+        if env.GetOverrideEdgeType chunk leftTile rightTile = HexEdgeType.Slope then
             triangulateBoundaryTriangle
                 env
                 chunk
@@ -1063,27 +1066,32 @@ module ChunkTriangulationCommand =
 
     /// 三角形靠近 tile 的左边是悬崖，右边是阶地，另一边任意的情况
     let private triangulateCornerCliffTerraces
-        (env: #ICatlikeCodingNoiseQuery)
+        (env: 'E when 'E :> ICatlikeCodingNoiseQuery and 'E :> ITileOverriderQuery)
         (chunk: IChunk)
         (beginV: Vector3)
-        (beginTileCountId: TileCountId)
-        (beginValue: TileValue)
+        (beginTile: Entity)
         (leftV: Vector3)
-        (leftTileCountId: TileCountId)
-        (leftValue: TileValue)
+        (leftTile: Entity)
         (rightV: Vector3)
-        (rightTileCountId: TileCountId)
-        (rightValue: TileValue)
+        (rightTile: Entity)
         =
         let b =
             1f
-            / Mathf.Abs(float32 <| TileValue.elevation leftValue - TileValue.elevation beginValue)
+            / Mathf.Abs(
+                float32
+                <| env.GetOverrideElevation chunk leftTile
+                   - env.GetOverrideElevation chunk beginTile
+            )
 
         let boundary = env.Perturb(beginV).Lerp(env.Perturb(leftV), b)
         let boundaryWeights = HexMeshConstant.weights1.Lerp(HexMeshConstant.weights2, b)
 
         let ids =
-            Vector3(float32 beginTileCountId.CountId, float32 leftTileCountId.CountId, float32 rightTileCountId.CountId)
+            Vector3(
+                beginTile |> Tile.countId |> _.CountId |> float32,
+                leftTile |> Tile.countId |> _.CountId |> float32,
+                rightTile |> Tile.countId |> _.CountId |> float32
+            )
 
         triangulateBoundaryTriangle
             env
@@ -1096,11 +1104,7 @@ module ChunkTriangulationCommand =
             boundaryWeights
             ids
 
-        if
-            HexMetrics.getEdgeType
-            <| TileValue.elevation leftValue
-            <| TileValue.elevation rightValue = HexEdgeType.Slope
-        then
+        if env.GetOverrideEdgeType chunk leftTile rightTile = HexEdgeType.Slope then
             triangulateBoundaryTriangle
                 env
                 chunk
@@ -1122,28 +1126,18 @@ module ChunkTriangulationCommand =
 
     /// 需要保证入参 bottom -> left -> right 是顺时针
     let private triangulateCorner
-        env
+        (env: #ITileOverriderQuery)
         (chunk: IChunk)
         (chunkLod: ChunkLodEnum)
         (bottom: Vector3)
-        (bottomTileCountId: TileCountId)
-        (bottomValue: TileValue)
+        (bottomTile: Entity)
         (left: Vector3)
-        (leftTileCountId: TileCountId)
-        (leftValue: TileValue)
+        (leftTile: Entity)
         (right: Vector3)
-        (rightTileCountId: TileCountId)
-        (rightValue: TileValue)
+        (rightTile: Entity)
         =
-        let edgeType1 =
-            HexMetrics.getEdgeType
-            <| TileValue.elevation bottomValue
-            <| TileValue.elevation leftValue
-
-        let edgeType2 =
-            HexMetrics.getEdgeType
-            <| TileValue.elevation bottomValue
-            <| TileValue.elevation rightValue
+        let edgeType1 = env.GetOverrideEdgeType chunk bottomTile leftTile
+        let edgeType2 = env.GetOverrideEdgeType chunk bottomTile rightTile
 
         if chunkLod > ChunkLodEnum.SimpleHex then
             if edgeType1 = HexEdgeType.Slope then
@@ -1152,89 +1146,41 @@ module ChunkTriangulationCommand =
                         env
                         chunk
                         bottom
-                        bottomTileCountId
+                        (Tile.countId bottomTile)
                         left
-                        leftTileCountId
+                        (Tile.countId leftTile)
                         right
-                        rightTileCountId
+                        (Tile.countId rightTile)
                 elif edgeType2 = HexEdgeType.Flat then
                     triangulateCornerTerraces
                         env
                         chunk
                         left
-                        leftTileCountId
+                        (Tile.countId leftTile)
                         right
-                        rightTileCountId
+                        (Tile.countId rightTile)
                         bottom
-                        bottomTileCountId
+                        (Tile.countId bottomTile)
                 else
-                    triangulateCornerTerracesCliff
-                        env
-                        chunk
-                        bottom
-                        bottomTileCountId
-                        bottomValue
-                        left
-                        leftTileCountId
-                        leftValue
-                        right
-                        rightTileCountId
-                        rightValue
+                    triangulateCornerTerracesCliff env chunk bottom bottomTile left leftTile right rightTile
             elif edgeType2 = HexEdgeType.Slope then
                 if edgeType1 = HexEdgeType.Flat then
                     triangulateCornerTerraces
                         env
                         chunk
                         right
-                        rightTileCountId
+                        (Tile.countId rightTile)
                         bottom
-                        bottomTileCountId
+                        (Tile.countId bottomTile)
                         left
-                        leftTileCountId
+                        (Tile.countId leftTile)
                 else
-                    triangulateCornerCliffTerraces
-                        env
-                        chunk
-                        bottom
-                        bottomTileCountId
-                        bottomValue
-                        left
-                        leftTileCountId
-                        leftValue
-                        right
-                        rightTileCountId
-                        rightValue
-            elif
-                HexMetrics.getEdgeType
-                <| TileValue.elevation leftValue
-                <| TileValue.elevation rightValue = HexEdgeType.Slope
-            then
-                if TileValue.elevation leftValue < TileValue.elevation rightValue then
-                    triangulateCornerCliffTerraces
-                        env
-                        chunk
-                        right
-                        rightTileCountId
-                        rightValue
-                        bottom
-                        bottomTileCountId
-                        bottomValue
-                        left
-                        leftTileCountId
-                        leftValue
+                    triangulateCornerCliffTerraces env chunk bottom bottomTile left leftTile right rightTile
+            elif env.GetOverrideEdgeType chunk leftTile rightTile = HexEdgeType.Slope then
+                if env.GetOverrideElevation chunk leftTile < env.GetOverrideElevation chunk rightTile then
+                    triangulateCornerCliffTerraces env chunk right rightTile bottom bottomTile left leftTile
                 else
-                    triangulateCornerTerracesCliff
-                        env
-                        chunk
-                        left
-                        leftTileCountId
-                        leftValue
-                        right
-                        rightTileCountId
-                        rightValue
-                        bottom
-                        bottomTileCountId
-                        bottomValue
+                    triangulateCornerTerracesCliff env chunk left leftTile right rightTile bottom bottomTile
             else
                 chunk
                     .GetTerrain()
@@ -1245,9 +1191,9 @@ module ChunkTriangulationCommand =
                            HexMeshConstant.weights3 |],
                         tis =
                             Vector3(
-                                float32 bottomTileCountId.CountId,
-                                float32 leftTileCountId.CountId,
-                                float32 rightTileCountId.CountId
+                                bottomTile |> Tile.countId |> _.CountId |> float32,
+                                leftTile |> Tile.countId |> _.CountId |> float32,
+                                rightTile |> Tile.countId |> _.CountId |> float32
                             )
                     )
         else
@@ -1260,9 +1206,9 @@ module ChunkTriangulationCommand =
                        HexMeshConstant.weights3 |],
                     tis =
                         Vector3(
-                            float32 bottomTileCountId.CountId,
-                            float32 leftTileCountId.CountId,
-                            float32 rightTileCountId.CountId
+                            bottomTile |> Tile.countId |> _.CountId |> float32,
+                            leftTile |> Tile.countId |> _.CountId |> float32,
+                            rightTile |> Tile.countId |> _.CountId |> float32
                         )
                 )
 
@@ -1273,7 +1219,8 @@ module ChunkTriangulationCommand =
                 and 'E :> ICatlikeCodingNoiseQuery
                 and 'E :> IFaceQuery
                 and 'E :> ITileQuery
-                and 'E :> IChunkQuery)
+                and 'E :> IChunkQuery
+                and 'E :> ITileOverriderQuery)
         (chunk: IChunk)
         (tile: Entity)
         (idx: int)
@@ -1281,20 +1228,20 @@ module ChunkTriangulationCommand =
         (simple: bool)
         =
         let planetConfig = env.PlanetConfig
-        let tileHeight = env.GetHeight tile
+        let tileHeight = env.GetOverrideHeight chunk tile
         let neighbor = env.GetNeighborTileByIdx tile idx
-        let neighborHeight = env.GetHeight neighbor
+        let neighborHeight = env.GetOverrideHeight chunk neighbor
         let standardScale = planetConfig.StandardScale
         // 连接将由更低的地块或相同高度时 Id 更大的地块生成，或者是编辑地块与非编辑地块间的连接
         if
-            tileHeight > neighborHeight
-            || (Mathf.Abs(tileHeight - neighborHeight) < 0.0001f * standardScale
-                && tile.Id < neighbor.Id)
+            (tileHeight > neighborHeight
+             || (Mathf.Abs(tileHeight - neighborHeight) < 0.0001f * standardScale
+                 && tile.Id < neighbor.Id))
+            && not <| env.IsOverridingTileConnection chunk tile.Id neighbor.Id
         then
             () // 忽略
         else
             let radius = planetConfig.Radius
-            let unitHeight = planetConfig.UnitHeight
 
             let n1FaceCenter =
                 tile |> Tile.hexFaceIds |> TileHexFaceIds.item idx |> env.GetFaceCenter
@@ -1320,12 +1267,11 @@ module ChunkTriangulationCommand =
                     neighbor
 
             let mutable en = EdgeVertices(vn1, vn2)
-            let hasRiver = tile |> Tile.flag |> TileFlag.hasRiver idx
-            let hasRoad = tile |> Tile.flag |> TileFlag.hasRoad idx
+            let hasRiver = env.HasOverrideRiverThroughEdge chunk tile idx
+            let hasRoad = env.HasOverrideRoadThroughEdge chunk tile idx
 
             if hasRiver then
-                en.V3 <-
-                    Math3dUtil.ProjectToSphere(en.V3, radius + TileValue.streamBedY unitHeight (Tile.value neighbor))
+                en.V3 <- Math3dUtil.ProjectToSphere(en.V3, radius + env.GetOverrideStreamBedY chunk neighbor)
 
                 let ids =
                     Vector3(
@@ -1334,17 +1280,14 @@ module ChunkTriangulationCommand =
                         Tile.countId tile |> _.CountId |> float32
                     )
 
-                let tileRiverHeight =
-                    tile |> Tile.value |> TileValue.riverSurfaceY unitHeight |> (+) radius
+                let tileRiverHeight = env.GetOverrideRiverSurfaceY chunk tile + radius
+                let neighborRiverHeight = env.GetOverrideRiverSurfaceY chunk neighbor + radius
 
-                let neighborRiverHeight =
-                    neighbor |> Tile.value |> TileValue.riverSurfaceY unitHeight |> (+) radius
-
-                if tile |> Tile.value |> TileValue.isUnderwater |> not then
-                    if neighbor |> Tile.value |> TileValue.isUnderwater |> not then
+                if env.IsOverrideUnderwater chunk tile |> not then
+                    if env.IsOverrideUnderwater chunk neighbor |> not then
                         let reversed =
-                            (tile |> Tile.flag |> TileFlag.hasIncomingRiver)
-                            && (tile |> Tile.flag |> TileFlag.hasRiverIn idx)
+                            env.HasOverrideIncomingRiver chunk tile
+                            && env.HasOverrideIncomingRiverThroughEdge chunk tile idx
 
                         triangulateRiverQuad
                             env
@@ -1358,11 +1301,8 @@ module ChunkTriangulationCommand =
                             0.8f
                             reversed
                             ids
-                    elif
-                        tile |> Tile.value |> TileValue.elevation > (neighbor |> Tile.value |> TileValue.elevation)
-                    then
-                        let neighborWaterHeight =
-                            neighbor |> Tile.value |> TileValue.waterSurfaceY unitHeight |> (+) radius
+                    elif env.GetOverrideElevation chunk tile > env.GetOverrideElevation chunk neighbor then
+                        let neighborWaterHeight = env.GetOverrideWaterSurfaceY chunk neighbor + radius
 
                         triangulateWaterfallInWater
                             env
@@ -1376,11 +1316,10 @@ module ChunkTriangulationCommand =
                             neighborWaterHeight
                             ids
                 elif
-                    neighbor |> Tile.value |> TileValue.isUnderwater |> not
-                    && neighbor |> Tile.value |> TileValue.elevation > (tile |> Tile.value |> TileValue.elevation)
+                    env.IsOverrideUnderwater chunk neighbor |> not
+                    && env.GetOverrideElevation chunk neighbor > env.GetOverrideElevation chunk tile
                 then
-                    let tileWaterHeight =
-                        tile |> Tile.value |> TileValue.waterSurfaceY unitHeight |> (+) radius
+                    let tileWaterHeight = env.GetOverrideWaterSurfaceY chunk tile + radius
 
                     triangulateWaterfallInWater
                         env
@@ -1398,7 +1337,7 @@ module ChunkTriangulationCommand =
 
             if
                 chunkLod > ChunkLodEnum.SimpleHex
-                && TileValue.getEdgeType <| Tile.value neighbor <| Tile.value tile = HexEdgeType.Slope
+                && env.GetOverrideEdgeType chunk tile neighbor = HexEdgeType.Slope
             then
                 triangulateEdgeTerraces
                     env
@@ -1424,12 +1363,13 @@ module ChunkTriangulationCommand =
 
             let preIdx = Tile.hexFaceIds tile |> _.Length |> HexIndexUtil.previousIdx idx
             let preNeighbor = env.GetNeighborTileByIdx tile preIdx
-            let preNeighborHeight = env.GetHeight preNeighbor
+            let preNeighborHeight = env.GetOverrideHeight chunk preNeighbor
             // 连接角落的三角形由周围 3 个地块中最低或者一样高时 Id 最大的生成，或者是编辑地块与非编辑地块间的连接三角形
             if
-                tileHeight < preNeighborHeight
-                || (Mathf.Abs(tileHeight - preNeighborHeight) < 0.0001f * standardScale
-                    && tile.Id > preNeighbor.Id)
+                (tileHeight < preNeighborHeight
+                 || (Mathf.Abs(tileHeight - preNeighborHeight) < 0.0001f * standardScale
+                     && tile.Id > preNeighbor.Id))
+                || env.IsOverridingTileConnection chunk tile.Id preNeighbor.Id
             then
                 let vpn =
                     Tile.getCornerByFaceCenterWithRadiusAndSize
@@ -1438,19 +1378,7 @@ module ChunkTriangulationCommand =
                         HexMetrics.SolidFactor
                         preNeighbor
 
-                triangulateCorner
-                    env
-                    chunk
-                    chunkLod
-                    e.V1
-                    (Tile.countId tile)
-                    (Tile.value tile)
-                    vpn
-                    (Tile.countId preNeighbor)
-                    (Tile.value preNeighbor)
-                    vn1
-                    (Tile.countId neighbor)
-                    (Tile.value neighbor)
+                triangulateCorner env chunk chunkLod e.V1 tile vpn preNeighbor vn1 neighbor
 
     let private triangulateEstuary
         (env: #ICatlikeCodingNoiseQuery)
@@ -1537,7 +1465,8 @@ module ChunkTriangulationCommand =
                 when 'E :> IPlanetConfigQuery
                 and 'E :> ICatlikeCodingNoiseQuery
                 and 'E :> IFaceQuery
-                and 'E :> ITileQuery)
+                and 'E :> ITileQuery
+                and 'E :> ITileOverriderQuery)
         (chunk: IChunk)
         (tile: Entity)
         (neighbor: Entity)
@@ -1546,9 +1475,7 @@ module ChunkTriangulationCommand =
         (waterHeight: float32)
         (simple: bool)
         =
-        let planetConfig = env.PlanetConfig
-        let radius = planetConfig.Radius
-        let unitHeight = planetConfig.UnitHeight
+        let radius = env.PlanetConfig.Radius
 
         let e1 =
             EdgeVertices(
@@ -1576,8 +1503,7 @@ module ChunkTriangulationCommand =
             addWaterTriangle [| centroid; e1.V3; e1.V4 |]
             addWaterTriangle [| centroid; e1.V4; e1.V5 |]
         // 使用邻居的水表面高度的话，就是希望考虑岸边地块的实际水位。(不然强行拉平岸边的话，角落两个水面不一样高时太多复杂逻辑，bug 太多)
-        let neighborWaterHeight =
-            neighbor |> Tile.value |> TileValue.waterSurfaceY unitHeight
+        let neighborWaterHeight = env.GetOverrideWaterSurfaceY chunk neighbor
 
         let n1FaceCenter =
             tile |> Tile.hexFaceIds |> TileHexFaceIds.item idx |> env.GetFaceCenter
@@ -1616,10 +1542,8 @@ module ChunkTriangulationCommand =
 
         if simple then
             addWaterShoreQuad [| e1.V1; e1.V5; e2.V1; e2.V5 |]
-        elif tile |> Tile.flag |> TileFlag.hasRiver neighborIdx then
-            tile
-            |> Tile.flag
-            |> TileFlag.hasRiverIn neighborIdx
+        elif env.HasOverrideRiverThroughEdge chunk tile neighborIdx then
+            env.HasOverrideIncomingRiverThroughEdge chunk tile neighborIdx
             |> triangulateEstuary env chunk e1 e2 ids
         else
             addWaterShoreQuad [| e1.V1; e1.V2; e2.V1; e2.V2 |]
@@ -1633,14 +1557,13 @@ module ChunkTriangulationCommand =
             |> HexIndexUtil.nextIdx idx
             |> env.GetNeighborTileByIdx tile
 
-        let nextNeighborWaterHeight =
-            nextNeighbor |> Tile.value |> TileValue.waterSurfaceY unitHeight
+        let nextNeighborWaterHeight = env.GetOverrideWaterSurfaceY chunk nextNeighbor
 
         let cnn =
             Tile.getCornerByFaceCenterWithRadiusAndSize
                 n2FaceCenter
                 (radius + nextNeighborWaterHeight)
-                (if nextNeighbor |> Tile.value |> TileValue.isUnderwater then
+                (if env.IsOverrideUnderwater chunk nextNeighbor then
                      HexMetrics.waterFactor
                  else
                      HexMetrics.SolidFactor)
@@ -1659,7 +1582,7 @@ module ChunkTriangulationCommand =
                    Vector2(0f, 1f)
                    Vector2(
                        0f,
-                       if nextNeighbor |> Tile.value |> TileValue.isUnderwater then
+                       if env.IsOverrideUnderwater chunk nextNeighbor then
                            0f
                        else
                            1f
@@ -1673,7 +1596,8 @@ module ChunkTriangulationCommand =
                 when 'E :> IPlanetConfigQuery
                 and 'E :> ICatlikeCodingNoiseQuery
                 and 'E :> IFaceQuery
-                and 'E :> ITileQuery)
+                and 'E :> ITileQuery
+                and 'E :> ITileOverriderQuery)
         (chunk: IChunk)
         (tile: Entity)
         (neighbor: Entity)
@@ -1681,9 +1605,7 @@ module ChunkTriangulationCommand =
         (idx: int)
         (waterHeight: float32)
         =
-        let planetConfig = env.PlanetConfig
-        let radius = planetConfig.Radius
-        let unitHeight = planetConfig.UnitHeight
+        let radius = env.PlanetConfig.Radius
 
         let c1 =
             Tile.cornerWithRadius TileUnitCorners.getFirstWaterCornerWithRadius idx (radius + waterHeight) tile
@@ -1700,9 +1622,11 @@ module ChunkTriangulationCommand =
             tis = ids
         )
         // 由更大 Id 的地块绘制水域连接，或者是由编辑地块绘制和不编辑的邻接地块间的连接
-        if tile.Id > neighbor.Id then
-            let neighborWaterHeight =
-                neighbor |> Tile.value |> TileValue.waterSurfaceY unitHeight
+        if
+            tile.Id > neighbor.Id
+            || env.IsOverridingTileConnection chunk tile.Id neighbor.Id
+        then
+            let neighborWaterHeight = env.GetOverrideWaterSurfaceY chunk neighbor
 
             let n1FaceCenter =
                 tile |> Tile.hexFaceIds |> TileHexFaceIds.item idx |> env.GetFaceCenter
@@ -1742,14 +1666,15 @@ module ChunkTriangulationCommand =
                 |> env.GetNeighborTileByIdx tile
 
             if
-                tile.Id > nextNeighbor.Id
-                && nextNeighbor |> Tile.value |> TileValue.isUnderwater
+                (tile.Id > nextNeighbor.Id
+                 || env.IsOverridingTileConnection chunk tile.Id neighbor.Id)
+                && env.IsOverrideUnderwater chunk nextNeighbor
             then
 
                 let cnn =
                     Tile.getCornerByFaceCenterWithRadiusAndSize
                         n2FaceCenter
-                        (radius + (nextNeighbor |> Tile.value |> TileValue.waterSurfaceY unitHeight))
+                        (radius + env.GetOverrideWaterSurfaceY chunk nextNeighbor)
                         HexMetrics.waterFactor
                         nextNeighbor
 
@@ -1764,24 +1689,21 @@ module ChunkTriangulationCommand =
                 )
 
     let private triangulateWater
-        (env: 'E when 'E :> IPlanetConfigQuery and 'E :> ITileQuery)
+        (env: 'E when 'E :> IPlanetConfigQuery and 'E :> ITileQuery and 'E :> ITileOverriderQuery)
         (chunk: IChunk)
         (tile: Entity)
         (idx: int)
         (centroid: Vector3)
         (simple: bool)
         =
-        let planetConfig = env.PlanetConfig
-
-        let waterHeight =
-            tile |> Tile.value |> TileValue.waterSurfaceY planetConfig.UnitHeight
+        let waterHeight = env.GetOverrideWaterSurfaceY chunk tile
 
         let centroid =
-            Math3dUtil.ProjectToSphere(centroid, planetConfig.Radius + waterHeight)
+            Math3dUtil.ProjectToSphere(centroid, env.PlanetConfig.Radius + waterHeight)
 
         let neighbor = env.GetNeighborTileByIdx tile idx
 
-        if neighbor |> Tile.value |> TileValue.isUnderwater |> not then
+        if env.IsOverrideUnderwater chunk neighbor |> not then
             triangulateWaterShore env chunk tile neighbor centroid idx waterHeight simple
         else
             triangulateOpenWater env chunk tile neighbor centroid idx waterHeight
@@ -1793,16 +1715,14 @@ module ChunkTriangulationCommand =
                 when 'E :> IPlanetConfigQuery
                 and 'E :> ICatlikeCodingNoiseQuery
                 and 'E :> ITileQuery
-                and 'E :> IChunkQuery)
+                and 'E :> IChunkQuery
+                and 'E :> ITileOverriderQuery)
         (chunk: IChunk)
-        (tileId: TileId)
+        (tile: Entity)
         (idx: int)
         =
-        let planetConfig = env.PlanetConfig
-        let unitHeight = planetConfig.UnitHeight
-        let radius = planetConfig.Radius
-        let tile = env.GetTile tileId
-        let height = env.GetHeight tile
+        let radius = env.PlanetConfig.Radius
+        let height = env.GetOverrideHeight chunk tile
 
         let v1 =
             Tile.cornerWithRadius TileUnitCorners.getFirstSolidCornerWithRadius idx (radius + height) tile
@@ -1825,12 +1745,11 @@ module ChunkTriangulationCommand =
                 else
                     env.GetChunkLod (Tile.chunkId neighbor).ChunkId < ChunkLodEnum.Full
 
-        if tile |> Tile.flag |> TileFlag.hasRivers then
-            if tile |> Tile.flag |> TileFlag.hasRiver idx then
-                e.V3 <-
-                    Math3dUtil.ProjectToSphere(e.V3, radius + (tile |> Tile.value |> TileValue.streamBedY unitHeight))
+        if env.HasOverrideRivers chunk tile then
+            if env.HasOverrideRiverThroughEdge chunk tile idx then
+                e.V3 <- Math3dUtil.ProjectToSphere(e.V3, radius + env.GetOverrideStreamBedY chunk tile)
 
-                if tile |> Tile.flag |> TileFlag.hasRiverBeginOrEnd then
+                if env.HasOverrideRiverBeginOrEnd chunk tile then
                     triangulateWithRiverBeginOrEnd env chunk tile centroid e
                 else
                     triangulateWithRiver env chunk tile idx height centroid e
@@ -1841,22 +1760,21 @@ module ChunkTriangulationCommand =
 
         triangulateConnection env chunk tile idx e simple
 
-        if tile |> Tile.value |> TileValue.isUnderwater then
+        if env.IsOverrideUnderwater chunk tile then
             triangulateWater env chunk tile idx centroid simple
 
     let triangulate (env: #IEntityStoreQuery) : Triangulate =
-        fun (chunk: IChunk) (tileId: TileId) ->
-            let tile = env.GetEntityById tileId
+        fun (chunk: IChunk) (tile: Entity) ->
             let tileChunkId = tile.GetComponent<TileChunkId>()
             let tileChunk = env.GetEntityById tileChunkId.ChunkId
             let chunkLod = tileChunk.GetComponent<ChunkLod>().Lod
 
             if chunkLod = ChunkLodEnum.JustHex then
-                triangulateJustHex env chunk tileId
+                triangulateJustHex env chunk tile
             elif chunkLod = ChunkLodEnum.PlaneHex then
-                triangulatePlaneHex env chunk tileId
+                triangulatePlaneHex env chunk tile
             else
                 let tileFaceIds = tile.GetComponent<TileHexFaceIds>()
 
                 for i in 0 .. tileFaceIds.Length - 1 do
-                    triangulateHex env chunk tileId i
+                    triangulateHex env chunk tile i

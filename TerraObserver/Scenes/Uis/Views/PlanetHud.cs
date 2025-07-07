@@ -60,7 +60,7 @@ public partial class PlanetHud : Control, IPlanetHud
     public bool ApplySpecialIndex { get; set; }
     public int ActiveSpecialIndex { get; set; }
 
-    public HashSet<int> OverrideTileIds { get; } = [];
+    public HashSet<int> EditingTileIds { get; } = [];
 
     #endregion
 

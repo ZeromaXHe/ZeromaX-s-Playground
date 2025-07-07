@@ -5,6 +5,7 @@ open Godot
 open TO.Domains.Functions.HexSpheres.Components
 open TO.Domains.Functions.HexSpheres.Components.Tiles
 open TO.Domains.Functions.Maths
+open TO.Domains.Types.Chunks
 open TO.Domains.Types.Configs
 open TO.Domains.Types.HexSpheres
 open TO.Domains.Types.HexSpheres.Components
@@ -83,58 +84,65 @@ module SelectTileViewerCommand =
                 when 'E :> IHexSphereQuery
                 and 'E :> IPlanetConfigQuery
                 and 'E :> ITileQuery
-                and 'E :> ICatlikeCodingNoiseQuery)
+                and 'E :> ICatlikeCodingNoiseQuery
+                and 'E :> IPlanetHudQuery)
         (viewer: ISelectTileViewer)
         (selectedTileId: int Nullable)
         (hoverTileId: int Nullable)
         =
-        if selectedTileId = viewer.SelectedTileId && hoverTileId = viewer.HoverTileId then
-            // 编辑选取点和鼠标悬浮点都没变
-            None
-        else
-            // GD.Print($"Generating New _selectTileViewer Mesh! {centerId}, position: {position}");
-            viewer.SelectedTileId <- selectedTileId
-            viewer.HoverTileId <- hoverTileId
-            let surfaceTool = new SurfaceTool()
-            surfaceTool.Begin Mesh.PrimitiveType.Triangles
-            surfaceTool.SetSmoothGroup UInt32.MaxValue
-            let planetConfig = env.PlanetConfig
-            let mutable vi = 0
+        // GD.Print($"Generating New _selectTileViewer Mesh! {centerId}, position: {position}");
+        viewer.SelectedTileId <- selectedTileId
+        viewer.HoverTileId <- hoverTileId
+        let surfaceTool = new SurfaceTool()
+        surfaceTool.Begin Mesh.PrimitiveType.Triangles
+        surfaceTool.SetSmoothGroup UInt32.MaxValue
+        let planetConfig = env.PlanetConfig
+        let mutable vi = 0
 
-            if selectedTileId.HasValue then
-                let tile = env.GetTile selectedTileId.Value
+        if selectedTileId.HasValue then
+            let tile = env.GetTile selectedTileId.Value
 
-                vi <-
+            vi <-
+                vi
+                + addHexFrame
+                    (Tile.unitCentroid tile)
+                    (Tile.unitCorners tile)
+                    Colors.Aquamarine
+                    (1.01f * (planetConfig.Radius + env.GetHeight tile))
+                    surfaceTool
                     vi
-                    + addHexFrame
-                        (Tile.unitCentroid tile)
-                        (Tile.unitCorners tile)
-                        Colors.Aquamarine
-                        (1.01f * (planetConfig.Radius + env.GetHeight tile))
-                        surfaceTool
+
+        if hoverTileId.HasValue then
+            let hoverTile = env.GetTile hoverTileId.Value
+            let mutable color = Colors.DarkGreen
+            color.A <- 0.8f
+            // 根据笔刷大小，绘制所有周围地块
+            match env.PlanetHudOpt with
+            | Some planetHud ->
+                let tiles = env.GetTilesInDistance hoverTile planetHud.BrushSize
+
+                for tile in tiles do
+                    vi <-
                         vi
+                        + addHexFrame
+                            (Tile.unitCentroid tile)
+                            (Tile.unitCorners tile)
+                            color
+                            (planetConfig.Radius + planetConfig.MaxHeight)
+                            surfaceTool
+                            vi
+            | None -> ()
 
-            if hoverTileId.HasValue then
-                let hoverTile = env.GetTile hoverTileId.Value
-                let mutable color = Colors.DarkGreen
-                color.A <- 0.8f
-                // TODO: 根据笔刷大小，绘制所有周围地块
-                // let tiles = tileRepo.GetTilesInDistance(hoverTile,
-                //     hexPlanetHudRepo.GetTileOverrider().BrushSize);
-                // for tile in tiles do
-                vi <-
-                    vi
-                    + addHexFrame
-                        (Tile.unitCentroid hoverTile)
-                        (Tile.unitCorners hoverTile)
-                        color
-                        (planetConfig.Radius + planetConfig.MaxHeight)
-                        surfaceTool
-                        vi
+        surfaceTool.Commit()
 
-            Some <| surfaceTool.Commit()
-
-    let updateInEditMode (env: 'E when 'E :> IPlanetHudQuery and 'E :> ISelectTileViewerQuery) : UpdateInEditMode =
+    let updateInEditMode
+        (env:
+            'E
+                when 'E :> IPlanetHudQuery
+                and 'E :> ISelectTileViewerQuery
+                and 'E :> IEditPreviewChunkQuery
+                and 'E :> IEditPreviewChunkCommand)
+        : UpdateInEditMode =
         fun () ->
             env.SelectTileViewerOpt
             |> Option.iter (fun viewer ->
@@ -148,9 +156,18 @@ module SelectTileViewerCommand =
                 if hoverTileId.HasValue || selectedTileId.HasValue then
                     // 更新选择地块框
                     viewer.Show()
+                    let selectedChanged = selectedTileId <> viewer.SelectedTileId
+                    let hoverChanged = hoverTileId <> viewer.HoverTileId
+                    if selectedChanged || hoverChanged then
+                        // 编辑选取点或鼠标悬浮点变了
+                        viewer.Mesh <- generateMeshForEditMode env viewer selectedTileId hoverTileId
 
-                    match generateMeshForEditMode env viewer selectedTileId hoverTileId with
-                    | Some mesh -> viewer.Mesh <- mesh
-                    | None -> ()
+                    if hoverChanged then
+                        // 鼠标悬浮点变了
+                        env.RefreshEditPreview hoverTileId
                 else
-                    viewer.Hide())
+                    viewer.Hide()
+
+                    match env.EditPreviewChunkOpt with
+                    | Some editPreviewChunk -> editPreviewChunk.Show()
+                    | None -> ())

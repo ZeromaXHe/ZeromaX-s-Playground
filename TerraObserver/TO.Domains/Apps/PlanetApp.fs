@@ -28,6 +28,7 @@ type PlanetApp
         celestialMotion,
         chunkLoader,
         selectTileViewer,
+        editPreviewChunk,
         miniMapManager,
         hexMapGenerator,
         planetHud
@@ -58,6 +59,7 @@ type PlanetApp
             celestialMotion,
             chunkLoader,
             selectTileViewer,
+            editPreviewChunk,
             miniMapManager,
             hexMapGenerator,
             planetHud
@@ -118,7 +120,7 @@ type PlanetApp
 
     let onPlanetHudLandGenOptionButtonItemSelected (env: #IHexMapGeneratorCommand) toggle =
         env.ChangeLandGenerator toggle
-    
+
     let onPlanetHudOrbitCameraRigMoved
         (env: 'E when 'E :> IPlanetHudCommand and 'E :> IMiniMapManagerCommand)
         pos
@@ -212,6 +214,7 @@ type PlanetApp
 
     member this.OnPlanetHudLandGenOptionButtonItemSelected toggle =
         onPlanetHudLandGenOptionButtonItemSelected env toggle
+
     member this.OnPlanetHudOrbitCameraRigMoved pos delta =
         onPlanetHudOrbitCameraRigMoved env pos delta
 

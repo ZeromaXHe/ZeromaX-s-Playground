@@ -57,7 +57,6 @@ type IPlanetHud =
     abstract WalledMode: OptionalToggle
     abstract ApplySpecialIndex: bool
     abstract ActiveSpecialIndex: int
-    abstract OverrideTileIds: int HashSet
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)

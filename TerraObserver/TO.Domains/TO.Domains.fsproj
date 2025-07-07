@@ -74,7 +74,9 @@
         <Compile Include="Types\Chunks\IChunk.fs"/>
         <Compile Include="Types\Chunks\IHexGridChunk.fs"/>
         <Compile Include="Types\Chunks\ChunkLoaderT.fs"/>
+        <Compile Include="Types\Chunks\TileOverriderT.fs" />
         <Compile Include="Types\Chunks\ChunkTriangulationT.fs"/>
+        <Compile Include="Types\Chunks\EditPreviewChunkT.fs" />
         <Compile Include="Types\Maps\MiniMapManagerT.fs"/>
         <Compile Include="Types\Maps\HexMapGeneratorT.fs" />
         <Compile Include="Types\Maps\ErosionLandGeneratorT.fs" />
@@ -131,7 +133,9 @@
         <Compile Include="Functions\Chunks\HexMesh.fs"/>
         <Compile Include="Functions\Chunks\HexGridChunk.fs"/>
         <Compile Include="Functions\Chunks\ChunkLoader.fs"/>
+        <Compile Include="Functions\Chunks\TileOverrider.fs" />
         <Compile Include="Functions\Chunks\ChunkTriangulation.fs"/>
+        <Compile Include="Functions\Chunks\EditPreviewChunk.fs" />
         <Compile Include="Functions\Maps\RectMiniMap.fs" />
         <Compile Include="Functions\Maps\MiniMapManager.fs" />
         <Compile Include="Functions\Maps\ErosionLandGenerator.fs" />
