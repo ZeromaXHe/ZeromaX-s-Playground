@@ -12,6 +12,7 @@ type CornerWithRadiusAndSize = Vector3 -> int -> float32 -> float32 -> TileUnitC
 
 type GetTile = TileId -> Entity
 type GetTileByCountId = int -> Entity
+type GetTilesByChunkId = ChunkId -> Entities
 type GetAllTiles = unit -> Entity seq
 type GetSphereAxial = Entity -> SphereAxial
 type IsNeighborTile = TileId -> TileId -> bool
@@ -23,6 +24,7 @@ type GetTilesInDistance = Entity -> int -> Entity seq
 type ITileQuery =
     abstract GetTile: GetTile
     abstract GetTileByCountId: GetTileByCountId
+    abstract GetTilesByChunkId: GetTilesByChunkId
     abstract GetAllTiles: GetAllTiles
     abstract GetSphereAxial: GetSphereAxial
     abstract IsNeighborTile: IsNeighborTile

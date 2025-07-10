@@ -63,6 +63,9 @@ module TileQuery =
     let getTileByCountId (env: #IEntityStoreQuery) : GetTileByCountId =
         fun (tileCountId: int) -> (env.EntityStore.ComponentIndex<TileCountId, int>()[tileCountId]).Item 0 // 假定了结果一定非空
 
+    let getTilesByChunkId (env: #IEntityStoreQuery): GetTilesByChunkId =
+        fun (chunkId: ChunkId) -> env.EntityStore.ComponentIndex<TileChunkId, ChunkId>()[chunkId]
+    
     let getAllTiles (env: #IEntityStoreQuery) : GetAllTiles =
         fun () -> env.Query<TileValue>() |> ArchetypeQueryQuery.toEntitySeq
 

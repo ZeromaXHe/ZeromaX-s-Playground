@@ -30,13 +30,7 @@ public partial class CatlikeCodingNoise : Resource, ICatlikeCodingNoise
 
     [ExportGroup("哈希配置")]
     [Export]
-    public ulong Seed
-    {
-        get => _seed;
-        set { _seed = value; }
-    }
-
-    private ulong _seed = 1234;
+    public ulong Seed { get; set; } = 1234;
 
     #endregion
 

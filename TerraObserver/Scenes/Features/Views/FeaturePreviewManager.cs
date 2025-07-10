@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using Godot;
-using TO.Domains.Types.Features;
+using TO.Domains.Types.Chunks;
 
 namespace TerraObserver.Scenes.Features.Views;
 

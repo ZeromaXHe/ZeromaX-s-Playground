@@ -45,6 +45,8 @@ type PlanetEnv
         cameraRig,
         lonLatGrid,
         celestialMotion,
+        featureMeshManager,
+        featurePreviewManager,
         chunkLoader,
         selectTileViewer,
         editPreviewChunk,
@@ -87,6 +89,7 @@ type PlanetEnv
     interface ITileQuery with
         member this.GetTile = TileQuery.getTile this
         member this.GetTileByCountId = TileQuery.getTileByCountId this
+        member this.GetTilesByChunkId = TileQuery.getTilesByChunkId this
         member this.GetAllTiles = TileQuery.getAllTiles this
         member this.GetSphereAxial = TileQuery.getSphereAxial this
         member this.IsNeighborTile = TileQuery.isNeighborTile this
@@ -164,6 +167,19 @@ type PlanetEnv
         member this.UpdateTileShaderData = TileShaderDataCommand.updateData this
         member this.ViewElevationChanged = TileShaderDataCommand.viewElevationChanged this
 
+    interface IFeatureQuery with
+        member this.GetFeatureMultiMesh = FeatureQuery.getMultiMesh this
+
+    interface IFeatureCommand with
+        member this.AddFeature = FeatureCommand.add this
+        member this.ShowFeatures = FeatureCommand.showFeatures this
+        member this.HideFeatures = FeatureCommand.hideFeatures this
+        member this.DeleteFeatures = FeatureCommand.deleteFeatures this
+        member this.AddTower = FeatureCommand.addTower this
+        member this.AddBridge = FeatureCommand.addBridge this
+        member this.AddSpecialFeature = FeatureCommand.addSpecialFeature this
+        member this.AddNormalFeature = FeatureCommand.addNormalFeature this
+
     interface IPlanetConfigQuery with
         member this.PlanetConfig = planetConfig
         member this.GetTileLen = PlanetConfigQuery.getTileLen this
@@ -175,6 +191,9 @@ type PlanetEnv
         member this.Perturb = CatlikeCodingNoiseQuery.perturb this
         member this.GetHeight = CatlikeCodingNoiseQuery.getHeight this
         member this.GetPerturbHeight = CatlikeCodingNoiseQuery.getPerturbHeight this
+
+    interface ICatlikeCodingNoiseCommand with
+        member this.InitializeHashGrid = CatlikeCodingNoiseCommand.initializeHashGrid this
 
     interface IOrbitCameraRigQuery with
         member this.OrbitCameraRig = cameraRig
@@ -208,6 +227,26 @@ type PlanetEnv
         member this.ToggleAllMotions = CelestialMotionCommand.toggleAllMotions this
         member this.UpdateLunarDist = CelestialMotionCommand.updateLunarDist this
         member this.UpdateMoonMeshRadius = CelestialMotionCommand.updateMoonMeshRadius this
+
+    interface IFeatureMeshManagerQuery with
+        member this.FeatureMeshManager = featureMeshManager
+
+    interface IFeaturePreviewManagerCommand with
+        member this.ClearFeaturePreviewManagerOldData =
+            FeaturePreviewManagerCommand.clearFeaturePreviewManagerOldData this
+
+        member this.ShowFeaturePreview = FeaturePreviewManagerCommand.showFeaturePreview this
+        member this.HideFeaturePreview = FeaturePreviewManagerCommand.hideFeaturePreview this
+
+    interface IFeaturePreviewManagerQuery with
+        member this.FeaturePreviewManager = featurePreviewManager
+
+    interface IFeatureMeshManagerCommand with
+        member this.ClearFeatureMashOldData =
+            FeatureMeshManagerCommand.clearFeatureMashOldData this
+
+        member this.HideFeatureMesh = FeatureMeshManagerCommand.hideFeatureMesh this
+        member this.ShowFeatureMesh = FeatureMeshManagerCommand.showFeatureMesh this
 
     interface IChunkLoaderQuery with
         member this.ChunkLoader = chunkLoader
@@ -308,6 +347,8 @@ type PlanetEnv
 
     interface IPlanetHudQuery with
         member this.PlanetHudOpt = if planetHud = null then None else Some planetHud
+        member this.GetEditMode = PlanetHudQuery.getEditMode this
+        member this.GetLabelMode = PlanetHudQuery.getLabelMode this
 
     interface IPlanetHudCommand with
         member this.OnOrbitCameraRigMoved = PlanetHudCommand.onOrbitCameraRigMoved this

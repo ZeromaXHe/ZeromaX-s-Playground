@@ -38,6 +38,7 @@ type IPlanetHud =
     abstract DragTileId: int Nullable with get, set
     abstract PreviousTileId: int Nullable with get, set
 
+    abstract LabelMode: int
     abstract EditMode: bool
     abstract ApplyTerrain: bool
     abstract ActiveTerrain: int
@@ -58,12 +59,17 @@ type IPlanetHud =
     abstract ApplySpecialIndex: bool
     abstract ActiveSpecialIndex: int
 
+type GetLabelMode = unit -> int
+type GetEditMode = unit -> bool
+
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-06-29 23:23:29
 [<Interface>]
 type IPlanetHudQuery =
     abstract PlanetHudOpt: IPlanetHud option // 因为 PlanetHud 不是 Tool，所以编辑器内可能为空
+    abstract GetLabelMode: GetLabelMode
+    abstract GetEditMode: GetEditMode
 
 type OnOrbitCameraRigMoved = Vector3 -> float32 -> unit
 type OnOrbitCameraRigTransformed = Transform3D -> unit

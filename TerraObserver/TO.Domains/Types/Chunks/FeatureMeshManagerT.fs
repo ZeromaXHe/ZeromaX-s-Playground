@@ -1,37 +1,8 @@
-namespace TO.Domains.Types.Features
+namespace TO.Domains.Types.Chunks
 
 open System.Collections.Generic
 open Godot
 open TO.Domains.Types.Godots
-
-type FeatureType =
-    // 城市
-    | UrbanHigh1 = 0
-    | UrbanHigh2 = 1
-    | UrbanMid1 = 2
-    | UrbanMid2 = 3
-    | UrbanLow1 = 4
-    | UrbanLow2 = 5
-    // 农田
-    | FarmHigh1 = 6
-    | FarmHigh2 = 7
-    | FarmMid1 = 8
-    | FarmMid2 = 9
-    | FarmLow1 = 10
-    | FarmLow2 = 11
-    // 植被
-    | PlantHigh1 = 12
-    | PlantHigh2 = 13
-    | PlantMid1 = 14
-    | PlantMid2 = 15
-    | PlantLow1 = 16
-    | PlantLow2 = 17
-    // 特殊
-    | Tower = 18
-    | Bridge = 19
-    | Castle = 20
-    | Ziggurat = 21
-    | MegaFlora = 22
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
@@ -65,7 +36,11 @@ type IFeatureMeshManagerQuery =
     abstract FeatureMeshManager: IFeatureMeshManager
 
 type ClearFeatureMashOldData = unit -> unit
+type ShowFeatureMesh = Transform3D -> FeatureType -> int
+type HideFeatureMesh = int -> FeatureType -> unit
 
 [<Interface>]
 type IFeatureMeshManagerCommand =
     abstract ClearFeatureMashOldData: ClearFeatureMashOldData
+    abstract ShowFeatureMesh: ShowFeatureMesh
+    abstract HideFeatureMesh: HideFeatureMesh

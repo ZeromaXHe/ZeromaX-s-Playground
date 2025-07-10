@@ -146,7 +146,7 @@ module private WallCommand =
             .AddTriangle([| pointTop; v3; v4 |], [| HexMesh.weights3; HexMesh.weights1; HexMesh.weights2 |], tis = ids)
 
     let private triangulateWallEdgeSegment
-        (env: #ICatlikeCodingNoiseQuery)
+        (env: 'E when 'E :> ICatlikeCodingNoiseQuery and 'E :> IFeatureCommand)
         (chunk: IChunk)
         (nearTile: Entity)
         (farTile: Entity)
@@ -204,6 +204,9 @@ module private WallCommand =
             chunk
                 .GetWalls()
                 .AddQuad([| v2; v1; t2; t1 |], HexMesh.quadArr HexMesh.weights2, tis = ids)
+
+        if addTower then
+            env.AddTower nearTile.Id left right <| chunk :? IEditPreviewChunk
 
     // pivot 有墙，left\right 没有墙的情况
     let private triangulateWallCornerSegment
@@ -454,7 +457,7 @@ module private RoadCommand =
             )
 
     let triangulateRoadAdjacentToRiver
-        (env: 'E when 'E :> IPlanetConfigQuery and 'E :> ITileOverriderQuery)
+        (env: 'E when 'E :> IPlanetConfigQuery and 'E :> ITileOverriderQuery and 'E :> IFeatureCommand)
         (chunk: IChunk)
         (tile: Entity)
         (idx: int)
@@ -534,6 +537,18 @@ module private RoadCommand =
 
             if not returnNow then
                 roadCenter <- roadCenter + (corner - centroid) * 0.5f
+
+                if
+                    incomingRiverIdx = HexIndexUtil.nextIdx idx cornerCount
+                    && (env.HasOverrideRoadThroughEdge chunk tile
+                        <| HexIndexUtil.next2Idx idx cornerCount
+                        || env.HasOverrideRoadThroughEdge chunk tile
+                           <| HexIndexUtil.oppositeIdx idx cornerCount)
+                then
+                    env.AddBridge tile.Id roadCenter
+                    <| centroid - (corner - centroid) * 0.5f
+                    <| chunk :? IEditPreviewChunk
+
                 centroid <- centroid + (corner - centroid) * 0.25f
         elif incomingRiverIdx = HexIndexUtil.previousIdx outgoingRiverIdx cornerCount then
             // 河流走势是逆时针锐角的情况
@@ -592,6 +607,15 @@ module private RoadCommand =
                     Tile.cornerWithRadius TileUnitCorners.getSecondSolidCornerWithRadius firstIdx (radius + height) tile
 
                 roadCenter <- roadCenter + (offset - centroid) * 0.25f * HexMetrics.OuterToInner
+
+                if
+                    idx = firstIdx
+                    && env.HasOverrideRoadThroughEdge chunk tile
+                       <| HexIndexUtil.previous2Idx firstIdx cornerCount
+                then
+                    env.AddBridge tile.Id roadCenter
+                    <| centroid - (offset - centroid) * 0.7f
+                    <| chunk :? IEditPreviewChunk
         else
             // 河流走势是钝角的情况，且当前方向在河流出入角外（即更宽阔的方向：六边形有三个方向可能）
             let middleIdx =
@@ -617,6 +641,15 @@ module private RoadCommand =
                     Tile.cornerWithRadius TileUnitCorners.getSolidEdgeMiddleWithRadius middleIdx (radius + height) tile
 
                 roadCenter <- roadCenter + (offset - centroid) * 0.25f
+
+                if
+                    idx = middleIdx
+                    && env.HasOverrideRoadThroughEdge chunk tile
+                       <| HexIndexUtil.oppositeIdx idx cornerCount
+                then
+                    env.AddBridge tile.Id roadCenter
+                    <| centroid - (offset - centroid) * (HexMetrics.InnerToOuter * 0.7f)
+                    <| chunk :? IEditPreviewChunk
 
         if not returnNow then
             let interpolator = getRoadInterpolator env chunk tile cornerCount idx
@@ -1496,6 +1529,12 @@ module private TileCommand =
         |> Tile.countId
         |> BasicCommand.triangulateEdgeFan env chunk centroid m simple
 
+        if
+            not <| env.IsOverrideUnderwater chunk tile
+            && not <| env.HasOverrideRoadThroughEdge chunk tile idx
+        then
+            env.AddNormalFeature chunk tile <| (centroid + e.V1 + e.V5) / 3f
+
     let triangulateWithoutRiver
         (env: #ITileOverriderQuery)
         (chunk: IChunk)
@@ -2016,12 +2055,18 @@ module ChunkTriangulationCommand =
         else
             TileCommand.triangulateWithoutRiver env chunk tile idx centroid e simple
 
+            if
+                not <| env.IsOverrideUnderwater chunk tile
+                && not <| env.HasOverrideRoadThroughEdge chunk tile idx
+            then
+                env.AddNormalFeature chunk tile <| (centroid + e.V1 + e.V5) / 3f
+
         ConnectionCommand.triangulateConnection env chunk tile idx e simple
 
         if env.IsOverrideUnderwater chunk tile then
             WaterCommand.triangulateWater env chunk tile idx centroid simple
 
-    let triangulate (env: #IEntityStoreQuery) : Triangulate =
+    let triangulate (env: 'E when 'E :> IEntityStoreQuery and 'E :> IFeatureCommand) : Triangulate =
         fun (chunk: IChunk) (tile: Entity) ->
             let tileChunkId = tile.GetComponent<TileChunkId>()
             let tileChunk = env.GetEntityById tileChunkId.ChunkId
@@ -2036,3 +2081,19 @@ module ChunkTriangulationCommand =
 
                 for i in 0 .. tileFaceIds.Length - 1 do
                     triangulateHex env chunk tile i
+
+                if not <| env.IsOverrideUnderwater chunk tile then
+                    if
+                        not <| env.HasOverrideRivers chunk tile
+                        && not <| env.HasOverrideRoads chunk tile
+                    then
+                        env.AddNormalFeature chunk tile
+                        <| (tile
+                            |> Tile.unitCentroid
+                            |> TileUnitCentroid.scaled (env.PlanetConfig.Radius + env.GetOverrideHeight chunk tile))
+
+                    if env.IsOverrideSpecial chunk tile then
+                        env.AddSpecialFeature chunk tile
+                        <| (tile
+                            |> Tile.unitCentroid
+                            |> TileUnitCentroid.scaled (env.PlanetConfig.Radius + env.GetOverrideHeight chunk tile))

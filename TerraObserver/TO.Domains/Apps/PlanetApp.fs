@@ -5,6 +5,7 @@ open Godot
 open TO.Domains.Envs
 open TO.Domains.Types.Cameras
 open TO.Domains.Types.Chunks
+open TO.Domains.Types.Configs
 open TO.Domains.Types.DataStructures
 open TO.Domains.Types.Geos
 open TO.Domains.Types.HexMeshes
@@ -26,6 +27,8 @@ type PlanetApp
         cameraRig,
         lonLatGrid,
         celestialMotion,
+        featureMeshManager,
+        featurePreviewManager,
         chunkLoader,
         selectTileViewer,
         editPreviewChunk,
@@ -57,6 +60,8 @@ type PlanetApp
             cameraRig,
             lonLatGrid,
             celestialMotion,
+            featureMeshManager,
+            featurePreviewManager,
             chunkLoader,
             selectTileViewer,
             editPreviewChunk,
@@ -70,12 +75,14 @@ type PlanetApp
             'E
                 when 'E :> IOrbitCameraRigQuery
                 and 'E :> IOrbitCameraRigCommand
+                and 'E :> ICatlikeCodingNoiseCommand
                 and 'E :> ILonLatGridCommand
                 and 'E :> IMiniMapManagerCommand
                 and 'E :> IPlanetHudCommand)
         =
         env.Reset()
         env.DrawOnPlanet()
+        env.InitializeHashGrid()
 
         if not <| Engine.IsEditorHint() then
             env.InitElevationAndWaterVSlider()

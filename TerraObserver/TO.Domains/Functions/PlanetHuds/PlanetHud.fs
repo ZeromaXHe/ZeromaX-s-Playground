@@ -4,7 +4,6 @@ open System
 open Friflo.Engine.ECS
 open Godot
 open TO.Domains.Functions.HexGridCoords
-open TO.Domains.Functions.HexMetrics
 open TO.Domains.Functions.HexSpheres.Components
 open TO.Domains.Functions.HexSpheres.Components.Tiles
 open TO.Domains.Functions.Maps
@@ -17,6 +16,13 @@ open TO.Domains.Types.HexSpheres.Components.Chunks
 open TO.Domains.Types.HexSpheres.Components.Tiles
 open TO.Domains.Types.Maps
 open TO.Domains.Types.PlanetHuds
+
+module PlanetHudQuery =
+    let getEditMode (env: #IPlanetHudQuery) : GetEditMode =
+        fun () -> env.PlanetHudOpt |> Option.map _.EditMode |> Option.defaultValue true
+
+    let getLabelMode (env: #IPlanetHudQuery) : GetLabelMode =
+        fun () -> env.PlanetHudOpt |> Option.map _.LabelMode |> Option.defaultValue 0
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
@@ -162,6 +168,7 @@ module PlanetHudCommand =
 
     let private editTiles (env: #ITileQuery) (chosenTileId: int) (this: IPlanetHud) =
         let chosenTile = env.GetTile chosenTileId
+
         for t in env.GetTilesInDistance chosenTile this.BrushSize do
             editTile env t this
 

@@ -3,12 +3,13 @@ namespace TO.Domains.Functions.Chunks
 open Godot
 open TO.Domains.Types.Chunks
 open TO.Domains.Types.HexMeshes
+open TO.Domains.Types.HexSpheres.Components
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-06-30 16:21:30
 module HexGridChunkCommand =
-    let clearOldData (this: IHexGridChunk) =
+    let clearOldData (env: 'E when 'E :> IFeatureCommand and 'E :> ITileQuery) (this: IHexGridChunk) =
         this.GetTerrain() |> HexMeshCommand.clear
         this.GetRivers() |> HexMeshCommand.clear
         this.GetRoads() |> HexMeshCommand.clear
@@ -17,9 +18,13 @@ module HexGridChunkCommand =
         this.GetEstuary() |> HexMeshCommand.clear
         this.GetWalls() |> HexMeshCommand.clear
 
-    let hideOutOfSight (this: IHexGridChunk) =
+        for tile in env.GetTilesByChunkId this.Id do
+            env.HideFeatures tile.Id false
+            env.DeleteFeatures tile.Id false
+
+    let hideOutOfSight env (this: IHexGridChunk) =
         this.Hide()
-        clearOldData this
+        clearOldData env this
         this.Id <- 0 // 重置 id，归还给池子
 
     let applyNewData (this: IHexGridChunk) =

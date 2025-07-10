@@ -107,9 +107,10 @@ module CatlikeCodingNoiseQuery =
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-06-24 20:38:24
 module CatlikeCodingNoiseCommand =
-    let initializeHashGrid (env: #ICatlikeCodingNoiseQuery) =
-        fun (seed: uint64) ->
+    let initializeHashGrid (env: #ICatlikeCodingNoiseQuery) : InitializeHashGrid =
+        fun () ->
             let noise = env.CatlikeCodingNoise
+            let seed = noise.Seed
             let rng = noise.Rng
             let initState = rng.State
             rng.Seed <- seed

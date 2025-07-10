@@ -70,10 +70,11 @@
         <Compile Include="Types\Cameras\OrbitCameraRigT.fs"/>
         <Compile Include="Types\Geos\LonLatGridT.fs"/>
         <Compile Include="Types\Planets\CelestialMotionT.fs"/>
-        <Compile Include="Types\Features\FeatureMeshManagerT.fs" />
-        <Compile Include="Types\Features\FeaturePreviewManagerT.fs" />
         <Compile Include="Types\Chunks\IHexMesh.fs"/>
         <Compile Include="Types\Chunks\IChunk.fs"/>
+        <Compile Include="Types\Chunks\FeatureT.fs" />
+        <Compile Include="Types\Chunks\FeatureMeshManagerT.fs" />
+        <Compile Include="Types\Chunks\FeaturePreviewManagerT.fs" />
         <Compile Include="Types\Chunks\IHexGridChunk.fs"/>
         <Compile Include="Types\Chunks\ChunkLoaderT.fs"/>
         <Compile Include="Types\Chunks\TileOverriderT.fs"/>
@@ -130,9 +131,10 @@
         <Compile Include="Functions\Cameras\OrbitCameraRig.fs"/>
         <Compile Include="Functions\Geos\LonLatGrid.fs"/>
         <Compile Include="Functions\Planets\CelestialMotion.fs"/>
-        <Compile Include="Functions\Features\FeatureMeshManager.fs" />
-        <Compile Include="Functions\Features\FeaturePreviewManager.fs" />
         <Compile Include="Functions\Chunks\HexMesh.fs" />
+        <Compile Include="Functions\Chunks\Feature.fs" />
+        <Compile Include="Functions\Chunks\FeatureMeshManager.fs" />
+        <Compile Include="Functions\Chunks\FeaturePreviewManager.fs" />
         <Compile Include="Functions\Chunks\HexGridChunk.fs"/>
         <Compile Include="Functions\Chunks\ChunkLoader.fs"/>
         <Compile Include="Functions\Chunks\TileOverrider.fs"/>

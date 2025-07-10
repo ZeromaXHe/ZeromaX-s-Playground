@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Godot;
 using TerraObserver.Scenes.Cameras.Views;
 using TerraObserver.Scenes.Chunks.Views;
+using TerraObserver.Scenes.Features.Views;
 using TerraObserver.Scenes.Geos.Views;
 using TerraObserver.Scenes.Maps.Models;
 using TerraObserver.Scenes.Maps.Views;
@@ -84,6 +85,8 @@ public partial class PlanetContext : Node
     private OrbitCameraRig _orbitCameraRig = null!;
     private LonLatGrid _lonLatGrid = null!;
     private CelestialMotion _celestialMotion = null!;
+    private FeatureMeshManager _featureMeshManager = null!;
+    private FeaturePreviewManager _featurePreviewManager = null!;
     private ChunkLoader _chunkLoader = null!;
     private SelectTileViewer _selectTileViewer = null!;
     private EditPreviewChunk _editPreviewChunk = null!;
@@ -103,6 +106,8 @@ public partial class PlanetContext : Node
         _orbitCameraRig = GetNode<OrbitCameraRig>("%OrbitCameraRig");
         _lonLatGrid = GetNode<LonLatGrid>("%LonLatGrid");
         _celestialMotion = GetNode<CelestialMotion>("%CelestialMotion");
+        _featureMeshManager = GetNode<FeatureMeshManager>("%FeatureMeshManager");
+        _featurePreviewManager = GetNode<FeaturePreviewManager>("%FeaturePreviewManager");
         _chunkLoader = GetNode<ChunkLoader>("%ChunkLoader");
         if (!inEditor)
         {
@@ -115,7 +120,8 @@ public partial class PlanetContext : Node
         NodeReady = true;
         // App
         _planetApp = new PlanetApp(PlanetConfig, CatlikeCodingNoise, _orbitCameraRig, _lonLatGrid, _celestialMotion,
-            _chunkLoader, _selectTileViewer, _editPreviewChunk, _miniMapManager, _hexMapGenerator, _planetHud);
+            _featureMeshManager, _featurePreviewManager, _chunkLoader, _selectTileViewer, _editPreviewChunk,
+            _miniMapManager, _hexMapGenerator, _planetHud);
         PlanetConfig!.ParamsChanged += _planetApp.DrawHexSphereMesh;
         PlanetConfig.ParamsChanged += _planetApp.OnPlanetConfigParamsChanged;
         _orbitCameraRig.Transformed += UpdateInsightChunks;

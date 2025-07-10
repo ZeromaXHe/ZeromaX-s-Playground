@@ -11,6 +11,9 @@ open TO.Domains.Types.Hashes
 [<Interface>]
 type ICatlikeCodingNoise =
     inherit IResource
+    // =====【Export】=====
+    abstract Seed: uint64
+    // =====【普通属性】=====
     abstract NoiseSourceImage: Image
     abstract HashGridSize: int
     abstract HashGrid: HexHash array
@@ -33,3 +36,9 @@ type ICatlikeCodingNoiseQuery =
     abstract Perturb: Perturb
     abstract GetPerturbHeight: GetPerturbHeight
     abstract GetHeight: GetHeight
+
+type InitializeHashGrid = unit -> unit
+
+[<Interface>]
+type ICatlikeCodingNoiseCommand =
+    abstract InitializeHashGrid: InitializeHashGrid

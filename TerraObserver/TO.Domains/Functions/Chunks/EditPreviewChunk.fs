@@ -34,20 +34,26 @@ module EditPreviewChunkCommand =
                 when 'E :> IEditPreviewChunkQuery
                 and 'E :> ITileQuery
                 and 'E :> IPlanetHudQuery
-                and 'E :> IChunkTriangulationCommand)
+                and 'E :> IChunkTriangulationCommand
+                and 'E :> IFeatureCommand)
         : RefreshEditPreview =
         fun (hoverTileId: TileId Nullable) ->
             match env.EditPreviewChunkOpt with
             | Some editPreviewChunk ->
                 if hoverTileId.HasValue then
                     editPreviewChunk.Show()
+
+                    for tileId in editPreviewChunk.EditingTileIds do
+                        env.HideFeatures tileId true
+                        env.DeleteFeatures tileId true
+
                     editPreviewChunk.EditingTileIds.Clear()
                     let hoverTile = env.GetTile hoverTileId.Value
 
                     match env.PlanetHudOpt with
                     | Some planetHud ->
                         // 根据笔刷大小，获取所有周围地块 id，更新
-                        let tiles = env.GetTilesInDistance hoverTile planetHud.BrushSize
+                        let tiles = env.GetTilesInDistance hoverTile planetHud.BrushSize |> Seq.toList
 
                         for tile in tiles do
                             editPreviewChunk.EditingTileIds.Add tile.Id |> ignore
@@ -67,6 +73,12 @@ module EditPreviewChunkCommand =
                             env.Triangulate editPreviewChunk tile
 
                         apply editPreviewChunk
+
+                        if editPreviewChunk.Visible then
+                            env.ShowFeatures false true tiles
+                        else
+                            for tile in tiles do
+                                env.HideFeatures tile.Id true
                     | None -> ()
                 else
                     editPreviewChunk.Hide()

@@ -1,6 +1,7 @@
 namespace TO.Domains.Functions.Chunks
 
 open System.Collections.Generic
+open Friflo.Engine.ECS
 open Godot
 open TO.Domains.Functions.HexSpheres
 open TO.Domains.Types.Chunks
@@ -11,6 +12,7 @@ open TO.Domains.Types.HexSpheres
 open TO.Domains.Types.HexSpheres.Components
 open TO.Domains.Types.HexSpheres.Components.Chunks
 open TO.Domains.Types.HexSpheres.Components.Tiles
+open TO.Domains.Types.PlanetHuds
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
@@ -77,12 +79,19 @@ module ChunkLoaderCommand =
                 | Some meshes -> hexGridChunk |> HexGridChunkCommand.showMesh meshes
                 | None -> hexGridChunk.SetProcess true
 
-    let private usedBy env (chunkId: ChunkId) (hexGridChunk: IHexGridChunk) =
+    let private usedBy
+        (env: 'E when 'E :> IFeatureCommand and 'E :> ITileQuery and 'E :> IPlanetHudQuery)
+        (chunkId: ChunkId)
+        (hexGridChunk: IHexGridChunk)
+        =
         hexGridChunk.Id <- chunkId
         // 默认不生成网格，而是先查缓存
         hexGridChunk.SetProcess false
         hexGridChunk.Show()
         updateLod env chunkId true hexGridChunk
+        // 编辑模式下全部显示，游戏模式下仅显示探索过的
+        let onlyExplored = not <| env.GetEditMode()
+        env.ShowFeatures onlyExplored false <| env.GetTilesByChunkId hexGridChunk.Id
 
     let private showChunk (env: 'E when 'E :> IChunkLoaderQuery and 'E :> IChunkLoaderCommand) =
         fun chunkId ->
@@ -98,7 +107,7 @@ module ChunkLoaderCommand =
         fun chunkId ->
             match env.TryGetUsingChunk chunkId with
             | true, chunk ->
-                chunk.Hide()
+                HexGridChunkCommand.hideOutOfSight env chunk
                 let chunkLoader = env.ChunkLoader
                 chunkLoader.UsingChunks.Remove chunkId |> ignore
                 chunkLoader.UnusedChunks.Enqueue chunk
@@ -255,12 +264,15 @@ module ChunkLoaderCommand =
                 when 'E :> IEntityStoreQuery
                 and 'E :> IChunkQuery
                 and 'E :> ILodMeshCacheCommand
-                and 'E :> IChunkTriangulationCommand)
+                and 'E :> IChunkTriangulationCommand
+                and 'E :> ITileQuery
+                and 'E :> IFeatureCommand
+                and 'E :> IPlanetHudQuery)
         : OnHexGridChunkProcessed =
         fun (instance: IHexGridChunk) ->
             if instance.Id > 0 then
                 // let time = Time.GetTicksMsec()
-                instance |> HexGridChunkCommand.clearOldData
+                instance |> HexGridChunkCommand.clearOldData env
 
                 env
                     .Query<TileChunkId>()
@@ -272,6 +284,9 @@ module ChunkLoaderCommand =
                 if not <| env.IsHandlingLodGaps instance.Lod instance.Id then
                     env.AddLodMeshes instance.Lod instance.Id
                     <| HexGridChunkCommand.getMeshes instance
+
+                let onlyExplored = not <| env.GetEditMode()
+                env.ShowFeatures onlyExplored false <| env.GetAllTiles()
 
             instance.SetProcess false
 
@@ -385,7 +400,7 @@ module ChunkLoaderCommand =
             chunkLoader.SetProcess true
     // GD.Print($"ChunkLoader UpdateInsightChunks cost {Time.GetTicksMsec() - time} ms");
 
-    let refreshChunk (env: 'E when 'E :> IChunkLoaderQuery and 'E :> ILodMeshCacheCommand): RefreshChunk =
+    let refreshChunk (env: 'E when 'E :> IChunkLoaderQuery and 'E :> ILodMeshCacheCommand) : RefreshChunk =
         fun (chunkId: ChunkId) ->
             match env.TryGetUsingChunk chunkId with
             | true, chunk ->

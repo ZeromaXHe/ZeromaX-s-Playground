@@ -1,4 +1,4 @@
-namespace TO.Domains.Types.Features
+namespace TO.Domains.Types.Chunks
 
 open System.Collections.Generic
 open Godot
@@ -23,7 +23,11 @@ type IFeaturePreviewManagerQuery =
     abstract FeaturePreviewManager: IFeaturePreviewManager
 
 type ClearFeaturePreviewManagerOldData = unit -> unit
+type ShowFeaturePreview = Transform3D -> FeatureType -> int
+type HideFeaturePreview = int -> unit
 
 [<Interface>]
 type IFeaturePreviewManagerCommand =
     abstract ClearFeaturePreviewManagerOldData: ClearFeaturePreviewManagerOldData
+    abstract ShowFeaturePreview: ShowFeaturePreview
+    abstract HideFeaturePreview: HideFeaturePreview
