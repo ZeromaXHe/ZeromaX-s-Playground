@@ -11,7 +11,7 @@
 [ext_resource type="Material" uid="uid://ct21bgv0a5ai1" path="res://Resources/Chunks/Holograms/ShaderMaterial_RockTerrainHologram.tres" id="6_dv5s4"]
 [ext_resource type="Material" uid="uid://cibn44c6xdv6y" path="res://Resources/Chunks/Holograms/ShaderMaterial_SnowTerrainHologram.tres" id="7_5od2d"]
 
-[node name="EditPreviewChunk" type="Node3D" node_paths=PackedStringArray("Terrain", "Rivers", "Roads", "Water", "WaterShore", "Estuary")]
+[node name="EditPreviewChunk" type="Node3D" node_paths=PackedStringArray("Terrain", "Rivers", "Roads", "Water", "WaterShore", "Estuary", "Walls")]
 script = ExtResource("1_vf5kr")
 TerrainMaterials = Array[ShaderMaterial]([ExtResource("2_qgayx"), ExtResource("3_d33q1"), ExtResource("4_qgayx"), ExtResource("5_kuyxu"), ExtResource("6_dv5s4"), ExtResource("7_5od2d")])
 Terrain = NodePath("Terrain")
@@ -20,6 +20,7 @@ Roads = NodePath("Roads")
 Water = NodePath("Water")
 WaterShore = NodePath("WaterShore")
 Estuary = NodePath("Estuaries")
+Walls = NodePath("Walls")
 
 [node name="Terrain" parent="." instance=ExtResource("1_kuyxu")]
 material_override = ExtResource("2_qgayx")

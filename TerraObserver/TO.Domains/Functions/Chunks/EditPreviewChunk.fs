@@ -17,6 +17,7 @@ module EditPreviewChunkCommand =
         chunk.GetWater() |> HexMeshCommand.clear
         chunk.GetWaterShore() |> HexMeshCommand.clear
         chunk.GetEstuary() |> HexMeshCommand.clear
+        chunk.GetWalls() |> HexMeshCommand.clear
 
     let private apply (chunk: IEditPreviewChunk) =
         chunk.GetTerrain() |> HexMeshCommand.apply
@@ -25,9 +26,15 @@ module EditPreviewChunkCommand =
         chunk.GetWater() |> HexMeshCommand.apply
         chunk.GetWaterShore() |> HexMeshCommand.apply
         chunk.GetEstuary() |> HexMeshCommand.apply
+        chunk.GetWalls() |> HexMeshCommand.apply
 
     let refreshEditPreview
-        (env: 'E when 'E :> IEditPreviewChunkQuery and 'E :> ITileQuery and 'E :> IPlanetHudQuery and 'E :> IChunkTriangulationCommand)
+        (env:
+            'E
+                when 'E :> IEditPreviewChunkQuery
+                and 'E :> ITileQuery
+                and 'E :> IPlanetHudQuery
+                and 'E :> IChunkTriangulationCommand)
         : RefreshEditPreview =
         fun (hoverTileId: TileId Nullable) ->
             match env.EditPreviewChunkOpt with
@@ -55,8 +62,10 @@ module EditPreviewChunkCommand =
                             editPreviewChunk.TerrainMaterials[terrainMaterialIdx]
                         // 更新网格
                         clearOldData editPreviewChunk
+
                         for tile in tiles do
                             env.Triangulate editPreviewChunk tile
+
                         apply editPreviewChunk
                     | None -> ()
                 else

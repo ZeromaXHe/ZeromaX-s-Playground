@@ -1,4 +1,4 @@
-[gd_scene load_steps=32 format=3 uid="uid://cnu45krarcdsr"]
+[gd_scene load_steps=37 format=3 uid="uid://cnu45krarcdsr"]
 
 [ext_resource type="Script" uid="uid://4ki6so6sadfr" path="res://Scenes/Planets/Contexts/PlanetContext.cs" id="1_d8mpy"]
 [ext_resource type="Script" uid="uid://b02ygsbo8van6" path="res://Scenes/Planets/Models/PlanetConfig.cs" id="2_kkspw"]
@@ -18,7 +18,12 @@
 [ext_resource type="Texture2D" uid="uid://dbh7h21k155fe" path="res://Assets/Sebastian/lroc_color_poles_512x256.png" id="11_jet37"]
 [ext_resource type="PackedScene" uid="uid://b2v0nm0kt4y6m" path="res://Scenes/Uis/Views/PlanetHud.tscn" id="12_ioxuh"]
 [ext_resource type="Script" uid="uid://bt06psktmjb85" path="res://Scenes/Uis/Views/SelectTileViewer.cs" id="15_hmp20"]
+[ext_resource type="PackedScene" uid="uid://bqgvdwn235561" path="res://Scenes/Features/Views/FeatureMeshManager.tscn" id="16_kwe7g"]
 [ext_resource type="PackedScene" uid="uid://b1qna3qor1fak" path="res://Scenes/Chunks/Views/EditPreviewChunk.tscn" id="18_1hg6e"]
+[ext_resource type="Script" uid="uid://dv162d2ucwajd" path="res://Scenes/Features/Views/FeaturePreviewManager.cs" id="21_dptte"]
+[ext_resource type="Material" uid="uid://diyq0hsqcass7" path="res://Resources/Chunks/Holograms/ShaderMaterial_RoadHologram.tres" id="22_a8tqq"]
+[ext_resource type="Material" uid="uid://b1bjot3ucbj8i" path="res://Resources/Chunks/Holograms/ShaderMaterial_GrassTerrainHologram.tres" id="23_1ww57"]
+[ext_resource type="Material" uid="uid://n22gd0xmahwb" path="res://Resources/Chunks/Holograms/ShaderMaterial_DesertTerrainHologram.tres" id="24_0wxy1"]
 
 [sub_resource type="Resource" id="Resource_xd1ad"]
 script = ExtResource("2_kkspw")
@@ -54,7 +59,7 @@ LowTemperature = 0.0
 HighTemperature = 1.0
 TemperatureJitter = 0.1
 UseFixedSeed = false
-Seed = 1930461449
+Seed = 1791760990
 metadata/_custom_type_script = "uid://bv15mqo6x4hmb"
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_jet37"]
@@ -171,8 +176,18 @@ unique_name_in_owner = true
 Sun = NodePath("../Sun")
 Moon = NodePath("../Moon")
 
+[node name="FeatureMeshManager" parent="." instance=ExtResource("16_kwe7g")]
+unique_name_in_owner = true
+
 [node name="ChunkLoader" parent="." instance=ExtResource("11_ioxuh")]
 unique_name_in_owner = true
+
+[node name="FeaturePreviewManager" type="Node3D" parent="."]
+unique_name_in_owner = true
+script = ExtResource("21_dptte")
+UrbanPreviewOverrideMaterial = ExtResource("22_a8tqq")
+PlantPreviewOverrideMaterial = ExtResource("23_1ww57")
+FarmPreviewOverrideMaterial = ExtResource("24_0wxy1")
 
 [node name="SelectTileViewer" type="MeshInstance3D" parent="."]
 unique_name_in_owner = true

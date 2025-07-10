@@ -23,6 +23,8 @@ public partial class EditPreviewChunk : Node3D, IEditPreviewChunk
     public IHexMesh? GetWaterShore() => WaterShore;
     [Export] public HexMesh? Estuary { get; set; }
     public IHexMesh? GetEstuary() => Estuary;
+    [Export] public HexMesh? Walls { get; set; }
+    public IHexMesh? GetWalls() => Walls;
     public ChunkLodEnum Lod { get; set; } = ChunkLodEnum.Full; // 默认值是给预览用的
     public HashSet<int> EditingTileIds { get; } = [];
 }

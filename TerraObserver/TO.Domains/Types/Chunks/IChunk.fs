@@ -17,5 +17,6 @@ type IChunk =
     abstract GetWater: unit -> IHexMesh
     abstract GetWaterShore: unit -> IHexMesh
     abstract GetEstuary: unit -> IHexMesh
+    abstract GetWalls: unit -> IHexMesh
     abstract Lod: ChunkLodEnum with get, set
     abstract EditingTileIds: int HashSet

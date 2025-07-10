@@ -6,8 +6,25 @@ open TO.Domains.Types.Chunks
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
+/// Date: 2025-06-19 19:30:19
+module private HexMesh =
+    let weights1 = Colors.Red
+    let weights2 = Colors.Green
+    let weights3 = Colors.Blue
+    let triArr<'T> (c: 'T) = [| c; c; c |]
+    let quadArr<'T> (c: 'T) = [| c; c; c; c |]
+    let quad2Arr<'T> (c1: 'T) (c2: 'T) = [| c1; c1; c2; c2 |]
+
+    let quadUv (uMin: float32) (uMax: float32) (vMin: float32) (vMax: float32) =
+        [| Vector2(uMin, vMin)
+           Vector2(uMax, vMin)
+           Vector2(uMin, vMax)
+           Vector2(uMax, vMax) |]
+
+/// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
+/// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-06-30 16:01:30
-module HexMeshCommand =
+module private HexMeshCommand =
     let clear (this: IHexMesh) =
         // 清理之前的碰撞体
         for child in this.GetChildren() do

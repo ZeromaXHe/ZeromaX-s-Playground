@@ -73,7 +73,7 @@ shader_parameter/glossiness = 0.5
 shader_parameter/specular = 0.2
 shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
 
-[node name="HexGridChunk" type="Node3D" node_paths=PackedStringArray("Terrain", "Rivers", "Roads", "Water", "WaterShore", "Estuary")]
+[node name="HexGridChunk" type="Node3D" node_paths=PackedStringArray("Terrain", "Rivers", "Roads", "Water", "WaterShore", "Estuary", "Walls")]
 script = ExtResource("1_h38kf")
 Terrain = NodePath("Terrain")
 Rivers = NodePath("Rivers")
@@ -81,6 +81,7 @@ Roads = NodePath("Roads")
 Water = NodePath("Water")
 WaterShore = NodePath("WaterShore")
 Estuary = NodePath("Estuaries")
+Walls = NodePath("Walls")
 
 [node name="Terrain" parent="." instance=ExtResource("1_fli57")]
 material_override = SubResource("ShaderMaterial_xmksr")

@@ -15,6 +15,7 @@ module HexGridChunkCommand =
         this.GetWater() |> HexMeshCommand.clear
         this.GetWaterShore() |> HexMeshCommand.clear
         this.GetEstuary() |> HexMeshCommand.clear
+        this.GetWalls() |> HexMeshCommand.clear
 
     let hideOutOfSight (this: IHexGridChunk) =
         this.Hide()
@@ -28,6 +29,7 @@ module HexGridChunkCommand =
         this.GetWater() |> HexMeshCommand.apply
         this.GetWaterShore() |> HexMeshCommand.apply
         this.GetEstuary() |> HexMeshCommand.apply
+        this.GetWalls() |> HexMeshCommand.apply
 
     let showMesh (meshes: Mesh array) (this: IHexGridChunk) =
         this.GetTerrain() |> HexMeshCommand.showMesh meshes[int MeshType.Terrain]

@@ -1,0 +1,47 @@
+[gd_scene load_steps=25 format=3 uid="uid://bqgvdwn235561"]
+
+[ext_resource type="Script" uid="uid://bm0xnfnmpsk5w" path="res://Scenes/Features/Views/FeatureMeshManager.cs" id="1_pd8q1"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/UrbanHigh1.tscn" id="2_mcapo"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/UrbanHigh2.tscn" id="3_gsfpq"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/UrbanMid1.tscn" id="4_jlpuc"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/UrbanMid2.tscn" id="5_nxmoq"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/UrbanLow1.tscn" id="6_v8d0y"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/UrbanLow2.tscn" id="7_1bdor"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/FarmHigh1.tscn" id="8_h5c0n"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/FarmHigh2.tscn" id="9_t6rom"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/FarmMid1.tscn" id="10_0i8mn"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/FarmMid2.tscn" id="11_jof02"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/FarmLow1.tscn" id="12_n7xmr"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/FarmLow2.tscn" id="13_oe5st"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/PlantHigh1.tscn" id="14_hjed0"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/PlantHigh2.tscn" id="15_i1x8r"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/PlantMid1.tscn" id="16_lbm26"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/PlantMid2.tscn" id="17_ind0s"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/PlantLow1.tscn" id="18_0wwdd"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/PlantLow2.tscn" id="19_heth7"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/WallTower.tscn" id="20_4st4n"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/Bridge.tscn" id="21_dhe85"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/Castle.tscn" id="22_t0v33"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/Ziggurat.tscn" id="23_u52u1"]
+[ext_resource type="PackedScene" path="res://Scenes/Features/Views/Meshes/MegaFlora.tscn" id="24_6dvy6"]
+
+[node name="FeatureMeshManager" type="Node3D"]
+script = ExtResource("1_pd8q1")
+UrbanScenes = [ExtResource("2_mcapo"), ExtResource("3_gsfpq"), ExtResource("4_jlpuc"), ExtResource("5_nxmoq"), ExtResource("6_v8d0y"), ExtResource("7_1bdor")]
+FarmScenes = [ExtResource("8_h5c0n"), ExtResource("9_t6rom"), ExtResource("10_0i8mn"), ExtResource("11_jof02"), ExtResource("12_n7xmr"), ExtResource("13_oe5st")]
+PlantScenes = [ExtResource("14_hjed0"), ExtResource("15_i1x8r"), ExtResource("16_lbm26"), ExtResource("17_ind0s"), ExtResource("18_0wwdd"), ExtResource("19_heth7")]
+WallTowerScene = ExtResource("20_4st4n")
+BridgeScene = ExtResource("21_dhe85")
+SpecialScenes = [ExtResource("22_t0v33"), ExtResource("23_u52u1"), ExtResource("24_6dvy6")]
+
+[node name="Urbans" type="Node3D" parent="."]
+unique_name_in_owner = true
+
+[node name="Farms" type="Node3D" parent="."]
+unique_name_in_owner = true
+
+[node name="Plants" type="Node3D" parent="."]
+unique_name_in_owner = true
+
+[node name="Others" type="Node3D" parent="."]
+unique_name_in_owner = true

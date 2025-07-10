@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://bk67vbh7aa8lv"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l1f6h"]
+albedo_color = Color(1, 0, 0, 1)
+
+[node name="UrbanMid1" type="CSGBox3D"]
+size = Vector3(1.5, 2, 1.5)
+material = SubResource("StandardMaterial3D_l1f6h")

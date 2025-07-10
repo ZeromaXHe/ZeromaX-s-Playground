@@ -33,6 +33,8 @@ public partial class HexGridChunk : Node3D, IHexGridChunk
     public IHexMesh? GetWaterShore() => WaterShore;
     [Export] public HexMesh? Estuary { get; set; }
     public IHexMesh? GetEstuary() => Estuary;
+    [Export] public HexMesh? Walls { get; set; }
+    public IHexMesh? GetWalls() => Walls;
 
     #endregion
 

@@ -82,7 +82,7 @@ module TileQuery =
             let neighborCenter = preTile |> Tile.pointCenterId
             tileNeighborCenters |> PointNeighborCenterIds.isNeighbor neighborCenter.CenterId
 
-    let getNeighborTileByIdx (env: 'E when 'E :> IPointQuery) : GetNeighborTileByIdx =
+    let getNeighborTileByIdx (env: 'E :> IPointQuery) : GetNeighborTileByIdx =
         fun (tile: Entity) (idx: int) ->
             tile
             |> Tile.pointNeighborCenterIds
@@ -174,8 +174,8 @@ module TileCommand =
             refreshSelfOnly env tile
 
             env.GetNeighborTiles tile
-            |> Seq.distinctBy (fun n -> (Tile.chunkId n).ChunkId)
-            |> Seq.filter (fun n -> (Tile.chunkId n).ChunkId <> (Tile.chunkId n).ChunkId)
+            |> Seq.distinctBy (fun n -> n |> Tile.chunkId |> _.ChunkId)
+            |> Seq.filter (fun n -> n |> Tile.chunkId |> _.ChunkId <> (tile |> Tile.chunkId |> _.ChunkId))
             |> Seq.iter (refreshSelfOnly env)
 
     let private getElevationDifference (env: #ITileQuery) (tile: Entity) (idx: int) =
@@ -248,10 +248,7 @@ module TileCommand =
     let removeOutgoingRiver (env: #ITileQuery) (tile: Entity) =
         if tile |> Tile.flag |> TileFlag.hasOutgoingRiver then
             let neighbor =
-                tile
-                |> Tile.flag
-                |> TileFlag.riverOutDirection
-                |> env.GetNeighborTileByIdx tile
+                tile |> Tile.flag |> TileFlag.riverOutDirection |> env.GetNeighborTileByIdx tile
 
             let newTileFlag =
                 tile |> Tile.flag |> TileFlag.withoutMask TileFlagEnum.RiverOut |> TileFlag
@@ -267,10 +264,7 @@ module TileCommand =
     let removeIncomingRiver (env: #ITileQuery) (tile: Entity) =
         if tile |> Tile.flag |> TileFlag.hasIncomingRiver then
             let neighbor =
-                tile
-                |> Tile.flag
-                |> TileFlag.riverInDirection
-                |> env.GetNeighborTileByIdx tile
+                tile |> Tile.flag |> TileFlag.riverInDirection |> env.GetNeighborTileByIdx tile
 
             let newTileFlag =
                 tile |> Tile.flag |> TileFlag.withoutMask TileFlagEnum.RiverIn |> TileFlag
