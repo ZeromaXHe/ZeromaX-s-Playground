@@ -50,8 +50,8 @@ type IHexMapGenerator =
     // =====【普通属性】=====
     abstract Rng: RandomNumberGenerator
     abstract LandTileCount: int with get, set
-    abstract Climate: ClimateData ResizeArray with get, set
-    abstract NextClimate: ClimateData ResizeArray with get, set
+    abstract Climate: ClimateData array with get, set
+    abstract NextClimate: ClimateData array with get, set
     abstract TemperatureJitterChannel: int with get, set
 
 [<Interface>]

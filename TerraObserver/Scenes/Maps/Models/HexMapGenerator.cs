@@ -95,8 +95,8 @@ public partial class HexMapGenerator : Resource, IHexMapGenerator
 
     public RandomNumberGenerator Rng { get; } = new();
     public int LandTileCount { get; set; }
-    public List<ClimateData> Climate { get; set; } = [];
-    public List<ClimateData> NextClimate { get; set; } = [];
+    public ClimateData[]? Climate { get; set; }
+    public ClimateData[]? NextClimate { get; set; }
     public int TemperatureJitterChannel { get; set; }
 
     #endregion

@@ -1,8 +1,5 @@
 namespace TO.Domains.Functions.HexSpheres.Components.Tiles
 
-open Godot
-open TO.Domains.Functions.HexMetrics
-open TO.Domains.Types.HexSpheres
 open TO.Domains.Types.HexSpheres.Components.Tiles
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)

@@ -4,6 +4,7 @@ open System.Collections.Generic
 open Friflo.Engine.ECS
 open Godot
 open TO.Domains.Functions.HexSpheres
+open TO.Domains.Functions.HexSpheres.Components
 open TO.Domains.Types.Chunks
 open TO.Domains.Types.Configs
 open TO.Domains.Types.Friflos
@@ -249,7 +250,7 @@ module ChunkLoaderCommand =
                     .ForEachEntity(fun chunkPos chunkEntity ->
                         let id = chunkEntity.Id
                         // 此时拿不到真正 focusBase 的位置，暂且用相机自己的代替
-                        if ChunkLodUtil.isChunkInsight chunkPos.Pos camera radius then
+                        if Chunk.isChunkInsight chunkPos.Pos camera radius then
                             loadSet.Add id |> ignore
                             env.UpdateChunkInsightAndLod camera.GlobalPosition true <| Some cb <| id
                             insightChunkIdsNow.Add id |> ignore))
@@ -346,7 +347,7 @@ module ChunkLoaderCommand =
 
                 visitedChunkIds.Add preInsightChunkId |> ignore
 
-                if not <| ChunkLodUtil.isChunkInsight preInsightChunkPos camera radius then
+                if not <| Chunk.isChunkInsight preInsightChunkPos camera radius then
                     // 分块不在视野范围内，隐藏它
                     unloadSet.Add preInsightChunkId |> ignore
                     env.UpdateChunkInsightAndLod camera.GlobalPosition false None preInsightChunkId
@@ -374,7 +375,7 @@ module ChunkLoaderCommand =
                     let chunkId = chunkQueryQueue.Dequeue()
                     let chunkPos = env.GetEntityById(chunkId).GetComponent<ChunkPos>().Pos
 
-                    if ChunkLodUtil.isChunkInsight chunkPos camera radius then
+                    if Chunk.isChunkInsight chunkPos camera radius then
                         // 找到第一个可见分块，重新入队，后面进行真正的处理
                         chunkQueryQueue.Enqueue chunkId
                         breakNow <- true
@@ -385,7 +386,7 @@ module ChunkLoaderCommand =
                 let chunkId = chunkQueryQueue.Dequeue()
                 let chunkPos = env.GetEntityById(chunkId).GetComponent<ChunkPos>().Pos
 
-                if ChunkLodUtil.isChunkInsight chunkPos camera radius then
+                if Chunk.isChunkInsight chunkPos camera radius then
                     if insightChunkIdsNext.Add chunkId then
                         loadSet.Add chunkId |> ignore
                         env.UpdateChunkInsightAndLod camera.GlobalPosition true None chunkId

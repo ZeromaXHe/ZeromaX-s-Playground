@@ -31,31 +31,76 @@ open TO.Domains.Types.Shaders
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-06-19 16:33:19
-type PlanetEnv
-    (
-        // 后端
-        store,
-        chunkyVpTrees,
-        lodMeshCache,
-        tileSearcher,
-        tileShaderData,
-        // 前端
-        planetConfig,
-        catlikeCodingNoise,
-        cameraRig,
-        lonLatGrid,
-        celestialMotion,
-        featureMeshManager,
-        featurePreviewManager,
-        chunkLoader,
-        selectTileViewer,
-        editPreviewChunk,
-        miniMapManager,
-        hexMapGenerator,
-        planetHud
-    ) =
+[<Struct>]
+type PlanetEnv =
+    // 后端
+    val Store: EntityStore
+    val ChunkyVpTrees: ChunkyVpTrees
+    val LodMeshCache: LodMeshCache
+    val TileSearcher: TileSearcher
+    val TileShaderData: TileShaderData
+    // 前端
+    val PlanetConfig: IPlanetConfig
+    val CatlikeCodingNoise: ICatlikeCodingNoise
+    val CameraRig: IOrbitCameraRig
+    val LonLatGrid: ILonLatGrid
+    val CelestialMotion: ICelestialMotion
+    val FeatureMeshManager: IFeatureMeshManager
+    val FeaturePreviewManager: IFeaturePreviewManager
+    val ChunkLoader: IChunkLoader
+    val SelectTileViewer: ISelectTileViewer
+    val EditPreviewChunk: IEditPreviewChunk
+    val MiniMapManager: IMiniMapManager
+    val HexMapGenerator: IHexMapGenerator
+    val PlanetHud: IPlanetHud
+
+    new
+        (
+            // 后端
+            store,
+            chunkyVpTrees,
+            lodMeshCache,
+            tileSearcher,
+            tileShaderData,
+            // 前端
+            planetConfig,
+            catlikeCodingNoise,
+            cameraRig,
+            lonLatGrid,
+            celestialMotion,
+            featureMeshManager,
+            featurePreviewManager,
+            chunkLoader,
+            selectTileViewer,
+            editPreviewChunk,
+            miniMapManager,
+            hexMapGenerator,
+            planetHud
+        ) =
+        {
+          // 后端
+          Store = store
+          ChunkyVpTrees = chunkyVpTrees
+          LodMeshCache = lodMeshCache
+          TileSearcher = tileSearcher
+          TileShaderData = tileShaderData
+          // 前端
+          PlanetConfig = planetConfig
+          CatlikeCodingNoise = catlikeCodingNoise
+          CameraRig = cameraRig
+          LonLatGrid = lonLatGrid
+          CelestialMotion = celestialMotion
+          FeatureMeshManager = featureMeshManager
+          FeaturePreviewManager = featurePreviewManager
+          ChunkLoader = chunkLoader
+          SelectTileViewer = selectTileViewer
+          EditPreviewChunk = editPreviewChunk
+          MiniMapManager = miniMapManager
+          HexMapGenerator = hexMapGenerator
+          PlanetHud = planetHud }
+
     interface IEntityStoreQuery with
-        member this.EntityStore = store
+        member this.EntityStore = this.Store
         member this.GetEntityById = EntityStoreQuery.getEntityById this
 
         member this.Query<'T when 'T: (new: unit -> 'T) and 'T: struct and 'T :> IComponent and 'T :> System.ValueType>
@@ -133,11 +178,11 @@ type PlanetEnv
         member this.InitHexSphere = HexSphereInitCommand.initHexSphere this
 
     interface IChunkyVpTreesQuery with
-        member this.ChunkyVpTrees = chunkyVpTrees
+        member this.ChunkyVpTrees = this.ChunkyVpTrees
         member this.ChooseVpTreeByChunky = ChunkyVpTreesQuery.chooseByChunky this
 
     interface ILodMeshCacheQuery with
-        member this.LodMeshCache = lodMeshCache
+        member this.LodMeshCache = this.LodMeshCache
         member this.GetLodMeshes = LodMeshCacheQuery.getLodMeshes this
 
     interface ILodMeshCacheCommand with
@@ -146,7 +191,7 @@ type PlanetEnv
         member this.RemoveLodMeshes = LodMeshCacheCommand.removeLodMeshes this
 
     interface ITileSearcherQuery with
-        member this.TileSearcher = tileSearcher
+        member this.TileSearcher = this.TileSearcher
         member this.GetMoveCost = TileSearcherQuery.getMoveCost
 
     interface ITileSearcherCommand with
@@ -154,7 +199,7 @@ type PlanetEnv
         member this.RefreshTileSearchData = TileSearcherCommand.refreshTileSearchData this
 
     interface ITileShaderDataQuery with
-        member this.TileShaderData = tileShaderData
+        member this.TileShaderData = this.TileShaderData
 
     interface ITileShaderDataCommand with
         member this.InitShaderData = TileShaderDataCommand.initShaderData this
@@ -181,11 +226,11 @@ type PlanetEnv
         member this.AddNormalFeature = FeatureCommand.addNormalFeature this
 
     interface IPlanetConfigQuery with
-        member this.PlanetConfig = planetConfig
+        member this.PlanetConfig = this.PlanetConfig
         member this.GetTileLen = PlanetConfigQuery.getTileLen this
 
     interface ICatlikeCodingNoiseQuery with
-        member this.CatlikeCodingNoise = catlikeCodingNoise
+        member this.CatlikeCodingNoise = this.CatlikeCodingNoise
         member this.SampleHashGrid = CatlikeCodingNoiseQuery.sampleHashGrid this
         member this.SampleNoise = CatlikeCodingNoiseQuery.sampleNoise this
         member this.Perturb = CatlikeCodingNoiseQuery.perturb this
@@ -196,7 +241,7 @@ type PlanetEnv
         member this.InitializeHashGrid = CatlikeCodingNoiseCommand.initializeHashGrid this
 
     interface IOrbitCameraRigQuery with
-        member this.OrbitCameraRig = cameraRig
+        member this.OrbitCameraRig = this.CameraRig
         member this.GetFocusBasePos = OrbitCameraRigQuery.getFocusBasePos this
         member this.IsAutoPiloting = OrbitCameraRigQuery.isAutoPiloting this
 
@@ -212,7 +257,7 @@ type PlanetEnv
         member this.OnProcessed = OrbitCameraRigCommand.onProcessed this
 
     interface ILonLatGridQuery with
-        member this.LonLatGrid = lonLatGrid
+        member this.LonLatGrid = this.LonLatGrid
 
     interface ILonLatGridCommand with
         member this.DoDraw = LonLatGridCommand.doDraw this
@@ -221,7 +266,7 @@ type PlanetEnv
         member this.OnCameraMoved = LonLatGridCommand.onCameraMoved this
 
     interface ICelestialMotionQuery with
-        member this.CelestialMotion = celestialMotion
+        member this.CelestialMotion = this.CelestialMotion
 
     interface ICelestialMotionCommand with
         member this.ToggleAllMotions = CelestialMotionCommand.toggleAllMotions this
@@ -229,7 +274,7 @@ type PlanetEnv
         member this.UpdateMoonMeshRadius = CelestialMotionCommand.updateMoonMeshRadius this
 
     interface IFeatureMeshManagerQuery with
-        member this.FeatureMeshManager = featureMeshManager
+        member this.FeatureMeshManager = this.FeatureMeshManager
 
     interface IFeaturePreviewManagerCommand with
         member this.ClearFeaturePreviewManagerOldData =
@@ -239,7 +284,7 @@ type PlanetEnv
         member this.HideFeaturePreview = FeaturePreviewManagerCommand.hideFeaturePreview this
 
     interface IFeaturePreviewManagerQuery with
-        member this.FeaturePreviewManager = featurePreviewManager
+        member this.FeaturePreviewManager = this.FeaturePreviewManager
 
     interface IFeatureMeshManagerCommand with
         member this.ClearFeatureMashOldData =
@@ -249,7 +294,7 @@ type PlanetEnv
         member this.ShowFeatureMesh = FeatureMeshManagerCommand.showFeatureMesh this
 
     interface IChunkLoaderQuery with
-        member this.ChunkLoader = chunkLoader
+        member this.ChunkLoader = this.ChunkLoader
         member this.TryGetUsingChunk = ChunkLoaderQuery.tryGetUsingChunk this
         member this.GetAllUsingChunks = ChunkLoaderQuery.getAllUsingChunks this
         member this.GetViewportCamera = ChunkLoaderQuery.getViewportCamera this
@@ -308,10 +353,10 @@ type PlanetEnv
 
     interface ISelectTileViewerQuery with
         member this.SelectTileViewerOpt =
-            if selectTileViewer = null then
+            if this.SelectTileViewer = null then
                 None
             else
-                Some selectTileViewer
+                Some this.SelectTileViewer
 
         member this.GetTileIdUnderCursor = SelectTileViewerQuery.getTileIdUnderCursor this
 
@@ -320,17 +365,17 @@ type PlanetEnv
 
     interface IEditPreviewChunkQuery with
         member this.EditPreviewChunkOpt =
-            if editPreviewChunk = null then
+            if this.EditPreviewChunk = null then
                 None
             else
-                Some editPreviewChunk
+                Some this.EditPreviewChunk
 
     interface IEditPreviewChunkCommand with
         member this.RefreshEditPreview = EditPreviewChunkCommand.refreshEditPreview this
 
     interface IMiniMapManagerQuery with
         member this.MiniMapManagerOpt =
-            if miniMapManager = null then None else Some miniMapManager
+            if this.MiniMapManager = null then None else Some this.MiniMapManager
 
     interface IMiniMapManagerCommand with
         member this.InitMiniMap = MiniMapManagerCommand.initMiniMap this
@@ -339,14 +384,14 @@ type PlanetEnv
         member this.RefreshMiniMapTile = MiniMapManagerCommand.refreshMiniMapTile this
 
     interface IHexMapGeneratorQuery with
-        member this.HexMapGenerator = hexMapGenerator
+        member this.HexMapGenerator = this.HexMapGenerator
 
     interface IHexMapGeneratorCommand with
         member this.GenerateMap = HexMapGeneratorCommand.generateMap this
         member this.ChangeLandGenerator = HexMapGeneratorCommand.changeLandGenerator this
 
     interface IPlanetHudQuery with
-        member this.PlanetHudOpt = if planetHud = null then None else Some planetHud
+        member this.PlanetHudOpt = if this.PlanetHud = null then None else Some this.PlanetHud
         member this.GetEditMode = PlanetHudQuery.getEditMode this
         member this.GetLabelMode = PlanetHudQuery.getLabelMode this
 

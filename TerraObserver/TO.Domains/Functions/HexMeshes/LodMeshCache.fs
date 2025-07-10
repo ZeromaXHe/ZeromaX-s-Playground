@@ -3,7 +3,7 @@ namespace TO.Domains.Functions.HexMeshes
 open Godot
 open TO.Domains.Functions.DataStructures
 open TO.Domains.Types.HexMeshes
-open TO.Domains.Types.HexSpheres
+open TO.Domains.Types.HexSpheres.Components.Chunks
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)

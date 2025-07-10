@@ -3,6 +3,7 @@ namespace TO.Domains.Types.HexSpheres.Components
 open Friflo.Engine.ECS
 open Godot
 open TO.Domains.Types.HexSpheres
+open TO.Domains.Types.HexSpheres.Components.Chunks
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)

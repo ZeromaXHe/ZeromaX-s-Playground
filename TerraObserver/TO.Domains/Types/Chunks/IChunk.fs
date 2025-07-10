@@ -2,7 +2,7 @@ namespace TO.Domains.Types.Chunks
 
 open System.Collections.Generic
 open TO.Domains.Types.Godots
-open TO.Domains.Types.HexSpheres
+open TO.Domains.Types.HexSpheres.Components.Chunks
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)

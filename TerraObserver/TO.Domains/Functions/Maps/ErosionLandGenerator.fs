@@ -55,9 +55,7 @@ module ErosionLandGeneratorCommand =
         let searchFrontier = tileSearcher.SearchFrontier.Value
         searchFrontier |> TilePriorityQueue.clear
         let firstTile = env.GetTileByCountId firstTileCountId
-        let mutable firstTileShaderData = TileSearchData()
-        firstTileShaderData.SearchPhase <- tileSearcher.SearchFrontierPhase
-        tileSearcher.SearchData[firstTileCountId] <- firstTileShaderData
+        tileSearcher.SearchData[firstTileCountId] <- TileSearchData(SearchPhase = tileSearcher.SearchFrontierPhase)
         searchFrontier |> TilePriorityQueue.enqueue firstTileCountId
         let center = env.GetSphereAxial firstTile
         let mutable size = 0
@@ -88,14 +86,13 @@ module ErosionLandGeneratorCommand =
                     if tileSearcher.SearchData[neighborCountId].SearchPhase < tileSearcher.SearchFrontierPhase then
                         tileSearcher.SearchData[neighborCountId] <-
                             TileSearchData(
-                                env.GetSphereAxial neighbor |> SphereAxial.distanceTo center,
-                                0,
-                                0,
-                                (if mapGen.Rng.Randf() < landGen.JitterProbability then
-                                     1
-                                 else
-                                     0),
-                                tileSearcher.SearchFrontierPhase
+                                SearchPhase = tileSearcher.SearchFrontierPhase,
+                                Distance = SphereAxial.distanceTo center (env.GetSphereAxial neighbor), // 不能用管道符……
+                                Heuristic =
+                                    (if mapGen.Rng.Randf() < landGen.JitterProbability then
+                                         1
+                                     else
+                                         0)
                             )
 
                         searchFrontier |> TilePriorityQueue.enqueue neighborCountId
@@ -137,9 +134,7 @@ module ErosionLandGeneratorCommand =
         searchFrontier |> TilePriorityQueue.clear
         let firstTile = env.GetTileByCountId firstTileCountId
         let firstTileCountId = firstTile |> Tile.countId |> _.CountId
-        let mutable firstTileShaderData = TileSearchData()
-        firstTileShaderData.SearchPhase <- tileSearcher.SearchFrontierPhase
-        tileSearcher.SearchData[firstTileCountId] <- firstTileShaderData
+        tileSearcher.SearchData[firstTileCountId] <- TileSearchData(SearchPhase = tileSearcher.SearchFrontierPhase)
         searchFrontier |> TilePriorityQueue.enqueue firstTileCountId
         let center = env.GetSphereAxial firstTile
         let mutable size = 0
@@ -177,14 +172,13 @@ module ErosionLandGeneratorCommand =
                         if tileSearcher.SearchData[neighborCountId].SearchPhase < tileSearcher.SearchFrontierPhase then
                             tileSearcher.SearchData[neighborCountId] <-
                                 TileSearchData(
-                                    env.GetSphereAxial neighbor |> SphereAxial.distanceTo center,
-                                    0,
-                                    0,
-                                    (if mapGen.Rng.Randf() < landGen.JitterProbability then
-                                         1
-                                     else
-                                         0),
-                                    tileSearcher.SearchFrontierPhase
+                                    SearchPhase = tileSearcher.SearchFrontierPhase,
+                                    Distance = SphereAxial.distanceTo center (env.GetSphereAxial neighbor),
+                                    Heuristic =
+                                        (if mapGen.Rng.Randf() < landGen.JitterProbability then
+                                             1
+                                         else
+                                             0)
                                 )
 
                             searchFrontier |> TilePriorityQueue.enqueue neighborCountId
@@ -288,7 +282,8 @@ module ErosionLandGeneratorCommand =
             for neighbor in env.GetNeighborTiles targetTile do
                 // 有一个台阶上去就不是悬崖孤台了
                 if
-                    neighbor |> Tile.value |> TileValue.elevation = (targetTile |> Tile.value |> TileValue.elevation) + 1
+                    neighbor |> Tile.value |> TileValue.elevation = (targetTile |> Tile.value |> TileValue.elevation)
+                                                                    + 1
                     && not <| isErodible env neighbor
                 then
                     erodibleTiles.Remove neighbor |> ignore

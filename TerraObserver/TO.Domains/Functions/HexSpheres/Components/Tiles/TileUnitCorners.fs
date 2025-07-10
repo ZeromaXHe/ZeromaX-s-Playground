@@ -25,29 +25,10 @@ module TileUnitCorners =
         | 5 -> this.Corner5
         | _ -> failwith "TileUnitCorners invalid index"
 
-    let getSeq (this: TileUnitCorners) =
-        if this.Length > 5 then
-            seq {
-                this.Corner0
-                this.Corner1
-                this.Corner2
-                this.Corner3
-                this.Corner4
-                this.Corner5
-            }
-        else
-            seq {
-                this.Corner0
-                this.Corner1
-                this.Corner2
-                this.Corner3
-                this.Corner4
-            }
-
     // 获取地块的形状角落顶点（顺时针顺序）
     let getCornersWithSize (unitCentroid: Vector3) (radius: float32) (size: float32) (this: TileUnitCorners) =
-        getSeq this
-        |> Seq.map (fun unitCorner -> Math3dUtil.ProjectToSphere(unitCentroid.Lerp(unitCorner, size), radius))
+        { 0 .. this.Length - 1 }
+        |> Seq.map (fun idx -> Math3dUtil.ProjectToSphere(unitCentroid.Lerp(this |> item idx, size), radius))
 
     let getCorners (unitCentroid: Vector3) (radius: float32) (this: TileUnitCorners) =
         getCornersWithSize unitCentroid radius 1f this
@@ -161,8 +142,8 @@ module TileUnitCorners =
         =
 
         let idx =
-            PointNeighborCenterIds.getSeq neighborCenterIds
-            |> Seq.findIndex (fun id -> id = queryingCenterId)
+            { 0 .. neighborCenterIds.Length - 1 }
+            |> Seq.findIndex (fun idx -> neighborCenterIds |> PointNeighborCenterIds.item idx = queryingCenterId)
 
         if idx = -1 then
             []

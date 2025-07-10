@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Godot;
 using TO.Domains.Types.Chunks;
-using TO.Domains.Types.HexSpheres;
+using TO.Domains.Types.HexSpheres.Components.Chunks;
 
 namespace TerraObserver.Scenes.Chunks.Views;
 

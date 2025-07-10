@@ -169,8 +169,8 @@ public partial class PlanetContext : Node
             _orbitCameraRig.Transformed -= UpdateInsightChunks;
             _lonLatGrid.FixFullVisibilityChanged -= OnLonLatGridFixFullVisibilityChanged;
             _chunkLoader.HexGridChunkGenerated -= OnHexGridChunkGenerated;
-            if (HexMapGenerator != null)
-                HexMapGenerator.Changed -= UpdateConfigurationWarnings;
+            // if (HexMapGenerator != null)
+            //     HexMapGenerator.Changed -= UpdateConfigurationWarnings;
             if (_planetApp != null!)
             {
                 // 首次编译后重载场景时会为空…… 没理解原因

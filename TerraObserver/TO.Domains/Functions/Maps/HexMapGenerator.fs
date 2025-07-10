@@ -44,34 +44,35 @@ module HexMapGeneratorCommand =
         initState
 
     let private evolveClimate
-        (env:
-            'E when 'E :> IHexMapGeneratorQuery and 'E :> IPlanetConfigQuery and 'E :> ITileQuery)
+        (env: 'E when 'E :> IHexMapGeneratorQuery and 'E :> IPlanetConfigQuery and 'E :> ITileQuery)
         (tile: Entity)
         =
         let this = env.HexMapGenerator
         let tileCountId = tile |> Tile.countId |> _.CountId
-        let mutable tileClimate = this.Climate[tileCountId]
+        let tileValue = tile |> Tile.value
+        let mutable tileClimateMoisture = this.Climate[tileCountId].Moisture
+        let mutable tileClimateClouds = this.Climate[tileCountId].Clouds
 
-        if tile |> Tile.value |> TileValue.isUnderwater then
-            tileClimate.Moisture <- 1f
-            tileClimate.Clouds <- tileClimate.Clouds + this.EvaporationFactor
+        if tileValue |> TileValue.isUnderwater then
+            tileClimateMoisture <- 1f
+            tileClimateClouds <- tileClimateClouds + this.EvaporationFactor
         else
-            let evaporation = tileClimate.Moisture * this.EvaporationFactor
-            tileClimate.Moisture <- tileClimate.Moisture - evaporation
-            tileClimate.Clouds <- tileClimate.Clouds + evaporation
+            let evaporation = tileClimateMoisture * this.EvaporationFactor
+            tileClimateMoisture <- tileClimateMoisture - evaporation
+            tileClimateClouds <- tileClimateClouds + evaporation
 
-        let precipitation = tileClimate.Clouds * this.PrecipitationFactor
-        tileClimate.Clouds <- tileClimate.Clouds - precipitation
-        tileClimate.Moisture <- tileClimate.Moisture + precipitation
+        let precipitation = tileClimateClouds * this.PrecipitationFactor
+        tileClimateClouds <- tileClimateClouds - precipitation
+        tileClimateMoisture <- tileClimateMoisture + precipitation
 
         let cloudMaximum =
             1f
-            - (tile |> Tile.value |> TileValue.viewElevation |> float32)
+            - (tileValue |> TileValue.viewElevation |> float32)
               / (float32 env.PlanetConfig.ElevationStep + 1f)
 
-        if tileClimate.Clouds > cloudMaximum then
-            tileClimate.Moisture <- tileClimate.Moisture + (tileClimate.Clouds - cloudMaximum)
-            tileClimate.Clouds <- cloudMaximum
+        if tileClimateClouds > cloudMaximum then
+            tileClimateMoisture <- tileClimateMoisture + (tileClimateClouds - cloudMaximum)
+            tileClimateClouds <- cloudMaximum
 
         let edgeCount = tile |> Tile.hexFaceIds |> _.Length
 
@@ -79,10 +80,10 @@ module HexMapGeneratorCommand =
             edgeCount |> HexIndexUtil.oppositeIdx this.WindDirection
 
         let cloudDispersal =
-            tileClimate.Clouds * (1f / (float32 edgeCount - 1f + this.WindStrength))
+            tileClimateClouds * (1f / (float32 edgeCount - 1f + this.WindStrength))
 
-        let runoff = tileClimate.Moisture * this.RunoffFactor * (1f / float32 edgeCount)
-        let seepage = tileClimate.Moisture * this.SeepageFactor * (1f / float32 edgeCount)
+        let runoff = tileClimateMoisture * this.RunoffFactor * (1f / float32 edgeCount)
+        let seepage = tileClimateMoisture * this.SeepageFactor * (1f / float32 edgeCount)
 
         for neighbor in env.GetNeighborTiles tile do
             let neighborCountId = neighbor |> Tile.countId |> _.CountId
@@ -95,19 +96,19 @@ module HexMapGeneratorCommand =
 
             let elevationDelta =
                 (neighbor |> Tile.value |> TileValue.viewElevation)
-                - (tile |> Tile.value |> TileValue.viewElevation)
+                - (tileValue |> TileValue.viewElevation)
 
             if elevationDelta < 0 then
-                tileClimate.Moisture <- tileClimate.Moisture - runoff
+                tileClimateMoisture <- tileClimateMoisture - runoff
                 neighborClimate.Moisture <- neighborClimate.Moisture + runoff
             elif elevationDelta = 0 then
-                tileClimate.Moisture <- tileClimate.Moisture - seepage
+                tileClimateMoisture <- tileClimateMoisture - seepage
                 neighborClimate.Moisture <- neighborClimate.Moisture + seepage
 
             this.NextClimate[neighborCountId] <- neighborClimate
 
         let mutable nextTileClimate = this.NextClimate[tileCountId]
-        nextTileClimate.Moisture <- nextTileClimate.Moisture + tileClimate.Moisture
+        nextTileClimate.Moisture <- nextTileClimate.Moisture + tileClimateMoisture
 
         if nextTileClimate.Moisture > 1f then
             nextTileClimate.Moisture <- 1f
@@ -117,18 +118,13 @@ module HexMapGeneratorCommand =
 
     let private createClimate (env: 'E when 'E :> IHexMapGeneratorQuery and 'E :> ITileQuery) tileCount =
         let this = env.HexMapGenerator
-        this.Climate.Clear()
-        this.NextClimate.Clear()
-        let mutable initialData = ClimateData()
-        initialData.Moisture <- this.StartingMoisture
-        let clearData = ClimateData()
+        this.Climate <- Array.create <| tileCount + 1 <| ClimateData(Moisture = this.StartingMoisture)
+        this.NextClimate <- Array.create <| tileCount + 1 <| ClimateData()
 
-        for i in 0..tileCount do
-            this.Climate.Add initialData
-            this.NextClimate.Add clearData
+        let allTiles = env.GetAllTiles() |> Seq.toArray
 
         for cycle in 0..39 do
-            for tile in env.GetAllTiles() do
+            for tile in allTiles do
                 evolveClimate env tile
 
             let temp = this.Climate
@@ -143,7 +139,8 @@ module HexMapGeneratorCommand =
         let mutable length = 1
         let mutable tile = origin
         let mutable direction = 0
-        let flowDirections = ResizeArray<int>()
+        let flowDirections = Array.zeroCreate<int> 6
+        let mutable flowCount = 0
         let mutable directReturn = false
         let mutable breakWhile = false
 
@@ -151,8 +148,9 @@ module HexMapGeneratorCommand =
               && not directReturn
               && tile |> Tile.value |> TileValue.isUnderwater |> not do
             let mutable minNeighborElevation = Int32.MaxValue
-            flowDirections.Clear()
-            let neighbors = env.GetNeighborTiles tile |> Seq.toList
+            flowDirections |> Array.Clear
+            flowCount <- 0
+            let neighbors = env.GetNeighborTiles tile |> Seq.toArray
 
             for neighbor in neighbors do
                 if not directReturn then
@@ -177,9 +175,8 @@ module HexMapGeneratorCommand =
                                 let d = Tile.getNeighborTileIdx tile neighbor
 
                                 if delta < 0 then
-                                    flowDirections.Add d
-                                    flowDirections.Add d
-                                    flowDirections.Add d
+                                    flowDirections[d] <- flowDirections[d] + 3
+                                    flowCount <- flowCount + 3
 
                                 let tileEdgeCount = tile |> Tile.hexFaceIds |> _.Length
 
@@ -188,12 +185,14 @@ module HexMapGeneratorCommand =
                                     || (d <> HexIndexUtil.next2Idx direction tileEdgeCount
                                         && d <> HexIndexUtil.previous2Idx direction tileEdgeCount)
                                 then
-                                    flowDirections.Add d
+                                    flowDirections[d] <- flowDirections[d] + 1
+                                    flowCount <- flowCount + 1
 
-                                flowDirections.Add d
+                                flowDirections[d] <- flowDirections[d] + 1
+                                flowCount <- flowCount + 1
 
             if not directReturn then
-                if flowDirections.Count = 0 then
+                if flowCount = 0 then
                     if length = 1 then
                         directReturn <- true
                     elif minNeighborElevation >= (tile |> Tile.value |> TileValue.elevation) then
@@ -208,7 +207,14 @@ module HexMapGeneratorCommand =
                     breakWhile <- true
 
                 if not directReturn && not breakWhile then
-                    direction <- flowDirections[this.Rng.RandiRange(0, flowDirections.Count - 1)]
+                    let mutable randFlowIdx = this.Rng.RandiRange(0, flowCount - 1)
+
+                    for flowDir in 0..5 do
+                        if randFlowIdx >= 0 && flowDirections[flowDir] > randFlowIdx then
+                            direction <- flowDir
+
+                        randFlowIdx <- randFlowIdx - flowDirections[flowDir]
+
                     let riverToTile = env.GetNeighborTileByIdx tile direction
                     env.SetOutgoingRiver tile riverToTile
                     length <- length + 1
@@ -422,6 +428,9 @@ module HexMapGeneratorCommand =
                             )
 
                         cb.AddComponent<TileValue>(tile.Id, &newTileValue)))
+        // 释放内存，防止内存泄露
+        this.Climate <- null
+        this.NextClimate <- null
 
     let private resetRng (env: #IHexMapGeneratorQuery) (initState: uint64) =
         env.HexMapGenerator.Rng.State <- initState

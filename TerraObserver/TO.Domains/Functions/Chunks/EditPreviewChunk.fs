@@ -53,7 +53,7 @@ module EditPreviewChunkCommand =
                     match env.PlanetHudOpt with
                     | Some planetHud ->
                         // 根据笔刷大小，获取所有周围地块 id，更新
-                        let tiles = env.GetTilesInDistance hoverTile planetHud.BrushSize |> Seq.toList
+                        let tiles = env.GetTilesInDistance hoverTile planetHud.BrushSize |> Seq.toArray
 
                         for tile in tiles do
                             editPreviewChunk.EditingTileIds.Add tile.Id |> ignore

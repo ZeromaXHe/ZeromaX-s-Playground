@@ -39,10 +39,11 @@ module RectMiniMapQuery =
                 .Append(' ')
             |> ignore
 
+        let tileUnitCorners = tile |> Tile.unitCorners
+
         let uvs =
-            tile
-            |> Tile.unitCorners
-            |> TileUnitCorners.getSeq
+            { 0 .. tileUnitCorners.Length - 1 }
+            |> Seq.map (fun idx -> TileUnitCorners.item idx tileUnitCorners)
             |> Seq.map (LonLatCoords.fromVector3 >> LonLatCoords.toUv)
             |> Seq.toArray
 

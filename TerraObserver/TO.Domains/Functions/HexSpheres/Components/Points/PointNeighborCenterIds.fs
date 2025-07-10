@@ -20,28 +20,27 @@ module PointNeighborCenterIds =
         | 5 -> this.NeighborCenterId5
         | _ -> failwith "TileNeighborCenterIds invalid index"
 
-    let getSeq (this: PointNeighborCenterIds) =
-        if this.Length = 5 then
-            seq {
-                this.NeighborCenterId0
-                this.NeighborCenterId1
-                this.NeighborCenterId2
-                this.NeighborCenterId3
-                this.NeighborCenterId4
-            }
-        else 
-            seq {
-                this.NeighborCenterId0
-                this.NeighborCenterId1
-                this.NeighborCenterId2
-                this.NeighborCenterId3
-                this.NeighborCenterId4
-                this.NeighborCenterId5
-            }
-
     // 邻居
     let getNeighborIdx (neighborCenterId: PointId) (this: PointNeighborCenterIds) =
-        getSeq this |> Seq.findIndex (fun id -> id = neighborCenterId)
+        if this.NeighborCenterId0 = neighborCenterId then
+            0
+        elif this.NeighborCenterId1 = neighborCenterId then
+            1
+        elif this.NeighborCenterId2 = neighborCenterId then
+            2
+        elif this.NeighborCenterId3 = neighborCenterId then
+            3
+        elif this.NeighborCenterId4 = neighborCenterId then
+            4
+        elif this.Length = 6 && this.NeighborCenterId5 = neighborCenterId then
+            5
+        else
+            -1
 
     let isNeighbor (neighborCenterId: PointId) (this: PointNeighborCenterIds) =
-        getSeq this |> Seq.contains neighborCenterId
+        this.NeighborCenterId0 = neighborCenterId
+        || this.NeighborCenterId1 = neighborCenterId
+        || this.NeighborCenterId2 = neighborCenterId
+        || this.NeighborCenterId3 = neighborCenterId
+        || this.NeighborCenterId4 = neighborCenterId
+        || (this.Length = 6 && this.NeighborCenterId5 = neighborCenterId)

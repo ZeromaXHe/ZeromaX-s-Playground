@@ -11,7 +11,7 @@ open TO.Domains.Types.HexSpheres.Components.Tiles
 open TO.Domains.Types.PathFindings
 
 module TileSearcherQuery =
-    let getMoveCost : GetMoveCost =
+    let getMoveCost: GetMoveCost =
         fun (fromTile: Entity) (toTile: Entity) ->
             let edgeType =
                 fromTile |> Tile.value |> TileValue.getEdgeType (toTile |> Tile.value)
@@ -72,9 +72,7 @@ module TileSearcherCommand =
         let searchFrontier = this.SearchFrontier.Value
         searchFrontier |> TilePriorityQueue.clear
         let fromTileCountId = fromTile |> Tile.countId |> _.CountId
-        let mutable fromTileSearchData = TileSearchData()
-        fromTileSearchData.SearchPhase <- this.SearchFrontierPhase
-        this.SearchData[fromTileCountId] <- fromTileSearchData
+        this.SearchData[fromTileCountId] <- TileSearchData(SearchPhase = this.SearchFrontierPhase)
         searchFrontier |> TilePriorityQueue.enqueue fromTileCountId
         let mutable currentCountId = -1
         let mutable pathFound = false
@@ -107,11 +105,10 @@ module TileSearcherCommand =
                             if neighborData.SearchPhase < this.SearchFrontierPhase then
                                 this.SearchData[neighborCountId] <-
                                     TileSearchData(
-                                        distance,
-                                        0,
-                                        current.Id,
-                                        heuristicCost env neighbor toTile,
-                                        this.SearchFrontierPhase
+                                        Distance = distance,
+                                        PathFrom = current.Id,
+                                        Heuristic = heuristicCost env neighbor toTile,
+                                        SearchPhase = this.SearchFrontierPhase
                                     )
 
                                 searchFrontier |> TilePriorityQueue.enqueue neighborCountId
@@ -137,10 +134,13 @@ module TileSearcherCommand =
             let searchFrontier = this.SearchFrontier.Value
             searchFrontier |> TilePriorityQueue.clear
             let fromTileCountId = fromTile |> Tile.countId |> _.CountId
-            let mutable fromTileSearchData = TileSearchData()
-            fromTileSearchData.SearchPhase <- this.SearchFrontierPhase
-            fromTileSearchData.PathFrom <- this.SearchData[fromTileCountId].PathFrom
-            this.SearchData[fromTileCountId] <- fromTileSearchData
+
+            this.SearchData[fromTileCountId] <-
+                TileSearchData(
+                    SearchPhase = this.SearchFrontierPhase,
+                    PathFrom = this.SearchData[fromTileCountId].PathFrom
+                )
+
             searchFrontier |> TilePriorityQueue.enqueue fromTileCountId
             let fromTileSa = env.GetSphereAxial fromTile
             let mutable currentCountId = -1
@@ -169,7 +169,11 @@ module TileSearcherCommand =
                             ()
                         elif neighborData.SearchPhase < this.SearchFrontierPhase then
                             this.SearchData[neighborCountId] <-
-                                TileSearchData(distance, 0, neighborData.PathFrom, 0, this.SearchFrontierPhase)
+                                TileSearchData(
+                                    Distance = distance,
+                                    PathFrom = neighborData.PathFrom,
+                                    SearchPhase = this.SearchFrontierPhase
+                                )
 
                             searchFrontier |> TilePriorityQueue.enqueue neighborCountId
                         elif distance < this.SearchData[neighborCountId].Distance then
