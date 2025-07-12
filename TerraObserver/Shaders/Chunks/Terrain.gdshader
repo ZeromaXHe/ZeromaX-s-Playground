@@ -53,9 +53,8 @@ void vertex() {
 	civ.rgb = civ1 * COLOR.x + civ2 * COLOR.y + civ3 * COLOR.z;
 
 	// 将未探索地块高度放大到最大高度，防止特征显现
-	// FIX: 不知道为什么现在这段代码会导致第二个台阶凹陷和各种破皮现象，待修复；先注释掉
-	//float len = length(VERTEX);
-	//VERTEX *= mix(1., (radius + max_height) / len, 1. - visibility.w);
+	float len = length(VERTEX);
+	VERTEX *= mix(1., (radius + max_height) / len, 1. - visibility.w);
 }
 
 vec4 GetTerrainColor(vec3 world_pos, vec3 world_normal, int index, vec4 weights, vec4 inVisibility) {

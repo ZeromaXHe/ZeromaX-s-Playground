@@ -16,6 +16,7 @@ open TO.Domains.Types.HexSpheres.Components.Chunks
 open TO.Domains.Types.HexSpheres.Components.Tiles
 open TO.Domains.Types.Maps
 open TO.Domains.Types.PlanetHuds
+open TO.Domains.Types.Units
 
 module PlanetHudQuery =
     let getEditMode (env: #IPlanetHudQuery) : GetEditMode =
@@ -217,7 +218,10 @@ module PlanetHudCommand =
                 this.TileCountLabel.Text <- $"地块总数：{env.Query<TileValue>().Count}"
                 this.ChosenTileId <- Nullable()
 
-    let private handleInput (env: #ISelectTileViewerQuery) (this: IPlanetHud) =
+    let private handleInput
+        (env: 'E when 'E :> ISelectTileViewerQuery and 'E :> IUnitManagerCommand)
+        (this: IPlanetHud)
+        =
         // 在 SubViewportContainer 上按下鼠标左键时，获取鼠标位置地块并更新
         this.ChosenTileId <- env.GetTileIdUnderCursor()
 
@@ -233,33 +237,65 @@ module PlanetHudCommand =
             if this.EditMode then
                 editTiles env this.ChosenTileId.Value this
                 this.ChosenTileId <- this.ChosenTileId // 刷新 GUI 地块信息
-            // 编辑模式下绘制选择地块框
-            //     _selectTileViewerRepo.Singleton!.SelectEditingTile(Self.ChosenTile);
-            // elif Input.IsActionJustPressed "choose_unit" then
-            //     _unitManagerService.FindPath(Self.ChosenTile)
+                // 编辑模式下绘制选择地块框
+                match env.SelectTileViewerOpt with
+                | None -> ()
+                | Some viewer -> viewer.SelectedTileId <- this.ChosenTileId
+            elif Input.IsActionJustPressed "choose_unit" then
+                env.FindUnitPath this.ChosenTileId
+
             this.PreviousTileId <- this.ChosenTileId
         else
-            // if not this.EditMode then
-            //     _unitManagerService.FindPath(null);
-            // else
-            // 清理选择地块框
-            //     _selectTileViewerRepo.Singleton!.CleanEditingTile()
+            if not this.EditMode then
+                env.FindUnitPath <| Nullable()
+            else
+                // 清理选择地块框
+                match env.SelectTileViewerOpt with
+                | None -> ()
+                | Some viewer -> viewer.SelectedTileId <- Nullable()
+
             this.PreviousTileId <- Nullable()
 
     let onPlanetHudProcessed
-        (env: 'E when 'E :> IPlanetHudQuery and 'E :> IMiniMapManagerCommand)
+        (env: 'E when 'E :> IPlanetHudQuery and 'E :> IMiniMapManagerCommand and 'E :> IUnitManagerCommand)
         : OnPlanetHudProcessed =
         fun () ->
             match env.PlanetHudOpt with
             | Some planetHud ->
                 let mutable directReturn = false
 
-                if
-                    planetHud.GetViewport().GuiGetHoveredControl() = (planetHud :?> Control)
-                    && Input.IsMouseButtonPressed MouseButton.Left
-                then
-                    handleInput env planetHud
-                    directReturn <- true
+                if planetHud.GetViewport().GuiGetHoveredControl() = (planetHud :?> Control) then
+                    if Input.IsMouseButtonPressed MouseButton.Left then
+                        handleInput env planetHud
+                        directReturn <- true
+                    elif Input.IsActionJustPressed("destroy_unit") then
+                        let tileId = env.GetTileIdUnderCursor()
+
+                        if tileId.HasValue then
+                            let tile = env.GetTile tileId.Value
+                            let unitId = tile |> Tile.unitId |> _.UnitId
+
+                            if unitId > 0 then
+                                GD.Print $"DestroyUnit {unitId} at tile {tile.Id}"
+                                env.RemoveUnit unitId
+
+                        directReturn <- true
+                    elif Input.IsActionJustPressed("create_unit") then // 必须是 elif，因为按 U 键和 Shift + U 键是同时成立的……
+                        let tileId = env.GetTileIdUnderCursor()
+
+                        if not tileId.HasValue then
+                            GD.Print "CreateUnit failed: no tile id under cursor"
+                        else
+                            let tile = env.GetTile tileId.Value
+                            let unitId = tile |> Tile.unitId |> _.UnitId
+
+                            if unitId > 0 then
+                                GD.Print $"CreateUnit failed: tile {tile.Id} has unit {unitId}"
+                            else
+                                GD.Print $"CreateUnit at tile {tile.Id}"
+                                env.AddUnit tile.Id <| GD.Randf() * Mathf.Tau
+
+                        directReturn <- true
                 elif
                     planetHud.GetViewport().GuiGetHoveredControl() = planetHud.MiniMapContainer
                     && Input.IsMouseButtonPressed MouseButton.Left

@@ -1,0 +1,8 @@
+namespace TO.Domains.Types.Godots
+
+/// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
+/// Author: Zhu XH (ZeromaXHe)
+/// Date: 2025-07-11 10:04:11
+[<Interface>]
+type ICsgShape3D =
+    inherit IGeometryInstance3D

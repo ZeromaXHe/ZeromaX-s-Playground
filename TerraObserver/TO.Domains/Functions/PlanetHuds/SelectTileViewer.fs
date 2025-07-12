@@ -9,7 +9,9 @@ open TO.Domains.Types.Chunks
 open TO.Domains.Types.Configs
 open TO.Domains.Types.HexSpheres
 open TO.Domains.Types.HexSpheres.Components
+open TO.Domains.Types.PathFindings
 open TO.Domains.Types.PlanetHuds
+open TO.Domains.Types.Units
 
 module SelectTileViewerQuery =
     let private getTileCollisionResult (viewer: ISelectTileViewer) =
@@ -158,6 +160,7 @@ module SelectTileViewerCommand =
                     viewer.Show()
                     let selectedChanged = selectedTileId <> viewer.SelectedTileId
                     let hoverChanged = hoverTileId <> viewer.HoverTileId
+
                     if selectedChanged || hoverChanged then
                         // 编辑选取点或鼠标悬浮点变了
                         viewer.Mesh <- generateMeshForEditMode env viewer selectedTileId hoverTileId
@@ -171,3 +174,118 @@ module SelectTileViewerCommand =
                     match env.EditPreviewChunkOpt with
                     | Some editPreviewChunk -> editPreviewChunk.Show()
                     | None -> ())
+
+    let private generateMeshForPlayMode
+        (env:
+            'E
+                when 'E :> IPlanetConfigQuery
+                and 'E :> ITileSearcherCommand
+                and 'E :> ITileQuery
+                and 'E :> ICatlikeCodingNoiseQuery)
+        (viewer: ISelectTileViewer)
+        (pathFromTileId: int)
+        (hoverTileId: int Nullable)
+        =
+        let planetConfig = env.PlanetConfig
+        viewer.SelectedTileId <- pathFromTileId
+        viewer.HoverTileId <- hoverTileId
+        env.ClearTileSearchPath()
+        let fromTile = env.GetTile pathFromTileId
+        let toTileId = hoverTileId.Value
+        let toTile = env.GetTile toTileId
+        let surfaceTool = new SurfaceTool()
+        surfaceTool.Begin Mesh.PrimitiveType.Triangles
+        surfaceTool.SetSmoothGroup UInt32.MaxValue
+        let mutable vi = 0
+
+        vi <-
+            vi
+            + addHexFrame
+                (Tile.unitCentroid fromTile)
+                (Tile.unitCorners fromTile)
+                Colors.Blue // 出发点为蓝色框
+                (1.01f * (planetConfig.Radius + env.GetHeight fromTile))
+                surfaceTool
+                vi
+
+        vi <-
+            vi
+            + addHexFrame
+                (Tile.unitCentroid toTile)
+                (Tile.unitCorners toTile)
+                Colors.Red // 目标点为红色框
+                (1.01f * (planetConfig.Radius + env.GetHeight toTile))
+                surfaceTool
+                vi
+
+        let tiles = env.FindTileSearchPath fromTile toTile false
+
+        if tiles.Count > 0 then
+            let mutable cost = 0
+            let mutable preTile = fromTile
+
+            for i in 1 .. tiles.Count - 1 do
+                let nextTile = tiles[i]
+
+                if i <> tiles.Count - 1 then
+                    vi <-
+                        vi
+                        + addHexFrame
+                            (Tile.unitCentroid nextTile)
+                            (Tile.unitCorners nextTile)
+                            Colors.White // 路径点为白色框
+                            (1.01f * (planetConfig.Radius + env.GetHeight nextTile))
+                            surfaceTool
+                            vi
+
+                cost <- Tile.getMoveCost preTile nextTile
+                // chunkRepo.RefreshTileLabel(nextTile, cost.ToString());
+                preTile <- nextTile
+
+        surfaceTool.Commit()
+
+    let updateInPlayMode
+        (env: 'E when 'E :> IUnitManagerQuery and 'E :> ISelectTileViewerQuery and 'E :> IPlanetHudQuery)
+        : UpdateInPlayMode =
+        fun () ->
+            match env.SelectTileViewerOpt with
+            | None -> ()
+            | Some viewer ->
+                let pathFromTileId =
+                    env.UnitManagerOpt |> Option.map _.PathFromTileId |> Option.defaultValue 0
+
+                if pathFromTileId = 0 then
+                    viewer.Hide()
+                else
+                    viewer.Show()
+                    let hoverTileId = env.GetTileIdUnderCursor()
+
+                    let selectedChanged =
+                        not viewer.SelectedTileId.HasValue
+                        || pathFromTileId <> viewer.SelectedTileId.Value
+
+                    if hoverTileId.HasValue then
+                        let hoverChanged = hoverTileId <> viewer.HoverTileId
+
+                        if selectedChanged || hoverChanged then
+                            // 编辑选取点或鼠标悬浮点变了
+                            viewer.Mesh <- generateMeshForPlayMode env viewer pathFromTileId hoverTileId
+                    elif selectedChanged then
+                        // 没有寻路目标时的情况，且寻路出发点变了
+                        viewer.SelectedTileId <- pathFromTileId
+                        env.ClearTileSearchPath()
+                        let tile = env.GetTile pathFromTileId
+                        let surfaceTool = new SurfaceTool()
+                        surfaceTool.Begin Mesh.PrimitiveType.Triangles
+                        surfaceTool.SetSmoothGroup UInt32.MaxValue
+
+                        addHexFrame
+                            (Tile.unitCentroid tile)
+                            (Tile.unitCorners tile)
+                            Colors.Blue
+                            env.PlanetConfig.MaxHeight
+                            surfaceTool
+                            0
+                        |> ignore
+
+                        viewer.Mesh <- surfaceTool.Commit()

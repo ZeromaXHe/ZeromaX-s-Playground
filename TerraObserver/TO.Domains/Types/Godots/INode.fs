@@ -28,6 +28,7 @@ type INode =
     abstract GetChild: idx: int * [<Optional; DefaultParameterValue(false)>] includeInternal: bool -> Node // 861
     abstract GetPath: unit -> NodePath // 1066
     abstract SetProcess: bool -> unit // 1360
+    abstract GetTree: unit -> SceneTree // 1776
     abstract GetViewport: unit -> Viewport // 1873
     abstract QueueFree: unit -> unit // 1886
     abstract IsNodeReady: unit -> bool // 1910

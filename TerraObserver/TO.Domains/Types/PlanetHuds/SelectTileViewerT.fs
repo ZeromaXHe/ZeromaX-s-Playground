@@ -21,7 +21,9 @@ type ISelectTileViewerQuery =
     abstract GetTileIdUnderCursor: GetTileIdUnderCursor
 
 type UpdateInEditMode = unit -> unit
+type UpdateInPlayMode = unit -> unit
 
 [<Interface>]
 type ISelectTileViewerCommand =
     abstract UpdateInEditMode: UpdateInEditMode
+    abstract UpdateInPlayMode: UpdateInPlayMode

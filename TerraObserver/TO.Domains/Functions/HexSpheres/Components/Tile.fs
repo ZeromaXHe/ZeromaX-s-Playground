@@ -9,6 +9,7 @@ open TO.Domains.Functions.HexSpheres.Components.Points
 open TO.Domains.Functions.HexSpheres.Components.Tiles
 open TO.Domains.Types.Chunks
 open TO.Domains.Types.Friflos
+open TO.Domains.Types.HexMetrics
 open TO.Domains.Types.HexSpheres
 open TO.Domains.Types.HexSpheres.Components
 open TO.Domains.Types.HexSpheres.Components.Faces
@@ -16,6 +17,7 @@ open TO.Domains.Types.HexSpheres.Components.Points
 open TO.Domains.Types.HexSpheres.Components.Tiles
 open TO.Domains.Types.Maps
 open TO.Domains.Types.Shaders
+open TO.Domains.Types.Units
 
 module Tile =
     let pointCenterId (tile: Entity) = tile.GetComponent<PointCenterId>()
@@ -31,6 +33,7 @@ module Tile =
     let hexFaceIds (tile: Entity) = tile.GetComponent<TileHexFaceIds>()
     let flag (tile: Entity) = tile.GetComponent<TileFlag>()
     let value (tile: Entity) = tile.GetComponent<TileValue>()
+    let unitId (tile: Entity) = tile.GetComponent<TileUnitId>()
 
     let cornerWithRadius (func: CornerWithRadius) (idx: int) (radius: float32) (tile: Entity) =
         tile |> unitCorners |> func (unitCentroid tile).UnitCentroid idx radius
@@ -55,6 +58,23 @@ module Tile =
         tile
         |> pointNeighborCenterIds
         |> PointNeighborCenterIds.getNeighborIdx (neighbor |> pointCenterId |> _.CenterId)
+
+    let getMoveCost (fromTile: Entity) (toTile: Entity) =
+        let edgeType = fromTile |> value |> TileValue.getEdgeType (toTile |> value)
+
+        if edgeType = HexEdgeType.Cliff then
+            -1
+        elif fromTile |> flag |> TileFlag.hasRoad (getNeighborTileIdx fromTile toTile) then
+            1
+        elif fromTile |> flag |> TileFlag.walled <> (toTile |> flag |> TileFlag.walled) then
+            -1
+        else
+            let toTileValue = toTile |> value
+
+            (if edgeType = HexEdgeType.Flat then 5 else 10)
+            + TileValue.urbanLevel toTileValue
+            + TileValue.farmLevel toTileValue
+            + TileValue.plantLevel toTileValue
 
 module TileQuery =
     let getTile (env: #IEntityStoreQuery) : GetTile =
@@ -158,6 +178,17 @@ module TileCommand =
                     TileVisibility 0
                 )
                 .Id
+
+    let addTileOtherComponents
+        (env: 'E when 'E :> IEntityStoreQuery and 'E :> IEntityStoreCommand)
+        : AddTileOtherComponents =
+        fun () ->
+            env.ExecuteInCommandBuffer(fun cb ->
+                env
+                    .Query<TileCountId>()
+                    .ForEachEntity(fun tileCountId tile ->
+                        let tileUnitId = TileUnitId 0
+                        cb.AddComponent(tile.Id, &tileUnitId)))
 
     let private refreshTerrainShader
         (env: 'E when 'E :> ITileShaderDataCommand and 'E :> IMiniMapManagerCommand)
@@ -360,7 +391,7 @@ module TileCommand =
         then
             removeIncomingRiver env tile
 
-    let setElevation env : SetElevation =
+    let setElevation (env: #IUnitManagerCommand) : SetElevation =
         fun (tile: Entity) (elevation: int) ->
             let tileValue = tile |> Tile.value
 
@@ -380,6 +411,11 @@ module TileCommand =
 
                 if tile |> Tile.value |> TileValue.viewElevation <> originalViewElevation then
                     viewElevationChanged env tile
+
+                let tileUnitId = tile |> Tile.unitId |> _.UnitId
+
+                if tileUnitId > 0 then
+                    env.ValidateUnitLocationById tileUnitId
 
     let setTerrainTypeIndex env : SetTerrainTypeIndex =
         fun (tile: Entity) (idx: int) ->

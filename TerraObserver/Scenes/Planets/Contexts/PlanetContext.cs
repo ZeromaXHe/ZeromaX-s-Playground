@@ -9,6 +9,7 @@ using TerraObserver.Scenes.Maps.Views;
 using TerraObserver.Scenes.Planets.Models;
 using TerraObserver.Scenes.Planets.Views;
 using TerraObserver.Scenes.Uis.Views;
+using TerraObserver.Scenes.Units.Views;
 using TO.Domains.Apps;
 
 namespace TerraObserver.Scenes.Planets.Contexts;
@@ -85,6 +86,8 @@ public partial class PlanetContext : Node
     private OrbitCameraRig _orbitCameraRig = null!;
     private LonLatGrid _lonLatGrid = null!;
     private CelestialMotion _celestialMotion = null!;
+    private UnitManager _unitManager = null!;
+    private HexUnitPathPool _hexUnitPathPool = null!;
     private FeatureMeshManager _featureMeshManager = null!;
     private FeaturePreviewManager _featurePreviewManager = null!;
     private ChunkLoader _chunkLoader = null!;
@@ -111,6 +114,8 @@ public partial class PlanetContext : Node
         _chunkLoader = GetNode<ChunkLoader>("%ChunkLoader");
         if (!inEditor)
         {
+            _unitManager = GetNode<UnitManager>("%UnitManager");
+            _hexUnitPathPool = GetNode<HexUnitPathPool>("%HexUnitPathPool");
             _selectTileViewer = GetNode<SelectTileViewer>("%SelectTileViewer");
             _editPreviewChunk = GetNode<EditPreviewChunk>("%EditPreviewChunk");
             _planetHud = GetNode<PlanetHud>("%PlanetHud");
@@ -120,8 +125,8 @@ public partial class PlanetContext : Node
         NodeReady = true;
         // App
         _planetApp = new PlanetApp(PlanetConfig, CatlikeCodingNoise, _orbitCameraRig, _lonLatGrid, _celestialMotion,
-            _featureMeshManager, _featurePreviewManager, _chunkLoader, _selectTileViewer, _editPreviewChunk,
-            _miniMapManager, _hexMapGenerator, _planetHud);
+            _unitManager, _hexUnitPathPool, _featureMeshManager, _featurePreviewManager, _chunkLoader,
+            _selectTileViewer, _editPreviewChunk, _miniMapManager, _hexMapGenerator, _planetHud);
         PlanetConfig!.ParamsChanged += _planetApp.DrawHexSphereMesh;
         PlanetConfig.ParamsChanged += _planetApp.OnPlanetConfigParamsChanged;
         _orbitCameraRig.Transformed += UpdateInsightChunks;
@@ -137,6 +142,7 @@ public partial class PlanetContext : Node
         // HUD
         if (!inEditor)
         {
+            _unitManager.UnitInstantiated += OnHexUnitInstantiated;
             _orbitCameraRig.Moved += _planetApp.OnPlanetHudOrbitCameraRigMoved;
             _orbitCameraRig.Transformed += _planetApp.OnPlanetHudOrbitCameraRigTransformed;
             _miniMapManager.Clicked += _planetApp.OnMiniMapClicked;
@@ -186,6 +192,7 @@ public partial class PlanetContext : Node
                 _chunkLoader.Processed -= _planetApp.OnChunkLoaderProcessed;
                 if (_planetHud != null!)
                 {
+                    _unitManager.UnitInstantiated -= OnHexUnitInstantiated;
                     _orbitCameraRig.Moved -= _planetApp.OnPlanetHudOrbitCameraRigMoved;
                     _orbitCameraRig.Transformed -= _planetApp.OnPlanetHudOrbitCameraRigTransformed;
                     _planetHud.LonLatFixCheckButtonToggled -= _planetApp.LonLatGridToggleFixFullVisibility;
@@ -218,6 +225,9 @@ public partial class PlanetContext : Node
 
     private void OnHexGridChunkGenerated(HexGridChunk chunk) =>
         chunk.Processed += _planetApp.OnHexGridChunkProcessed; // TODO：怎么解绑事件？
+
+    private void OnHexUnitInstantiated(HexUnit unit) =>
+        unit.Processed += _planetApp.OnHexUnitProcessed;
 
     private void OnLonLatGridFixFullVisibilityChanged(bool value)
     {

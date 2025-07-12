@@ -14,6 +14,7 @@ open TO.Domains.Functions.PathFindings
 open TO.Domains.Functions.PlanetHuds
 open TO.Domains.Functions.Planets
 open TO.Domains.Functions.Shaders
+open TO.Domains.Functions.Units
 open TO.Domains.Types.Cameras
 open TO.Domains.Types.Chunks
 open TO.Domains.Types.Configs
@@ -27,6 +28,7 @@ open TO.Domains.Types.PathFindings
 open TO.Domains.Types.PlanetHuds
 open TO.Domains.Types.Planets
 open TO.Domains.Types.Shaders
+open TO.Domains.Types.Units
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
@@ -45,6 +47,8 @@ type PlanetEnv =
     val CameraRig: IOrbitCameraRig
     val LonLatGrid: ILonLatGrid
     val CelestialMotion: ICelestialMotion
+    val UnitManager: IUnitManager
+    val HexUnitPathPool: IHexUnitPathPool
     val FeatureMeshManager: IFeatureMeshManager
     val FeaturePreviewManager: IFeaturePreviewManager
     val ChunkLoader: IChunkLoader
@@ -68,6 +72,8 @@ type PlanetEnv =
             cameraRig,
             lonLatGrid,
             celestialMotion,
+            unitManager,
+            hexUnitPathPool,
             featureMeshManager,
             featurePreviewManager,
             chunkLoader,
@@ -90,6 +96,8 @@ type PlanetEnv =
           CameraRig = cameraRig
           LonLatGrid = lonLatGrid
           CelestialMotion = celestialMotion
+          UnitManager = unitManager
+          HexUnitPathPool = hexUnitPathPool
           FeatureMeshManager = featureMeshManager
           FeaturePreviewManager = featurePreviewManager
           ChunkLoader = chunkLoader
@@ -144,6 +152,7 @@ type PlanetEnv =
 
     interface ITileCommand with
         member this.AddTile = TileCommand.add this
+        member this.AddTileOtherComponents = TileCommand.addTileOtherComponents this
         member this.RemoveRoads = TileCommand.removeRoads this
         member this.AddRoad = TileCommand.addRoad this
         member this.RemoveRivers = TileCommand.removeRivers this
@@ -192,11 +201,13 @@ type PlanetEnv =
 
     interface ITileSearcherQuery with
         member this.TileSearcher = this.TileSearcher
-        member this.GetMoveCost = TileSearcherQuery.getMoveCost
 
     interface ITileSearcherCommand with
         member this.InitSearchData = TileSearcherCommand.initSearchData this
         member this.RefreshTileSearchData = TileSearcherCommand.refreshTileSearchData this
+        member this.GetVisibleTiles = TileSearcherCommand.getVisibleTiles this
+        member this.FindTileSearchPath = TileSearcherCommand.findTileSearchPath this
+        member this.ClearTileSearchPath = TileSearcherCommand.clearTileSearchPath this
 
     interface ITileShaderDataQuery with
         member this.TileShaderData = this.TileShaderData
@@ -272,6 +283,37 @@ type PlanetEnv =
         member this.ToggleAllMotions = CelestialMotionCommand.toggleAllMotions this
         member this.UpdateLunarDist = CelestialMotionCommand.updateLunarDist this
         member this.UpdateMoonMeshRadius = CelestialMotionCommand.updateMoonMeshRadius this
+
+    interface IHexUnitCommand with
+        member this.OnHexUnitProcessed = HexUnitCommand.onHexUnitProcessed this
+        member this.ValidateUnitLocation = HexUnitCommand.validateUnitLocation this
+        member this.ChangeUnitTileId = HexUnitCommand.changeUnitTileId this
+        member this.KillUnit = HexUnitCommand.killUnit this
+        member this.TravelUnit = HexUnitCommand.travelUnit this
+
+    interface IHexUnitPathPoolCommand with
+        member this.NewUnitPathTask = HexUnitPathPoolCommand.newUnitPathTask this
+
+    interface IUnitManagerQuery with
+        member this.UnitManagerOpt =
+            if this.UnitManager <> null then
+                Some this.UnitManager
+            else
+                None
+
+    interface IUnitManagerCommand with
+        member this.AddUnit = UnitManagerCommand.addUnit this
+        member this.RemoveUnit = UnitManagerCommand.removeUnit this
+        member this.ValidateUnitLocationById = UnitManagerCommand.validateUnitLocationById this
+        member this.FindUnitPath = UnitManagerCommand.findUnitPath this
+        member this.ClearAllUnits = UnitManagerCommand.clearAllUnits this
+
+    interface IHexUnitPathPoolQuery with
+        member this.HexUnitPathPoolOpt =
+            if this.HexUnitPathPool <> null then
+                Some this.HexUnitPathPool
+            else
+                None
 
     interface IFeatureMeshManagerQuery with
         member this.FeatureMeshManager = this.FeatureMeshManager
@@ -362,6 +404,7 @@ type PlanetEnv =
 
     interface ISelectTileViewerCommand with
         member this.UpdateInEditMode = SelectTileViewerCommand.updateInEditMode this
+        member this.UpdateInPlayMode = SelectTileViewerCommand.updateInPlayMode this
 
     interface IEditPreviewChunkQuery with
         member this.EditPreviewChunkOpt =
@@ -375,7 +418,10 @@ type PlanetEnv =
 
     interface IMiniMapManagerQuery with
         member this.MiniMapManagerOpt =
-            if this.MiniMapManager = null then None else Some this.MiniMapManager
+            if this.MiniMapManager = null then
+                None
+            else
+                Some this.MiniMapManager
 
     interface IMiniMapManagerCommand with
         member this.InitMiniMap = MiniMapManagerCommand.initMiniMap this

@@ -1,4 +1,4 @@
-[gd_scene load_steps=37 format=3 uid="uid://cnu45krarcdsr"]
+[gd_scene load_steps=43 format=3 uid="uid://cnu45krarcdsr"]
 
 [ext_resource type="Script" uid="uid://4ki6so6sadfr" path="res://Scenes/Planets/Contexts/PlanetContext.cs" id="1_d8mpy"]
 [ext_resource type="Script" uid="uid://b02ygsbo8van6" path="res://Scenes/Planets/Models/PlanetConfig.cs" id="2_kkspw"]
@@ -18,7 +18,11 @@
 [ext_resource type="Texture2D" uid="uid://dbh7h21k155fe" path="res://Assets/Sebastian/lroc_color_poles_512x256.png" id="11_jet37"]
 [ext_resource type="PackedScene" uid="uid://b2v0nm0kt4y6m" path="res://Scenes/Uis/Views/PlanetHud.tscn" id="12_ioxuh"]
 [ext_resource type="Script" uid="uid://bt06psktmjb85" path="res://Scenes/Uis/Views/SelectTileViewer.cs" id="15_hmp20"]
+[ext_resource type="Script" uid="uid://bphdu0uuq8xeo" path="res://Scenes/Units/Views/UnitManager.cs" id="16_1ww57"]
+[ext_resource type="Script" uid="uid://dednwlu14cnv4" path="res://Scenes/Units/Views/HexUnitPathPool.cs" id="16_dptte"]
 [ext_resource type="PackedScene" uid="uid://bqgvdwn235561" path="res://Scenes/Features/Views/FeatureMeshManager.tscn" id="16_kwe7g"]
+[ext_resource type="PackedScene" uid="uid://dq4tp7ykc437w" path="res://Scenes/Units/Views/HexUnit.tscn" id="17_0wxy1"]
+[ext_resource type="PackedScene" uid="uid://d13a4r7nl4nar" path="res://Scenes/Units/Views/HexUnitPath.tscn" id="17_a8tqq"]
 [ext_resource type="PackedScene" uid="uid://b1qna3qor1fak" path="res://Scenes/Chunks/Views/EditPreviewChunk.tscn" id="18_1hg6e"]
 [ext_resource type="Script" uid="uid://dv162d2ucwajd" path="res://Scenes/Features/Views/FeaturePreviewManager.cs" id="21_dptte"]
 [ext_resource type="Material" uid="uid://diyq0hsqcass7" path="res://Resources/Chunks/Holograms/ShaderMaterial_RoadHologram.tres" id="22_a8tqq"]
@@ -59,7 +63,7 @@ LowTemperature = 0.0
 HighTemperature = 1.0
 TemperatureJitter = 0.1
 UseFixedSeed = false
-Seed = 994713666
+Seed = 853229465
 metadata/_custom_type_script = "uid://bv15mqo6x4hmb"
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_jet37"]
@@ -115,6 +119,16 @@ transparency = 1
 shading_mode = 0
 vertex_color_use_as_albedo = true
 disable_receive_shadows = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0wxy1"]
+albedo_color = Color(0.27451, 0.364706, 0.431373, 1)
+metallic_specular = 0.09
+roughness = 0.4
+
+[sub_resource type="SphereMesh" id="SphereMesh_wddfp"]
+material = SubResource("StandardMaterial3D_0wxy1")
+radius = 99.0
+height = 198.0
 
 [node name="PlanetContext" type="Node"]
 script = ExtResource("1_d8mpy")
@@ -176,6 +190,16 @@ unique_name_in_owner = true
 Sun = NodePath("../Sun")
 Moon = NodePath("../Moon")
 
+[node name="UnitManager" type="Node3D" parent="."]
+unique_name_in_owner = true
+script = ExtResource("16_1ww57")
+UnitScene = ExtResource("17_0wxy1")
+
+[node name="HexUnitPathPool" type="Node3D" parent="."]
+unique_name_in_owner = true
+script = ExtResource("16_dptte")
+PathScene = ExtResource("17_a8tqq")
+
 [node name="FeatureMeshManager" parent="." instance=ExtResource("16_kwe7g")]
 unique_name_in_owner = true
 
@@ -200,3 +224,6 @@ unique_name_in_owner = true
 
 [node name="PlanetHud" parent="." instance=ExtResource("12_ioxuh")]
 unique_name_in_owner = true
+
+[node name="GroundPlaceHolder" type="MeshInstance3D" parent="."]
+mesh = SubResource("SphereMesh_wddfp")

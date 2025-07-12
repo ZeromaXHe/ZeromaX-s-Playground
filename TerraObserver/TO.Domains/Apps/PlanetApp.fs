@@ -16,6 +16,7 @@ open TO.Domains.Types.PathFindings
 open TO.Domains.Types.PlanetHuds
 open TO.Domains.Types.Planets
 open TO.Domains.Types.Shaders
+open TO.Domains.Types.Units
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
@@ -27,6 +28,8 @@ type PlanetApp
         cameraRig,
         lonLatGrid,
         celestialMotion,
+        unitManager,
+        hexUnitPathPool,
         featureMeshManager,
         featurePreviewManager,
         chunkLoader,
@@ -60,6 +63,8 @@ type PlanetApp
             cameraRig,
             lonLatGrid,
             celestialMotion,
+            unitManager,
+            hexUnitPathPool,
             featureMeshManager,
             featurePreviewManager,
             chunkLoader,
@@ -114,6 +119,7 @@ type PlanetApp
     let celestialMotionToggleAllMotions (env: #ICelestialMotionCommand) toggle = env.ToggleAllMotions toggle
     let onChunkLoaderProcessed (env: #IChunkLoaderCommand) = env.OnChunkLoaderProcessed()
     let onHexGridChunkProcessed (env: #IChunkLoaderCommand) (chunk: IHexGridChunk) = env.OnHexGridChunkProcessed chunk
+    let onHexUnitProcessed (env: #IHexUnitCommand) (delta: float32) (unit: IHexUnit) = env.OnHexUnitProcessed delta unit
     let onMiniMapClicked (env: #IOrbitCameraRigCommand) (v: Vector3) = env.SetAutoPilot v
     let onPlanetHudChosenTileIdChanged (env: #IPlanetHudCommand) = env.UpdateChosenTileInfo planetHud
 
@@ -137,17 +143,31 @@ type PlanetApp
         env.SyncCameraIconPos pos
 
     let onProcessed
-        (env: 'E when 'E :> ITileShaderDataCommand and 'E :> ISelectTileViewerCommand and 'E :> IPlanetHudCommand)
+        (env:
+            'E
+                when 'E :> ITileShaderDataCommand
+                and 'E :> ISelectTileViewerCommand
+                and 'E :> IPlanetHudQuery
+                and 'E :> IPlanetHudCommand)
         delta
         =
         env.UpdateTileShaderData delta
-        env.UpdateInEditMode()
+
+        match env.PlanetHudOpt with
+        | None -> ()
+        | Some planetHud ->
+            if planetHud.EditMode then
+                env.UpdateInEditMode()
+            else
+                env.UpdateInPlayMode()
+
         env.OnPlanetHudProcessed()
 
     let drawHexSphereMesh
         (env:
             'E
                 when 'E :> IHexSphereInitCommand
+                and 'E :> IUnitManagerCommand
                 and 'E :> IChunkLoaderCommand
                 and 'E :> ILodMeshCacheCommand
                 and 'E :> ITileSearcherCommand
@@ -160,6 +180,7 @@ type PlanetApp
         let time = Time.GetTicksMsec()
         GD.Print $"[===DrawHexSphereMesh===] radius {planet.Radius}, divisions {planet.Divisions}, start at: {time}"
         // 清理旧数据
+        env.ClearAllUnits()
         env.ClearHexSphereOldData()
         env.ClearChunkLoaderOldData()
         env.RemoveAllLodMeshes()
@@ -204,6 +225,7 @@ type PlanetApp
 
     member this.OnChunkLoaderProcessed() = onChunkLoaderProcessed env
     member this.OnHexGridChunkProcessed(chunk: IHexGridChunk) = onHexGridChunkProcessed env chunk
+    member this.OnHexUnitProcessed(unit: IHexUnit, delta: float32) = onHexUnitProcessed env delta unit
     member this.OnMiniMapClicked(v: Vector3) = onMiniMapClicked env v
     member this.OnPlanetHudChosenTileIdChanged _ = onPlanetHudChosenTileIdChanged env
 

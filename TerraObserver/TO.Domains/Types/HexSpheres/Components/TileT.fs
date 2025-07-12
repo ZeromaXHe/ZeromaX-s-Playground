@@ -36,6 +36,7 @@ type ITileQuery =
 /// Author: Zhu XH (ZeromaXHe)
 /// Date: 2025-06-30 05:36:30
 type AddTile = PointId -> ChunkId -> FaceComponent array -> HexFaceIds -> NeighborCenterIds -> TileId
+type AddTileOtherComponents = unit -> unit
 type RemoveRoads = Entity -> unit
 type AddRoad = Entity -> Entity -> unit
 type RemoveRivers = Entity -> unit
@@ -53,6 +54,7 @@ type SetSpecialIndex = Entity -> int -> unit
 [<Interface>]
 type ITileCommand =
     abstract AddTile: AddTile
+    abstract AddTileOtherComponents: AddTileOtherComponents
     abstract RemoveRoads: RemoveRoads
     abstract AddRoad: AddRoad
     abstract RemoveRivers: RemoveRivers

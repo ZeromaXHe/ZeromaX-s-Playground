@@ -12,8 +12,12 @@
         <Compile Include="Types\Godots\INode.fs"/>
         <Compile Include="Types\Godots\INode2D.fs"/>
         <Compile Include="Types\Godots\INode3D.fs"/>
+        <Compile Include="Types\Godots\IPath3D.fs" />
         <Compile Include="Types\Godots\IVisualInstance3D.fs"/>
         <Compile Include="Types\Godots\IGeometryInstance3D.fs"/>
+        <Compile Include="Types\Godots\ICsgShape3D.fs" />
+        <Compile Include="Types\Godots\ICsgPrimitive3D.fs" />
+        <Compile Include="Types\Godots\ICsgBox3D.fs" />
         <Compile Include="Types\Godots\IMeshInstance3D.fs"/>
         <Compile Include="Types\Godots\ICanvasItem.fs"/>
         <Compile Include="Types\Godots\IControl.fs"/>
@@ -27,7 +31,7 @@
         <Compile Include="Types\HexMetrics\EdgeVerticesT.fs"/>
         <Compile Include="Types\HexMetrics\HexEdgeTypeT.fs"/>
         <Compile Include="Types\Hashes\HexHashT.fs"/>
-        <Compile Include="Types\HexSpheres\HexSphereAliasT.fs" />
+        <Compile Include="Types\HexSpheres\HexSphereAliasT.fs"/>
         <Compile Include="Types\HexSpheres\ChunkyVpTreesT.fs"/>
         <Compile Include="Types\HexSpheres\Components\Points\PointComponentT.fs"/>
         <Compile Include="Types\HexSpheres\Components\Points\PointCenterIdT.fs"/>
@@ -42,6 +46,7 @@
         <Compile Include="Types\HexSpheres\Components\Tiles\TileValueT.fs"/>
         <Compile Include="Types\HexSpheres\Components\Tiles\TileCivIdT.fs"/>
         <Compile Include="Types\HexSpheres\Components\Tiles\TileVisibilityT.fs"/>
+        <Compile Include="Types\HexSpheres\Components\Tiles\TileUnitIdT.fs" />
         <Compile Include="Types\HexSpheres\Components\Chunks\ChunkPosT.fs"/>
         <Compile Include="Types\HexSpheres\Components\Chunks\ChunkLodT.fs"/>
         <Compile Include="Types\HexSpheres\Components\Chunks\ChunkInsightT.fs"/>
@@ -67,9 +72,9 @@
         <Compile Include="Types\Planets\CelestialMotionT.fs"/>
         <Compile Include="Types\Chunks\IHexMesh.fs"/>
         <Compile Include="Types\Chunks\IChunk.fs"/>
-        <Compile Include="Types\Chunks\FeatureT.fs" />
-        <Compile Include="Types\Chunks\FeatureMeshManagerT.fs" />
-        <Compile Include="Types\Chunks\FeaturePreviewManagerT.fs" />
+        <Compile Include="Types\Chunks\FeatureT.fs"/>
+        <Compile Include="Types\Chunks\FeatureMeshManagerT.fs"/>
+        <Compile Include="Types\Chunks\FeaturePreviewManagerT.fs"/>
         <Compile Include="Types\Chunks\IHexGridChunk.fs"/>
         <Compile Include="Types\Chunks\ChunkLoaderT.fs"/>
         <Compile Include="Types\Chunks\TileOverriderT.fs"/>
@@ -80,6 +85,11 @@
         <Compile Include="Types\Maps\ErosionLandGeneratorT.fs"/>
         <Compile Include="Types\Maps\FractalNoiseLandGeneratorT.fs"/>
         <Compile Include="Types\Maps\RealEarthLandGeneratorT.fs"/>
+        <Compile Include="Types\Units\UnitT.fs" />
+        <Compile Include="Types\Units\HexUnitPathT.fs" />
+        <Compile Include="Types\Units\HexUnitT.fs" />
+        <Compile Include="Types\Units\HexUnitPathPoolT.fs" />
+        <Compile Include="Types\Units\UnitManagerT.fs" />
         <Compile Include="Types\PlanetHuds\OptionalToggleT.fs"/>
         <Compile Include="Types\PlanetHuds\SelectTileViewerT.fs"/>
         <Compile Include="Types\PlanetHuds\PlanetHudT.fs"/>
@@ -87,6 +97,7 @@
         <Compile Include="Functions\Friflos\ArchetypeQuery.fs"/>
         <Compile Include="Functions\Maths\MathConstant.fs"/>
         <Compile Include="Functions\Maths\Math3dUtil.fs"/>
+        <Compile Include="Functions\Maths\Node3dUtil.fs" />
         <Compile Include="Functions\Textures\TextureUtil.fs"/>
         <Compile Include="Functions\DataStructures\VpTree.fs"/>
         <Compile Include="Functions\DataStructures\LruCache.fs"/>
@@ -99,7 +110,7 @@
         <Compile Include="Functions\HexMetrics\HexIndexUtil.fs"/>
         <Compile Include="Functions\Hashes\HexHash.fs"/>
         <Compile Include="Functions\HexSpheres\HexSphereUtil.fs"/>
-        <Compile Include="Functions\HexSpheres\ChunkyVpTrees.fs" />
+        <Compile Include="Functions\HexSpheres\ChunkyVpTrees.fs"/>
         <Compile Include="Functions\HexSpheres\Components\Points\PointNeighborCenterIds.fs"/>
         <Compile Include="Functions\HexSpheres\Components\Faces\FaceComponent.fs"/>
         <Compile Include="Functions\HexSpheres\Components\Faces\FaceFunction.fs"/>
@@ -125,10 +136,10 @@
         <Compile Include="Functions\Cameras\OrbitCameraRig.fs"/>
         <Compile Include="Functions\Geos\LonLatGrid.fs"/>
         <Compile Include="Functions\Planets\CelestialMotion.fs"/>
-        <Compile Include="Functions\Chunks\HexMesh.fs" />
-        <Compile Include="Functions\Chunks\Feature.fs" />
-        <Compile Include="Functions\Chunks\FeatureMeshManager.fs" />
-        <Compile Include="Functions\Chunks\FeaturePreviewManager.fs" />
+        <Compile Include="Functions\Chunks\HexMesh.fs"/>
+        <Compile Include="Functions\Chunks\Feature.fs"/>
+        <Compile Include="Functions\Chunks\FeatureMeshManager.fs"/>
+        <Compile Include="Functions\Chunks\FeaturePreviewManager.fs"/>
         <Compile Include="Functions\Chunks\HexGridChunk.fs"/>
         <Compile Include="Functions\Chunks\ChunkLoader.fs"/>
         <Compile Include="Functions\Chunks\TileOverrider.fs"/>
@@ -140,6 +151,10 @@
         <Compile Include="Functions\Maps\FractalNoiseLandGenerator.fs"/>
         <Compile Include="Functions\Maps\RealEarthLandGenerator.fs"/>
         <Compile Include="Functions\Maps\HexMapGenerator.fs"/>
+        <Compile Include="Functions\Units\HexUnitPath.fs" />
+        <Compile Include="Functions\Units\HexUnit.fs" />
+        <Compile Include="Functions\Units\HexUnitPathPool.fs" />
+        <Compile Include="Functions\Units\UnitManager.fs" />
         <Compile Include="Functions\PlanetHuds\SelectTileViewer.fs"/>
         <Compile Include="Functions\PlanetHuds\PlanetHud.fs"/>
         <Compile Include="Envs\PlanetEnv.fs"/>

@@ -5,37 +5,10 @@ open TO.Domains.Functions.HexGridCoords
 open TO.Domains.Functions.HexSpheres.Components
 open TO.Domains.Functions.HexSpheres.Components.Tiles
 open TO.Domains.Types.Friflos
-open TO.Domains.Types.HexMetrics
+open TO.Domains.Types.HexSpheres
 open TO.Domains.Types.HexSpheres.Components
 open TO.Domains.Types.HexSpheres.Components.Tiles
 open TO.Domains.Types.PathFindings
-
-module TileSearcherQuery =
-    let getMoveCost: GetMoveCost =
-        fun (fromTile: Entity) (toTile: Entity) ->
-            let edgeType =
-                fromTile |> Tile.value |> TileValue.getEdgeType (toTile |> Tile.value)
-
-            if edgeType = HexEdgeType.Cliff then
-                -1
-            elif
-                fromTile
-                |> Tile.flag
-                |> TileFlag.hasRoad (Tile.getNeighborTileIdx fromTile toTile)
-            then
-                1
-            elif
-                fromTile |> Tile.flag |> TileFlag.walled
-                <> (toTile |> Tile.flag |> TileFlag.walled)
-            then
-                -1
-            else
-                let toTileValue = toTile |> Tile.value
-
-                (if edgeType = HexEdgeType.Flat then 5 else 10)
-                + (toTileValue |> TileValue.urbanLevel)
-                + (toTileValue |> TileValue.farmLevel)
-                + (toTileValue |> TileValue.plantLevel)
 
 /// Copyright (C) 2025 Zhu Xiaohe(aka ZeromaXHe)
 /// Author: Zhu XH (ZeromaXHe)
@@ -52,11 +25,12 @@ module TileSearcherCommand =
 
     let private isValidDestination (tile: Entity) =
         tile |> Tile.flag |> TileFlag.isExplored
-        && tile |> Tile.value |> TileValue.isUnderwater // && !tile.HasUnit
+        && tile |> Tile.value |> TileValue.isUnderwater |> not // && !tile.HasUnit
 
     let private heuristicCost (env: #ITileQuery) (fromTile: Entity) (toTile: Entity) =
         env.GetSphereAxial fromTile
         |> SphereAxial.distanceTo (env.GetSphereAxial toTile)
+
     // 寻路
     let private searchPath
         (env: 'E when 'E :> ITileSearcherQuery and 'E :> ITileQuery)
@@ -95,10 +69,10 @@ module TileSearcherCommand =
                     then
                         () // continue
                     else
-                        let moveCost = env.GetMoveCost current neighbor
+                        let moveCost = Tile.getMoveCost current neighbor
 
                         if moveCost < 0 then
-                            ()
+                            () // continue
                         else
                             let distance = currentDistance + moveCost
 
@@ -122,10 +96,10 @@ module TileSearcherCommand =
         pathFound
 
     // 可视范围
-    let getVisibleTiles (env: 'E when 'E :> ITileSearcherQuery and 'E :> ITileQuery) =
+    let getVisibleTiles (env: 'E when 'E :> ITileSearcherQuery and 'E :> ITileQuery) : GetVisibleTiles =
         fun (fromTile: Entity) (range: int) ->
             let this = env.TileSearcher
-            let visibleTiles = ResizeArray<Entity>()
+            let visibleTiles = ResizeArray<TileId>()
             this.SearchFrontierPhase <- this.SearchFrontierPhase + 2
 
             if this.SearchFrontier.IsNone then
@@ -134,6 +108,7 @@ module TileSearcherCommand =
             let searchFrontier = this.SearchFrontier.Value
             searchFrontier |> TilePriorityQueue.clear
             let fromTileCountId = fromTile |> Tile.countId |> _.CountId
+            let range = range + (fromTile |> Tile.value |> TileValue.viewElevation)
 
             this.SearchData[fromTileCountId] <-
                 TileSearchData(
@@ -148,7 +123,7 @@ module TileSearcherCommand =
             while TilePriorityQueue.tryDequeue &currentCountId searchFrontier do
                 let current = env.GetTileByCountId currentCountId
                 this.SearchData[currentCountId].SearchPhase <- this.SearchData[currentCountId].SearchPhase + 1
-                visibleTiles.Add current
+                visibleTiles.Add current.Id
 
                 for neighbor in env.GetNeighborTiles current do
                     let neighborCountId = neighbor |> Tile.countId |> _.CountId
@@ -184,7 +159,7 @@ module TileSearcherCommand =
 
             visibleTiles
 
-    let findPath (env: 'E when 'E :> ITileSearcherQuery and 'E :> ITileQuery) =
+    let findTileSearchPath (env: 'E when 'E :> ITileSearcherQuery and 'E :> ITileQuery) : FindTileSearchPath =
         fun (fromTile: Entity) (toTile: Entity) (useCache: bool) ->
             let this = env.TileSearcher
 
@@ -213,3 +188,20 @@ module TileSearcherCommand =
                 res.Add fromTile
                 res.Reverse()
                 res
+
+    let clearTileSearchPath (env: 'E when 'E :> ITileSearcherQuery and 'E :> ITileQuery) : ClearTileSearchPath =
+        fun () ->
+            let this = env.TileSearcher
+
+            if this.HasPath then
+                let mutable currentId = this.CurrentPathToId
+
+                while currentId <> this.CurrentPathFromId do
+                    let current = env.GetTile currentId
+                    let currentCountId = current |> Tile.countId |> _.CountId
+                    currentId <- this.SearchData[currentCountId].PathFrom
+
+                this.HasPath <- false
+
+            this.CurrentPathFromId <- -1
+            this.CurrentPathToId <- -1

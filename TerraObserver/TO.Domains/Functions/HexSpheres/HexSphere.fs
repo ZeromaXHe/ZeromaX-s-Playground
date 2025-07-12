@@ -241,6 +241,7 @@ module HexSphereInitCommand =
                         let link = ChunkToTileId(tileId)
                         chunk.AddRelation(&link) |> ignore))
 
+            env.AddTileOtherComponents()
             let mutable time2 = Time.GetTicksMsec()
             GD.Print $"InitTiles cost: {time2 - time} ms"
             time <- time2
