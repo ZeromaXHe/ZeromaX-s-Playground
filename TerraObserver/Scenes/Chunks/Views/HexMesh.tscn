@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://dc3sfe5lwrxpo"]
+
+[ext_resource type="Script" uid="uid://cjfpa20bj5ny4" path="res://Scenes/Chunks/Views/HexMesh.cs" id="1_q331c"]
+
+[node name="HexMesh" type="MeshInstance3D"]
+script = ExtResource("1_q331c")

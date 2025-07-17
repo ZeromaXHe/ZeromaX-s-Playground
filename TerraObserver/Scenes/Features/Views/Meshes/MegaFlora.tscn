@@ -1,0 +1,38 @@
+[gd_scene load_steps=2 format=3 uid="uid://bv4hm0dcsi308"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l1f6h"]
+albedo_color = Color(0.168627, 0.552941, 0.12549, 1)
+
+[node name="MegaFlora" type="CSGBox3D"]
+size = Vector3(2, 10, 2)
+material = SubResource("StandardMaterial3D_l1f6h")
+
+[node name="Flora1" type="CSGBox3D" parent="."]
+transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, 3, -0.5, 0)
+size = Vector3(1.5, 9, 1.5)
+material = SubResource("StandardMaterial3D_l1f6h")
+
+[node name="Flora2" type="CSGBox3D" parent="."]
+transform = Transform3D(0.866025, 0, 0.5, 0, 1, 0, -0.5, 0, 0.866025, 3, -2.5, 3.5)
+size = Vector3(3, 5, 3)
+material = SubResource("StandardMaterial3D_l1f6h")
+
+[node name="Flora3" type="CSGBox3D" parent="."]
+transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, -3, -1, -2)
+size = Vector3(3, 8, 2)
+material = SubResource("StandardMaterial3D_l1f6h")
+
+[node name="Flora4" type="CSGBox3D" parent="."]
+transform = Transform3D(0.866025, 0, 0.5, 0, 1, 0, -0.5, 0, 0.866025, -3, -3, 1)
+size = Vector3(1.5, 4, 1.5)
+material = SubResource("StandardMaterial3D_l1f6h")
+
+[node name="Flora5" type="CSGBox3D" parent="."]
+transform = Transform3D(0.5, 0, 0.866025, 0, 1, 0, -0.866025, 0, 0.5, -1, -1.5, 3)
+size = Vector3(2, 7, 1.5)
+material = SubResource("StandardMaterial3D_l1f6h")
+
+[node name="Flora6" type="CSGBox3D" parent="."]
+transform = Transform3D(0.5, 0, 0.866025, 0, 1, 0, -0.866025, 0, 0.5, 1, -2, -3)
+size = Vector3(2, 6, 3)
+material = SubResource("StandardMaterial3D_l1f6h")

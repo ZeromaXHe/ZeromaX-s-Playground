@@ -1,0 +1,24 @@
+[gd_scene load_steps=4 format=3 uid="uid://ed6bxdqb7oek"]
+
+[ext_resource type="Script" uid="uid://nk6xck7elwgs" path="res://Scenes/Geos/Views/LonLatGrid.cs" id="1_v1stx"]
+[ext_resource type="Shader" uid="uid://stcow1yfqvbl" path="res://Shaders/Geos/LineAlpha.gdshader" id="2_ar271"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ei5ps"]
+render_priority = 12
+shader = ExtResource("2_ar271")
+shader_parameter/alpha_factor = 0.6
+shader_parameter/albedo = Color(1, 1, 1, 1)
+shader_parameter/albedo_texture_size = Vector2i(0, 0)
+shader_parameter/point_size = 0.0
+shader_parameter/roughness = 0.0
+shader_parameter/metallic_texture_channel = Vector4(0, 0, 0, 0)
+shader_parameter/specular = 0.0
+shader_parameter/metallic = 0.0
+shader_parameter/uv1_scale = Vector3(0, 0, 0)
+shader_parameter/uv1_offset = Vector3(0, 0, 0)
+shader_parameter/uv2_scale = Vector3(0, 0, 0)
+shader_parameter/uv2_offset = Vector3(0, 0, 0)
+
+[node name="LonLatGrid" type="Node3D"]
+script = ExtResource("1_v1stx")
+LineMaterial = SubResource("ShaderMaterial_ei5ps")

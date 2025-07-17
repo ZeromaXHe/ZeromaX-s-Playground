@@ -1,0 +1,53 @@
+[gd_scene load_steps=4 format=3 uid="uid://bdondmaglaff5"]
+
+[ext_resource type="Script" uid="uid://dlrido5oahpc8" path="res://Scenes/Cameras/Views/OrbitCameraRig.cs" id="1_rarnc"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_b4m38"]
+shading_mode = 0
+albedo_color = Color(0, 0.501961, 0, 1)
+disable_receive_shadows = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rarnc"]
+shading_mode = 0
+albedo_color = Color(0.501961, 0, 0, 1)
+disable_receive_shadows = true
+
+[node name="OrbitCameraRig" type="Node3D"]
+script = ExtResource("1_rarnc")
+
+[node name="FocusBase" type="Node3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0, -110)
+
+[node name="FocusBox" type="CSGBox3D" parent="FocusBase"]
+unique_name_in_owner = true
+cast_shadow = 0
+material = SubResource("StandardMaterial3D_b4m38")
+
+[node name="FocusBackStick" type="Node3D" parent="FocusBase"]
+unique_name_in_owner = true
+transform = Transform3D(-1, 0, 8.74228e-08, 0, 1, 0, -8.74228e-08, 0, -1, 0, 0, -20)
+
+[node name="BackBox" type="CSGBox3D" parent="FocusBase/FocusBackStick"]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
+cast_shadow = 0
+material = SubResource("StandardMaterial3D_rarnc")
+
+[node name="Light" type="SpotLight3D" parent="FocusBase/FocusBackStick"]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 50, 0)
+light_energy = 0.0
+spot_range = 100.0
+spot_attenuation = 0.0
+
+[node name="Swivel" type="Node3D" parent="FocusBase/FocusBackStick"]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 0, 0)
+
+[node name="Stick" type="Node3D" parent="FocusBase/FocusBackStick/Swivel"]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 20)
+
+[node name="CamRig" type="RemoteTransform3D" parent="FocusBase/FocusBackStick/Swivel/Stick"]
+unique_name_in_owner = true

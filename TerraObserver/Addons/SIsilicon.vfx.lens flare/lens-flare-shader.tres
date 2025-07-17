@@ -1,0 +1,35 @@
+[gd_resource type="ShaderMaterial" load_steps=7 format=3 uid="uid://by00g8m68yc55"]
+
+[ext_resource type="Texture2D" uid="uid://cttvpeo7w72p" path="res://Addons/SIsilicon.vfx.lens flare/lens-dirt-default.jpeg" id="1_i2kpg"]
+[ext_resource type="Shader" uid="uid://5neqvc4umyjj" path="res://Addons/SIsilicon.vfx.lens flare/lens_flare.gdshader" id="1_sned2"]
+
+[sub_resource type="Gradient" id="Gradient_8afb6"]
+colors = PackedColorArray(1, 0.909209, 0.467832, 1, 1, 0.342403, 0.851428, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_1m8wp"]
+gradient = SubResource("Gradient_8afb6")
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_8wa0s"]
+noise_type = 5
+frequency = 1.0
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_ebh81"]
+height = 1
+noise = SubResource("FastNoiseLite_8wa0s")
+
+[resource]
+render_priority = 13
+shader = ExtResource("1_sned2")
+shader_parameter/lod = 2.0
+shader_parameter/stretch_to_aspect = 0.5
+shader_parameter/ghosts = 7
+shader_parameter/ghost_dispersal = 0.3
+shader_parameter/halo_width = 0.25
+shader_parameter/distort = 2.0
+shader_parameter/bloom_scale = 10.0
+shader_parameter/bloom_bias = 1.05
+shader_parameter/streak_strength = 1.0
+shader_parameter/distortion_quality = 0
+shader_parameter/lens_color = SubResource("GradientTexture1D_1m8wp")
+shader_parameter/lens_dirt = ExtResource("1_i2kpg")
+shader_parameter/starburst = SubResource("NoiseTexture2D_ebh81")

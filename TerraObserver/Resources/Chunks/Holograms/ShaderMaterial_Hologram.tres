@@ -1,0 +1,16 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://jo0hnqc2dau6"]
+
+[ext_resource type="Shader" uid="uid://c383u73cyj3du" path="res://Shaders/Chunks/Holograms/Hologram.gdshader" id="1_mxw6v"]
+
+[resource]
+render_priority = 12
+shader = ExtResource("1_mxw6v")
+shader_parameter/color = Color(0, 1, 0.367188, 1)
+shader_parameter/lines1 = 160.0
+shader_parameter/lines2 = 50.0
+shader_parameter/distortion_strength = 0.0
+shader_parameter/distortion_percentage = 0.01
+shader_parameter/_emission_min = 1.0
+shader_parameter/_emission_max = 2.0
+shader_parameter/_fresnel = 0.3
+shader_parameter/viewmodel_fov = 75.0

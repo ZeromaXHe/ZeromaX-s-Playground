@@ -1,0 +1,122 @@
+[gd_scene load_steps=21 format=3 uid="uid://xt27m67y5sb6"]
+
+[ext_resource type="PackedScene" uid="uid://dc3sfe5lwrxpo" path="res://Scenes/Chunks/Views/HexMesh.tscn" id="1_fli57"]
+[ext_resource type="Script" uid="uid://bx5w85poeb45m" path="res://Scenes/Chunks/Views/HexGridChunk.cs" id="1_h38kf"]
+[ext_resource type="Shader" uid="uid://bj1qatd1mjdrf" path="res://Shaders/Chunks/Terrain.gdshader" id="3_xxjc6"]
+[ext_resource type="CompressedTexture2DArray" uid="uid://b40cqrfywfu1p" path="res://Assets/CatlikeCoding/terrain.png" id="4_yxgbb"]
+[ext_resource type="Shader" uid="uid://beii6ex2bth1m" path="res://Shaders/Chunks/River.gdshader" id="5_xmksr"]
+[ext_resource type="Texture2D" uid="uid://com2va6tuhrvy" path="res://Assets/CatlikeCoding/noise.png" id="6_kfws1"]
+[ext_resource type="Shader" uid="uid://oc6qmpxiskrm" path="res://Shaders/Chunks/Road.gdshader" id="7_kfws1"]
+[ext_resource type="Shader" uid="uid://ddhkw4ex2tsfr" path="res://Shaders/Chunks/Water.gdshader" id="8_7c7lt"]
+[ext_resource type="Texture2D" uid="uid://cpkd82874vma7" path="res://Assets/Sebastian/Wave A.png" id="9_usont"]
+[ext_resource type="Texture2D" uid="uid://xnepbrctxsfw" path="res://Assets/Sebastian/Wave B.png" id="10_tr0bs"]
+[ext_resource type="Shader" uid="uid://chwcl51sp6ixg" path="res://Shaders/Chunks/WaterShore.gdshader" id="11_usont"]
+[ext_resource type="Shader" uid="uid://dj4c4vsmyn3io" path="res://Shaders/Chunks/Estuary.gdshader" id="12_tr0bs"]
+[ext_resource type="Shader" uid="uid://bdpqwgv7f1ky6" path="res://Shaders/Chunks/Wall.gdshader" id="13_8trim"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_xmksr"]
+render_priority = 0
+shader = ExtResource("3_xxjc6")
+shader_parameter/color = Color(1, 1, 1, 1)
+shader_parameter/main_tex = ExtResource("4_yxgbb")
+shader_parameter/glossiness = 0.3
+shader_parameter/specular = 0.2
+shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_76trx"]
+render_priority = 9
+shader = ExtResource("5_xmksr")
+shader_parameter/color = Color(0.117647, 0.572549, 1, 0.752941)
+shader_parameter/main_tex = ExtResource("6_kfws1")
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ugu6b"]
+render_priority = 10
+shader = ExtResource("7_kfws1")
+shader_parameter/color = Color(0.831373, 0, 0, 1)
+shader_parameter/main_tex = ExtResource("6_kfws1")
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_8trim"]
+render_priority = 8
+shader = ExtResource("8_7c7lt")
+shader_parameter/main_tex = ExtResource("6_kfws1")
+shader_parameter/glossiness = 0.9
+shader_parameter/deep_col = Color(0, 0.4, 0.7, 1)
+shader_parameter/shallow_col = Color(0.118, 0.573, 1, 1)
+shader_parameter/wave_normal_A = ExtResource("9_usont")
+shader_parameter/wave_normal_B = ExtResource("10_tr0bs")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_tr0bs"]
+render_priority = 7
+shader = ExtResource("11_usont")
+shader_parameter/color = Color(0.117647, 0.572549, 1, 0.752941)
+shader_parameter/main_tex = ExtResource("6_kfws1")
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_601gt"]
+render_priority = 6
+shader = ExtResource("12_tr0bs")
+shader_parameter/color = Color(0.117647, 0.572549, 1, 0.752941)
+shader_parameter/main_tex = ExtResource("6_kfws1")
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ro5e1"]
+render_priority = 0
+shader = ExtResource("13_8trim")
+shader_parameter/color = Color(0.741176, 0, 0, 1)
+shader_parameter/glossiness = 0.5
+shader_parameter/specular = 0.2
+shader_parameter/background_color = Color(0.2, 0.169, 0.133, 1)
+
+[node name="HexGridChunk" type="Node3D" node_paths=PackedStringArray("Terrain", "Rivers", "Roads", "Water", "WaterShore", "Estuary", "Walls")]
+script = ExtResource("1_h38kf")
+Terrain = NodePath("Terrain")
+Rivers = NodePath("Rivers")
+Roads = NodePath("Roads")
+Water = NodePath("Water")
+WaterShore = NodePath("WaterShore")
+Estuary = NodePath("Estuaries")
+Walls = NodePath("Walls")
+
+[node name="Terrain" parent="." instance=ExtResource("1_fli57")]
+material_override = SubResource("ShaderMaterial_xmksr")
+UseCollider = true
+UseCellData = true
+
+[node name="Rivers" parent="." instance=ExtResource("1_fli57")]
+material_override = SubResource("ShaderMaterial_76trx")
+UseCellData = true
+UseUvCoordinates = true
+Smooth = true
+
+[node name="Roads" parent="." instance=ExtResource("1_fli57")]
+material_override = SubResource("ShaderMaterial_ugu6b")
+UseCellData = true
+UseUvCoordinates = true
+
+[node name="Water" parent="." instance=ExtResource("1_fli57")]
+material_override = SubResource("ShaderMaterial_8trim")
+UseCellData = true
+Smooth = true
+
+[node name="WaterShore" parent="." instance=ExtResource("1_fli57")]
+material_override = SubResource("ShaderMaterial_tr0bs")
+UseCellData = true
+UseUvCoordinates = true
+Smooth = true
+
+[node name="Estuaries" parent="." instance=ExtResource("1_fli57")]
+material_override = SubResource("ShaderMaterial_601gt")
+UseCellData = true
+UseUvCoordinates = true
+UseUv2Coordinates = true
+Smooth = true
+
+[node name="Walls" parent="." instance=ExtResource("1_fli57")]
+material_override = SubResource("ShaderMaterial_ro5e1")
+UseCellData = true

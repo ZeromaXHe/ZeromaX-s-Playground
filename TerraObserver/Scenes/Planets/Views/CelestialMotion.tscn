@@ -1,0 +1,77 @@
+[gd_scene load_steps=6 format=3 uid="uid://0fh2xl2k3hyk"]
+
+[ext_resource type="Script" uid="uid://c7wr65lpjdb4x" path="res://Scenes/Planets/Views/CelestialMotion.cs" id="1_082jw"]
+[ext_resource type="Texture2D" uid="uid://66lx663b5mwy" path="res://Assets/Space/milkyway panorama eso0932a.jpg" id="1_kxsm3"]
+
+[sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_082jw"]
+panorama = ExtResource("1_kxsm3")
+energy_multiplier = 0.3
+
+[sub_resource type="Sky" id="Sky_v27gh"]
+sky_material = SubResource("PanoramaSkyMaterial_082jw")
+
+[sub_resource type="Environment" id="Environment_l7ph5"]
+background_mode = 2
+sky = SubResource("Sky_v27gh")
+sky_rotation = Vector3(-0.638092, 0, 0)
+ambient_light_source = 2
+ambient_light_color = Color(0.0627451, 0.0627451, 0.0627451, 1)
+tonemap_mode = 2
+glow_enabled = true
+glow_intensity = 1.0
+glow_blend_mode = 0
+glow_hdr_threshold = 0.8
+
+[node name="CelestialMotion" type="Node3D"]
+script = ExtResource("1_082jw")
+PlanetRevolution = false
+PlanetRotation = false
+SatelliteRevolution = false
+SatelliteRotation = false
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+unique_name_in_owner = true
+environment = SubResource("Environment_l7ph5")
+
+[node name="EclipticPlane" type="Node3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 0.917477, -0.397789, 0, 0.397789, 0.917477, 0, 0, 0)
+
+[node name="SunRevolution" type="Node3D" parent="EclipticPlane"]
+unique_name_in_owner = true
+transform = Transform3D(-1, 0, 8.74228e-08, 0, 1, 0, -8.74228e-08, 0, -1, 0, 0, 0)
+
+[node name="SunDist" type="Node3D" parent="EclipticPlane/SunRevolution"]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3000)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="EclipticPlane/SunRevolution/SunDist"]
+shadow_enabled = true
+shadow_bias = 0.03
+shadow_normal_bias = 0.01
+directional_shadow_max_distance = 1200.0
+
+[node name="SunTransform" type="RemoteTransform3D" parent="EclipticPlane/SunRevolution/SunDist"]
+unique_name_in_owner = true
+
+[node name="LunarOrbitPlane" type="Node3D" parent="EclipticPlane"]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 0.995979, -0.0895897, 0, 0.0895897, 0.995979, 0, 0, 0)
+
+[node name="LunarRevolution" type="Node3D" parent="EclipticPlane/LunarOrbitPlane"]
+unique_name_in_owner = true
+transform = Transform3D(-1, 0, 8.74228e-08, 0, 1, 0, -8.74228e-08, 0, -1, 0, 0, 0)
+
+[node name="LunarDist" type="Node3D" parent="EclipticPlane/LunarOrbitPlane/LunarRevolution"]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 750)
+
+[node name="LunarObliquity" type="Node3D" parent="EclipticPlane/LunarOrbitPlane/LunarRevolution/LunarDist"]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 0.993212, -0.116324, 0, 0.116324, 0.993212, 0, 0, 0)
+
+[node name="MoonAxis" type="Node3D" parent="EclipticPlane/LunarOrbitPlane/LunarRevolution/LunarDist/LunarObliquity"]
+unique_name_in_owner = true
+
+[node name="MoonTransform" type="RemoteTransform3D" parent="EclipticPlane/LunarOrbitPlane/LunarRevolution/LunarDist/LunarObliquity/MoonAxis"]
+unique_name_in_owner = true

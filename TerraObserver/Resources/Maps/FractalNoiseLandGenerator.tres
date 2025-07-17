@@ -1,0 +1,75 @@
+[gd_resource type="Resource" script_class="FractalNoiseLandGenerator" load_steps=13 format=3 uid="uid://cbt1oad88po7b"]
+
+[ext_resource type="Script" uid="uid://jtrvea6ga2xa" path="res://Scenes/Maps/Models/NoiseSettings.cs" id="1_7frjq"]
+[ext_resource type="Script" uid="uid://djna8k77mno0c" path="res://Scenes/Maps/Models/LayeredFastNoise.cs" id="2_8a4x5"]
+[ext_resource type="Script" uid="uid://bfxajrggpfd78" path="res://Scenes/Maps/Models/FractalNoiseLandGenerator.cs" id="3_yabjn"]
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_7xxgn"]
+noise_type = 3
+frequency = 0.03
+fractal_type = 0
+domain_warp_enabled = true
+
+[sub_resource type="Resource" id="Resource_kwe7g"]
+script = ExtResource("1_7frjq")
+Strength = 1.0
+SampleRadius = 1.0
+Noise = SubResource("FastNoiseLite_7xxgn")
+Bias = -0.2
+Enabled = true
+UseFirstLayerAsMask = false
+metadata/_custom_type_script = "uid://jtrvea6ga2xa"
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_dptte"]
+noise_type = 3
+frequency = 0.1
+
+[sub_resource type="Resource" id="Resource_a8tqq"]
+script = ExtResource("1_7frjq")
+Strength = 0.5
+SampleRadius = 0.5
+Noise = SubResource("FastNoiseLite_dptte")
+Bias = 0.0
+Enabled = true
+UseFirstLayerAsMask = true
+metadata/_custom_type_script = "uid://jtrvea6ga2xa"
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_1ww57"]
+noise_type = 0
+frequency = 0.0545
+fractal_type = 2
+fractal_octaves = 8
+
+[sub_resource type="Resource" id="Resource_0wxy1"]
+script = ExtResource("1_7frjq")
+Strength = 0.2
+SampleRadius = 0.5
+Noise = SubResource("FastNoiseLite_1ww57")
+Bias = 0.0
+Enabled = true
+UseFirstLayerAsMask = true
+metadata/_custom_type_script = "uid://jtrvea6ga2xa"
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_wddfp"]
+frequency = 0.0051
+fractal_type = 2
+fractal_octaves = 8
+
+[sub_resource type="Resource" id="Resource_7jhi5"]
+script = ExtResource("1_7frjq")
+Strength = 0.2
+SampleRadius = 0.1
+Noise = SubResource("FastNoiseLite_wddfp")
+Bias = 0.0
+Enabled = true
+UseFirstLayerAsMask = true
+metadata/_custom_type_script = "uid://jtrvea6ga2xa"
+
+[sub_resource type="Resource" id="Resource_ccn5j"]
+script = ExtResource("2_8a4x5")
+NoiseLayers = [SubResource("Resource_kwe7g"), SubResource("Resource_a8tqq"), SubResource("Resource_0wxy1"), SubResource("Resource_7jhi5")]
+
+[resource]
+script = ExtResource("3_yabjn")
+LayeredNoises = SubResource("Resource_ccn5j")
+metadata/_custom_type_script = "uid://bfxajrggpfd78"

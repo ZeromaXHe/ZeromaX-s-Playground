@@ -1,0 +1,13 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# csv localization generation
+*.translation
+
+# .NET Core
+bin/
+obj/
+
+# JetBrains IDEs
+.idea/

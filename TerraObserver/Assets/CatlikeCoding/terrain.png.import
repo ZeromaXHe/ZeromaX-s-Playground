@@ -1,0 +1,26 @@
+[remap]
+
+importer="2d_array_texture"
+type="CompressedTexture2DArray"
+uid="uid://b40cqrfywfu1p"
+path="res://.godot/imported/terrain.png-308ba4ebb9506f0fe4bf3c951daa35c3.ctexarray"
+metadata={
+"vram_texture": false
+}
+
+[deps]
+
+source_file="res://Assets/CatlikeCoding/terrain.png"
+dest_files=["res://.godot/imported/terrain.png-308ba4ebb9506f0fe4bf3c951daa35c3.ctexarray"]
+
+[params]
+
+compress/mode=0
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+slices/horizontal=5
+slices/vertical=1
