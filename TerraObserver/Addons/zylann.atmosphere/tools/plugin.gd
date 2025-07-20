@@ -2,7 +2,7 @@
 extends EditorPlugin
 
 #const NoiseCubemap = preload("../noise_cubemap.gd")
-const NoiseCubemapInspectorPlugin = preload("./noise_cubemap_inspector_plugin.gd")
+#const NoiseCubemapInspectorPlugin = preload("./noise_cubemap_inspector_plugin.gd")
 
 
 var _noise_cubemap_inspector_plugin : NoiseCubemapInspectorPlugin
@@ -17,7 +17,7 @@ func _enter_tree():
 	# but doesn't appear in the New Resource dialog.
 	# Oh well, let's use both I guess :/
 	# https://github.com/godotengine/godot/issues/75245
-	add_custom_type("NoiseCubemap", "Cubemap", NoiseCubemap, null)
+	#add_custom_type("NoiseCubemap", "Cubemap", NoiseCubemap, null)
 	
 	_noise_cubemap_inspector_plugin = NoiseCubemapInspectorPlugin.new()
 	_noise_cubemap_inspector_plugin.save_as_image_requested.connect(
@@ -26,7 +26,7 @@ func _enter_tree():
 
 
 func _exit_tree():
-	remove_custom_type("NoiseCubemap")
+	#remove_custom_type("NoiseCubemap")
 
 	remove_inspector_plugin(_noise_cubemap_inspector_plugin)
 	_noise_cubemap_inspector_plugin = null

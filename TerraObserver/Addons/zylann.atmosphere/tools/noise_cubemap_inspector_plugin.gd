@@ -1,6 +1,7 @@
+class_name NoiseCubemapInspectorPlugin
 extends EditorInspectorPlugin
 
-const NoiseCubemap = preload("../noise_cubemap.gd")
+#const NoiseCubemap = preload("../noise_cubemap.gd")
 
 signal save_as_image_requested(noise_cubemap)
 
