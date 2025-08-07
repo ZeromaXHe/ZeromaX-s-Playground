@@ -1,0 +1,100 @@
+[gd_scene load_steps=14 format=3 uid="uid://da670s7hp8t3m"]
+
+[ext_resource type="Shader" uid="uid://c5fs2tw7wc8d" path="res://Demos/CubeToSpheres/cube_to_sphere.gdshader" id="1_rjm7q"]
+[ext_resource type="PackedScene" uid="uid://b3ufkneb8okpe" path="res://Demos/CubeToSpheres/CubeTileMapLayers.tscn" id="1_s7qu5"]
+
+[sub_resource type="GDScript" id="GDScript_s7qu5"]
+script/source = "@tool
+extends Node
+
+@onready var ground: MeshInstance3D = %Ground
+@onready var sub_viewport: SubViewport = %SubViewport
+
+func _ready() -> void:
+	var plane_mesh = ground.mesh as PlaneMesh
+	var material = plane_mesh.material as StandardMaterial3D
+	# 不知道为啥直接在场景里设置就不行…… 以及先创建一个 ViewportTexture，然后改它的 viewport 也不行
+	material.albedo_texture = sub_viewport.get_texture()
+"
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_rjm7q"]
+noise_type = 2
+fractal_type = 0
+cellular_distance_function = 2
+cellular_return_type = 0
+domain_warp_enabled = true
+domain_warp_fractal_type = 0
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_s7qu5"]
+noise = SubResource("FastNoiseLite_rjm7q")
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_rjm7q"]
+sky_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
+ground_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
+
+[sub_resource type="Sky" id="Sky_s7qu5"]
+sky_material = SubResource("ProceduralSkyMaterial_rjm7q")
+
+[sub_resource type="Environment" id="Environment_hqfbt"]
+background_mode = 2
+sky = SubResource("Sky_s7qu5")
+tonemap_mode = 2
+glow_enabled = true
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_s7qu5"]
+render_priority = 0
+shader = ExtResource("1_rjm7q")
+shader_parameter/progress = 1.0
+shader_parameter/average = 1.0
+
+[sub_resource type="BoxMesh" id="BoxMesh_odqdj"]
+material = SubResource("ShaderMaterial_s7qu5")
+subdivide_width = 50
+subdivide_height = 50
+subdivide_depth = 50
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_s7qu5"]
+viewport_path = NodePath("SubViewport")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_s7qu5"]
+resource_local_to_scene = true
+albedo_texture = SubResource("ViewportTexture_s7qu5")
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_odqdj"]
+material = SubResource("StandardMaterial3D_s7qu5")
+size = Vector2(10, 10)
+
+[node name="CubeToSphereContext" type="Node"]
+script = SubResource("GDScript_s7qu5")
+
+[node name="SubViewport" type="SubViewport" parent="."]
+unique_name_in_owner = true
+size = Vector2i(1600, 1600)
+
+[node name="TextureRect" type="TextureRect" parent="SubViewport"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = SubResource("NoiseTexture2D_s7qu5")
+
+[node name="CubeTileMapLayers" parent="SubViewport" instance=ExtResource("1_s7qu5")]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.866023, -0.433016, 0.250001, 0, 0.499998, 0.866027, -0.500003, 0.749999, -0.43301, 0, 0, 0)
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_hqfbt")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(0.991107, -0.0902498, 0.0977876, 0, 0.734862, 0.678216, -0.133069, -0.672185, 0.728327, 0.41305, 2.68001, 2.77661)
+
+[node name="CubeSphere" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_odqdj")
+
+[node name="Ground" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
+mesh = SubResource("PlaneMesh_odqdj")

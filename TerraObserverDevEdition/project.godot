@@ -1,0 +1,30 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Terra Observer - Dev Edition"
+config/features=PackedStringArray("4.4", "Forward Plus")
+config/icon="res://icon.svg"
+
+[dotnet]
+
+project/assembly_name="Terra Observer"
+
+[file_customization]
+
+folder_colors={
+"res://Addons/": "gray",
+"res://Assets/": "yellow",
+"res://Demos/": "orange",
+"res://Resources/": "pink",
+"res://Scenes/": "green",
+"res://Shaders/": "purple"
+}

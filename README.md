@@ -28,8 +28,9 @@
 
   - **[Unity中的GPU光线追踪.md](./Docs/Unity中的GPU光线追踪.md)**：由于[Three Eyed Games 原链接](http://blog.three-eyed-games.com/2018/05/03/gpu-ray-tracing-in-unity-part-1/)无法打开，而在网上搜集的 1 ~ 3 部分文章进行中文翻译。版权归原作者所有。
 
-- **MainGame 文件夹**：基于 Godot 引擎开发、学习的主体游戏部分
+- **MainGame 文件夹**：
 
+  - 最早基于 Godot 引擎开发、学习的主体游戏部分。在此预研了和我开发方向相关的各种教程。
   - 后续未提及的其余大部分为本人开发的内容、原型（如有疏漏或需要侵删，请联系我）
   - **demo 文件夹**：
     - **ConwaysGameOfLife 文件夹**：参考 hamsterbyte 的“Godot 4 - 着色器、计算着色器和并行性（全课）”[教程视频](https://www.youtube.com/watch?v=VQhi2w1E0iU&ab_channel=hamsterbyte)（[B 站搬运视频](https://www.bilibili.com/video/BV1Tu4y1c7hE)）实现
@@ -43,12 +44,23 @@
     - **CatlikeCoding 文件夹**：其中资产素材来自 [CatlikeCoding 网站](https://catlikecoding.com/)相关教程，学习过程中使用的到的素材。版权归原作者 Jasper Flick 所有。[许可](https://catlikecoding.com/unity/tutorials/license/)基于网站代码 MIT 协议和教程 CC BY-NC-SA 4.0 许可证。
     - **kenney 文件夹**：其中资产素材来自 [Kenney.nl 网站](https://www.kenney.nl/)，许可为 CC0 许可证。
 
-- **MainProject 文件夹**：主要的项目文件夹
+- **MainProject 文件夹**：
 
+  - 早期开发的主要项目文件夹；使用 C# 语言，进行了六边形球体（准确来说，即戈德堡多面体）+ Catlike Coding 六边形地图教程 + Sebastian Lague 星球生成、地理游戏等相关教程的融合开发。
+  - 目前由于项目早期代码架构、场景节点组织较为混乱，重构起来过于费劲，所以已弃置。后转为 TerraObserver 项目中基于 F# 语言进行重构。
   - **Assets 文件夹**
     - **HexPlanet**
       - **milkyway panorama eso0932a.jpg**：图片来源于 [ESO 网站](https://www.eso.org/public/images/eso0932a/)，版权归属 **Credit:** ESO/S. Brunier。图片基于 [CC 4.0 许可证](https://www.eso.org/public/outreach/copyright/)使用。
       - **euvi_aia304_2012_carrington_searchweb.png**：图片来源于 [NASA 网站](https://svs.gsfc.nasa.gov/30362)，版权归属 credit: NASA JPL。图片基于 [NASA 图像和媒体使用指南](https://www.nasa.gov/nasa-brand-center/images-and-media/)使用
+
+- **TerraObserver 文件夹**：
+
+  - 由 MainProject 文件夹 C# 开发内容重构而来；代码主要使用 F# 语言，并采用了 Friflo.ECS 库进行 ECS 相关学习与实践
+
+- **TerraObserverDev 文件夹**：
+
+  - 辅助 TerraObserver 项目而新创建的项目，主要目标是通过基于正方形转为球体的四边形地块战略游戏的开发，先简化美术和程序上的难度，提前探索游戏玩法策划方面的内容。
+
 
 
 
