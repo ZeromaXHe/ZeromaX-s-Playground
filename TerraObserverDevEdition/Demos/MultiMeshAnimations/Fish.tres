@@ -1,0 +1,21 @@
+[gd_resource type="BoxMesh" load_steps=3 format=3 uid="uid://c45een5l4gxi7"]
+
+[ext_resource type="Shader" uid="uid://bhcx0k7skuac0" path="res://Demos/MultiMeshAnimations/Fish.gdshader" id="1_12i4g"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_muld2"]
+render_priority = 0
+shader = ExtResource("1_12i4g")
+shader_parameter/time_scale = 3.0
+shader_parameter/side_to_side = 0.5
+shader_parameter/pivot = 0.5
+shader_parameter/wave = 3.0
+shader_parameter/twist = 1.0
+shader_parameter/mask_black = 0.0
+shader_parameter/mask_white = 1.0
+
+[resource]
+material = SubResource("ShaderMaterial_muld2")
+size = Vector3(0.3, 0.6, 2)
+subdivide_width = 3
+subdivide_height = 6
+subdivide_depth = 20

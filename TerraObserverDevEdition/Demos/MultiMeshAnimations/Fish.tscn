@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://cgngm6hm7gsed"]
+
+[ext_resource type="BoxMesh" uid="uid://c45een5l4gxi7" path="res://Demos/MultiMeshAnimations/Fish.tres" id="1_u1yln"]
+
+[node name="Fish" type="MeshInstance3D"]
+mesh = ExtResource("1_u1yln")
