@@ -1,0 +1,11 @@
+[gd_scene load_steps=4 format=3 uid="uid://bad21oin78lv5"]
+
+[ext_resource type="Shader" uid="uid://b4ls8yk65wjhe" path="res://Demos/UvTests/UvTest.gdshader" id="1_1hhcx"]
+[ext_resource type="Texture2D" uid="uid://4m4aqy2vq81q" path="res://icon.svg" id="2_p0rda"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_wcs5k"]
+shader = ExtResource("1_1hhcx")
+
+[node name="UvTest" type="Sprite2D"]
+material = SubResource("ShaderMaterial_wcs5k")
+texture = ExtResource("2_p0rda")

@@ -1,0 +1,23 @@
+[gd_scene load_steps=4 format=3 uid="uid://c44gyg08lfdgp"]
+
+[ext_resource type="Script" uid="uid://b2kr7udpu0oyo" path="res://Demos/ProjQuadTileMapToCubeSpheres/proj_quad_tile_map_context.gd" id="1_tk3gn"]
+[ext_resource type="PackedScene" uid="uid://cr3o0artpuno7" path="res://Demos/ProjQuadTileMapToCubeSpheres/ProjTileMapLayers.tscn" id="2_3io2r"]
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_3io2r"]
+noise_type = 3
+fractal_type = 0
+
+[node name="ProjectQuadTileMapContext" type="Node"]
+script = ExtResource("1_tk3gn")
+divisions = 15
+noise = SubResource("FastNoiseLite_3io2r")
+
+[node name="MeshInsContainer" type="Node3D" parent="."]
+unique_name_in_owner = true
+
+[node name="MapTextureViewport" type="SubViewport" parent="."]
+unique_name_in_owner = true
+canvas_item_default_texture_filter = 0
+size = Vector2i(240, 240)
+
+[node name="ProjTileMapLayers" parent="MapTextureViewport" instance=ExtResource("2_3io2r")]
